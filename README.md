@@ -170,6 +170,7 @@ magicq-start
 magicq-stop
 magicq-touch-status
 magicq-touch-config list
+magicq-audio-test
 magicq-vnc-start
 magicq-vnc-stop
 sudo magicq-maintenance
@@ -209,6 +210,64 @@ magicq-start
 Le stesse azioni sono disponibili nel menu Openbox come **Start MagicQ** e
 **Stop MagicQ**. `magicq-status` distingue applicazione e supervisore con le
 righe `MAGICQ` e `SUPERVISOR`.
+
+### Fullscreen automatico
+
+MagicQ 1.9.x apre la finestra principale massimizzata, ma non richiede a
+Openbox il vero stato fullscreen. Per questo, senza un intervento aggiuntivo,
+restano visibili la barra del titolo e il pannello Tint2.
+
+Wasalight avvia `magicq-fullscreen-watch` insieme a Openbox. Il controllo
+attende la finestra principale `MagicQ PC` e le applica lo stato EWMH
+fullscreen tramite `wmctrl`. Funziona sia con l'avvio automatico in SHOW sia
+con **Start MagicQ** in MAINTENANCE e viene riapplicato quando MagicQ crea una
+nuova finestra dopo un riavvio. Non forza continuamente lo stato: dopo la prima
+applicazione, un operatore può disattivarlo temporaneamente durante una
+diagnosi senza che venga riattivato sulla stessa finestra.
+
+### Audio ALSA
+
+L'installer verifica che la configurazione ALSA e gli strumenti diagnostici
+siano presenti. Per provare realmente l'uscita predefinita eseguire:
+
+```bash
+magicq-audio-test
+```
+
+Il comando elenca le schede disponibili e riproduce una volta i campioni
+**Front Left** e **Front Right**. Alcune versioni di PortAudio usate da MagicQ
+provano anche nomi PCM storici (`front`, `rear`, `surround`) o ingressi non
+offerti dalle uscite HDMI. I conseguenti messaggi `Unknown PCM` e le asserzioni
+di enumerazione nel log non indicano da soli un guasto. L'audio è considerato
+funzionante quando `magicq-audio-test` termina correttamente e MagicQ completa
+l'inizializzazione. Errori come l'assenza di `alsa.conf`, nessuna scheda in
+`aplay -l` o l'impossibilità di aprire il dispositivo predefinito restano invece
+problemi reali e non vengono nascosti dai log.
+
+### Rete gestita da Openbox
+
+Ubuntu Server crea normalmente la prima configurazione Netplan usando
+`systemd-networkd`. In questo stato `nm-connection-editor` si apre, ma
+NetworkManager mostra l'interfaccia come `unmanaged` e la lista può apparire
+vuota. Wasalight installa quindi il file
+`/etc/netplan/99-wasalight-networkmanager.yaml`, che seleziona
+`NetworkManager` come renderer conservando le definizioni DHCP, statiche, DNS e
+route già presenti negli altri file Netplan.
+
+Le nuove connessioni salvate dal pannello **Network settings** di Openbox sono
+conservate nel bind persistente
+`/etc/NetworkManager/system-connections` → `/data/system/network`. Lo stato si
+controlla con:
+
+```bash
+nmcli device status
+magicq-status
+```
+
+Le interfacce Ethernet e Wi-Fi devono risultare gestite, anche quando sono
+semplicemente `disconnected`; non devono risultare `unmanaged`. Durante una
+reinstallazione da SSH o VNC, `netplan apply` può interrompere brevemente la
+connessione mentre il controllo passa da `systemd-networkd` a NetworkManager.
 
 ## Log persistenti
 

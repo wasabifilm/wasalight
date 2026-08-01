@@ -40,8 +40,13 @@ uno spettacolo.
       restano al massimo cinque copie.
 - [ ] Il controllo di `libqxcb.so`, eseguito con le librerie incluse da MagicQ,
       non mostra dipendenze `not found`.
-- [ ] `/usr/share/alsa/alsa.conf` esiste e MagicQ non mostra errori di
-      configurazione ALSA all'avvio.
+- [ ] `/usr/share/alsa/alsa.conf` esiste e `magicq-audio-test` riproduce una
+      volta i campioni Front Left e Front Right sul dispositivo predefinito.
+- [ ] Gli eventuali avvisi `Unknown PCM` prodotti dall'enumerazione PortAudio
+      sono distinti da errori reali: il test audio termina con successo e
+      MagicQ completa l'inizializzazione.
+- [ ] MagicQ parte in vero fullscreen, senza barra del titolo né pannello
+      Tint2; chiudendolo e riavviandolo il fullscreen viene riapplicato.
 - [ ] `chamsys` può creare, modificare e cancellare un file di prova nelle
       directory MagicQ persistenti e in `/data/log` senza usare `sudo`.
 - [ ] `magicq-touch-status` rileva tutti e soli i touchscreen collegati.
@@ -60,6 +65,8 @@ uno spettacolo.
 
 ## Rete
 
+- [ ] `nmcli device status` mostra le interfacce Ethernet/Wi-Fi come gestite,
+      non `unmanaged`.
 - [ ] `nm-connection-editor` salva DHCP e indirizzi statici.
 - [ ] Le connessioni sopravvivono a un riavvio protetto.
 - [ ] Nessun indirizzo o servizio inatteso interferisce con la rete show.

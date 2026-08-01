@@ -210,8 +210,8 @@ install_packages() {
         libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0
         libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0
         libasound2-data alsa-utils
-        openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps
-        network-manager network-manager-gnome policykit-1 policykit-1-gnome
+        openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps wmctrl x11-utils
+        network-manager network-manager-gnome wpasupplicant policykit-1 policykit-1-gnome
         overlayroot initramfs-tools chrony
         exfatprogs ntfs-3g dosfstools util-linux udev logrotate
     )
@@ -224,6 +224,28 @@ install_packages() {
         systemctl enable ssh.service
     else
         systemctl disable --now ssh.service 2>/dev/null || true
+    fi
+}
+
+configure_networkmanager() {
+    # Ubuntu Server's installer normally leaves Netplan on systemd-networkd.
+    # In that state nm-connection-editor opens but lists no usable devices.
+    # A late Netplan file changes only the renderer, preserving the interface,
+    # DHCP, static address, route and DNS definitions created during install.
+    write_file /etc/netplan/99-wasalight-networkmanager.yaml 0600 <<'EOF'
+network:
+  version: 2
+  renderer: NetworkManager
+EOF
+
+    netplan generate
+    systemctl enable NetworkManager.service
+    netplan apply
+    systemctl restart NetworkManager.service
+
+    if nmcli -t -f DEVICE,TYPE,STATE device status 2>/dev/null | \
+       grep -E '^[^:]+:(ethernet|wifi):unmanaged$' >/dev/null; then
+        warn "a physical network interface is still unmanaged after applying Netplan"
     fi
 }
 
@@ -865,6 +887,48 @@ EOF
 exec dbus-run-session -- openbox-session
 EOF
 
+    write_file /usr/local/bin/magicq-fullscreen-watch 0755 <<'EOF'
+#!/bin/sh
+set -u
+
+# MagicQ 1.9.x requests a maximized window, not the EWMH fullscreen state.
+# Watch the Openbox desktop so this also covers manual starts in MAINTENANCE.
+export DISPLAY=${DISPLAY:-:0}
+last_window=
+
+while :; do
+    window_id=$(wmctrl -l 2>/dev/null | \
+        awk 'tolower($0) ~ /magicq pc/ { print $1; exit }')
+    if [ -n "$window_id" ]; then
+        if [ "$window_id" != "$last_window" ]; then
+            if wmctrl -ir "$window_id" -b add,fullscreen; then
+                logger -t magicq-fullscreen "MagicQ window set to fullscreen: $window_id"
+                last_window=$window_id
+            fi
+        fi
+    else
+        last_window=
+    fi
+    sleep 1
+done
+EOF
+
+    write_file /usr/local/bin/magicq-audio-test 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+[[ -r /usr/share/alsa/alsa.conf ]] || {
+    echo "ALSA configuration is unavailable: /usr/share/alsa/alsa.conf" >&2
+    exit 1
+}
+
+echo "ALSA playback devices:"
+aplay -l
+echo
+echo "Playing the left and right test samples once through the default device."
+speaker-test -D default -c 2 -t wav -l 1
+EOF
+
     write_file /usr/local/sbin/magicq-root-launcher 0755 <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -1079,6 +1143,7 @@ tint2 &
 nm-applet --indicator &
 /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
 /usr/local/bin/magicq-touch-watch &
+/usr/local/bin/magicq-fullscreen-watch &
 if findmnt -n -o FSTYPE / 2>/dev/null | grep -qx overlay; then
     /usr/local/bin/magicq-session &
 else
@@ -1511,6 +1576,14 @@ if [[ -r $supervisor_pid_file ]]; then
 fi
 network="volatile"
 mountpoint -q /etc/NetworkManager/system-connections && network="persistent bind"
+unmanaged_devices=$(nmcli -t -f DEVICE,TYPE,STATE device status 2>/dev/null | \
+    awk -F: '$2 == "ethernet" || $2 == "wifi" { if ($3 == "unmanaged") print $1 }' | \
+    paste -sd, -)
+if [[ -n $unmanaged_devices ]]; then
+    network="$network; unmanaged: $unmanaged_devices"
+else
+    network="$network; managed"
+fi
 touch="unavailable"
 [[ -x /usr/local/bin/magicq-touch-status ]] && \
     touch=$(/usr/local/bin/magicq-touch-status --summary 2>/dev/null || echo unavailable)
@@ -1592,7 +1665,11 @@ final_checks() {
         /etc/systemd/system/magicq-logrotate.service \
         /etc/systemd/system/magicq-logrotate.timer
     systemctl daemon-reload
-    systemctl restart NetworkManager.service
+    netplan generate
+    [[ -r /etc/netplan/99-wasalight-networkmanager.yaml ]] || \
+        die "NetworkManager Netplan renderer configuration is unavailable"
+    command -v wmctrl >/dev/null || \
+        die "MagicQ fullscreen control is unavailable: wmctrl is missing"
 }
 
 main() {
@@ -1601,6 +1678,7 @@ main() {
     configure_data_mount
     install_packages
     configure_user
+    configure_networkmanager
     configure_persistent_logs
     configure_touchscreen
     configure_vnc

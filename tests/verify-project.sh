@@ -49,7 +49,11 @@ required_patterns=(
     'libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0'
     'libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0'
     'libasound2-data alsa-utils'
-    'openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps'
+    'openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps wmctrl x11-utils'
+    '/etc/netplan/99-wasalight-networkmanager.yaml'
+    'renderer: NetworkManager'
+    'netplan apply'
+    'network-manager network-manager-gnome wpasupplicant'
     'util-linux udev logrotate'
     "grep -F 'libGLU.so.1'"
     'MagicQ has unresolved runtime libraries'
@@ -65,6 +69,8 @@ required_patterns=(
     'magicq-touch-watch'
     'magicq-vnc-start'
     'magicq-vnc-stop'
+    'magicq-fullscreen-watch'
+    'magicq-audio-test'
     'magicq-vnc-password'
     'cleanup_candidates=(pollinate)'
     'cleanup_candidates+=(multipath-tools)'
@@ -84,6 +90,7 @@ required_patterns=(
     'rotate 5'
     'magicq-logrotate.timer'
     'LOGS:       $logs'
+    'unmanaged: $unmanaged_devices'
     'magicq-start'
     'magicq-stop'
     'magicq-root-stop'
@@ -111,6 +118,8 @@ helpers=(
     /usr/local/bin/magicq-vnc-password
     /usr/local/bin/magicq-vnc-start
     /usr/local/bin/magicq-vnc-stop
+    /usr/local/bin/magicq-fullscreen-watch
+    /usr/local/bin/magicq-audio-test
 )
 
 for helper in "${helpers[@]}"; do
@@ -154,6 +163,12 @@ if grep -Fq '/run/magicq-usb.device' "$INSTALLER"; then
 fi
 grep -Fq 'LD_LIBRARY_PATH=/opt/magicq/lib' "$INSTALLER" || \
     fail "il controllo binario XCB non usa le librerie incluse da MagicQ"
+grep -Fq 'wmctrl -ir "$window_id" -b add,fullscreen' \
+    "$tmp_dir/magicq-fullscreen-watch" || \
+    fail "MagicQ non viene portato automaticamente in fullscreen"
+grep -Fq 'speaker-test -D default -c 2 -t wav -l 1' \
+    "$tmp_dir/magicq-audio-test" || \
+    fail "il test audio ALSA non verifica il dispositivo predefinito"
 
 [[ -s "$PROJECT_DIR/docs/touchscreen.md" ]] || fail "guida touchscreen mancante"
 grep -Fq 'magicq-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
