@@ -192,6 +192,7 @@ install_packages() {
     local packages=(
         ca-certificates sudo dbus-x11 xinit x11-xserver-utils xinput libinput-tools
         xserver-xorg-core xserver-xorg-input-libinput xserver-xorg-video-all
+        libglu1-mesa libgl1-mesa-dri
         openbox tint2 pcmanfm lxterminal lxrandr
         network-manager network-manager-gnome policykit-1 policykit-1-gnome
         overlayroot initramfs-tools chrony
@@ -823,6 +824,14 @@ install_magicq() {
     DEBIAN_FRONTEND=noninteractive apt-get install -y "$DEB_PATH"
     [[ -x /opt/magicq/runmagicq.sh || -x /opt/magicq/bin/mqqt ]] || \
         die "MagicQ installed but expected executables under /opt/magicq are missing"
+
+    if [[ -x /opt/magicq/bin/mqqt ]]; then
+        local missing_libraries
+        missing_libraries=$(ldd /opt/magicq/bin/mqqt 2>/dev/null | \
+            awk '/not found/ {print $1}' | sort -u | paste -sd, - || true)
+        [[ -z $missing_libraries ]] || \
+            die "MagicQ has unresolved runtime libraries: $missing_libraries"
+    fi
 }
 
 configure_volatile_runtime() {
@@ -1015,6 +1024,8 @@ final_checks() {
     bash -n /usr/local/sbin/magicq-protect
     bash -n /usr/local/bin/magicq-status
     bash -n /usr/local/bin/magicq-touch
+    ldconfig -p | grep -F 'libGLU.so.1' >/dev/null || \
+        die "OpenGL runtime check failed: libGLU.so.1 is unavailable"
     systemd-analyze verify /etc/systemd/system/magicq-usb@.service
     systemctl daemon-reload
     systemctl restart NetworkManager.service

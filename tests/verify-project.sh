@@ -35,6 +35,9 @@ required_patterns=(
     'magicq-status'
     'OS:         $os'
     'xinput libinput-tools'
+    'libglu1-mesa libgl1-mesa-dri'
+    "grep -F 'libGLU.so.1'"
+    'MagicQ has unresolved runtime libraries'
     '--with-onscreen-keyboard'
     '/data/system/touchscreen/config'
     'magicq-touch-status'
