@@ -11,6 +11,9 @@ uno spettacolo.
 - [ ] Show e impostazioni MagicQ restano presenti dopo il riavvio.
 - [ ] `magicq-maintenance`, riavvio e aggiornamento APT funzionano.
 - [ ] `magicq-protect` ripristina SHOW mode al riavvio seguente.
+- [ ] In MAINTENANCE Openbox parte ma MagicQ e supervisore restano fermi.
+- [ ] In MAINTENANCE `magicq-start` consente comunque l'avvio manuale.
+- [ ] In SHOW / PROTECTED MagicQ e supervisore partono automaticamente.
 - [ ] Il sistema riparte correttamente dopo più interruzioni di alimentazione.
 
 ## MagicQ e grafica

@@ -1079,7 +1079,11 @@ tint2 &
 nm-applet --indicator &
 /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
 /usr/local/bin/magicq-touch-watch &
-/usr/local/bin/magicq-session &
+if findmnt -n -o FSTYPE / 2>/dev/null | grep -qx overlay; then
+    /usr/local/bin/magicq-session &
+else
+    logger -t magicq-session "MAINTENANCE mode: automatic MagicQ start skipped"
+fi
 EOF
 
     local keyboard_item=''

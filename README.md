@@ -179,8 +179,19 @@ sudo magicq-protect
 `magicq-maintenance` e `magicq-protect` preparano la modalità del boot
 successivo. Dopo il comando occorre riavviare quando si è pronti.
 
-MagicQ è sorvegliato durante uno show: chiudere soltanto la sua finestra viene
-interpretato come un arresto inatteso e provoca il riavvio dopo tre secondi.
+In modalità **SHOW / PROTECTED**, MagicQ parte automaticamente ed è sorvegliato:
+chiudere soltanto la sua finestra viene interpretato come un arresto inatteso e
+provoca il riavvio dopo tre secondi.
+
+In modalità **MAINTENANCE**, Openbox parte normalmente ma MagicQ resta chiuso.
+Questo evita che l'applicazione interferisca con aggiornamenti, copie e diagnosi.
+Per aprirlo intenzionalmente durante la manutenzione usare **Start MagicQ** nel
+menu oppure:
+
+```bash
+magicq-start
+```
+
 Per mantenerlo chiuso intenzionalmente usare:
 
 ```bash
@@ -188,8 +199,8 @@ magicq-stop
 ```
 
 Il comando ferma prima il supervisore e poi il processo MagicQ eseguito come
-root. MagicQ resta chiuso fino al comando seguente oppure fino al prossimo
-login/riavvio:
+root. MagicQ resta chiuso fino al comando seguente. In SHOW ripartirà anche al
+prossimo login o riavvio; in MAINTENANCE resterà invece fermo:
 
 ```bash
 magicq-start

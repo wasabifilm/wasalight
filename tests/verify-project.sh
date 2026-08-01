@@ -88,6 +88,7 @@ required_patterns=(
     'magicq-stop'
     'magicq-root-stop'
     'SUPERVISOR: $supervisor'
+    'MAINTENANCE mode: automatic MagicQ start skipped'
 )
 
 for pattern in "${required_patterns[@]}"; do
@@ -137,6 +138,8 @@ grep -Fq 'sudo -n /usr/local/sbin/magicq-root-stop' "$tmp_dir/magicq-stop" || \
     fail "magicq-stop non arresta il processo root tramite il comando ristretto"
 grep -Fq 'flock -n 9' "$tmp_dir/magicq-start" || \
     fail "magicq-start non impedisce supervisori duplicati"
+grep -Fq 'findmnt -n -o FSTYPE /' "$INSTALLER" || \
+    fail "l'autostart MagicQ non distingue SHOW da MAINTENANCE"
 grep -Fq 'cd /opt/magicq' "$tmp_dir/magicq-root-launcher" || \
     fail "il launcher root non usa la directory richiesta da ChamSys"
 grep -Fq 'HOME=/root' "$tmp_dir/magicq-root-launcher" || \
