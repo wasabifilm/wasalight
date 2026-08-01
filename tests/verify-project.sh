@@ -79,7 +79,7 @@ required_patterns=(
     '$DATA_MOUNT/magicq/Documents/MagicQ /root/Documents/MagicQ none bind'
     'sudo -n /usr/local/sbin/magicq-root-launcher'
     '>>"$console_log" 2>&1'
-    '/data/log/magicq-console.log /data/log/magicq-session.log'
+    '/data/log/wasalight-magicq-console.log /data/log/wasalight-magicq-session.log'
     'size 5M'
     'rotate 5'
     'magicq-logrotate.timer'
@@ -122,6 +122,8 @@ grep -Fq '>>"$console_log" 2>&1' "$tmp_dir/magicq-session" || \
     fail "stdout e stderr di MagicQ non sono salvati nel log persistente"
 grep -Fq 'flock -n 9' "$tmp_dir/magicq-session" || \
     fail "il supervisore MagicQ consente ancora istanze duplicate"
+grep -Fq 'wasalight-magicq-console.log' "$tmp_dir/magicq-session" || \
+    fail "il log di console non è distinto dai log nativi MagicQ"
 grep -Fq 'cd /opt/magicq' "$tmp_dir/magicq-root-launcher" || \
     fail "il launcher root non usa la directory richiesta da ChamSys"
 grep -Fq 'HOME=/root' "$tmp_dir/magicq-root-launcher" || \

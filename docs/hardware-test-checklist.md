@@ -24,8 +24,10 @@ uno spettacolo.
       `/root/Documents/MagicQ` mostra gli stessi file persistenti.
 - [ ] Dopo aver chiuso MagicQ, lo show resta modificabile da `chamsys` senza
       usare `sudo`.
-- [ ] `/data/log/magicq-console.log` contiene l'output di avvio di MagicQ.
-- [ ] `/data/log/magicq-session.log` registra avvio, uscita e riavvio.
+- [ ] `/data/log/wasalight-magicq-console.log` contiene l'output di avvio.
+- [ ] `/data/log/wasalight-magicq-session.log` registra avvio, uscita e riavvio.
+- [ ] I log nativi datati di MagicQ restano separati sotto
+      `/data/magicq/Documents/MagicQ/log/`.
 - [ ] `magicq-status` mostra `LOGS: persistent in /data/log`.
 - [ ] `systemctl status magicq-logrotate.timer` mostra il timer abilitato.
 - [ ] Un log di prova oltre 5 MiB viene ruotato senza interrompere MagicQ e

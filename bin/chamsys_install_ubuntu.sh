@@ -931,8 +931,8 @@ if [ ! -d "$log_dir" ] || [ ! -w "$log_dir" ]; then
     log_dir="$runtime_dir"
     logger -t magicq-session "Persistent log directory unavailable; using $log_dir"
 fi
-console_log="$log_dir/magicq-console.log"
-session_log="$log_dir/magicq-session.log"
+console_log="$log_dir/wasalight-magicq-console.log"
+session_log="$log_dir/wasalight-magicq-session.log"
 touch "$console_log" "$session_log"
 chmod 0640 "$console_log" "$session_log" 2>/dev/null || true
 
@@ -1031,10 +1031,18 @@ EOF
 }
 
 configure_persistent_logs() {
-    local log_file
+    local log_file old_log new_log
     if mountpoint -q "$DATA_MOUNT"; then
         install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$DATA_MOUNT/log"
-        for log_file in magicq-console.log magicq-session.log; do
+        for old_log in magicq-console.log magicq-session.log; do
+            new_log="wasalight-$old_log"
+            if [[ -e "$DATA_MOUNT/log/$old_log" && ! -e "$DATA_MOUNT/log/$new_log" ]]; then
+                mv "$DATA_MOUNT/log/$old_log" "$DATA_MOUNT/log/$new_log"
+            elif [[ -e "$DATA_MOUNT/log/$old_log" ]]; then
+                warn "legacy log retained because the new file already exists: $DATA_MOUNT/log/$old_log"
+            fi
+        done
+        for log_file in wasalight-magicq-console.log wasalight-magicq-session.log; do
             if [[ ! -e "$DATA_MOUNT/log/$log_file" ]]; then
                 install -o "$TARGET_USER" -g "$TARGET_USER" -m 0640 \
                     /dev/null "$DATA_MOUNT/log/$log_file"
@@ -1049,7 +1057,7 @@ configure_persistent_logs() {
 
     install -d -m 0755 /etc/wasalight
     write_file /etc/wasalight/magicq-logrotate.conf 0644 <<'EOF'
-/data/log/magicq-console.log /data/log/magicq-session.log {
+/data/log/wasalight-magicq-console.log /data/log/wasalight-magicq-session.log {
     size 5M
     rotate 5
     compress

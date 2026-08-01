@@ -183,16 +183,33 @@ Il journal generale di Ubuntu resta volatile per limitare le scritture e
 proteggere il disco di sistema. La diagnostica utile di MagicQ viene invece
 salvata separatamente:
 
+Questi due file appartengono a **Wasalight**, non sono i log interni prodotti da
+MagicQ:
+
 ```text
-/data/log/magicq-console.log  output completo stdout/stderr di MagicQ
-/data/log/magicq-session.log  avvii, uscite e riavvii del supervisore
+/data/log/wasalight-magicq-console.log  output stdout/stderr e diagnostica Linux
+/data/log/wasalight-magicq-session.log  avvii, uscite e riavvii del supervisore
 ```
+
+MagicQ continua a creare autonomamente un file `.log` per ogni sessione, con un
+nome basato su giorno e ora, nella propria cartella nativa:
+
+```text
+/data/magicq/Documents/MagicQ/log/
+```
+
+La stessa directory è raggiungibile da
+`/home/chamsys/Documents/MagicQ/log/` e, tramite il bind di sicurezza,
+`/root/Documents/MagicQ/log/`. MagicQ gestisce direttamente questi file e li
+elimina automaticamente dopo circa un mese; la rotazione Wasalight non li
+modifica. Il comportamento e la creazione dei pacchetti di supporto sono
+descritti nel [manuale ChamSys](https://secure.chamsys.co.uk/docs/magicq/manual/system_management.html#saving-support-files).
 
 Per seguire un errore in tempo reale o leggere gli ultimi eventi:
 
 ```bash
-tail -f /data/log/magicq-console.log
-tail -n 100 /data/log/magicq-session.log
+tail -f /data/log/wasalight-magicq-console.log
+tail -n 100 /data/log/wasalight-magicq-session.log
 ```
 
 Un timer controlla i file ogni 10 minuti. Ogni log viene ruotato a 5 MiB,
