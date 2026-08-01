@@ -181,6 +181,8 @@ configure_data_mount() {
 
     install -d -m 0750 "$DATA_MOUNT/magicq/Documents/MagicQ"
     install -d -m 0750 "$DATA_MOUNT/magicq/.local/share"
+    install -d -m 0700 "$DATA_MOUNT/magicq/root-home/.config"
+    install -d -m 0700 "$DATA_MOUNT/magicq/root-home/.local/share"
     install -d -m 0700 "$DATA_MOUNT/system/network"
     install -d -m 0750 "$DATA_MOUNT/log"
 }
@@ -263,16 +265,53 @@ configure_user() {
             "$DATA_MOUNT/magicq/Documents/MagicQ" \
             "$DATA_MOUNT/magicq/.local" \
             "$DATA_MOUNT/magicq/.local/share"
+        install -d -o root -g root -m 0700 \
+            "$DATA_MOUNT/magicq/root-home" \
+            "$DATA_MOUNT/magicq/root-home/.config" \
+            "$DATA_MOUNT/magicq/root-home/.local" \
+            "$DATA_MOUNT/magicq/root-home/.local/share"
+        chown -R root:root "$DATA_MOUNT/magicq/root-home"
         install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$DATA_MOUNT/log"
         ensure_fstab_line "MagicQ shows and settings" \
             "$DATA_MOUNT/magicq/Documents/MagicQ $TARGET_HOME/Documents/MagicQ none bind,x-systemd.requires-mounts-for=$DATA_MOUNT 0 0"
         ensure_fstab_line "MagicQ local shared data" \
             "$DATA_MOUNT/magicq/.local/share $TARGET_HOME/.local/share none bind,x-systemd.requires-mounts-for=$DATA_MOUNT 0 0"
+        ensure_fstab_line "MagicQ root configuration" \
+            "$DATA_MOUNT/magicq/root-home/.config /root/.config none bind,x-systemd.requires-mounts-for=$DATA_MOUNT 0 0"
+        ensure_fstab_line "MagicQ root local data" \
+            "$DATA_MOUNT/magicq/root-home/.local/share /root/.local/share none bind,x-systemd.requires-mounts-for=$DATA_MOUNT 0 0"
+        ensure_fstab_line "MagicQ root show fallback" \
+            "$DATA_MOUNT/magicq/Documents/MagicQ /root/Documents/MagicQ none bind,x-systemd.requires-mounts-for=$DATA_MOUNT 0 0"
         ensure_fstab_line "Persistent NetworkManager connections" \
             "$DATA_MOUNT/system/network /etc/NetworkManager/system-connections none bind,x-systemd.requires-mounts-for=$DATA_MOUNT 0 0"
 
         mountpoint -q "$TARGET_HOME/Documents/MagicQ" || mount "$TARGET_HOME/Documents/MagicQ"
         mountpoint -q "$TARGET_HOME/.local/share" || mount "$TARGET_HOME/.local/share"
+        install -d -o root -g root -m 0700 \
+            /root/.config /root/.local/share /root/Documents/MagicQ
+        if ! mountpoint -q /root/.config; then
+            cp -an /root/.config/. "$DATA_MOUNT/magicq/root-home/.config/"
+            mount /root/.config
+        fi
+        if ! mountpoint -q /root/.local/share; then
+            cp -an /root/.local/share/. \
+                "$DATA_MOUNT/magicq/root-home/.local/share/"
+            mount /root/.local/share
+        fi
+        if ! mountpoint -q /root/Documents/MagicQ; then
+            cp -an /root/Documents/MagicQ/. \
+                "$DATA_MOUNT/magicq/Documents/MagicQ/"
+            chown -R "$TARGET_USER:$TARGET_USER" \
+                "$DATA_MOUNT/magicq/Documents/MagicQ"
+            mount /root/Documents/MagicQ
+        fi
+
+        # Qt obtains DocumentsLocation from this XDG file. Keep HOME=/root so
+        # MagicQ behaves exactly like the proven manual sudo launch, while new
+        # shows are offered under the shared persistent chamsys Documents path.
+        write_file /root/.config/user-dirs.dirs 0600 <<EOF
+XDG_DOCUMENTS_DIR="$TARGET_HOME/Documents"
+EOF
         install -d -m 0700 /etc/NetworkManager/system-connections
         mountpoint -q /etc/NetworkManager/system-connections || mount /etc/NetworkManager/system-connections
 
@@ -833,7 +872,6 @@ set -Eeuo pipefail
 readonly magicq_user=chamsys
 readonly magicq_home=/home/chamsys
 readonly magicq_data=/data/magicq
-readonly magicq_runtime=/run/magicq-root
 
 [[ $EUID -eq 0 ]] || {
     echo "MagicQ root launcher must be run through sudo." >&2
@@ -844,25 +882,22 @@ id "$magicq_user" >/dev/null 2>&1 || {
     exit 1
 }
 
-magicq_gid=$(id -g "$magicq_user")
-install -d -o root -g root -m 0700 "$magicq_runtime" "$magicq_runtime/cache"
 install -d -o "$magicq_user" -g "$magicq_user" -m 2770 \
     "$magicq_home/Documents/MagicQ" "$magicq_home/.local/share"
 
-# MagicQ needs root privileges on this hardware, but must not inherit /root as
-# its home. Documents and XDG data therefore remain in the persistent chamsys
-# paths bound to /data by the installer.
-export HOME="$magicq_home"
-export XDG_DATA_HOME="$magicq_home/.local/share"
-export XDG_CONFIG_HOME="$magicq_home/.config"
-export XDG_CACHE_HOME="$magicq_runtime/cache"
-export XDG_RUNTIME_DIR="$magicq_runtime"
+# Match the manual sudo launch that works on the target. Root's MagicQ config
+# and local data are bind-mounted from /data; user-dirs.dirs sends the Documents
+# location to /home/chamsys/Documents. /root/Documents/MagicQ is also a bind
+# fallback to the same persistent show directory.
+export HOME=/root
+export USER=root
+export LOGNAME=root
+export XDG_DATA_HOME=/root/.local/share
+export XDG_CONFIG_HOME=/root/.config
 export DISPLAY=:0
-export XAUTHORITY="$magicq_home/.Xauthority"
-if [[ -S /run/user/$(id -u "$magicq_user")/bus ]]; then
-    export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u "$magicq_user")/bus"
-fi
-umask 0002
+export XAUTHORITY=/home/chamsys/.Xauthority
+unset DBUS_SESSION_BUS_ADDRESS XDG_CACHE_HOME XDG_RUNTIME_DIR
+umask 0022
 
 repair_magicq_ownership() {
     if mountpoint -q /data; then
@@ -877,9 +912,9 @@ trap repair_magicq_ownership EXIT
 
 cd /opt/magicq
 if [[ -x ./runmagicq.sh ]]; then
-    setpriv --regid "$magicq_gid" --clear-groups ./runmagicq.sh
+    ./runmagicq.sh
 elif [[ -x ./bin/mqqt ]]; then
-    setpriv --regid "$magicq_gid" --clear-groups ./bin/mqqt
+    ./bin/mqqt
 else
     echo "MagicQ executable not found under /opt/magicq." >&2
     exit 127
@@ -892,7 +927,8 @@ set -u
 while :; do
     if [ -x /usr/local/sbin/magicq-root-launcher ]; then
         # The fixed sudo command grants only the dedicated launcher. That
-        # launcher keeps HOME and Documents on the persistent chamsys paths.
+        # launcher keeps root's working environment while its MagicQ paths are
+        # persistent bind mounts backed by /data.
         sudo -n /usr/local/sbin/magicq-root-launcher
     else
         logger -t magicq-session "MagicQ root launcher not found"

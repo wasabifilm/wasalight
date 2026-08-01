@@ -72,8 +72,10 @@ required_patterns=(
     'install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$DATA_MOUNT/log"'
     'runuser -u "$TARGET_USER" -- test -w "$writable_path"'
     'magicq-root-launcher'
-    'export HOME="$magicq_home"'
-    'XDG_DATA_HOME="$magicq_home/.local/share"'
+    'export HOME=/root'
+    'XDG_DOCUMENTS_DIR="$TARGET_HOME/Documents"'
+    '$DATA_MOUNT/magicq/root-home/.config /root/.config none bind'
+    '$DATA_MOUNT/magicq/Documents/MagicQ /root/Documents/MagicQ none bind'
     'sudo -n /usr/local/sbin/magicq-root-launcher'
 )
 
@@ -111,8 +113,11 @@ grep -Fq 'sudo -n /usr/local/sbin/magicq-root-launcher' "$tmp_dir/magicq-session
     fail "MagicQ non viene avviato tramite il launcher root controllato"
 grep -Fq 'cd /opt/magicq' "$tmp_dir/magicq-root-launcher" || \
     fail "il launcher root non usa la directory richiesta da ChamSys"
-grep -Fq 'HOME="$magicq_home"' "$tmp_dir/magicq-root-launcher" || \
-    fail "il launcher root salverebbe ancora gli show sotto /root"
+grep -Fq 'HOME=/root' "$tmp_dir/magicq-root-launcher" || \
+    fail "il launcher non riproduce l'ambiente root dell'avvio manuale funzionante"
+if grep -Fq 'setpriv' "$tmp_dir/magicq-root-launcher"; then
+    fail "il launcher altera ancora gruppo o privilegi rispetto al sudo manuale"
+fi
 grep -Fq 'chamsys ALL=(root) NOPASSWD:' "$INSTALLER" || \
     fail "il launcher MagicQ non dispone della regola sudo controllata"
 if grep -Fq '/run/magicq-usb.device' "$INSTALLER"; then

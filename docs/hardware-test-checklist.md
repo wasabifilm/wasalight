@@ -20,7 +20,8 @@ uno spettacolo.
 - [ ] `ps -o user,args -C mqqt` mostra MagicQ eseguito come `root` tramite il
       launcher dedicato.
 - [ ] Uno show di prova viene creato in `/home/chamsys/Documents/MagicQ` e in
-      `/data/magicq/Documents/MagicQ`, mai in `/root/Documents/MagicQ`.
+      `/data/magicq/Documents/MagicQ`; l'eventuale percorso fallback
+      `/root/Documents/MagicQ` mostra gli stessi file persistenti.
 - [ ] Dopo aver chiuso MagicQ, lo show resta modificabile da `chamsys` senza
       usare `sudo`.
 - [ ] Il controllo di `libqxcb.so`, eseguito con le librerie incluse da MagicQ,

@@ -114,11 +114,16 @@ alla postazione può quindi usare la sessione, anche se per elevare i privilegi
 deve conoscere la password.
 
 Su questo hardware MagicQ viene eseguito con privilegi `root` tramite un launcher
-dedicato e senza richiesta di password. Il launcher non usa la home di root:
-imposta `HOME=/home/chamsys` e reindirizza anche le directory XDG persistenti.
-Di conseguenza uno show come `nomeshow` viene salvato in
+dedicato e senza richiesta di password. Per riprodurre esattamente l'avvio
+manuale verificato, MagicQ mantiene `HOME=/root`; configurazione e dati locali
+di root sono però bind persistenti sotto `/data/magicq/root-home`.
+
+Il file XDG `user-dirs.dirs` indica `/home/chamsys/Documents` come cartella
+Documenti. Uno show come `nomeshow` viene quindi proposto in
 `/home/chamsys/Documents/MagicQ/nomeshow`, collegato a
-`/data/magicq/Documents/MagicQ/nomeshow`, e mai in `/root/Documents`.
+`/data/magicq/Documents/MagicQ/nomeshow`. Anche
+`/root/Documents/MagicQ` è un bind di sicurezza verso la stessa directory: se
+MagicQ ignora XDG, il file resta comunque su `/data` e non nell'overlay root.
 
 Il comando concesso senza password è soltanto il launcher fisso, non un comando
 arbitrario. Alla chiusura di MagicQ il launcher ripristina inoltre proprietà e
@@ -237,15 +242,18 @@ findmnt | grep '/stick/'
 /home/chamsys/Documents/MagicQ  → /data/magicq/Documents/MagicQ
 /home/chamsys/.local/share      → /data/magicq/.local/share
 /home/chamsys/.magicq_init.sh   → /data/magicq/.magicq_init.sh
+/root/.config                   → /data/magicq/root-home/.config
+/root/.local/share              → /data/magicq/root-home/.local/share
+/root/Documents/MagicQ          → /data/magicq/Documents/MagicQ (fallback)
 /etc/NetworkManager/system-connections
                                 → /data/system/network
 /data/system/touchscreen/config → configurazione touch persistente
 /data/system/vnc/passwd         → password VNC persistente e protetta
 ```
 
-MagicQ gira con UID root, ma il launcher imposta la prima riga come sua cartella
-Documenti effettiva. Non avviare direttamente `sudo ./runmagicq.sh`: quel comando
-salterebbe il reindirizzamento e tornerebbe a usare `/root/Documents`.
+MagicQ gira con UID e gruppo root, come nell'avvio manuale che è stato verificato
+sull'hardware. Usare comunque `magicq-session`: il launcher prepara ambiente,
+runtime e riparazione finale dei proprietari dei file show.
 
 ## Limitazioni note
 
