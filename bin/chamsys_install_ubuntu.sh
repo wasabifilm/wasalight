@@ -213,7 +213,7 @@ install_packages() {
         openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps
         network-manager network-manager-gnome policykit-1 policykit-1-gnome
         overlayroot initramfs-tools chrony
-        exfatprogs ntfs-3g dosfstools util-linux udev
+        exfatprogs ntfs-3g dosfstools util-linux udev logrotate
     )
     ((ENABLE_SSH)) && packages+=(openssh-server)
     ((ENABLE_ONSCREEN_KEYBOARD)) && packages+=(onboard)
@@ -924,19 +924,45 @@ EOF
     write_file /usr/local/bin/magicq-session 0755 <<'EOF'
 #!/bin/sh
 set -u
+log_dir=${MAGICQ_LOG_DIR:-/data/log}
+runtime_dir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+
+if [ ! -d "$log_dir" ] || [ ! -w "$log_dir" ]; then
+    log_dir="$runtime_dir"
+    logger -t magicq-session "Persistent log directory unavailable; using $log_dir"
+fi
+console_log="$log_dir/magicq-console.log"
+session_log="$log_dir/magicq-session.log"
+touch "$console_log" "$session_log"
+chmod 0640 "$console_log" "$session_log" 2>/dev/null || true
+
+# Openbox menu actions and autostart may overlap. Keep one supervisor only.
+exec 9>"$runtime_dir/wasalight-magicq-session.lock"
+flock -n 9 || exit 0
+
+session_event() {
+    event_message=$1
+    printf '%s %s\n' "$(date -Is)" "$event_message" >>"$session_log"
+    logger -t magicq-session "$event_message"
+}
+
+session_event "MagicQ supervisor started"
 while :; do
     if [ -x /usr/local/sbin/magicq-root-launcher ]; then
         # The fixed sudo command grants only the dedicated launcher. That
         # launcher keeps root's working environment while its MagicQ paths are
         # persistent bind mounts backed by /data.
-        sudo -n /usr/local/sbin/magicq-root-launcher
+        session_event "Starting MagicQ"
+        printf '\n===== %s MagicQ launch =====\n' "$(date -Is)" >>"$console_log"
+        sudo -n /usr/local/sbin/magicq-root-launcher \
+            >>"$console_log" 2>&1
     else
-        logger -t magicq-session "MagicQ root launcher not found"
+        session_event "MagicQ root launcher not found; retrying in 30 seconds"
         sleep 30
         continue
     fi
     rc=$?
-    logger -t magicq-session "MagicQ exited with status $rc; restarting in 3 seconds"
+    session_event "MagicQ exited with status $rc; restarting in 3 seconds"
     sleep 3
 done
 EOF
@@ -1002,6 +1028,66 @@ ExecStart=-/sbin/agetty --autologin $TARGET_USER --noclear %I \$TERM
 Type=idle
 EOF
     systemctl set-default multi-user.target
+}
+
+configure_persistent_logs() {
+    local log_file
+    if mountpoint -q "$DATA_MOUNT"; then
+        install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$DATA_MOUNT/log"
+        for log_file in magicq-console.log magicq-session.log; do
+            if [[ ! -e "$DATA_MOUNT/log/$log_file" ]]; then
+                install -o "$TARGET_USER" -g "$TARGET_USER" -m 0640 \
+                    /dev/null "$DATA_MOUNT/log/$log_file"
+            else
+                chown "$TARGET_USER:$TARGET_USER" "$DATA_MOUNT/log/$log_file"
+                chmod 0640 "$DATA_MOUNT/log/$log_file"
+            fi
+        done
+    else
+        warn "persistent MagicQ logs are unavailable because /data is not mounted"
+    fi
+
+    install -d -m 0755 /etc/wasalight
+    write_file /etc/wasalight/magicq-logrotate.conf 0644 <<'EOF'
+/data/log/magicq-console.log /data/log/magicq-session.log {
+    size 5M
+    rotate 5
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    create 0640 chamsys chamsys
+    su chamsys chamsys
+}
+EOF
+
+    write_file /etc/systemd/system/magicq-logrotate.service 0644 <<'EOF'
+[Unit]
+Description=Rotate persistent Wasalight MagicQ logs
+RequiresMountsFor=/data/log
+ConditionPathIsMountPoint=/data
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/logrotate --state /run/magicq-logrotate.status /etc/wasalight/magicq-logrotate.conf
+EOF
+
+    write_file /etc/systemd/system/magicq-logrotate.timer 0644 <<'EOF'
+[Unit]
+Description=Periodically limit persistent Wasalight MagicQ logs
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=10min
+AccuracySec=1min
+Unit=magicq-logrotate.service
+
+[Install]
+WantedBy=timers.target
+EOF
+
+    systemctl enable magicq-logrotate.timer
 }
 
 configure_usb() {
@@ -1302,6 +1388,8 @@ touch="unavailable"
     touch=$(/usr/local/bin/magicq-touch-status --summary 2>/dev/null || echo unavailable)
 vnc="stopped"
 pgrep -u chamsys -x x11vnc >/dev/null 2>&1 && vnc="running on TCP 5900"
+logs="unavailable"
+[[ -d /data/log && -w /data/log ]] && logs="persistent in /data/log"
 
 cat <<EOT
 MagicQ Appliance
@@ -1314,6 +1402,7 @@ NETWORK:    $network
 TOUCH:      $touch
 VNC:        $vnc
 USB:        $usb
+LOGS:       $logs
 EOT
 EOF
 
@@ -1346,6 +1435,7 @@ final_checks() {
     bash -n /usr/local/bin/magicq-vnc-password
     bash -n /usr/local/bin/magicq-vnc-start
     bash -n /usr/local/bin/magicq-vnc-stop
+    logrotate --debug /etc/wasalight/magicq-logrotate.conf >/dev/null 2>&1
     ldconfig -p | grep -F 'libGLU.so.1' >/dev/null || \
         die "OpenGL runtime check failed: libGLU.so.1 is unavailable"
     [[ -r /usr/share/alsa/alsa.conf ]] || \
@@ -1365,7 +1455,10 @@ final_checks() {
                 die "MagicQ persistent path is not writable by $TARGET_USER: $writable_path"
         done
     fi
-    systemd-analyze verify /etc/systemd/system/magicq-usb@.service
+    systemd-analyze verify \
+        /etc/systemd/system/magicq-usb@.service \
+        /etc/systemd/system/magicq-logrotate.service \
+        /etc/systemd/system/magicq-logrotate.timer
     systemctl daemon-reload
     systemctl restart NetworkManager.service
 }
@@ -1376,6 +1469,7 @@ main() {
     configure_data_mount
     install_packages
     configure_user
+    configure_persistent_logs
     configure_touchscreen
     configure_vnc
     configure_graphical_session

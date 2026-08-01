@@ -24,6 +24,12 @@ uno spettacolo.
       `/root/Documents/MagicQ` mostra gli stessi file persistenti.
 - [ ] Dopo aver chiuso MagicQ, lo show resta modificabile da `chamsys` senza
       usare `sudo`.
+- [ ] `/data/log/magicq-console.log` contiene l'output di avvio di MagicQ.
+- [ ] `/data/log/magicq-session.log` registra avvio, uscita e riavvio.
+- [ ] `magicq-status` mostra `LOGS: persistent in /data/log`.
+- [ ] `systemctl status magicq-logrotate.timer` mostra il timer abilitato.
+- [ ] Un log di prova oltre 5 MiB viene ruotato senza interrompere MagicQ e
+      restano al massimo cinque copie.
 - [ ] Il controllo di `libqxcb.so`, eseguito con le librerie incluse da MagicQ,
       non mostra dipendenze `not found`.
 - [ ] `/usr/share/alsa/alsa.conf` esiste e MagicQ non mostra errori di

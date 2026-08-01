@@ -158,6 +158,7 @@ La configurazione normale è **SHOW / PROTECTED**:
 - `/tmp`, `/var/tmp` e journald sono volatili;
 - `/data` rimane ext4 in lettura/scrittura;
 - show, impostazioni MagicQ e configurazioni di rete restano persistenti;
+- console ed eventi MagicQ restano disponibili in `/data/log` con rotazione;
 - ogni chiavetta viene montata nella propria sottodirectory di `/stick`, il
   percorso usato dalla vista Flash di MagicQ;
 
@@ -175,6 +176,31 @@ sudo magicq-protect
 
 `magicq-maintenance` e `magicq-protect` preparano la modalità del boot
 successivo. Dopo il comando occorre riavviare quando si è pronti.
+
+## Log persistenti
+
+Il journal generale di Ubuntu resta volatile per limitare le scritture e
+proteggere il disco di sistema. La diagnostica utile di MagicQ viene invece
+salvata separatamente:
+
+```text
+/data/log/magicq-console.log  output completo stdout/stderr di MagicQ
+/data/log/magicq-session.log  avvii, uscite e riavvii del supervisore
+```
+
+Per seguire un errore in tempo reale o leggere gli ultimi eventi:
+
+```bash
+tail -f /data/log/magicq-console.log
+tail -n 100 /data/log/magicq-session.log
+```
+
+Un timer controlla i file ogni 10 minuti. Ogni log viene ruotato a 5 MiB,
+conservando cinque copie e comprimendo quelle meno recenti. In questo modo i
+log diagnostici non possono crescere indefinitamente sulla partizione dati.
+`magicq-status` mostra `LOGS: persistent in /data/log` quando il percorso è
+disponibile. Se `/data` non è montata, l'output passa temporaneamente nella
+directory runtime volatile della sessione.
 
 Gli aggiornamenti Ubuntu e l’installazione di un nuovo pacchetto MagicQ devono
 essere eseguiti esclusivamente dopo il riavvio in MAINTENANCE mode.

@@ -50,6 +50,7 @@ required_patterns=(
     'libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0'
     'libasound2-data alsa-utils'
     'openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps'
+    'util-linux udev logrotate'
     "grep -F 'libGLU.so.1'"
     'MagicQ has unresolved runtime libraries'
     'MagicQ Qt xcb platform plugin has unresolved runtime libraries'
@@ -77,6 +78,12 @@ required_patterns=(
     '$DATA_MOUNT/magicq/root-home/.config /root/.config none bind'
     '$DATA_MOUNT/magicq/Documents/MagicQ /root/Documents/MagicQ none bind'
     'sudo -n /usr/local/sbin/magicq-root-launcher'
+    '>>"$console_log" 2>&1'
+    '/data/log/magicq-console.log /data/log/magicq-session.log'
+    'size 5M'
+    'rotate 5'
+    'magicq-logrotate.timer'
+    'LOGS:       $logs'
 )
 
 for pattern in "${required_patterns[@]}"; do
@@ -111,6 +118,10 @@ done
 
 grep -Fq 'sudo -n /usr/local/sbin/magicq-root-launcher' "$tmp_dir/magicq-session" || \
     fail "MagicQ non viene avviato tramite il launcher root controllato"
+grep -Fq '>>"$console_log" 2>&1' "$tmp_dir/magicq-session" || \
+    fail "stdout e stderr di MagicQ non sono salvati nel log persistente"
+grep -Fq 'flock -n 9' "$tmp_dir/magicq-session" || \
+    fail "il supervisore MagicQ consente ancora istanze duplicate"
 grep -Fq 'cd /opt/magicq' "$tmp_dir/magicq-root-launcher" || \
     fail "il launcher root non usa la directory richiesta da ChamSys"
 grep -Fq 'HOME=/root' "$tmp_dir/magicq-root-launcher" || \
