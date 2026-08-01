@@ -113,13 +113,16 @@ progetto o mostrata nei log.
 alla postazione può quindi usare la sessione, anche se per elevare i privilegi
 deve conoscere la password.
 
-MagicQ resta eseguito come `chamsys`, non come root. Avviarlo con `sudo` può
-creare show e impostazioni appartenenti a `root`, impedendone poi la modifica
-dalla sessione normale. Ogni esecuzione dell'installer ripara ricorsivamente il
-proprietario dell'area `/data/magicq` e assegna `/data/log` a `chamsys`. Anche
-la documentazione ChamSys indica l'avvio come amministratore soltanto come test
-dei problemi di scrittura, non come modalità operativa normale:
-[Installing MagicQ Software & Drivers](https://secure.chamsys.co.uk/docs/magicq/manual/installing_drivers.html).
+Su questo hardware MagicQ viene eseguito con privilegi `root` tramite un launcher
+dedicato e senza richiesta di password. Il launcher non usa la home di root:
+imposta `HOME=/home/chamsys` e reindirizza anche le directory XDG persistenti.
+Di conseguenza uno show come `nomeshow` viene salvato in
+`/home/chamsys/Documents/MagicQ/nomeshow`, collegato a
+`/data/magicq/Documents/MagicQ/nomeshow`, e mai in `/root/Documents`.
+
+Il comando concesso senza password è soltanto il launcher fisso, non un comando
+arbitrario. Alla chiusura di MagicQ il launcher ripristina inoltre proprietà e
+permessi dei dati persistenti affinché restino accessibili da `chamsys`.
 
 Senza `--with-ssh`, OpenSSH non viene installato e un eventuale servizio SSH
 preesistente viene disabilitato.
@@ -150,8 +153,8 @@ La configurazione normale è **SHOW / PROTECTED**:
 - `/tmp`, `/var/tmp` e journald sono volatili;
 - `/data` rimane ext4 in lettura/scrittura;
 - show, impostazioni MagicQ e configurazioni di rete restano persistenti;
-- le chiavette vengono montate una alla volta in `/stick`, il percorso usato da
-  MagicQ.
+- ogni chiavetta viene montata nella propria sottodirectory di `/stick`, il
+  percorso usato dalla vista Flash di MagicQ;
 
 Comandi disponibili:
 
@@ -210,10 +213,11 @@ tunnel SSH, cambio password e rimozione consultare la [guida VNC](docs/vnc.md).
 
 ## Chiavette USB per MagicQ
 
-MagicQ cerca i supporti rimovibili nel percorso `/stick`. L'installer crea
-questa directory e vi monta automaticamente la prima partizione USB supportata:
-FAT32, exFAT oppure NTFS. Una seconda chiavetta non sostituisce quella già
-montata.
+MagicQ cerca i supporti rimovibili nel percorso `/stick`. L'installer crea una
+sottodirectory distinta per ogni partizione USB supportata, usando il nome del
+dispositivo: per esempio `/stick/sdb1` e `/stick/sdc1`. FAT32, exFAT e NTFS
+possono quindi restare montati e visibili contemporaneamente nella vista Flash
+di MagicQ. Una seconda chiavetta non nasconde né sostituisce la prima.
 
 Le scritture vengono richieste in modalità sincrona per ridurre il rischio di
 perdita dati. Prima di estrarre una chiavetta attendere comunque la conclusione
@@ -224,7 +228,7 @@ Lo stato del supporto montato è visibile con:
 
 ```bash
 magicq-status
-findmnt /stick
+findmnt | grep '/stick/'
 ```
 
 ## Percorsi persistenti
@@ -238,6 +242,10 @@ findmnt /stick
 /data/system/touchscreen/config → configurazione touch persistente
 /data/system/vnc/passwd         → password VNC persistente e protetta
 ```
+
+MagicQ gira con UID root, ma il launcher imposta la prima riga come sua cartella
+Documenti effettiva. Non avviare direttamente `sudo ./runmagicq.sh`: quel comando
+salterebbe il reindirizzamento e tornerebbe a usare `/root/Documents`.
 
 ## Limitazioni note
 

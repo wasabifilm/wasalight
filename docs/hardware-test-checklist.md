@@ -17,6 +17,12 @@ uno spettacolo.
 
 - [ ] Autologin dell’utente `chamsys` e avvio automatico di X/Openbox.
 - [ ] Avvio automatico e riavvio di MagicQ dopo una chiusura inattesa.
+- [ ] `ps -o user,args -C mqqt` mostra MagicQ eseguito come `root` tramite il
+      launcher dedicato.
+- [ ] Uno show di prova viene creato in `/home/chamsys/Documents/MagicQ` e in
+      `/data/magicq/Documents/MagicQ`, mai in `/root/Documents/MagicQ`.
+- [ ] Dopo aver chiuso MagicQ, lo show resta modificabile da `chamsys` senza
+      usare `sudo`.
 - [ ] Il controllo di `libqxcb.so`, eseguito con le librerie incluse da MagicQ,
       non mostra dipendenze `not found`.
 - [ ] `/usr/share/alsa/alsa.conf` esiste e MagicQ non mostra errori di
@@ -46,9 +52,12 @@ uno spettacolo.
 
 ## Chiavette USB
 
-- [ ] FAT32, exFAT e NTFS vengono montati in `/stick` e sono visibili da MagicQ.
-- [ ] Una seconda chiavetta non sostituisce quella già montata.
-- [ ] Dopo la rimozione `/stick` torna disponibile.
+- [ ] FAT32, exFAT e NTFS vengono montati in `/stick/<dispositivo>` e sono
+      visibili da MagicQ.
+- [ ] Due o più chiavette collegate insieme restano tutte visibili nella vista
+      Flash, ciascuna nella propria sottodirectory.
+- [ ] Dopo la rimozione scompare soltanto la sottodirectory della chiavetta
+      rimossa; le altre restano montate.
 - [ ] Copia e rilettura di showfile grandi su ogni filesystem supportato.
 - [ ] Prova controllata di rimozione subito dopo un salvataggio.
 - [ ] Controllo filesystem della chiavetta su un’altra macchina dopo la prova.

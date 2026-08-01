@@ -35,7 +35,8 @@ required_patterns=(
     '/etc/NetworkManager/system-connections'
     'magicq-usb@%k.service'
     'readonly USB_MOUNT="/stick"'
-    'mountpoint=/stick'
+    'mountpoint="$base/$dev_name"'
+    'state="$state_dir/$dev_name.mount"'
     'ID_FS_TYPE}=="vfat|exfat|ntfs"'
     'magicq-maintenance'
     'magicq-protect'
@@ -70,6 +71,10 @@ required_patterns=(
     '--keep-cloud-init'
     'install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$DATA_MOUNT/log"'
     'runuser -u "$TARGET_USER" -- test -w "$writable_path"'
+    'magicq-root-launcher'
+    'export HOME="$magicq_home"'
+    'XDG_DATA_HOME="$magicq_home/.local/share"'
+    'sudo -n /usr/local/sbin/magicq-root-launcher'
 )
 
 for pattern in "${required_patterns[@]}"; do
@@ -84,6 +89,7 @@ helpers=(
     /usr/local/sbin/magicq-protect
     /usr/local/bin/magicq-status
     /usr/local/bin/magicq-session
+    /usr/local/sbin/magicq-root-launcher
     /usr/local/bin/magicq-touch
     /usr/local/bin/magicq-vnc-password
     /usr/local/bin/magicq-vnc-start
@@ -101,8 +107,17 @@ for helper in "${helpers[@]}"; do
     bash -n "$output"
 done
 
-grep -Fq '(cd /opt/magicq && exec ./runmagicq.sh)' "$tmp_dir/magicq-session" || \
-    fail "MagicQ non viene avviato dalla directory richiesta da ChamSys"
+grep -Fq 'sudo -n /usr/local/sbin/magicq-root-launcher' "$tmp_dir/magicq-session" || \
+    fail "MagicQ non viene avviato tramite il launcher root controllato"
+grep -Fq 'cd /opt/magicq' "$tmp_dir/magicq-root-launcher" || \
+    fail "il launcher root non usa la directory richiesta da ChamSys"
+grep -Fq 'HOME="$magicq_home"' "$tmp_dir/magicq-root-launcher" || \
+    fail "il launcher root salverebbe ancora gli show sotto /root"
+grep -Fq 'chamsys ALL=(root) NOPASSWD:' "$INSTALLER" || \
+    fail "il launcher MagicQ non dispone della regola sudo controllata"
+if grep -Fq '/run/magicq-usb.device' "$INSTALLER"; then
+    fail "la vecchia gestione USB a dispositivo singolo è ancora presente"
+fi
 grep -Fq 'LD_LIBRARY_PATH=/opt/magicq/lib' "$INSTALLER" || \
     fail "il controllo binario XCB non usa le librerie incluse da MagicQ"
 

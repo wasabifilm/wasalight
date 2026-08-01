@@ -826,18 +826,76 @@ EOF
 exec dbus-run-session -- openbox-session
 EOF
 
+    write_file /usr/local/sbin/magicq-root-launcher 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+readonly magicq_user=chamsys
+readonly magicq_home=/home/chamsys
+readonly magicq_data=/data/magicq
+readonly magicq_runtime=/run/magicq-root
+
+[[ $EUID -eq 0 ]] || {
+    echo "MagicQ root launcher must be run through sudo." >&2
+    exit 1
+}
+id "$magicq_user" >/dev/null 2>&1 || {
+    echo "Required user is unavailable: $magicq_user" >&2
+    exit 1
+}
+
+magicq_gid=$(id -g "$magicq_user")
+install -d -o root -g root -m 0700 "$magicq_runtime" "$magicq_runtime/cache"
+install -d -o "$magicq_user" -g "$magicq_user" -m 2770 \
+    "$magicq_home/Documents/MagicQ" "$magicq_home/.local/share"
+
+# MagicQ needs root privileges on this hardware, but must not inherit /root as
+# its home. Documents and XDG data therefore remain in the persistent chamsys
+# paths bound to /data by the installer.
+export HOME="$magicq_home"
+export XDG_DATA_HOME="$magicq_home/.local/share"
+export XDG_CONFIG_HOME="$magicq_home/.config"
+export XDG_CACHE_HOME="$magicq_runtime/cache"
+export XDG_RUNTIME_DIR="$magicq_runtime"
+export DISPLAY=:0
+export XAUTHORITY="$magicq_home/.Xauthority"
+if [[ -S /run/user/$(id -u "$magicq_user")/bus ]]; then
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u "$magicq_user")/bus"
+fi
+umask 0002
+
+repair_magicq_ownership() {
+    if mountpoint -q /data; then
+        chown -R "$magicq_user:$magicq_user" \
+            "$magicq_data/Documents/MagicQ" "$magicq_data/.local/share" \
+            2>/dev/null || true
+        find "$magicq_data/Documents/MagicQ" "$magicq_data/.local/share" \
+            -type d -exec chmod g+rwx {} + 2>/dev/null || true
+    fi
+}
+trap repair_magicq_ownership EXIT
+
+cd /opt/magicq
+if [[ -x ./runmagicq.sh ]]; then
+    setpriv --regid "$magicq_gid" --clear-groups ./runmagicq.sh
+elif [[ -x ./bin/mqqt ]]; then
+    setpriv --regid "$magicq_gid" --clear-groups ./bin/mqqt
+else
+    echo "MagicQ executable not found under /opt/magicq." >&2
+    exit 127
+fi
+EOF
+
     write_file /usr/local/bin/magicq-session 0755 <<'EOF'
 #!/bin/sh
 set -u
 while :; do
-    if [ -x /opt/magicq/runmagicq.sh ]; then
-        # ChamSys portable releases require their launcher to run with
-        # /opt/magicq as the current working directory.
-        (cd /opt/magicq && exec ./runmagicq.sh)
-    elif [ -x /opt/magicq/bin/mqqt ]; then
-        (cd /opt/magicq && exec ./bin/mqqt)
+    if [ -x /usr/local/sbin/magicq-root-launcher ]; then
+        # The fixed sudo command grants only the dedicated launcher. That
+        # launcher keeps HOME and Documents on the persistent chamsys paths.
+        sudo -n /usr/local/sbin/magicq-root-launcher
     else
-        logger -t magicq-session "MagicQ executable not found"
+        logger -t magicq-session "MagicQ root launcher not found"
         sleep 30
         continue
     fi
@@ -918,8 +976,12 @@ configure_usb() {
 set -Eeuo pipefail
 dev_name=${1:?missing block device name}
 dev="/dev/$dev_name"
-mountpoint=/stick
-state=/run/magicq-usb.device
+base=/stick
+state_dir=/run/magicq-usb
+
+[[ $dev_name =~ ^[a-zA-Z0-9._-]+$ ]] || exit 1
+mountpoint="$base/$dev_name"
+state="$state_dir/$dev_name.mount"
 
 exec 9>/run/magicq-usb.lock
 flock 9
@@ -936,14 +998,11 @@ case "$fs" in
     *) logger -t magicq-usb "Ignoring $dev: unsupported filesystem '$fs'"; exit 0 ;;
 esac
 
-if mountpoint -q "$mountpoint"; then
-    logger -t magicq-usb "Ignoring $dev: another USB filesystem is already mounted"
-    exit 0
-fi
-
-install -d -o chamsys -g chamsys -m 0755 "$mountpoint"
+install -d -m 0755 "$state_dir"
+install -d -o chamsys -g chamsys -m 0755 "$base" "$mountpoint"
+mountpoint -q "$mountpoint" && exit 0
 if mount -t "$type" -o "$opts" "$dev" "$mountpoint"; then
-    printf '%s\n' "$dev_name" >"$state"
+    printf '%s\n' "$mountpoint" >"$state"
     logger -t magicq-usb "Mounted $dev ($fs) at $mountpoint with synchronous writes"
 else
     logger -t magicq-usb "Failed to mount $dev ($fs)"
@@ -955,20 +1014,25 @@ EOF
 #!/usr/bin/env bash
 set -Eeuo pipefail
 dev_name=${1:?missing block device name}
-mountpoint=/stick
-state=/run/magicq-usb.device
+base=/stick
+state_dir=/run/magicq-usb
+
+[[ $dev_name =~ ^[a-zA-Z0-9._-]+$ ]] || exit 1
+state="$state_dir/$dev_name.mount"
 
 exec 9>/run/magicq-usb.lock
 flock 9
 
 [[ -r "$state" ]] || exit 0
-[[ $(<"$state") == "$dev_name" ]] || exit 0
+mountpoint=$(<"$state")
+[[ $mountpoint == "$base/$dev_name" ]] || exit 1
 
 # If removal has already happened, sync may fail; lazy detach still cleans the
-# namespace and prevents a stale /stick mount from blocking the next stick.
+# namespace and prevents a stale device directory from affecting other sticks.
 sync -f "$mountpoint" 2>/dev/null || true
 umount "$mountpoint" 2>/dev/null || umount -l "$mountpoint" 2>/dev/null || true
 rm -f "$state"
+rmdir "$mountpoint" 2>/dev/null || true
 logger -t magicq-usb "Cleaned up $dev_name from $mountpoint"
 EOF
 
@@ -1190,8 +1254,9 @@ root_fs=$(findmnt -n -o FSTYPE / 2>/dev/null || echo unknown)
 if [[ $root_fs == overlay ]]; then mode=PROTECTED; else mode=MAINTENANCE; fi
 data="NOT MOUNTED"
 mountpoint -q /data && data="$(findmnt -n -o SOURCE,FSTYPE,OPTIONS -M /data)"
-usb="empty"
-mountpoint -q /stick && usb="$(findmnt -n -o SOURCE,FSTYPE,OPTIONS -M /stick)"
+usb=$(findmnt -rn -o SOURCE,TARGET,FSTYPE,OPTIONS 2>/dev/null | \
+    awk '$2 ~ "^/stick/"' || true)
+[[ -n $usb ]] || usb="empty"
 magicq="missing"
 [[ -x /opt/magicq/runmagicq.sh || -x /opt/magicq/bin/mqqt ]] && magicq="installed"
 network="volatile"
@@ -1217,7 +1282,7 @@ EOT
 EOF
 
     write_file /etc/sudoers.d/chamsys-magicq 0440 <<'EOF'
-chamsys ALL=(root) NOPASSWD: /usr/local/sbin/magicq-maintenance, /usr/local/sbin/magicq-protect
+chamsys ALL=(root) NOPASSWD: /usr/local/sbin/magicq-maintenance, /usr/local/sbin/magicq-protect, /usr/local/sbin/magicq-root-launcher
 EOF
     visudo -cf /etc/sudoers.d/chamsys-magicq >/dev/null
 }
@@ -1240,6 +1305,7 @@ final_checks() {
     bash -n /usr/local/sbin/magicq-protect
     bash -n /usr/local/bin/magicq-status
     bash -n /usr/local/bin/magicq-session
+    bash -n /usr/local/sbin/magicq-root-launcher
     bash -n /usr/local/bin/magicq-touch
     bash -n /usr/local/bin/magicq-vnc-password
     bash -n /usr/local/bin/magicq-vnc-start
@@ -1294,8 +1360,9 @@ Next boot: PROTECTED SHOW mode.
   Maintenance: sudo magicq-maintenance  (then reboot)
   Protect:     sudo magicq-protect      (then reboot)
 
-USB media are mounted one at a time at /stick. Synchronous writes reduce,
-but cannot eliminate, corruption if a stick is removed during an active write.
+Every supported USB medium is mounted in its own /stick/<device> directory.
+Synchronous writes reduce, but cannot eliminate, corruption if a stick is
+removed during an active write.
 EOF
     else
         warn "overlay protection is disabled; run sudo magicq-protect when /data is ready"
