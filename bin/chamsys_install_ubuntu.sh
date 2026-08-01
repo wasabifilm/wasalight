@@ -22,6 +22,7 @@ ENABLE_SSH=0
 PURGE_CLOUD_INIT=0
 ENABLE_PROTECTION=1
 ENABLE_ONSCREEN_KEYBOARD=0
+ENABLE_CHAMSYS_ADMIN=0
 
 log()  { printf '[%s] %s\n' "$SCRIPT_NAME" "$*"; }
 warn() { printf '[%s] WARNING: %s\n' "$SCRIPT_NAME" "$*" >&2; }
@@ -46,6 +47,8 @@ Options:
   --with-ssh           Install and enable OpenSSH server.
   --with-onscreen-keyboard
                        Install Onboard and add it to the Openbox menu.
+  --chamsys-admin      Grant chamsys sudo and log access, then interactively
+                       set its password. The password is never stored.
   --purge-cloud-init   Purge cloud-init after writing its disabled marker.
   --no-protection      Configure the appliance but leave overlayroot disabled.
   -h, --help           Show this help.
@@ -66,6 +69,7 @@ parse_args() {
                 ;;
             --with-ssh) ENABLE_SSH=1; shift ;;
             --with-onscreen-keyboard) ENABLE_ONSCREEN_KEYBOARD=1; shift ;;
+            --chamsys-admin) ENABLE_CHAMSYS_ADMIN=1; shift ;;
             --purge-cloud-init) PURGE_CLOUD_INIT=1; shift ;;
             --no-protection) ENABLE_PROTECTION=0; shift ;;
             -h|--help) usage; exit 0 ;;
@@ -221,9 +225,21 @@ configure_user() {
     # such as plugdev exist. NetworkManager access is granted by the dedicated
     # polkit rule below, so the obsolete netdev group is neither required nor
     # created. Add only the hardware groups actually provided by the system.
-    supplementary_groups=$(existing_groups_csv audio video plugdev)
+    if ((ENABLE_CHAMSYS_ADMIN)); then
+        [[ -t 0 ]] || die "--chamsys-admin requires an interactive terminal"
+        getent group sudo >/dev/null || die "the required sudo group is unavailable"
+        supplementary_groups=$(existing_groups_csv \
+            audio video plugdev sudo adm systemd-journal)
+    else
+        supplementary_groups=$(existing_groups_csv audio video plugdev)
+    fi
     [[ -z $supplementary_groups ]] || \
         usermod -aG "$supplementary_groups" "$TARGET_USER"
+
+    if ((ENABLE_CHAMSYS_ADMIN)); then
+        log "set the password for $TARGET_USER (it may match your Ubuntu admin password)"
+        passwd "$TARGET_USER"
+    fi
 
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/Documents/MagicQ"
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.local/share"

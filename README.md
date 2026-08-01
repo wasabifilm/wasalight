@@ -93,6 +93,26 @@ sudo ./install.sh \
   --with-onscreen-keyboard
 ```
 
+### Rendere `chamsys` amministratore
+
+Per consentire a `chamsys` di usare `sudo` e leggere direttamente i log di
+sistema, aggiungere l'opzione:
+
+```bash
+sudo ./install.sh --chamsys-admin
+```
+
+L'installer chiede interattivamente la password di `chamsys`. È possibile
+inserire la stessa password dell'utente amministratore Ubuntu, ma la password
+non viene letta da quell'account, copiata, salvata nei file del progetto o
+mostrata nei log. L'opzione aggiunge `chamsys` al gruppo `sudo` e, quando
+presenti, ai gruppi `adm` e `systemd-journal`.
+
+`chamsys` continua a eseguire l'autologin grafico: chiunque abbia accesso fisico
+alla postazione può quindi usare la sessione, anche se per elevare i privilegi
+deve conoscere la password. Su macchine accessibili a terzi è preferibile non
+abilitare questa opzione.
+
 Senza `--with-ssh`, OpenSSH non viene installato e un eventuale servizio SSH
 preesistente viene disabilitato.
 

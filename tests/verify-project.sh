@@ -39,6 +39,9 @@ required_patterns=(
     "grep -F 'libGLU.so.1'"
     'MagicQ has unresolved runtime libraries'
     '--with-onscreen-keyboard'
+    '--chamsys-admin'
+    'audio video plugdev sudo adm systemd-journal'
+    'passwd "$TARGET_USER"'
     '/data/system/touchscreen/config'
     'magicq-touch-status'
     'magicq-touch-config'
@@ -88,6 +91,11 @@ fi
 if grep -Eq 'usermod .*netdev|groupadd .*netdev' "$INSTALLER"; then
     fail "l'installer dipende ancora dal gruppo opzionale netdev"
 fi
+if grep -Eq 'chpasswd|usermod .* -p |/etc/shadow' "$INSTALLER"; then
+    fail "la password chamsys non deve essere copiata o gestita in forma non interattiva"
+fi
+grep -Fq -- '--chamsys-admin' "$PROJECT_DIR/README.md" || \
+    fail "l'accesso amministrativo chamsys non è documentato"
 
 group_helper="$tmp_dir/existing-groups.sh"
 {
