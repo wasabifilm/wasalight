@@ -166,6 +166,8 @@ Comandi disponibili:
 
 ```bash
 magicq-status
+magicq-start
+magicq-stop
 magicq-touch-status
 magicq-touch-config list
 magicq-vnc-start
@@ -176,6 +178,26 @@ sudo magicq-protect
 
 `magicq-maintenance` e `magicq-protect` preparano la modalità del boot
 successivo. Dopo il comando occorre riavviare quando si è pronti.
+
+MagicQ è sorvegliato durante uno show: chiudere soltanto la sua finestra viene
+interpretato come un arresto inatteso e provoca il riavvio dopo tre secondi.
+Per mantenerlo chiuso intenzionalmente usare:
+
+```bash
+magicq-stop
+```
+
+Il comando ferma prima il supervisore e poi il processo MagicQ eseguito come
+root. MagicQ resta chiuso fino al comando seguente oppure fino al prossimo
+login/riavvio:
+
+```bash
+magicq-start
+```
+
+Le stesse azioni sono disponibili nel menu Openbox come **Start MagicQ** e
+**Stop MagicQ**. `magicq-status` distingue applicazione e supervisore con le
+righe `MAGICQ` e `SUPERVISOR`.
 
 ## Log persistenti
 

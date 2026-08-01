@@ -17,6 +17,9 @@ uno spettacolo.
 
 - [ ] Autologin dell’utente `chamsys` e avvio automatico di X/Openbox.
 - [ ] Avvio automatico e riavvio di MagicQ dopo una chiusura inattesa.
+- [ ] La chiusura della sola finestra riavvia MagicQ entro pochi secondi.
+- [ ] `magicq-stop` ferma applicazione e supervisore e MagicQ resta chiuso.
+- [ ] `magicq-start` riattiva applicazione e supervisione senza creare duplicati.
 - [ ] `ps -o user,args -C mqqt` mostra MagicQ eseguito come `root` tramite il
       launcher dedicato.
 - [ ] Uno show di prova viene creato in `/home/chamsys/Documents/MagicQ` e in

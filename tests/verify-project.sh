@@ -84,6 +84,10 @@ required_patterns=(
     'rotate 5'
     'magicq-logrotate.timer'
     'LOGS:       $logs'
+    'magicq-start'
+    'magicq-stop'
+    'magicq-root-stop'
+    'SUPERVISOR: $supervisor'
 )
 
 for pattern in "${required_patterns[@]}"; do
@@ -99,6 +103,9 @@ helpers=(
     /usr/local/bin/magicq-status
     /usr/local/bin/magicq-session
     /usr/local/sbin/magicq-root-launcher
+    /usr/local/sbin/magicq-root-stop
+    /usr/local/bin/magicq-start
+    /usr/local/bin/magicq-stop
     /usr/local/bin/magicq-touch
     /usr/local/bin/magicq-vnc-password
     /usr/local/bin/magicq-vnc-start
@@ -124,6 +131,12 @@ grep -Fq 'flock -n 9' "$tmp_dir/magicq-session" || \
     fail "il supervisore MagicQ consente ancora istanze duplicate"
 grep -Fq 'wasalight-magicq-console.log' "$tmp_dir/magicq-session" || \
     fail "il log di console non è distinto dai log nativi MagicQ"
+grep -Fq 'wasalight-magicq-session.pid' "$tmp_dir/magicq-session" || \
+    fail "il supervisore MagicQ non registra il proprio PID"
+grep -Fq 'sudo -n /usr/local/sbin/magicq-root-stop' "$tmp_dir/magicq-stop" || \
+    fail "magicq-stop non arresta il processo root tramite il comando ristretto"
+grep -Fq 'flock -n 9' "$tmp_dir/magicq-start" || \
+    fail "magicq-start non impedisce supervisori duplicati"
 grep -Fq 'cd /opt/magicq' "$tmp_dir/magicq-root-launcher" || \
     fail "il launcher root non usa la directory richiesta da ChamSys"
 grep -Fq 'HOME=/root' "$tmp_dir/magicq-root-launcher" || \

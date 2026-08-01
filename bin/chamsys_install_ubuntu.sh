@@ -921,6 +921,32 @@ else
 fi
 EOF
 
+    write_file /usr/local/sbin/magicq-root-stop 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $EUID -eq 0 ]] || {
+    echo "MagicQ root stop must be run through sudo." >&2
+    exit 1
+}
+
+if ! pgrep -x mqqt >/dev/null 2>&1; then
+    echo "MagicQ is already stopped."
+    exit 0
+fi
+
+pkill -TERM -x mqqt
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+    pgrep -x mqqt >/dev/null 2>&1 || {
+        echo "MagicQ stopped."
+        exit 0
+    }
+    sleep 1
+done
+
+pkill -KILL -x mqqt 2>/dev/null || true
+echo "MagicQ required a forced stop."
+EOF
+
     write_file /usr/local/bin/magicq-session 0755 <<'EOF'
 #!/bin/sh
 set -u
@@ -939,12 +965,28 @@ chmod 0640 "$console_log" "$session_log" 2>/dev/null || true
 # Openbox menu actions and autostart may overlap. Keep one supervisor only.
 exec 9>"$runtime_dir/wasalight-magicq-session.lock"
 flock -n 9 || exit 0
+pid_file="$runtime_dir/wasalight-magicq-session.pid"
 
 session_event() {
     event_message=$1
     printf '%s %s\n' "$(date -Is)" "$event_message" >>"$session_log"
     logger -t magicq-session "$event_message"
 }
+
+cleanup_session() {
+    if [ -r "$pid_file" ] && [ "$(cat "$pid_file")" = "$$" ]; then
+        rm -f "$pid_file"
+    fi
+}
+
+stop_session() {
+    session_event "MagicQ supervisor stopped by operator"
+    exit 0
+}
+
+printf '%s\n' "$$" >"$pid_file"
+trap stop_session HUP INT TERM
+trap cleanup_session EXIT
 
 session_event "MagicQ supervisor started"
 while :; do
@@ -967,6 +1009,67 @@ while :; do
 done
 EOF
 
+    write_file /usr/local/bin/magicq-start 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || {
+    echo "Run this command as the chamsys desktop user." >&2
+    exit 1
+}
+runtime_dir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+exec 9>"$runtime_dir/wasalight-magicq-session.lock"
+if ! flock -n 9; then
+    echo "MagicQ supervisor is already running."
+    exit 0
+fi
+flock -u 9
+nohup /usr/local/bin/magicq-session >/dev/null 2>&1 &
+echo "MagicQ supervisor started."
+EOF
+
+    write_file /usr/local/bin/magicq-stop 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || {
+    echo "Run this command as the chamsys desktop user." >&2
+    exit 1
+}
+runtime_dir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+pid_file="$runtime_dir/wasalight-magicq-session.pid"
+supervisor_pid=
+
+valid_supervisor() {
+    local candidate=${1:-}
+    [[ $candidate =~ ^[0-9]+$ ]] && \
+    [[ $(ps -o uid= -p "$candidate" 2>/dev/null | tr -d ' ') == $(id -u) ]] && \
+    [[ $(ps -o args= -p "$candidate" 2>/dev/null) == *'/usr/local/bin/magicq-session'* ]]
+}
+
+if [[ -r $pid_file ]]; then
+    supervisor_pid=$(<"$pid_file")
+fi
+if ! valid_supervisor "$supervisor_pid"; then
+    supervisor_pid=
+    while read -r candidate; do
+        if valid_supervisor "$candidate"; then
+            supervisor_pid=$candidate
+            break
+        fi
+    done < <(pgrep -u "$(id -u)" -f '/usr/local/bin/magicq-session' 2>/dev/null || true)
+fi
+[[ -z $supervisor_pid ]] || kill -TERM "$supervisor_pid" 2>/dev/null || true
+
+# Stop the root-owned application only after disabling its supervisor, so it
+# cannot be interpreted as a crash and immediately restarted.
+sudo -n /usr/local/sbin/magicq-root-stop
+for _ in 1 2 3 4 5; do
+    [[ ! -r $pid_file ]] && break
+    sleep 1
+done
+rm -f "$pid_file"
+echo "MagicQ will remain stopped until magicq-start or the next login/reboot."
+EOF
+
     write_file "$TARGET_HOME/.config/openbox/autostart" 0755 <<'EOF'
 #!/bin/sh
 xset s off
@@ -987,7 +1090,8 @@ EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <openbox_menu xmlns="http://openbox.org/3.4/menu">
   <menu id="root-menu" label="MagicQ Appliance">
-    <item label="Start MagicQ"><action name="Execute"><command>/usr/local/bin/magicq-session</command></action></item>
+    <item label="Start MagicQ"><action name="Execute"><command>/usr/local/bin/magicq-start</command></action></item>
+    <item label="Stop MagicQ"><action name="Execute"><command>/usr/local/bin/magicq-stop</command></action></item>
     <separator />
     <item label="Network settings"><action name="Execute"><command>nm-connection-editor</command></action></item>
     <item label="Display settings"><action name="Execute"><command>lxrandr</command></action></item>
@@ -1388,7 +1492,19 @@ usb=$(findmnt -rn -o SOURCE,TARGET,FSTYPE,OPTIONS 2>/dev/null | \
     awk '$2 ~ "^/stick/"' || true)
 [[ -n $usb ]] || usb="empty"
 magicq="missing"
-[[ -x /opt/magicq/runmagicq.sh || -x /opt/magicq/bin/mqqt ]] && magicq="installed"
+magicq_pid=$(pgrep -o -x mqqt 2>/dev/null || true)
+if [[ $magicq_pid =~ ^[0-9]+$ ]]; then
+    magicq="running as $(ps -o user= -p "$magicq_pid" | tr -d ' ')"
+elif [[ -x /opt/magicq/runmagicq.sh || -x /opt/magicq/bin/mqqt ]]; then
+    magicq="installed, stopped"
+fi
+supervisor="stopped"
+supervisor_pid_file="/run/user/$(id -u chamsys)/wasalight-magicq-session.pid"
+if [[ -r $supervisor_pid_file ]]; then
+    supervisor_pid=$(<"$supervisor_pid_file")
+    [[ $supervisor_pid =~ ^[0-9]+$ ]] && kill -0 "$supervisor_pid" 2>/dev/null && \
+        supervisor="running"
+fi
 network="volatile"
 mountpoint -q /etc/NetworkManager/system-connections && network="persistent bind"
 touch="unavailable"
@@ -1406,6 +1522,7 @@ MODE:       $mode
 ROOT:       $root_fs
 DATA:       $data
 MAGICQ:     $magicq
+SUPERVISOR: $supervisor
 NETWORK:    $network
 TOUCH:      $touch
 VNC:        $vnc
@@ -1415,7 +1532,7 @@ EOT
 EOF
 
     write_file /etc/sudoers.d/chamsys-magicq 0440 <<'EOF'
-chamsys ALL=(root) NOPASSWD: /usr/local/sbin/magicq-maintenance, /usr/local/sbin/magicq-protect, /usr/local/sbin/magicq-root-launcher
+chamsys ALL=(root) NOPASSWD: /usr/local/sbin/magicq-maintenance, /usr/local/sbin/magicq-protect, /usr/local/sbin/magicq-root-launcher, /usr/local/sbin/magicq-root-stop
 EOF
     visudo -cf /etc/sudoers.d/chamsys-magicq >/dev/null
 }
@@ -1439,6 +1556,9 @@ final_checks() {
     bash -n /usr/local/bin/magicq-status
     bash -n /usr/local/bin/magicq-session
     bash -n /usr/local/sbin/magicq-root-launcher
+    bash -n /usr/local/sbin/magicq-root-stop
+    bash -n /usr/local/bin/magicq-start
+    bash -n /usr/local/bin/magicq-stop
     bash -n /usr/local/bin/magicq-touch
     bash -n /usr/local/bin/magicq-vnc-password
     bash -n /usr/local/bin/magicq-vnc-start
