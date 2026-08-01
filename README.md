@@ -1,0 +1,186 @@
+# MagicQ Ubuntu Appliance
+
+Progetto per trasformare un’installazione minimale **Ubuntu Server 24.04 LTS
+amd64** in una postazione MagicQ dedicata, con sistema operativo protetto dagli
+spegnimenti improvvisi e dati dello show persistenti.
+
+Progetto realizzato da **Michele Moser** e **Wasabi Lightbulb Farm**.
+
+## Contenuto
+
+```text
+magicq-ubuntu-appliance/
+├── install.sh                         avvio principale
+├── bin/
+│   └── chamsys_install_ubuntu.sh      installer completo
+├── packages/
+│   ├── README.md
+│   └── magicq_ubuntu_v1_9_8_3.deb    da aggiungere
+├── docs/
+│   ├── hardware-test-checklist.md
+│   ├── migration-24.04.md
+│   └── touchscreen.md
+└── tests/
+    └── verify-project.sh
+```
+
+## Prima dell’installazione
+
+1. Installare Ubuntu Server 24.04 LTS minimale su una macchina amd64.
+2. Preparare una partizione ext4 separata per i dati persistenti.
+3. Copiare il pacchetto ChamSys in `packages/`.
+4. Identificare la partizione dati con `lsblk -f` o `blkid`.
+
+L’installer non formatta mai dischi. La partizione dati deve esistere già e può
+essere indicata come `UUID=...`, `LABEL=...` oppure `/dev/...`.
+
+Alcuni componenti grafici leggeri provengono dal repository ufficiale Ubuntu
+`universe`. Se non è già attivo, l'installer lo abilita automaticamente.
+
+### Creare la partizione dati riducendo Ubuntu
+
+La partizione di sistema non può essere ridotta mentre Ubuntu la sta usando.
+Eseguire prima un backup, avviare la macchina da una **live USB Ubuntu** e
+lanciare GParted (sostituire il dispositivo con quello mostrato da `lsblk`):
+
+```bash
+sudo gparted /dev/nvme0n1
+```
+
+In GParted:
+
+1. ridurre la partizione ext4 di Ubuntu lasciando lo spazio desiderato non
+   allocato;
+2. creare nello spazio libero una nuova partizione ext4 con etichetta `DATA`;
+3. applicare le operazioni e riavviare Ubuntu normalmente.
+
+Verificare quindi il risultato con:
+
+```bash
+lsblk -f
+```
+
+La nuova partizione può essere passata all’installer con
+`--data-device LABEL=DATA`. Se il disco usa LVM, cifratura o RAID, non seguire
+questa procedura: preparare la partizione durante una nuova installazione con
+partizionamento manuale oppure usare una procedura specifica per quel layout.
+
+## Verifica del progetto
+
+```bash
+./tests/verify-project.sh
+```
+
+Il passaggio da una precedente appliance Ubuntu 22.04 va eseguito come nuova
+installazione, conservando o ripristinando separatamente `/data`. Consultare la
+[guida di migrazione a Ubuntu 24.04](docs/migration-24.04.md).
+
+## Installazione
+
+Esempio con SSH abilitato:
+
+```bash
+sudo ./install.sh \
+  --data-device UUID=UUID_DELLA_PARTIZIONE_DATA \
+  --with-ssh
+```
+
+Per aggiungere la tastiera virtuale Onboard:
+
+```bash
+sudo ./install.sh \
+  --data-device LABEL=DATA \
+  --with-onscreen-keyboard
+```
+
+Senza `--with-ssh`, OpenSSH non viene installato e un eventuale servizio SSH
+preesistente viene disabilitato.
+
+Per preparare temporaneamente la macchina senza attivare la protezione:
+
+```bash
+sudo ./install.sh --no-protection
+```
+
+## Modalità operative
+
+La configurazione normale è **SHOW / PROTECTED**:
+
+- la root Ubuntu usa un overlay volatile in RAM;
+- `/tmp`, `/var/tmp` e journald sono volatili;
+- `/data` rimane ext4 in lettura/scrittura;
+- show, impostazioni MagicQ e configurazioni di rete restano persistenti;
+- le chiavette vengono montate una alla volta in `/stick`, il percorso usato da
+  MagicQ.
+
+Comandi disponibili:
+
+```bash
+magicq-status
+magicq-touch-status
+magicq-touch-config list
+sudo magicq-maintenance
+sudo magicq-protect
+```
+
+`magicq-maintenance` e `magicq-protect` preparano la modalità del boot
+successivo. Dopo il comando occorre riavviare quando si è pronti.
+
+Gli aggiornamenti Ubuntu e l’installazione di un nuovo pacchetto MagicQ devono
+essere eseguiti esclusivamente dopo il riavvio in MAINTENANCE mode.
+
+## Touchscreen
+
+Xorg usa il driver `libinput`. Con un solo touchscreen e un solo monitor,
+l'associazione viene applicata automaticamente. In presenza di più dispositivi
+la configurazione si ferma in modo sicuro e richiede una scelta esplicita.
+
+Esempio per associare un touchscreen a `HDMI-1`:
+
+```bash
+magicq-touch-config list
+magicq-touch-config set "NOME TOUCHSCREEN" HDMI-1 normal
+```
+
+La configurazione viene riapplicata anche dopo una riconnessione a caldo. Per
+diagnosi, rotazioni, configurazioni multimonitor e tastiera virtuale consultare
+[la guida touchscreen](docs/touchscreen.md).
+
+## Chiavette USB per MagicQ
+
+MagicQ cerca i supporti rimovibili nel percorso `/stick`. L'installer crea
+questa directory e vi monta automaticamente la prima partizione USB supportata:
+FAT32, exFAT oppure NTFS. Una seconda chiavetta non sostituisce quella già
+montata.
+
+Le scritture vengono richieste in modalità sincrona per ridurre il rischio di
+perdita dati. Prima di estrarre una chiavetta attendere comunque la conclusione
+del salvataggio; nessun filesystem può garantire l'integrità durante una
+rimozione fisica nel mezzo di una scrittura.
+
+Lo stato del supporto montato è visibile con:
+
+```bash
+magicq-status
+findmnt /stick
+```
+
+## Percorsi persistenti
+
+```text
+/home/chamsys/Documents/MagicQ  → /data/magicq/Documents/MagicQ
+/home/chamsys/.local/share      → /data/magicq/.local/share
+/home/chamsys/.magicq_init.sh   → /data/magicq/.magicq_init.sh
+/etc/NetworkManager/system-connections
+                                → /data/system/network
+/data/system/touchscreen/config → configurazione touch persistente
+```
+
+## Limitazioni note
+
+- Una scrittura USB sincrona riduce la finestra di rischio, ma nessun filesystem
+  può garantire l’integrità se la chiavetta viene estratta durante una scrittura.
+- Il primo avvio protetto e le periferiche ChamSys devono essere verificati sulla
+  macchina definitiva.
+- Il pacchetto `.deb` non è redistribuito da questo progetto: usare il file
+  originale scaricato da ChamSys.
