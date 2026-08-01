@@ -107,6 +107,21 @@ is_installed() {
     dpkg-query -W -f='${db:Status-Abbrev}' "$1" 2>/dev/null | grep -q '^ii'
 }
 
+existing_groups_csv() {
+    local group
+    local existing=()
+    for group in "$@"; do
+        if getent group "$group" >/dev/null; then
+            existing+=("$group")
+        else
+            warn "optional system group is unavailable; skipping: $group"
+        fi
+    done
+    ((${#existing[@]})) || return 0
+    local IFS=,
+    printf '%s\n' "${existing[*]}"
+}
+
 write_file() {
     local path=$1 mode=$2
     local tmp
@@ -195,11 +210,19 @@ install_packages() {
 }
 
 configure_user() {
+    local supplementary_groups
     if ! id "$TARGET_USER" >/dev/null 2>&1; then
         useradd --create-home --shell /bin/bash --user-group "$TARGET_USER"
         passwd -l "$TARGET_USER" >/dev/null
     fi
-    usermod -aG audio,video,plugdev,netdev "$TARGET_USER"
+
+    # Ubuntu Server minimal does not guarantee that optional desktop groups
+    # such as plugdev exist. NetworkManager access is granted by the dedicated
+    # polkit rule below, so the obsolete netdev group is neither required nor
+    # created. Add only the hardware groups actually provided by the system.
+    supplementary_groups=$(existing_groups_csv audio video plugdev)
+    [[ -z $supplementary_groups ]] || \
+        usermod -aG "$supplementary_groups" "$TARGET_USER"
 
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/Documents/MagicQ"
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.local/share"

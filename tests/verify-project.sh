@@ -40,6 +40,7 @@ required_patterns=(
     'magicq-touch-status'
     'magicq-touch-config'
     'magicq-touch-watch'
+    'existing_groups_csv audio video plugdev'
 )
 
 for pattern in "${required_patterns[@]}"; do
@@ -79,6 +80,40 @@ fi
 if grep -Fq '/media/usb' "$INSTALLER"; then
     fail "il vecchio percorso USB /media/usb è ancora configurato"
 fi
+if grep -Eq 'usermod .*netdev|groupadd .*netdev' "$INSTALLER"; then
+    fail "l'installer dipende ancora dal gruppo opzionale netdev"
+fi
+
+group_helper="$tmp_dir/existing-groups.sh"
+{
+    printf '%s\n' '#!/usr/bin/env bash' 'warn() { :; }'
+    awk '
+        /^existing_groups_csv\(\)/ { capture=1 }
+        capture { print }
+        capture && /^}/ { exit }
+    ' "$INSTALLER"
+} >"$group_helper"
+bash -n "$group_helper"
+
+group_mock_bin="$tmp_dir/group-mock-bin"
+mkdir -p "$group_mock_bin"
+cat >"$group_mock_bin/getent" <<'EOF'
+#!/bin/sh
+[ "${GROUP_TEST_NONE:-0}" = 1 ] && exit 2
+case "${2:-}" in audio|video) exit 0 ;; *) exit 2 ;; esac
+EOF
+chmod +x "$group_mock_bin/getent"
+
+available_groups=$(PATH="$group_mock_bin:$PATH" bash -c \
+    'source "$1"; existing_groups_csv audio video plugdev netdev' \
+    _ "$group_helper")
+[[ $available_groups == audio,video ]] || \
+    fail "il filtro dei gruppi opzionali non esclude quelli mancanti"
+
+no_groups=$(GROUP_TEST_NONE=1 PATH="$group_mock_bin:$PATH" bash -c \
+    'source "$1"; existing_groups_csv audio video plugdev' \
+    _ "$group_helper")
+[[ -z $no_groups ]] || fail "il filtro non gestisce un sistema privo di gruppi opzionali"
 
 mock_bin="$tmp_dir/mock-bin"
 mkdir -p "$mock_bin"
