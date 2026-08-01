@@ -43,9 +43,12 @@ required_patterns=(
     'OS:         $os'
     'xinput libinput-tools'
     'libglu1-mesa libgl1-mesa-dri'
+    'libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0'
+    'libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0'
     'openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps'
     "grep -F 'libGLU.so.1'"
     'MagicQ has unresolved runtime libraries'
+    'MagicQ Qt xcb platform plugin has unresolved runtime libraries'
     '--with-onscreen-keyboard'
     '--chamsys-admin'
     'audio video plugdev sudo adm systemd-journal'
@@ -58,6 +61,10 @@ required_patterns=(
     'magicq-vnc-stop'
     'magicq-vnc-password'
     'existing_groups_csv audio video plugdev'
+    'cleanup_candidates=(pollinate)'
+    'cleanup_candidates+=(multipath-tools)'
+    'cleanup_candidates+=(open-iscsi)'
+    '--keep-cloud-init'
 )
 
 for pattern in "${required_patterns[@]}"; do
@@ -71,6 +78,7 @@ helpers=(
     /usr/local/sbin/magicq-maintenance
     /usr/local/sbin/magicq-protect
     /usr/local/bin/magicq-status
+    /usr/local/bin/magicq-session
     /usr/local/bin/magicq-touch
     /usr/local/bin/magicq-vnc-password
     /usr/local/bin/magicq-vnc-start
@@ -88,11 +96,17 @@ for helper in "${helpers[@]}"; do
     bash -n "$output"
 done
 
+grep -Fq '(cd /opt/magicq && exec ./runmagicq.sh)' "$tmp_dir/magicq-session" || \
+    fail "MagicQ non viene avviato dalla directory richiesta da ChamSys"
+grep -Fq 'LD_LIBRARY_PATH=/opt/magicq/lib' "$INSTALLER" || \
+    fail "il controllo binario XCB non usa le librerie incluse da MagicQ"
+
 [[ -s "$PROJECT_DIR/docs/touchscreen.md" ]] || fail "guida touchscreen mancante"
 grep -Fq 'magicq-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
     fail "configurazione touchscreen non documentata"
 [[ -s "$PROJECT_DIR/docs/migration-24.04.md" ]] || fail "guida migrazione 24.04 mancante"
 [[ -s "$PROJECT_DIR/docs/vnc.md" ]] || fail "guida VNC mancante"
+[[ -s "$PROJECT_DIR/docs/system-cleanup.md" ]] || fail "guida pulizia sistema mancante"
 grep -Fq 'Ubuntu Server 24.04 LTS' "$PROJECT_DIR/README.md" || \
     fail "target Ubuntu 24.04 non documentato"
 grep -Fq 'packages/*.deb' "$PROJECT_DIR/.gitignore" || \

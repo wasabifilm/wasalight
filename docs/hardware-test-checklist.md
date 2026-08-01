@@ -17,6 +17,8 @@ uno spettacolo.
 
 - [ ] Autologin dell’utente `chamsys` e avvio automatico di X/Openbox.
 - [ ] Avvio automatico e riavvio di MagicQ dopo una chiusura inattesa.
+- [ ] Il controllo di `libqxcb.so`, eseguito con le librerie incluse da MagicQ,
+      non mostra dipendenze `not found`.
 - [ ] `magicq-touch-status` rileva tutti e soli i touchscreen collegati.
 - [ ] Con un monitor, la modalità `auto` mostra `target: ready`.
 - [ ] Con più monitor, ogni touchscreen è associato all'uscita corretta.

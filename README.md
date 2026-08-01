@@ -19,6 +19,7 @@ magicq-ubuntu-appliance/
 ├── docs/
 │   ├── hardware-test-checklist.md
 │   ├── migration-24.04.md
+│   ├── system-cleanup.md
 │   ├── touchscreen.md
 │   └── vnc.md
 └── tests/
@@ -116,6 +117,18 @@ abilitare questa opzione.
 
 Senza `--with-ssh`, OpenSSH non viene installato e un eventuale servizio SSH
 preesistente viene disabilitato.
+
+Su una postazione fisica dedicata l'installer elimina automaticamente
+`cloud-init`, `multipath-tools`, `open-iscsi` e `pollinate` quando non servono
+al disco di sistema o a `/data`. La verifica distingue LVM da un vero volume
+multipath e conserva automaticamente i componenti SAN/iSCSI se sono in uso.
+Usare `--keep-cloud-init` soltanto quando la macchina dipende ancora dalla
+configurazione cloud.
+
+Wasalight non installa QEMU. Il messaggio di `needrestart` secondo cui nessun
+guest usa vecchi binari QEMU è un controllo riuscito, non un errore e non
+indica la presenza dell'hypervisor. Dettagli e verifiche sono nella
+[guida alla pulizia del sistema](docs/system-cleanup.md).
 
 Per preparare temporaneamente la macchina senza attivare la protezione:
 

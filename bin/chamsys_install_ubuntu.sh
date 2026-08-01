@@ -19,7 +19,7 @@ readonly OVERLAY_CONF="/etc/overlayroot.local.conf"
 DEB_PATH=""
 DATA_DEVICE=""
 ENABLE_SSH=0
-PURGE_CLOUD_INIT=0
+PURGE_CLOUD_INIT=1
 ENABLE_PROTECTION=1
 ENABLE_ONSCREEN_KEYBOARD=0
 ENABLE_CHAMSYS_ADMIN=0
@@ -49,7 +49,7 @@ Options:
                        Install Onboard and add it to the Openbox menu.
   --chamsys-admin      Grant chamsys sudo and log access, then interactively
                        set its password. The password is never stored.
-  --purge-cloud-init   Purge cloud-init after writing its disabled marker.
+  --keep-cloud-init    Disable cloud-init services but retain the package.
   --no-protection      Configure the appliance but leave overlayroot disabled.
   -h, --help           Show this help.
 
@@ -70,6 +70,8 @@ parse_args() {
             --with-ssh) ENABLE_SSH=1; shift ;;
             --with-onscreen-keyboard) ENABLE_ONSCREEN_KEYBOARD=1; shift ;;
             --chamsys-admin) ENABLE_CHAMSYS_ADMIN=1; shift ;;
+            --keep-cloud-init) PURGE_CLOUD_INIT=0; shift ;;
+            # Accepted for compatibility with earlier Wasalight releases.
             --purge-cloud-init) PURGE_CLOUD_INIT=1; shift ;;
             --no-protection) ENABLE_PROTECTION=0; shift ;;
             -h|--help) usage; exit 0 ;;
@@ -197,6 +199,8 @@ install_packages() {
         ca-certificates sudo dbus-x11 xinit x11-xserver-utils xinput libinput-tools
         xserver-xorg-core xserver-xorg-input-libinput xserver-xorg-video-all
         libglu1-mesa libgl1-mesa-dri
+        libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0
+        libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0
         openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps
         network-manager network-manager-gnome policykit-1 policykit-1-gnome
         overlayroot initramfs-tools chrony
@@ -816,9 +820,11 @@ EOF
 set -u
 while :; do
     if [ -x /opt/magicq/runmagicq.sh ]; then
-        /opt/magicq/runmagicq.sh
+        # ChamSys portable releases require their launcher to run with
+        # /opt/magicq as the current working directory.
+        (cd /opt/magicq && exec ./runmagicq.sh)
     elif [ -x /opt/magicq/bin/mqqt ]; then
-        /opt/magicq/bin/mqqt
+        (cd /opt/magicq && exec ./bin/mqqt)
     else
         logger -t magicq-session "MagicQ executable not found"
         sleep 30
@@ -1053,26 +1059,54 @@ optimize_system() {
     disable_service_if_present apt-daily.timer apt-daily-upgrade.timer
 
     # Cloud-init is disabled only after this script has completed the machine
-    # configuration. Purging it is opt-in because some installations depend on
-    # its package files even after first boot.
+    # configuration. A dedicated physical appliance does not need it after
+    # installation, but --keep-cloud-init retains the package when required.
     install -d -m 0755 /etc/cloud
     : >/etc/cloud/cloud-init.disabled
     disable_service_if_present \
         cloud-init-local.service cloud-init.service cloud-config.service cloud-final.service
-    if ((PURGE_CLOUD_INIT)) && is_installed cloud-init; then
-        DEBIAN_FRONTEND=noninteractive apt-get purge -y cloud-init
-    fi
 
-    # Do not disable multipath when the live root or data filesystem uses a
-    # device-mapper multipath map. Otherwise it is unnecessary on this appliance.
-    local root_source data_source
+    # Remove cloud/SAN helpers that are unnecessary on a physical appliance.
+    # LVM also uses /dev/mapper, so identify the actual block-device ancestry
+    # instead of treating every device-mapper path as multipath storage.
+    local root_source data_source source
+    local uses_multipath=0 uses_iscsi=0
+    local cleanup_candidates=(pollinate)
+    local cleanup_installed=()
     root_source=$(findmnt -n -o SOURCE -M /)
     data_source=$(findmnt -n -o SOURCE -M "$DATA_MOUNT" 2>/dev/null || true)
-    if [[ "$root_source" != /dev/mapper/* && "$data_source" != /dev/mapper/* ]] && \
-       ! multipath -ll 2>/dev/null | grep -q .; then
-        disable_service_if_present multipathd.service multipathd.socket
+
+    for source in "$root_source" "$data_source"; do
+        source=${source%%\[*}
+        [[ -b $source ]] || continue
+        if lsblk -sno TYPE "$source" 2>/dev/null | grep -qx mpath; then
+            uses_multipath=1
+        fi
+        if lsblk -sno TRAN "$source" 2>/dev/null | grep -qx iscsi; then
+            uses_iscsi=1
+        fi
+    done
+
+    if ((uses_multipath)); then
+        warn "multipath backs the root or data filesystem; keeping multipath-tools"
     else
-        warn "multipath appears to be in use; leaving multipathd unchanged"
+        cleanup_candidates+=(multipath-tools)
+        disable_service_if_present multipathd.service multipathd.socket
+    fi
+
+    if ((uses_iscsi)); then
+        warn "iSCSI backs the root or data filesystem; keeping open-iscsi"
+    else
+        cleanup_candidates+=(open-iscsi)
+        disable_service_if_present iscsid.service iscsid.socket open-iscsi.service
+    fi
+
+    ((PURGE_CLOUD_INIT)) && cleanup_candidates+=(cloud-init)
+    for pkg in "${cleanup_candidates[@]}"; do
+        is_installed "$pkg" && cleanup_installed+=("$pkg")
+    done
+    if ((${#cleanup_installed[@]})); then
+        DEBIAN_FRONTEND=noninteractive apt-get purge -y "${cleanup_installed[@]}"
     fi
 
     write_file /etc/apt/apt.conf.d/20auto-upgrades 0644 <<'EOF'
@@ -1189,12 +1223,19 @@ final_checks() {
     bash -n /usr/local/sbin/magicq-maintenance
     bash -n /usr/local/sbin/magicq-protect
     bash -n /usr/local/bin/magicq-status
+    bash -n /usr/local/bin/magicq-session
     bash -n /usr/local/bin/magicq-touch
     bash -n /usr/local/bin/magicq-vnc-password
     bash -n /usr/local/bin/magicq-vnc-start
     bash -n /usr/local/bin/magicq-vnc-stop
     ldconfig -p | grep -F 'libGLU.so.1' >/dev/null || \
         die "OpenGL runtime check failed: libGLU.so.1 is unavailable"
+    if [[ -f /opt/magicq/plugins/platforms/libqxcb.so ]]; then
+        if LD_LIBRARY_PATH=/opt/magicq/lib \
+           ldd /opt/magicq/plugins/platforms/libqxcb.so | grep -F 'not found'; then
+            die "MagicQ Qt xcb platform plugin has unresolved runtime libraries"
+        fi
+    fi
     systemd-analyze verify /etc/systemd/system/magicq-usb@.service
     systemctl daemon-reload
     systemctl restart NetworkManager.service

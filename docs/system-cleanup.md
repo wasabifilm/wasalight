@@ -1,0 +1,78 @@
+# Pulizia del sistema Ubuntu
+
+Wasalight prepara una postazione fisica dedicata a MagicQ, non un server cloud
+generico. Al termine della configurazione l'installer rimuove soltanto i
+componenti che non servono all'appliance e che sono stati verificati sul disco
+in uso.
+
+## Pacchetti gestiti
+
+| Pacchetto | Funzione originale | Comportamento Wasalight |
+| --- | --- | --- |
+| `cloud-init` | Configurazione iniziale di istanze cloud | Rimosso per impostazione predefinita; `--keep-cloud-init` lo conserva |
+| `multipath-tools` | Accesso ridondante a storage SAN | Rimosso solo se root e `/data` non dipendono da un dispositivo `mpath` |
+| `open-iscsi` | Accesso a dischi iSCSI di rete | Rimosso solo se root e `/data` non dipendono dal trasporto iSCSI |
+| `pollinate` | Seed di entropia, soprattutto per istanze cloud | Rimosso sulla postazione dedicata |
+
+Il controllo risale la gerarchia dei dispositivi con `lsblk`. Un volume LVM
+sotto `/dev/mapper`, come quelli usati normalmente da Wasalight, ha tipo `lvm`
+e non viene confuso con un volume multipath di tipo `mpath`.
+
+La pulizia non rimuove LVM, NetworkManager, Xorg, Openbox, udev, OpenSSH
+richiesto con `--with-ssh`, `needrestart` o le dipendenze grafiche di MagicQ.
+
+## Messaggio QEMU dopo APT
+
+Wasalight non installa QEMU. Dopo un'operazione APT, `needrestart` può mostrare
+un messaggio simile a:
+
+```text
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+```
+
+Il messaggio significa che il controllo non ha trovato guest virtuali da
+riavviare. Non è un errore, non prova che QEMU sia installato e non richiede
+alcuna rimozione.
+
+Per verificare esplicitamente l'assenza dei pacchetti principali:
+
+```bash
+dpkg -l qemu-guest-agent qemu-system-x86 qemu-utils qemu-block-extra
+```
+
+## Verifica dopo l'installazione
+
+Eseguire in MAINTENANCE mode:
+
+```bash
+magicq-status
+systemctl --failed --no-pager
+findmnt / /data
+lsblk
+```
+
+`systemctl --failed` deve riportare zero unità fallite. Root e `/data` devono
+continuare a riferirsi ai volumi previsti.
+
+Per vedere senza modificare il sistema cosa eliminerebbe APT:
+
+```bash
+apt-get -s autoremove --purge
+```
+
+Non usare comandi di rimozione generici basati su wildcard: l'installer elimina
+nomi espliciti solo dopo i controlli sullo storage.
+
+## Ripristino di un componente
+
+Se l'hardware viene successivamente collegato a storage iSCSI o multipath,
+entrare in MAINTENANCE mode e reinstallare prima il componente necessario:
+
+```bash
+sudo apt update
+sudo apt install open-iscsi multipath-tools
+```
+
+Configurare e verificare lo storage prima di riavviare in SHOW mode. Una nuova
+esecuzione di Wasalight conserverà automaticamente i pacchetti quando root o
+`/data` risultano effettivamente dipendenti da quel tipo di storage.
