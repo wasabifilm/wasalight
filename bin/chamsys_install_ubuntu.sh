@@ -274,6 +274,7 @@ configure_user() {
     fi
 
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/Documents/MagicQ"
+    install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/Desktop"
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.local/share"
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/openbox"
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/pcmanfm/default"
@@ -887,6 +888,77 @@ EOF
 exec dbus-run-session -- openbox-session
 EOF
 
+    write_file "$TARGET_HOME/.config/pcmanfm/default/desktop-items-0.conf" 0644 <<'EOF'
+[*]
+wallpaper_mode=color
+wallpaper_common=1
+desktop_bg=#000000
+desktop_fg=#ffffff
+desktop_shadow=#000000
+desktop_font=Sans 14
+desktop_icon_size=64
+show_wm_menu=1
+sort=name;ascending;
+show_documents=0
+show_trash=0
+show_mounts=0
+EOF
+
+    write_file "$TARGET_HOME/Desktop/Start-MagicQ.desktop" 0755 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Start MagicQ
+Comment=Avvia MagicQ e il supervisore Wasalight
+Exec=/usr/local/bin/magicq-start
+Icon=media-playback-start
+Terminal=false
+StartupNotify=false
+EOF
+
+    write_file "$TARGET_HOME/Desktop/Stop-MagicQ.desktop" 0755 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Stop MagicQ
+Comment=Ferma MagicQ e lo mantiene chiuso
+Exec=/usr/local/bin/magicq-stop
+Icon=media-playback-stop
+Terminal=false
+StartupNotify=false
+EOF
+
+    write_file "$TARGET_HOME/Desktop/Network.desktop" 0755 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Network settings
+Comment=Configura Ethernet e Wi-Fi con NetworkManager
+Exec=nm-connection-editor
+Icon=preferences-system-network
+Terminal=false
+StartupNotify=true
+EOF
+
+    write_file "$TARGET_HOME/Desktop/Files.desktop" 0755 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=File manager
+Comment=Apre i file persistenti e le chiavette USB
+Exec=pcmanfm
+Icon=system-file-manager
+Terminal=false
+StartupNotify=true
+EOF
+
+    write_file "$TARGET_HOME/Desktop/Terminal.desktop" 0755 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Terminal
+Comment=Apre il terminale di manutenzione
+Exec=lxterminal
+Icon=utilities-terminal
+Terminal=false
+StartupNotify=true
+EOF
+
     write_file /usr/local/bin/magicq-fullscreen-watch 0755 <<'EOF'
 #!/bin/sh
 set -u
@@ -1139,6 +1211,8 @@ EOF
 xset s off
 xset s noblank
 xset -dpms
+wmctrl -n 1
+pcmanfm --desktop --profile=default &
 tint2 &
 nm-applet --indicator &
 /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
@@ -1191,7 +1265,8 @@ polkit.addRule(function(action, subject) {
 });
 EOF
 
-    chown -R "$TARGET_USER:$TARGET_USER" "$TARGET_HOME/.config" "$TARGET_HOME/.xinitrc"
+    chown -R "$TARGET_USER:$TARGET_USER" \
+        "$TARGET_HOME/.config" "$TARGET_HOME/Desktop" "$TARGET_HOME/.xinitrc"
 
     install -d -m 0755 /etc/systemd/system/getty@tty1.service.d
     write_file /etc/systemd/system/getty@tty1.service.d/autologin.conf 0644 <<EOF

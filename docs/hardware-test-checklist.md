@@ -47,6 +47,10 @@ uno spettacolo.
       MagicQ completa l'inizializzazione.
 - [ ] MagicQ parte in vero fullscreen, senza barra del titolo né pannello
       Tint2; chiudendolo e riavviandolo il fullscreen viene riapplicato.
+- [ ] Openbox espone un solo desktop virtuale (`wmctrl -d` mostra una riga).
+- [ ] Con MagicQ fermo, i cinque pulsanti desktop sono leggibili al touch e
+      aprono Start/Stop MagicQ, rete, file manager e terminale.
+- [ ] Il clic destro sullo sfondo continua ad aprire il menu Openbox.
 - [ ] `chamsys` può creare, modificare e cancellare un file di prova nelle
       directory MagicQ persistenti e in `/data/log` senza usare `sudo`.
 - [ ] `magicq-touch-status` rileva tutti e soli i touchscreen collegati.

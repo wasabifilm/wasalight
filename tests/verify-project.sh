@@ -71,6 +71,11 @@ required_patterns=(
     'magicq-vnc-stop'
     'magicq-fullscreen-watch'
     'magicq-audio-test'
+    'wmctrl -n 1'
+    'pcmanfm --desktop --profile=default'
+    '$TARGET_HOME/Desktop/Start-MagicQ.desktop'
+    '$TARGET_HOME/Desktop/Stop-MagicQ.desktop'
+    '$TARGET_HOME/Desktop/Network.desktop'
     'magicq-vnc-password'
     'cleanup_candidates=(pollinate)'
     'cleanup_candidates+=(multipath-tools)'
@@ -169,6 +174,8 @@ grep -Fq 'wmctrl -ir "$window_id" -b add,fullscreen' \
 grep -Fq 'speaker-test -D default -c 2 -t wav -l 1' \
     "$tmp_dir/magicq-audio-test" || \
     fail "il test audio ALSA non verifica il dispositivo predefinito"
+grep -Fq 'desktop_icon_size=64' "$INSTALLER" || \
+    fail "i pulsanti desktop non sono dimensionati per l'uso touch"
 
 [[ -s "$PROJECT_DIR/docs/touchscreen.md" ]] || fail "guida touchscreen mancante"
 grep -Fq 'magicq-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
