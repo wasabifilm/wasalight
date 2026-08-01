@@ -74,6 +74,8 @@ grep -Fq 'magicq-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
 [[ -s "$PROJECT_DIR/docs/migration-24.04.md" ]] || fail "guida migrazione 24.04 mancante"
 grep -Fq 'Ubuntu Server 24.04 LTS' "$PROJECT_DIR/README.md" || \
     fail "target Ubuntu 24.04 non documentato"
+grep -Fq 'packages/*.deb' "$PROJECT_DIR/.gitignore" || \
+    fail "i pacchetti MagicQ proprietari non sono esclusi da Git"
 if grep -Fq 'VERSION_ID:-} == 22.04' "$INSTALLER"; then
     fail "il vecchio target Ubuntu 22.04 è ancora accettato"
 fi
