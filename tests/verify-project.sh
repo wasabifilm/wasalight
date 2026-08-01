@@ -47,10 +47,12 @@ required_patterns=(
     'libxcb-keysyms1 libxcb-randr0 libxcb-render0 libxcb-render-util0'
     'libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0'
     'libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0'
+    'libasound2-data alsa-utils'
     'openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps'
     "grep -F 'libGLU.so.1'"
     'MagicQ has unresolved runtime libraries'
     'MagicQ Qt xcb platform plugin has unresolved runtime libraries'
+    'MagicQ audio runtime check failed: /usr/share/alsa/alsa.conf is unavailable'
     '--with-onscreen-keyboard'
     '--reset-chamsys-password'
     'audio video plugdev sudo adm systemd-journal'

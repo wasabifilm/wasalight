@@ -207,6 +207,7 @@ install_packages() {
         libxcb-keysyms1 libxcb-randr0 libxcb-render0 libxcb-render-util0
         libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0
         libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0
+        libasound2-data alsa-utils
         openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps
         network-manager network-manager-gnome policykit-1 policykit-1-gnome
         overlayroot initramfs-tools chrony
@@ -1245,6 +1246,8 @@ final_checks() {
     bash -n /usr/local/bin/magicq-vnc-stop
     ldconfig -p | grep -F 'libGLU.so.1' >/dev/null || \
         die "OpenGL runtime check failed: libGLU.so.1 is unavailable"
+    [[ -r /usr/share/alsa/alsa.conf ]] || \
+        die "MagicQ audio runtime check failed: /usr/share/alsa/alsa.conf is unavailable"
     if [[ -f /opt/magicq/plugins/platforms/libqxcb.so ]]; then
         if LD_LIBRARY_PATH=/opt/magicq/lib \
            ldd /opt/magicq/plugins/platforms/libqxcb.so | grep -F 'not found'; then
