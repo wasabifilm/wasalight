@@ -199,7 +199,9 @@ install_packages() {
         ca-certificates sudo dbus-x11 xinit x11-xserver-utils xinput libinput-tools
         xserver-xorg-core xserver-xorg-input-libinput xserver-xorg-video-all
         libglu1-mesa libgl1-mesa-dri
-        libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0
+        libx11-xcb1 libxcb1 libxcb-glx0 libxcb-icccm4 libxcb-image0
+        libxcb-keysyms1 libxcb-randr0 libxcb-render0 libxcb-render-util0
+        libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0
         libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0
         openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps
         network-manager network-manager-gnome policykit-1 policykit-1-gnome
@@ -1054,7 +1056,7 @@ optimize_system() {
     disable_service_if_present \
         snapd.service snapd.socket ModemManager.service cups.service cups.socket \
         bluetooth.service avahi-daemon.service avahi-daemon.socket whoopsie.service \
-        apport.service unattended-upgrades.service packagekit.service
+        apport.service unattended-upgrades.service
 
     disable_service_if_present apt-daily.timer apt-daily-upgrade.timer
 
@@ -1108,6 +1110,10 @@ optimize_system() {
     if ((${#cleanup_installed[@]})); then
         DEBIAN_FRONTEND=noninteractive apt-get purge -y "${cleanup_installed[@]}"
     fi
+
+    # Mask PackageKit only after every APT/dpkg operation above. Masking it
+    # earlier makes dpkg's cache refresh emit a misleading UnitMasked warning.
+    disable_service_if_present packagekit.service
 
     write_file /etc/apt/apt.conf.d/20auto-upgrades 0644 <<'EOF'
 APT::Periodic::Enable "0";

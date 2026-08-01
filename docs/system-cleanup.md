@@ -20,6 +20,8 @@ e non viene confuso con un volume multipath di tipo `mpath`.
 
 La pulizia non rimuove LVM, NetworkManager, Xorg, Openbox, udev, OpenSSH
 richiesto con `--with-ssh`, `needrestart` o le dipendenze grafiche di MagicQ.
+Le librerie XCB richieste dal plugin Qt di MagicQ sono elencate esplicitamente
+tra le dipendenze dell'appliance, così APT non può considerarle superflue.
 
 ## Messaggio QEMU dopo APT
 
