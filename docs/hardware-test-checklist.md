@@ -46,3 +46,11 @@ uno spettacolo.
 - [ ] Copia e rilettura di showfile grandi su ogni filesystem supportato.
 - [ ] Prova controllata di rimozione subito dopo un salvataggio.
 - [ ] Controllo filesystem della chiavetta su un’altra macchina dopo la prova.
+
+## VNC temporaneo
+
+- [ ] `magicq-vnc-start` richiede una password al primo utilizzo.
+- [ ] Il client remoto mostra la stessa sessione Openbox/MagicQ del monitor.
+- [ ] `magicq-status` mostra VNC attivo soltanto durante la condivisione.
+- [ ] `magicq-vnc-stop` chiude la porta 5900 e termina `x11vnc`.
+- [ ] Dopo un riavvio VNC non parte automaticamente.

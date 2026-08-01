@@ -19,7 +19,8 @@ magicq-ubuntu-appliance/
 ├── docs/
 │   ├── hardware-test-checklist.md
 │   ├── migration-24.04.md
-│   └── touchscreen.md
+│   ├── touchscreen.md
+│   └── vnc.md
 └── tests/
     └── verify-project.sh
 ```
@@ -139,6 +140,8 @@ Comandi disponibili:
 magicq-status
 magicq-touch-status
 magicq-touch-config list
+magicq-vnc-start
+magicq-vnc-stop
 sudo magicq-maintenance
 sudo magicq-protect
 ```
@@ -165,6 +168,26 @@ magicq-touch-config set "NOME TOUCHSCREEN" HDMI-1 normal
 La configurazione viene riapplicata anche dopo una riconnessione a caldo. Per
 diagnosi, rotazioni, configurazioni multimonitor e tastiera virtuale consultare
 [la guida touchscreen](docs/touchscreen.md).
+
+## Assistenza remota VNC
+
+Wasalight installa `x11vnc` per condividere temporaneamente la sessione
+Openbox/MagicQ già visibile sul monitor. Il server non parte automaticamente e
+non resta attivo dopo un riavvio. Per avviarlo dalla sessione `chamsys`:
+
+```bash
+magicq-vnc-start
+```
+
+Al primo utilizzo viene richiesta una password VNC separata dalla password
+Linux. Per arrestare immediatamente l'accesso remoto:
+
+```bash
+magicq-vnc-stop
+```
+
+La modalità LAN usa la porta TCP 5900 e non offre cifratura completa. Per uso,
+tunnel SSH, cambio password e rimozione consultare la [guida VNC](docs/vnc.md).
 
 ## Chiavette USB per MagicQ
 
@@ -194,6 +217,7 @@ findmnt /stick
 /etc/NetworkManager/system-connections
                                 → /data/system/network
 /data/system/touchscreen/config → configurazione touch persistente
+/data/system/vnc/passwd         → password VNC persistente e protetta
 ```
 
 ## Limitazioni note

@@ -6,7 +6,14 @@ PROJECT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 INSTALLER="$PROJECT_DIR/bin/chamsys_install_ubuntu.sh"
 ENTRYPOINT="$PROJECT_DIR/install.sh"
 tmp_dir=$(mktemp -d)
-trap 'rm -rf "$tmp_dir"' EXIT
+vnc_test_pid=
+cleanup() {
+    if [[ ${vnc_test_pid:-} =~ ^[0-9]+$ ]]; then
+        kill "$vnc_test_pid" 2>/dev/null || true
+    fi
+    rm -rf "$tmp_dir"
+}
+trap cleanup EXIT
 
 fail() {
     printf 'ERRORE: %s\n' "$*" >&2
@@ -36,6 +43,7 @@ required_patterns=(
     'OS:         $os'
     'xinput libinput-tools'
     'libglu1-mesa libgl1-mesa-dri'
+    'openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps'
     "grep -F 'libGLU.so.1'"
     'MagicQ has unresolved runtime libraries'
     '--with-onscreen-keyboard'
@@ -46,6 +54,9 @@ required_patterns=(
     'magicq-touch-status'
     'magicq-touch-config'
     'magicq-touch-watch'
+    'magicq-vnc-start'
+    'magicq-vnc-stop'
+    'magicq-vnc-password'
     'existing_groups_csv audio video plugdev'
 )
 
@@ -61,6 +72,9 @@ helpers=(
     /usr/local/sbin/magicq-protect
     /usr/local/bin/magicq-status
     /usr/local/bin/magicq-touch
+    /usr/local/bin/magicq-vnc-password
+    /usr/local/bin/magicq-vnc-start
+    /usr/local/bin/magicq-vnc-stop
 )
 
 for helper in "${helpers[@]}"; do
@@ -78,6 +92,7 @@ done
 grep -Fq 'magicq-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
     fail "configurazione touchscreen non documentata"
 [[ -s "$PROJECT_DIR/docs/migration-24.04.md" ]] || fail "guida migrazione 24.04 mancante"
+[[ -s "$PROJECT_DIR/docs/vnc.md" ]] || fail "guida VNC mancante"
 grep -Fq 'Ubuntu Server 24.04 LTS' "$PROJECT_DIR/README.md" || \
     fail "target Ubuntu 24.04 non documentato"
 grep -Fq 'packages/*.deb' "$PROJECT_DIR/.gitignore" || \
@@ -193,5 +208,63 @@ grep -Fq 'ROTATION=right' "$touch_config" || fail "rotazione touch non salvata"
 grep -Fq 'map-to-output 10 HDMI-1' "$touch_log" || fail "associazione touch non applicata"
 grep -Fq 'set-prop 10 libinput Calibration Matrix' "$touch_log" || \
     fail "matrice touch non applicata"
+
+vnc_mock_bin="$tmp_dir/vnc-mock-bin"
+vnc_config_dir="$tmp_dir/vnc-config"
+vnc_runtime_dir="$tmp_dir/vnc-runtime"
+mkdir -p "$vnc_mock_bin" "$vnc_config_dir" "$vnc_runtime_dir"
+printf '%s\n' test-password >"$vnc_config_dir/passwd"
+chmod 0600 "$vnc_config_dir/passwd"
+
+cat >"$vnc_mock_bin/id" <<'EOF'
+#!/bin/sh
+case "${1:-}" in -un) printf '%s\n' chamsys ;; -u) printf '%s\n' 1000 ;; *) exit 2 ;; esac
+EOF
+
+cat >"$vnc_mock_bin/xset" <<'EOF'
+#!/bin/sh
+exit 0
+EOF
+
+cat >"$vnc_mock_bin/hostname" <<'EOF'
+#!/bin/sh
+printf '%s\n' '192.0.2.10 '
+EOF
+
+cat >"$vnc_mock_bin/ps" <<'EOF'
+#!/bin/sh
+printf '%s\n' x11vnc
+EOF
+
+cat >"$vnc_mock_bin/x11vnc" <<'EOF'
+#!/bin/sh
+trap 'exit 0' TERM INT
+while :; do sleep 1; done
+EOF
+
+chmod +x "$vnc_mock_bin"/*
+vnc_env=(
+    PATH="$vnc_mock_bin:$PATH"
+    MAGICQ_VNC_CONFIG_DIR="$vnc_config_dir"
+    MAGICQ_VNC_RUNTIME_DIR="$vnc_runtime_dir"
+    DISPLAY=:0
+    XAUTHORITY="$tmp_dir/test.Xauthority"
+)
+
+vnc_start_output=$(env "${vnc_env[@]}" bash "$tmp_dir/magicq-vnc-start" --lan) || \
+    fail "avvio VNC simulato non riuscito: $vnc_start_output"
+grep -Fq 'vnc://192.0.2.10:5900' <<<"$vnc_start_output" || \
+    fail "indirizzo VNC inatteso: $vnc_start_output"
+[[ -s "$vnc_runtime_dir/wasalight-x11vnc.pid" ]] || fail "PID VNC non registrato"
+vnc_test_pid=$(<"$vnc_runtime_dir/wasalight-x11vnc.pid")
+kill -0 "$vnc_test_pid" 2>/dev/null || fail "processo VNC simulato non attivo"
+
+vnc_stop_output=$(env "${vnc_env[@]}" bash "$tmp_dir/magicq-vnc-stop") || \
+    fail "arresto VNC simulato non riuscito: $vnc_stop_output"
+grep -Fq 'VNC stopped.' <<<"$vnc_stop_output" || \
+    fail "risposta arresto VNC inattesa: $vnc_stop_output"
+kill -0 "$vnc_test_pid" 2>/dev/null && fail "processo VNC simulato ancora attivo"
+vnc_test_pid=
+[[ ! -e "$vnc_runtime_dir/wasalight-x11vnc.pid" ]] || fail "PID VNC non rimosso"
 
 printf 'Progetto verificato: sintassi e componenti essenziali presenti.\n'

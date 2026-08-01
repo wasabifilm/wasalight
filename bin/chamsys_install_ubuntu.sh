@@ -197,7 +197,7 @@ install_packages() {
         ca-certificates sudo dbus-x11 xinit x11-xserver-utils xinput libinput-tools
         xserver-xorg-core xserver-xorg-input-libinput xserver-xorg-video-all
         libglu1-mesa libgl1-mesa-dri
-        openbox tint2 pcmanfm lxterminal lxrandr
+        openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps
         network-manager network-manager-gnome policykit-1 policykit-1-gnome
         overlayroot initramfs-tools chrony
         exfatprogs ntfs-3g dosfstools util-linux udev
@@ -653,6 +653,153 @@ EOF
     ln -sfn magicq-touch /usr/local/bin/magicq-touch-config
 }
 
+configure_vnc() {
+    install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0700 \
+        "$TARGET_HOME/.config/wasalight-vnc"
+    if mountpoint -q "$DATA_MOUNT"; then
+        install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0700 \
+            "$DATA_MOUNT/system/vnc"
+    fi
+
+    write_file /usr/local/bin/magicq-vnc-password 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || {
+    echo "Run this command as the chamsys desktop user." >&2
+    exit 1
+}
+
+config_dir=${MAGICQ_VNC_CONFIG_DIR:-/home/chamsys/.config/wasalight-vnc}
+if [[ -z ${MAGICQ_VNC_CONFIG_DIR:-} && -d /data/system/vnc && -w /data/system/vnc ]]; then
+    config_dir=/data/system/vnc
+fi
+install -d -m 0700 "$config_dir"
+password_file="$config_dir/passwd"
+
+echo "Set the temporary VNC access password. It is independent of the Linux password."
+x11vnc -storepasswd "$password_file"
+chmod 0600 "$password_file"
+echo "VNC password stored in $password_file"
+EOF
+
+    write_file /usr/local/bin/magicq-vnc-start 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || {
+    echo "Run this command as the chamsys desktop user." >&2
+    exit 1
+}
+
+case "${1:---lan}" in
+    --lan) local_only=0 ;;
+    --localhost) local_only=1 ;;
+    -h|--help)
+        cat <<'EOT'
+Usage: magicq-vnc-start [--lan|--localhost]
+
+  --lan        Listen on the local network (default; VNC traffic is not encrypted).
+  --localhost  Accept only local connections, normally through an SSH tunnel.
+EOT
+        exit 0
+        ;;
+    *) echo "Unknown option: $1" >&2; exit 2 ;;
+esac
+
+export DISPLAY=${DISPLAY:-:0}
+export XAUTHORITY=${XAUTHORITY:-/home/chamsys/.Xauthority}
+xset q >/dev/null 2>&1 || {
+    echo "The chamsys Xorg session is not available on $DISPLAY." >&2
+    exit 1
+}
+
+config_dir=${MAGICQ_VNC_CONFIG_DIR:-/home/chamsys/.config/wasalight-vnc}
+if [[ -z ${MAGICQ_VNC_CONFIG_DIR:-} && -d /data/system/vnc && -w /data/system/vnc ]]; then
+    config_dir=/data/system/vnc
+fi
+password_file="$config_dir/passwd"
+if [[ ! -r $password_file ]]; then
+    /usr/local/bin/magicq-vnc-password
+fi
+
+runtime_dir=${MAGICQ_VNC_RUNTIME_DIR:-${XDG_RUNTIME_DIR:-/run/user/$(id -u)}}
+[[ -d $runtime_dir && -w $runtime_dir ]] || runtime_dir=/tmp
+pid_file="$runtime_dir/wasalight-x11vnc.pid"
+log_file="$runtime_dir/wasalight-x11vnc.log"
+
+if [[ -r $pid_file ]]; then
+    old_pid=$(<"$pid_file")
+    if [[ $old_pid =~ ^[0-9]+$ ]] && kill -0 "$old_pid" 2>/dev/null && \
+       [[ $(ps -p "$old_pid" -o comm= 2>/dev/null | tr -d ' ') == x11vnc ]]; then
+        echo "VNC is already running (PID $old_pid)."
+        exit 0
+    fi
+    rm -f "$pid_file"
+fi
+
+args=(
+    x11vnc
+    -display "$DISPLAY"
+    -auth "$XAUTHORITY"
+    -rfbauth "$password_file"
+    -rfbport 5900
+    -forever
+    -shared
+    -noxdamage
+)
+((local_only)) && args+=(-localhost)
+
+nohup "${args[@]}" >"$log_file" 2>&1 &
+vnc_pid=$!
+printf '%s\n' "$vnc_pid" >"$pid_file"
+sleep 1
+if ! kill -0 "$vnc_pid" 2>/dev/null; then
+    echo "VNC failed to start. Log: $log_file" >&2
+    tail -n 40 "$log_file" >&2 || true
+    rm -f "$pid_file"
+    exit 1
+fi
+
+if ((local_only)); then
+    echo "VNC is listening only on localhost:5900 (PID $vnc_pid)."
+    echo "Use an SSH tunnel, then connect the viewer to vnc://localhost:5900."
+else
+    ip_address=$(hostname -I 2>/dev/null | awk '{print $1}')
+    echo "VNC started (PID $vnc_pid). Connect to vnc://${ip_address:-SERVER_IP}:5900"
+    echo "WARNING: classic VNC traffic is not encrypted; use only on a trusted LAN."
+fi
+echo "Log: $log_file"
+echo "Stop with: magicq-vnc-stop"
+EOF
+
+    write_file /usr/local/bin/magicq-vnc-stop 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || {
+    echo "Run this command as the chamsys desktop user." >&2
+    exit 1
+}
+
+runtime_dir=${MAGICQ_VNC_RUNTIME_DIR:-${XDG_RUNTIME_DIR:-/run/user/$(id -u)}}
+[[ -d $runtime_dir && -w $runtime_dir ]] || runtime_dir=/tmp
+pid_file="$runtime_dir/wasalight-x11vnc.pid"
+[[ -r $pid_file ]] || { echo "Managed VNC server is not running."; exit 0; }
+vnc_pid=$(<"$pid_file")
+
+if [[ $vnc_pid =~ ^[0-9]+$ ]] && kill -0 "$vnc_pid" 2>/dev/null && \
+   [[ $(ps -p "$vnc_pid" -o comm= 2>/dev/null | tr -d ' ') == x11vnc ]]; then
+    kill "$vnc_pid"
+    for _ in 1 2 3 4 5; do
+        kill -0 "$vnc_pid" 2>/dev/null || break
+        sleep 1
+    done
+    echo "VNC stopped."
+else
+    echo "Removing stale VNC state; no managed x11vnc process was found."
+fi
+rm -f "$pid_file"
+EOF
+}
+
 configure_graphical_session() {
     write_file /etc/X11/Xwrapper.config 0644 <<'EOF'
 allowed_users=console
@@ -1003,6 +1150,8 @@ mountpoint -q /etc/NetworkManager/system-connections && network="persistent bind
 touch="unavailable"
 [[ -x /usr/local/bin/magicq-touch-status ]] && \
     touch=$(/usr/local/bin/magicq-touch-status --summary 2>/dev/null || echo unavailable)
+vnc="stopped"
+pgrep -u chamsys -x x11vnc >/dev/null 2>&1 && vnc="running on TCP 5900"
 
 cat <<EOT
 MagicQ Appliance
@@ -1013,6 +1162,7 @@ DATA:       $data
 MAGICQ:     $magicq
 NETWORK:    $network
 TOUCH:      $touch
+VNC:        $vnc
 USB:        $usb
 EOT
 EOF
@@ -1040,6 +1190,9 @@ final_checks() {
     bash -n /usr/local/sbin/magicq-protect
     bash -n /usr/local/bin/magicq-status
     bash -n /usr/local/bin/magicq-touch
+    bash -n /usr/local/bin/magicq-vnc-password
+    bash -n /usr/local/bin/magicq-vnc-start
+    bash -n /usr/local/bin/magicq-vnc-stop
     ldconfig -p | grep -F 'libGLU.so.1' >/dev/null || \
         die "OpenGL runtime check failed: libGLU.so.1 is unavailable"
     systemd-analyze verify /etc/systemd/system/magicq-usb@.service
@@ -1054,6 +1207,7 @@ main() {
     install_packages
     configure_user
     configure_touchscreen
+    configure_vnc
     configure_graphical_session
     configure_usb
     install_magicq
