@@ -19,6 +19,8 @@ uno spettacolo.
 - [ ] Avvio automatico e riavvio di MagicQ dopo una chiusura inattesa.
 - [ ] Il controllo di `libqxcb.so`, eseguito con le librerie incluse da MagicQ,
       non mostra dipendenze `not found`.
+- [ ] `chamsys` può creare, modificare e cancellare un file di prova nelle
+      directory MagicQ persistenti e in `/data/log` senza usare `sudo`.
 - [ ] `magicq-touch-status` rileva tutti e soli i touchscreen collegati.
 - [ ] Con un monitor, la modalità `auto` mostra `target: ready`.
 - [ ] Con più monitor, ogni touchscreen è associato all'uscita corretta.

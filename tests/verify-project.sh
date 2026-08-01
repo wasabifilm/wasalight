@@ -52,7 +52,7 @@ required_patterns=(
     'MagicQ has unresolved runtime libraries'
     'MagicQ Qt xcb platform plugin has unresolved runtime libraries'
     '--with-onscreen-keyboard'
-    '--chamsys-admin'
+    '--reset-chamsys-password'
     'audio video plugdev sudo adm systemd-journal'
     'passwd "$TARGET_USER"'
     '/data/system/touchscreen/config'
@@ -62,11 +62,12 @@ required_patterns=(
     'magicq-vnc-start'
     'magicq-vnc-stop'
     'magicq-vnc-password'
-    'existing_groups_csv audio video plugdev'
     'cleanup_candidates=(pollinate)'
     'cleanup_candidates+=(multipath-tools)'
     'cleanup_candidates+=(open-iscsi)'
     '--keep-cloud-init'
+    'install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$DATA_MOUNT/log"'
+    'runuser -u "$TARGET_USER" -- test -w "$writable_path"'
 )
 
 for pattern in "${required_patterns[@]}"; do
@@ -125,8 +126,13 @@ fi
 if grep -Eq 'chpasswd|usermod .* -p |/etc/shadow' "$INSTALLER"; then
     fail "la password chamsys non deve essere copiata o gestita in forma non interattiva"
 fi
-grep -Fq -- '--chamsys-admin' "$PROJECT_DIR/README.md" || \
+if grep -Fq 'ENABLE_CHAMSYS_ADMIN' "$INSTALLER"; then
+    fail "l'accesso amministrativo chamsys non deve più essere opzionale"
+fi
+grep -Fq -- '--reset-chamsys-password' "$PROJECT_DIR/README.md" || \
     fail "l'accesso amministrativo chamsys non è documentato"
+grep -Fq 'chown -R "$TARGET_USER:$TARGET_USER" "$DATA_MOUNT/magicq"' "$INSTALLER" || \
+    fail "la riparazione dei proprietari MagicQ persistenti è assente"
 
 group_helper="$tmp_dir/existing-groups.sh"
 {

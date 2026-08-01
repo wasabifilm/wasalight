@@ -95,25 +95,31 @@ sudo ./install.sh \
   --with-onscreen-keyboard
 ```
 
-### Rendere `chamsys` amministratore
+### Account amministratore `chamsys`
 
-Per consentire a `chamsys` di usare `sudo` e leggere direttamente i log di
-sistema, aggiungere l'opzione:
+`chamsys` è sempre aggiunto a `sudo` e, quando presenti, ai gruppi `adm` e
+`systemd-journal`. Al primo avvio dell'installer viene richiesta
+interattivamente la sua password. Per sostituirla successivamente usare:
 
 ```bash
-sudo ./install.sh --chamsys-admin
+sudo ./install.sh --reset-chamsys-password
 ```
 
-L'installer chiede interattivamente la password di `chamsys`. È possibile
-inserire la stessa password dell'utente amministratore Ubuntu, ma la password
-non viene letta da quell'account, copiata, salvata nei file del progetto o
-mostrata nei log. L'opzione aggiunge `chamsys` al gruppo `sudo` e, quando
-presenti, ai gruppi `adm` e `systemd-journal`.
+È possibile inserire la stessa password dell'utente amministratore Ubuntu, ma
+la password non viene letta da quell'account, copiata, salvata nei file del
+progetto o mostrata nei log.
 
 `chamsys` continua a eseguire l'autologin grafico: chiunque abbia accesso fisico
 alla postazione può quindi usare la sessione, anche se per elevare i privilegi
-deve conoscere la password. Su macchine accessibili a terzi è preferibile non
-abilitare questa opzione.
+deve conoscere la password.
+
+MagicQ resta eseguito come `chamsys`, non come root. Avviarlo con `sudo` può
+creare show e impostazioni appartenenti a `root`, impedendone poi la modifica
+dalla sessione normale. Ogni esecuzione dell'installer ripara ricorsivamente il
+proprietario dell'area `/data/magicq` e assegna `/data/log` a `chamsys`. Anche
+la documentazione ChamSys indica l'avvio come amministratore soltanto come test
+dei problemi di scrittura, non come modalità operativa normale:
+[Installing MagicQ Software & Drivers](https://secure.chamsys.co.uk/docs/magicq/manual/installing_drivers.html).
 
 Senza `--with-ssh`, OpenSSH non viene installato e un eventuale servizio SSH
 preesistente viene disabilitato.

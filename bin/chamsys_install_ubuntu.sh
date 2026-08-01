@@ -22,7 +22,7 @@ ENABLE_SSH=0
 PURGE_CLOUD_INIT=1
 ENABLE_PROTECTION=1
 ENABLE_ONSCREEN_KEYBOARD=0
-ENABLE_CHAMSYS_ADMIN=0
+RESET_CHAMSYS_PASSWORD=0
 
 log()  { printf '[%s] %s\n' "$SCRIPT_NAME" "$*"; }
 warn() { printf '[%s] WARNING: %s\n' "$SCRIPT_NAME" "$*" >&2; }
@@ -47,8 +47,9 @@ Options:
   --with-ssh           Install and enable OpenSSH server.
   --with-onscreen-keyboard
                        Install Onboard and add it to the Openbox menu.
-  --chamsys-admin      Grant chamsys sudo and log access, then interactively
-                       set its password. The password is never stored.
+  --reset-chamsys-password
+                       Interactively replace the chamsys password. The account
+                       is always an administrator; its password is never stored.
   --keep-cloud-init    Disable cloud-init services but retain the package.
   --no-protection      Configure the appliance but leave overlayroot disabled.
   -h, --help           Show this help.
@@ -69,7 +70,10 @@ parse_args() {
                 ;;
             --with-ssh) ENABLE_SSH=1; shift ;;
             --with-onscreen-keyboard) ENABLE_ONSCREEN_KEYBOARD=1; shift ;;
-            --chamsys-admin) ENABLE_CHAMSYS_ADMIN=1; shift ;;
+            --reset-chamsys-password) RESET_CHAMSYS_PASSWORD=1; shift ;;
+            # Earlier releases used this option to enable administrator access.
+            # Administrator access is now mandatory; retain the password prompt.
+            --chamsys-admin) RESET_CHAMSYS_PASSWORD=1; shift ;;
             --keep-cloud-init) PURGE_CLOUD_INIT=0; shift ;;
             # Accepted for compatibility with earlier Wasalight releases.
             --purge-cloud-init) PURGE_CLOUD_INIT=1; shift ;;
@@ -221,28 +225,25 @@ install_packages() {
 }
 
 configure_user() {
-    local supplementary_groups
+    local supplementary_groups password_status
     if ! id "$TARGET_USER" >/dev/null 2>&1; then
         useradd --create-home --shell /bin/bash --user-group "$TARGET_USER"
         passwd -l "$TARGET_USER" >/dev/null
+        RESET_CHAMSYS_PASSWORD=1
     fi
 
-    # Ubuntu Server minimal does not guarantee that optional desktop groups
-    # such as plugdev exist. NetworkManager access is granted by the dedicated
-    # polkit rule below, so the obsolete netdev group is neither required nor
-    # created. Add only the hardware groups actually provided by the system.
-    if ((ENABLE_CHAMSYS_ADMIN)); then
-        [[ -t 0 ]] || die "--chamsys-admin requires an interactive terminal"
-        getent group sudo >/dev/null || die "the required sudo group is unavailable"
-        supplementary_groups=$(existing_groups_csv \
-            audio video plugdev sudo adm systemd-journal)
-    else
-        supplementary_groups=$(existing_groups_csv audio video plugdev)
-    fi
+    # chamsys is the dedicated appliance operator and is always an
+    # administrator. Optional desktop/log groups vary between Ubuntu images;
+    # add only those actually present, but sudo is mandatory.
+    getent group sudo >/dev/null || die "the required sudo group is unavailable"
+    supplementary_groups=$(existing_groups_csv \
+        audio video plugdev sudo adm systemd-journal)
     [[ -z $supplementary_groups ]] || \
         usermod -aG "$supplementary_groups" "$TARGET_USER"
 
-    if ((ENABLE_CHAMSYS_ADMIN)); then
+    password_status=$(passwd -S "$TARGET_USER" | awk '{print $2}')
+    if [[ $password_status != P ]] || ((RESET_CHAMSYS_PASSWORD)); then
+        [[ -t 0 ]] || die "setting the chamsys password requires an interactive terminal"
         log "set the password for $TARGET_USER (it may match your Ubuntu admin password)"
         passwd "$TARGET_USER"
     fi
@@ -255,6 +256,13 @@ configure_user() {
 
     if mountpoint -q "$DATA_MOUNT"; then
         chown -R "$TARGET_USER:$TARGET_USER" "$DATA_MOUNT/magicq"
+        chmod 0750 \
+            "$DATA_MOUNT/magicq" \
+            "$DATA_MOUNT/magicq/Documents" \
+            "$DATA_MOUNT/magicq/Documents/MagicQ" \
+            "$DATA_MOUNT/magicq/.local" \
+            "$DATA_MOUNT/magicq/.local/share"
+        install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$DATA_MOUNT/log"
         ensure_fstab_line "MagicQ shows and settings" \
             "$DATA_MOUNT/magicq/Documents/MagicQ $TARGET_HOME/Documents/MagicQ none bind,x-systemd.requires-mounts-for=$DATA_MOUNT 0 0"
         ensure_fstab_line "MagicQ local shared data" \
@@ -1223,6 +1231,7 @@ configure_overlay() {
 }
 
 final_checks() {
+    local writable_path
     bash -n /usr/local/libexec/magicq-usb-mount
     bash -n /usr/local/libexec/magicq-usb-unmount
     bash -n /usr/local/libexec/magicq-set-mode
@@ -1241,6 +1250,15 @@ final_checks() {
            ldd /opt/magicq/plugins/platforms/libqxcb.so | grep -F 'not found'; then
             die "MagicQ Qt xcb platform plugin has unresolved runtime libraries"
         fi
+    fi
+    if mountpoint -q "$DATA_MOUNT"; then
+        for writable_path in \
+            "$TARGET_HOME/Documents/MagicQ" \
+            "$TARGET_HOME/.local/share" \
+            "$DATA_MOUNT/log"; do
+            runuser -u "$TARGET_USER" -- test -w "$writable_path" || \
+                die "MagicQ persistent path is not writable by $TARGET_USER: $writable_path"
+        done
     fi
     systemd-analyze verify /etc/systemd/system/magicq-usb@.service
     systemctl daemon-reload
