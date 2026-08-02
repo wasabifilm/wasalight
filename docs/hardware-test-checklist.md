@@ -13,6 +13,8 @@ uno spettacolo.
       recupero resta raggiungibile.
 - [ ] `/data/system/branding/boot-logo.png` esiste e una personalizzazione PNG
       valida sopravvive a un aggiornamento.
+- [ ] Tra Plymouth e Openbox lo schermo resta nero, senza banner di login o
+      messaggi Xorg; `/data/log/wasalight-xorg-startup.log` contiene l’output.
 - [ ] `magicq-status` mostra `PROTECTED` dopo il riavvio in SHOW mode.
 - [ ] `/data` risulta ext4 e in lettura/scrittura.
 - [ ] Le modifiche di prova sotto `/etc` scompaiono dopo un riavvio protetto.

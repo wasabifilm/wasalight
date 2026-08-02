@@ -429,9 +429,32 @@ EOF
 
     write_file "$TARGET_HOME/.bash_profile" 0644 <<'EOF'
 if [ -z "${DISPLAY:-}" ] && [ "$(tty)" = /dev/tty1 ]; then
-    exec startx -- -keeptty vt1
+    xorg_log=/data/log/wasalight-xorg-startup.log
+    if [ ! -d /data/log ] || [ ! -w /data/log ]; then
+        xorg_log=/tmp/wasalight-xorg-startup.log
+    fi
+
+    # Keep the Plymouth-to-Xorg hand-off black and hide the text cursor. Xorg
+    # output remains available in a persistent log instead of flashing on tty1.
+    printf '\033[2J\033[H\033[?25l' >/dev/tty1
+    startx -- -keeptty vt1 >"$xorg_log" 2>&1
+    xorg_rc=$?
+
+    # startx normally returns only when the graphical session ends. Restore a
+    # usable console before agetty starts the next session or an operator needs
+    # to diagnose an Xorg failure.
+    printf '\033[?25h\033[2J\033[H' >/dev/tty1
+    if [ "$xorg_rc" -ne 0 ]; then
+        printf 'Avvio grafico non riuscito. Log: %s\n' "$xorg_log" >/dev/tty1
+    fi
+    exit "$xorg_rc"
 fi
 EOF
+
+    # login(1) honours .hushlogin and suppresses the last-login/MOTD text that
+    # would otherwise be visible briefly before startx clears tty1.
+    install -o "$TARGET_USER" -g "$TARGET_USER" -m 0644 /dev/null \
+        "$TARGET_HOME/.hushlogin"
 
     chown "$TARGET_USER:$TARGET_USER" \
         "$TARGET_HOME/.magicq_init.sh" "$TARGET_HOME/.bash_profile" \
@@ -2858,7 +2881,7 @@ EOF
     write_file /etc/systemd/system/getty@tty1.service.d/autologin.conf 0644 <<EOF
 [Service]
 ExecStart=
-ExecStart=-/sbin/agetty --autologin $TARGET_USER --noclear %I \$TERM
+ExecStart=-/sbin/agetty --autologin $TARGET_USER --noclear --noissue %I \$TERM
 Type=idle
 EOF
     systemctl set-default multi-user.target
@@ -2876,7 +2899,7 @@ configure_persistent_logs() {
                 warn "legacy log retained because the new file already exists: $DATA_MOUNT/log/$old_log"
             fi
         done
-        for log_file in wasalight-magicq-console.log wasalight-magicq-session.log wasalight-hub.log wasalight-network-tools.log; do
+        for log_file in wasalight-magicq-console.log wasalight-magicq-session.log wasalight-hub.log wasalight-network-tools.log wasalight-xorg-startup.log; do
             if [[ ! -e "$DATA_MOUNT/log/$log_file" ]]; then
                 install -o "$TARGET_USER" -g "$TARGET_USER" -m 0640 \
                     /dev/null "$DATA_MOUNT/log/$log_file"
@@ -2891,7 +2914,7 @@ configure_persistent_logs() {
 
     install -d -m 0755 /etc/wasalight
     write_file /etc/wasalight/magicq-logrotate.conf 0644 <<'EOF'
-/data/log/wasalight-magicq-console.log /data/log/wasalight-magicq-session.log /data/log/wasalight-hub.log /data/log/wasalight-network-tools.log {
+/data/log/wasalight-magicq-console.log /data/log/wasalight-magicq-session.log /data/log/wasalight-hub.log /data/log/wasalight-network-tools.log /data/log/wasalight-xorg-startup.log {
     size 5M
     rotate 5
     compress

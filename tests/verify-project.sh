@@ -128,6 +128,11 @@ required_patterns=(
     '/usr/local/sbin/wasalight-ip-scan'
     '/usr/local/sbin/wasalight-artnet-capture'
     'wasalight-network-tools.log'
+    'wasalight-xorg-startup.log'
+    '$TARGET_HOME/.hushlogin'
+    '--noclear --noissue'
+    "printf '\\033[2J\\033[H\\033[?25l'"
+    'startx -- -keeptty vt1 >"$xorg_log" 2>&1'
     'assets/branding/boot-logo.png'
     '$DATA_MOUNT/system/branding'
     '/usr/share/plymouth/themes/wasalight'
