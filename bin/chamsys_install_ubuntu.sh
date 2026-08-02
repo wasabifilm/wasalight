@@ -1070,7 +1070,8 @@ done
     exit 1
 }
 mountpoint -q /data || { echo "/data is not mounted." >&2; exit 1; }
-install -d -o root -g root -m 0755 /data/system /data/log
+install -d -o root -g root -m 0755 /data/system
+install -d -o chamsys -g chamsys -m 0750 /data/log
 install -d -o root -g root -m 0750 "$package_store"
 touch "$log_file"
 chown root:adm "$log_file" 2>/dev/null || chown root:root "$log_file"
@@ -1158,6 +1159,13 @@ fi
 "$checkout/install.sh" "${installer_args[@]}"
 echo "[$(date --iso-8601=seconds)] Wasalight update completed"
 echo "Reboot after checking the installer result."
+EOF
+
+    write_file /usr/local/bin/wasalight-update-terminal 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+exec lxterminal --title="Wasalight update" -e bash -lc \
+    'sudo /usr/local/sbin/wasalight-update; rc=$?; echo; echo "Premere Invio per chiudere."; read -r _; exit "$rc"'
 EOF
 
     if mountpoint -q "$DATA_MOUNT" && [[ ! -d $UPDATE_CHECKOUT/.git ]]; then
@@ -1256,6 +1264,16 @@ EOF
 </svg>
 EOF
 
+    # Remove links from an earlier run before recreating their source files.
+    rm -f -- \
+        "$TARGET_HOME/Desktop/Start-MagicQ.desktop" \
+        "$TARGET_HOME/Desktop/Stop-MagicQ.desktop" \
+        "$TARGET_HOME/Desktop/Wasalight-Hub.desktop" \
+        "$TARGET_HOME/Desktop/VNC.desktop" \
+        "$TARGET_HOME/Desktop/SSH.desktop" \
+        "$TARGET_HOME/Desktop/Power-Off.desktop" \
+        "$TARGET_HOME/Desktop/Reboot.desktop"
+
     write_file "$TARGET_HOME/Desktop/Start-MagicQ.desktop" 0755 <<'EOF'
 [Desktop Entry]
 Type=Application
@@ -1338,6 +1356,21 @@ Icon=/usr/local/share/icons/wasalight/reboot.svg
 Terminal=false
 StartupNotify=false
 EOF
+
+    # Store trusted launchers in the system application directory and expose
+    # only root-owned symlinks on the protected desktop. PCManFM resolves the
+    # targets as application launchers instead of generic executable files.
+    install -d -o root -g root -m 0755 /usr/local/share/applications
+    local launcher_name application_launcher
+    for launcher_name in \
+        Start-MagicQ.desktop Stop-MagicQ.desktop Wasalight-Hub.desktop \
+        VNC.desktop SSH.desktop Power-Off.desktop Reboot.desktop; do
+        application_launcher="/usr/local/share/applications/wasalight-$launcher_name"
+        install -o root -g root -m 0644 \
+            "$TARGET_HOME/Desktop/$launcher_name" "$application_launcher"
+        rm -f -- "$TARGET_HOME/Desktop/$launcher_name"
+        ln -s "$application_launcher" "$TARGET_HOME/Desktop/$launcher_name"
+    done
 
     write_file /usr/local/bin/magicq-fullscreen-watch 0755 <<'EOF'
 #!/bin/sh
@@ -1671,6 +1704,17 @@ TryExec=/usr/local/bin/wasalight-ssh-toggle
 X-Wasalight-Section=Support
 X-Wasalight-Order=90
 EOF
+    write_file /etc/wasalight/apps.d/update.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Update Wasalight
+Comment=Scarica e installa l’ultima versione in MAINTENANCE
+Exec=/usr/local/bin/wasalight-update-terminal
+Icon=system-software-update
+TryExec=/usr/local/bin/wasalight-update-terminal
+X-Wasalight-Section=Support
+X-Wasalight-Order=100
+EOF
 
     write_file /usr/local/sbin/wasalight-app-register 0755 <<'EOF'
 #!/usr/bin/env bash
@@ -1930,11 +1974,8 @@ panel_layer = top
 panel_monitor = all
 panel_dock = 0
 wm_menu = 0
-strut_policy = none
-autohide = 1
-autohide_show_timeout = 0.15
-autohide_hide_timeout = 0.8
-autohide_height = 6
+strut_policy = follow_size
+autohide = 0
 
 launcher_padding = 8 4 8
 launcher_background_id = 2
@@ -2213,7 +2254,7 @@ Exec=onboard
 Icon=input-keyboard
 TryExec=onboard
 X-Wasalight-Section=Support
-X-Wasalight-Order=100
+X-Wasalight-Order=110
 EOF
     else
         rm -f /etc/wasalight/apps.d/keyboard.desktop
@@ -2226,6 +2267,8 @@ EOF
     <item label="Stop MagicQ"><action name="Execute"><command>/usr/local/bin/magicq-stop</command></action></item>
     <separator />
     <item label="Wasalight Hub"><action name="Execute"><command>/usr/local/bin/wasalight-hub</command></action></item>
+    <item label="Terminal"><action name="Execute"><command>lxterminal</command></action></item>
+    <item label="Update Wasalight"><action name="Execute"><command>/usr/local/bin/wasalight-update-terminal</command></action></item>
     <item label="VNC"><action name="Execute"><command>/usr/local/bin/wasalight-vnc-toggle</command></action></item>
     <item label="SSH"><action name="Execute"><command>/usr/local/bin/wasalight-ssh-toggle</command></action></item>
     <separator />
@@ -2259,8 +2302,8 @@ EOF
     # from misclassifying them as generic executables, so their SVGs are used.
     chown -R root:root "$TARGET_HOME/Desktop"
     chmod 0755 "$TARGET_HOME/Desktop"
-    find "$TARGET_HOME/Desktop" -maxdepth 1 -type f -name '*.desktop' \
-        -exec chmod 0444 {} +
+    find "$TARGET_HOME/Desktop" -maxdepth 1 -type l -name '*.desktop' \
+        -exec chown -h root:root {} +
 
     install -d -m 0755 /etc/systemd/system/getty@tty1.service.d
     write_file /etc/systemd/system/getty@tty1.service.d/autologin.conf 0644 <<EOF
@@ -2742,6 +2785,7 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-ssh-toggle
     bash -n /usr/local/sbin/wasalight-ssh-control
     bash -n /usr/local/sbin/wasalight-update
+    bash -n /usr/local/bin/wasalight-update-terminal
     bash -n /usr/local/bin/wasalight-terminal-tool
     bash -n /usr/local/sbin/wasalight-app-register
     bash -n /usr/local/bin/wasalight-hub

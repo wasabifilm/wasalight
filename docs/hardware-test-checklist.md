@@ -45,14 +45,14 @@ uno spettacolo.
 - [ ] Gli eventuali avvisi `Unknown PCM` prodotti dall'enumerazione PortAudio
       sono distinti da errori reali: il test audio termina con successo e
       MagicQ completa l'inizializzazione.
-- [ ] MagicQ parte in vero fullscreen, senza barra del titolo né pannello
-      Tint2; chiudendolo e riavviandolo il fullscreen viene riapplicato.
+- [ ] MagicQ parte senza barra del titolo; Tint2 resta visibile e utilizzabile
+      sul bordo inferiore anche dopo un riavvio di MagicQ.
 - [ ] Openbox espone un solo desktop virtuale (`wmctrl -d` mostra una riga).
 - [ ] Con MagicQ fermo, i sette pulsanti desktop hanno icone grandi e leggibili
       al touch e si avviano con un solo tocco senza mostrare «Apri con…».
 - [ ] `chamsys` non può cancellare, rinominare o spostare i launcher desktop.
-- [ ] `stat -c '%U:%G %a %n' /home/chamsys/Desktop /home/chamsys/Desktop/*.desktop`
-      mostra la directory `root:root 755` e i launcher `root:root 444`.
+- [ ] `find /home/chamsys/Desktop -maxdepth 1 -type l -name '*.desktop' -ls`
+      mostra sette collegamenti `root` verso `/usr/local/share/applications`.
 - [ ] Il pulsante VNC avvia la condivisione del display `:0`, mostra l'indirizzo
       e propone l'arresto quando viene premuto mentre VNC è già attivo.
 - [ ] Il pulsante SSH avvia e ferma OpenSSH dopo conferma e mostra indirizzo,
@@ -62,10 +62,8 @@ uno spettacolo.
 - [ ] Il pannello destro mostra CURRENT, NEXT BOOT, MagicQ, supervisore, data,
       log, rete/IP, touch, USB, VNC, SSH e audio con colori coerenti, senza
       mostrare letteralmente sequenze `${color ...}`.
-- [ ] Il pannello resta dietro alle applicazioni, non intercetta i tocchi e
-      scompare alla vista quando MagicQ occupa il fullscreen.
-- [ ] Toccando il bordo inferiore Tint2 compare senza la scritta `desktop 1` e
-      consente di aprire il Hub o selezionare un'applicazione già aperta.
+- [ ] Il pannello Tint2 resta sempre visibile, non mostra `desktop 1` e consente
+      con un tocco di aprire il Hub o selezionare un’applicazione già aperta.
 - [ ] Wasalight Hub mostra le schede MagicQ, Applications e Support con pulsanti
       grandi; gli strumenti di supporto si avviano correttamente.
 - [ ] Un launcher registrato con `wasalight-app-register` compare nel Hub e

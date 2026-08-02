@@ -105,11 +105,13 @@ required_patterns=(
     '/data/system/apps.d'
     'wasalight-app-register'
     'taskbar_name = 0'
-    'autohide = 1'
+    'autohide = 0'
+    'strut_policy = follow_size'
     'launcher_item_app = $TARGET_HOME/Desktop/Wasalight-Hub.desktop'
     'quick_exec=1'
     'chown -R root:root "$TARGET_HOME/Desktop"'
-    '-exec chmod 0444 {} +'
+    '/usr/local/share/applications/wasalight-$launcher_name'
+    'ln -s "$application_launcher" "$TARGET_HOME/Desktop/$launcher_name"'
     'magicq-vnc-password'
     'cleanup_candidates=(pollinate)'
     'cleanup_candidates+=(multipath-tools)'
@@ -167,6 +169,7 @@ helpers=(
     /usr/local/bin/wasalight-ssh-toggle
     /usr/local/sbin/wasalight-ssh-control
     /usr/local/sbin/wasalight-update
+    /usr/local/bin/wasalight-update-terminal
     /usr/local/bin/wasalight-hub
     /usr/local/bin/wasalight-terminal-tool
     /usr/local/sbin/wasalight-app-register
@@ -249,6 +252,15 @@ grep -Fq '/usr/local/sbin/wasalight-update --code-only' "$INSTALLER" || \
     fail "l'installer non inizializza il checkout persistente degli aggiornamenti"
 if grep -Fq 'git reset --hard' "$tmp_dir/wasalight-update"; then
     fail "l'aggiornamento Wasalight non deve cancellare modifiche locali"
+fi
+grep -Fq 'sudo /usr/local/sbin/wasalight-update' "$tmp_dir/wasalight-update-terminal" || \
+    fail "il menu Update non apre il comando in un terminale"
+grep -Fq 'install -d -o chamsys -g chamsys -m 0750 /data/log' \
+    "$tmp_dir/wasalight-update" || \
+    fail "l'aggiornamento non preserva i permessi chamsys di /data/log"
+if grep -Fq 'install -d -o root -g root -m 0755 /data/system /data/log' \
+    "$tmp_dir/wasalight-update"; then
+    fail "l'aggiornamento assegna ancora /data/log a root"
 fi
 if grep -Fq 'write_file "$TARGET_HOME/Desktop/Network.desktop"' "$INSTALLER" || \
    grep -Fq 'write_file "$TARGET_HOME/Desktop/Files.desktop"' "$INSTALLER" || \

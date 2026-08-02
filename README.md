@@ -243,8 +243,8 @@ righe `MAGICQ` e `SUPERVISOR`.
 ### Fullscreen automatico
 
 MagicQ 1.9.x apre la finestra principale massimizzata, ma non richiede a
-Openbox il vero stato fullscreen. Per questo, senza un intervento aggiuntivo,
-restano visibili la barra del titolo e il pannello Tint2.
+Openbox il vero stato fullscreen. Senza un intervento aggiuntivo resta visibile
+anche la barra del titolo.
 
 Wasalight avvia `magicq-fullscreen-watch` insieme a Openbox. Il controllo
 attende la finestra principale `MagicQ PC` e le applica lo stato EWMH
@@ -253,22 +253,23 @@ con **Start MagicQ** in MAINTENANCE e viene riapplicato quando MagicQ crea una
 nuova finestra dopo un riavvio. Non forza continuamente lo stato: dopo la prima
 applicazione, un operatore può disattivarlo temporaneamente durante una
 diagnosi senza che venga riattivato sulla stessa finestra.
+Tint2 rimane intenzionalmente sopra il bordo inferiore anche quando la finestra
+MagicQ è fullscreen, perché deve essere sempre raggiungibile dal touchscreen.
 
 ### Desktop di manutenzione
 
 Openbox viene limitato a **un solo desktop virtuale**: all'avvio `wmctrl -n 1`
 elimina gli altri spazi di lavoro della sessione. PCManFM disegna uno sfondo
 nero con icone SVG da 64 pixel, ad alto contrasto e indipendenti dal tema di
-Ubuntu. I launcher sono file `application/x-desktop` leggibili e appartengono a
-`root`; non viene aggiunto il bit eseguibile, che nel primo controllo rapido di
-LibFM li farebbe apparire come eseguibili generici con un’icona anonima. LibFM
-usa `single_click=1` e `quick_exec=1`: sul touchscreen basta un tocco, viene
-caricata l’icona SVG indicata dal launcher e non appare la richiesta «Apri
-con…». Non viene usato il metadato GIO `metadata::trusted`, perché non è
-supportato dal profilo PCManFM/GVFS dell’installazione Server. La directory
-Desktop e i launcher appartengono a `root`, con file in sola lettura:
-`chamsys` può avviarli ma non cancellarli, rinominarli, spostarli o modificarli
-accidentalmente.
+Ubuntu. I file applicazione reali sono installati sotto
+`/usr/local/share/applications`; sul Desktop vengono esposti come collegamenti
+simbolici protetti appartenenti a `root`. PCManFM riconosce così i launcher di
+sistema, carica le icone SVG e non li mostra più come eseguibili generici con
+un’icona anonima. LibFM usa `single_click=1` e `quick_exec=1`, quindi sul
+touchscreen basta un tocco e non appare la richiesta «Apri con…». Non viene
+usato il metadato GIO `metadata::trusted`, assente nel profilo PCManFM/GVFS
+dell’installazione Server. `chamsys` può avviare i collegamenti ma non
+cancellarli, rinominarli, spostarli o modificarli accidentalmente.
 Sono disponibili soltanto i comandi principali:
 
 - **Start MagicQ**;
@@ -310,8 +311,8 @@ programmi in tre schede:
 - **MagicQ**: applicazioni companion ChamSys rilevate quando realmente
   installate;
 - **Applications**: programmi registrati dall'amministratore;
-- **Support**: rete, monitor, touchscreen, audio, file, terminale, stato, VNC e
-  SSH.
+- **Support**: rete, monitor, touchscreen, audio, file, terminale, stato, VNC,
+  SSH e aggiornamento Wasalight.
 
 Il rilevamento automatico è intenzionalmente limitato ai companion riconoscibili
 come MagicVis, MagicHD e strumenti Remote/Viewer ChamSys. Il programma MagicQ
@@ -337,15 +338,14 @@ lo ignora invece di terminare. Gli eventuali errori di avvio vengono mostrati
 a schermo e registrati in `/data/log/wasalight-hub.log` (oppure in `/tmp` se
 `/data` non è disponibile).
 
-Tint2 non mostra più la scritta **desktop 1**. Il pannello è normalmente
-nascosto e lascia MagicQ realmente fullscreen; toccando il bordo inferiore
-compare temporaneamente con il pulsante Hub, le applicazioni aperte, le icone
-di stato e l'orologio. Questo permette di passare a un companion senza lasciare
-un controllo permanente sopra l'interfaccia MagicQ.
+Tint2 non mostra più la scritta **desktop 1** e resta sempre visibile in basso.
+Il pannello riserva lo spazio necessario e offre pulsante Hub, applicazioni
+aperte, icone di stato e orologio. Questa scelta evita il gesto sul bordo, poco
+affidabile con molti touchscreen, e mantiene sempre raggiungibili i controlli.
 
 Il clic destro apre soltanto un menu Wasalight minimale: Start/Stop MagicQ,
-Hub, VNC, SSH, riavvio e spegnimento. Le preferenze Openbox e le impostazioni di
-sistema generiche non sono esposte.
+Hub, Terminale, Update, VNC, SSH, riavvio e spegnimento. Le preferenze Openbox e
+le impostazioni di sistema generiche non sono esposte.
 
 ### VNC della sessione corrente
 
