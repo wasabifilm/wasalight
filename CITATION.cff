@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: >-
+  If you use or redistribute Wasalight, please cite it using the metadata in
+  this file. If you share the project on Instagram, a voluntary tag to
+  @wasabi_lightbulbfarm is appreciated.
+authors:
+  - family-names: Moser
+    given-names: Michele
+title: Wasalight
+type: software
+repository-code: https://github.com/wasabifilm/wasalight
+license: Apache-2.0

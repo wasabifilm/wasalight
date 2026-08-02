@@ -6,11 +6,17 @@ spegnimenti improvvisi e dati dello show persistenti.
 
 Progetto realizzato da **Michele Moser** e **Wasabi Lightbulb Farm**.
 
+Citazione del progetto: **“Wasalight — created by Michele Moser / Wasabi
+Lightbulbfarm.”** Instagram: **[@wasabi_lightbulbfarm](https://www.instagram.com/wasabi_lightbulbfarm/)**.
+
 ## Contenuto
 
 ```text
 magicq-ubuntu-appliance/
 ├── install.sh                         avvio principale
+├── LICENSE                            Apache License 2.0
+├── NOTICE                             attribuzione da conservare
+├── CITATION.cff                       citazione standard del progetto
 ├── bin/
 │   └── chamsys_install_ubuntu.sh      installer completo
 ├── packages/
@@ -18,6 +24,7 @@ magicq-ubuntu-appliance/
 │   └── magicq_ubuntu_v1_9_8_3.deb    da aggiungere
 ├── docs/
 │   ├── hardware-test-checklist.md
+│   ├── licensing.md
 │   ├── migration-24.04.md
 │   ├── ssh.md
 │   ├── system-cleanup.md
@@ -27,6 +34,25 @@ magicq-ubuntu-appliance/
 └── tests/
     └── verify-project.sh
 ```
+
+## Licenza e attribuzione
+
+Codice e documentazione sono open source con licenza **Apache License 2.0**.
+Chi ridistribuisce Wasalight o una sua derivazione deve conservare la licenza e
+l’attribuzione contenuta in `NOTICE`, secondo i termini della licenza.
+
+I file `assets/branding/wasabi-logo.png` e `boot-logo.png` sono esclusi dalla
+licenza Apache e restano proprietà di Michele Moser / Wasabi Lightbulbfarm. È
+permesso mantenerli invariati in una distribuzione ufficiale Wasalight non
+modificata; per derivazioni, rebranding o altri usi devono essere rimossi,
+sostituiti oppure autorizzati per iscritto. I dettagli sono in
+[`assets/branding/LICENSE`](assets/branding/LICENSE).
+
+Quando il progetto viene mostrato sui social, il tag Instagram
+**@wasabi_lightbulbfarm** è molto gradito, ma non è obbligatorio: imporlo come
+condizione d’uso renderebbe la licenza meno compatibile con il normale modello
+open source. La forma di citazione consigliata e i metadati per GitHub sono
+descritti nella [guida alla licenza](docs/licensing.md) e in `CITATION.cff`.
 
 ## Prima dell’installazione
 

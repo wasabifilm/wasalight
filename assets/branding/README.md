@@ -8,3 +8,5 @@
 
 Questi file sono gli asset di branding predefiniti delle installazioni
 Wasalight e sono attribuiti a **Michele Moser · Wasabi Lightbulbfarm**.
+Non sono distribuiti sotto Apache License 2.0: condizioni e permessi limitati
+sono definiti nel file [`LICENSE`](LICENSE) di questa cartella.

@@ -362,6 +362,22 @@ grep -Fq 'magicq-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
 [[ -s "$PROJECT_DIR/docs/update.md" ]] || fail "guida aggiornamenti mancante"
 [[ -s "$PROJECT_DIR/docs/system-cleanup.md" ]] || fail "guida pulizia sistema mancante"
 [[ -s "$PROJECT_DIR/docs/boot-branding.md" ]] || fail "guida branding di avvio mancante"
+[[ -s "$PROJECT_DIR/docs/licensing.md" ]] || fail "guida licenza mancante"
+[[ -s "$PROJECT_DIR/LICENSE" ]] || fail "Apache License 2.0 mancante"
+grep -Fq 'Apache License' "$PROJECT_DIR/LICENSE" || fail "testo licenza Apache non valido"
+grep -Fq 'Version 2.0, January 2004' "$PROJECT_DIR/LICENSE" || \
+    fail "versione della licenza Apache non valida"
+[[ -s "$PROJECT_DIR/NOTICE" ]] || fail "NOTICE di attribuzione mancante"
+grep -Fq 'Wasalight — created by Michele Moser / Wasabi Lightbulbfarm.' \
+    "$PROJECT_DIR/NOTICE" || fail "citazione Wasalight mancante dal NOTICE"
+grep -Fq '@wasabi_lightbulbfarm' "$PROJECT_DIR/NOTICE" || \
+    fail "account Instagram mancante dal NOTICE"
+[[ -s "$PROJECT_DIR/CITATION.cff" ]] || fail "metadati di citazione mancanti"
+grep -Fq 'license: Apache-2.0' "$PROJECT_DIR/CITATION.cff" || \
+    fail "licenza mancante dai metadati di citazione"
+[[ -s "$PROJECT_DIR/assets/branding/LICENSE" ]] || fail "licenza separata del logo mancante"
+grep -Fq 'excluded from the Apache' "$PROJECT_DIR/assets/branding/LICENSE" || \
+    fail "esclusione del logo dalla licenza Apache non documentata"
 [[ -s "$PROJECT_DIR/assets/branding/boot-logo.png" ]] || fail "logo Plymouth predefinito mancante"
 if grep -Fq 'plymouth-set-default-theme' "$INSTALLER"; then
     fail "il comando Plymouth rimosso da Ubuntu 24.04 è ancora utilizzato"
