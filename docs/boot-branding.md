@@ -8,13 +8,13 @@ Openbox. Il tema ha sfondo quasi nero `#080b10` e un logo centrale discreto.
 Il repository contiene due file:
 
 ```text
-assets/branding/wasabi-logo.png   marchio Wasabi trasparente, colori originali
+assets/branding/wasabi-logo.png   marchio Wasabi bianco/verde trasparente
 assets/branding/boot-logo.png     immagine pronta per il boot
 ```
 
-`boot-logo.png` conserva il marchio originale su una piccola targa chiara
-arrotondata, necessaria per rendere leggibili le parti nere sullo sfondo scuro.
-La risoluzione del file è **1360 × 787 px**, PNG RGBA. Plymouth non lo mostra a
+`boot-logo.png` usa la variante bianca e verde del marchio, con fondo
+trasparente e senza targa: è quindi adatto direttamente allo sfondo scuro.
+La risoluzione del file è **1200 × 627 px**, PNG RGBA. Plymouth non lo mostra a
 grandezza piena: lo centra, limita la larghezza al **34%** dello schermo e
 l’altezza al **24%**, senza ingrandire l’immagine oltre la dimensione originale.
 
@@ -31,6 +31,10 @@ sovrascrivono, così un logo personalizzato sopravvive sia agli update sia alla
 modalità SHOW / PROTECTED. Durante l’installazione viene copiata nel tema
 Plymouth e inserita nell’initramfs; `/data` non è ancora disponibile abbastanza
 presto per essere letta direttamente durante il boot.
+
+Quando cambia il logo ufficiale incluso in Wasalight, l’aggiornamento sostituisce
+automaticamente solo una copia identica al precedente logo predefinito. Un file
+personalizzato in `/data` viene riconosciuto dal checksum e non viene modificato.
 
 ## Sostituire il logo
 

@@ -356,6 +356,8 @@ grep -Fq 'magicq-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
 [[ -s "$PROJECT_DIR/docs/system-cleanup.md" ]] || fail "guida pulizia sistema mancante"
 [[ -s "$PROJECT_DIR/docs/boot-branding.md" ]] || fail "guida branding di avvio mancante"
 [[ -s "$PROJECT_DIR/assets/branding/boot-logo.png" ]] || fail "logo Plymouth predefinito mancante"
+grep -Fq 'previous_default_sha256=1a063958609eb258b14679213e0739cdca87cf4a4f0669d5ddc41e19a208a5d1' "$INSTALLER" || \
+    fail "migrazione del precedente logo Plymouth mancante"
 python3 - "$PROJECT_DIR/assets/branding/boot-logo.png" <<'PY' || fail "logo Plymouth predefinito non valido"
 import struct
 import sys
@@ -364,7 +366,7 @@ with open(sys.argv[1], "rb") as source:
     assert struct.unpack(">I", source.read(4))[0] == 13
     assert source.read(4) == b"IHDR"
     width, height = struct.unpack(">II", source.read(8))
-assert (width, height) == (1360, 787)
+assert (width, height) == (1200, 627)
 PY
 grep -Fq 'Ubuntu Server 24.04 LTS' "$PROJECT_DIR/README.md" || \
     fail "target Ubuntu 24.04 non documentato"

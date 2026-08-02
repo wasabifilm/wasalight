@@ -3305,6 +3305,8 @@ configure_boot_branding() {
     local default_logo="$PROJECT_DIR/assets/branding/boot-logo.png"
     local persistent_dir="$DATA_MOUNT/system/branding"
     local persistent_logo="$persistent_dir/boot-logo.png"
+    local previous_default_sha256=1a063958609eb258b14679213e0739cdca87cf4a4f0669d5ddc41e19a208a5d1
+    local persistent_sha256
     local selected_logo="$default_logo"
     local theme_dir=/usr/share/plymouth/themes/wasalight
 
@@ -3314,6 +3316,13 @@ configure_boot_branding() {
         if [[ ! -e $persistent_logo ]]; then
             install -o root -g root -m 0644 "$default_logo" "$persistent_logo"
             log "installed the default persistent boot logo: $persistent_logo"
+        else
+            persistent_sha256=$(sha256sum "$persistent_logo")
+            persistent_sha256=${persistent_sha256%% *}
+            if [[ $persistent_sha256 == "$previous_default_sha256" ]]; then
+                install -o root -g root -m 0644 "$default_logo" "$persistent_logo"
+                log "updated the previous default persistent boot logo"
+            fi
         fi
         selected_logo=$persistent_logo
     fi
