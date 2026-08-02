@@ -250,7 +250,7 @@ install_packages() {
         libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0
         libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0
         libasound2-data alsa-utils
-        openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps wmctrl x11-utils
+        openbox tint2 pcmanfm lxterminal lxrandr lxtask x11vnc procps wmctrl x11-utils
         conky-all zenity libglib2.0-bin desktop-file-utils librsvg2-common
         python3 python3-gi gir1.2-gtk-3.0 arp-scan iproute2
         network-manager network-manager-gnome wpasupplicant policykit-1 policykit-1-gnome
@@ -2138,6 +2138,17 @@ Icon=/usr/local/share/icons/wasalight/artnet-monitor.svg
 TryExec=/usr/local/bin/wasalight-artnet-monitor
 X-Wasalight-Section=Support
 X-Wasalight-Order=56
+EOF
+    write_file /etc/wasalight/apps.d/system-monitor.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=System Monitor
+Comment=Mostra processi e utilizzo di CPU e memoria
+Exec=lxtask
+Icon=utilities-system-monitor
+TryExec=lxtask
+X-Wasalight-Section=Support
+X-Wasalight-Order=58
 EOF
     write_file /etc/wasalight/apps.d/terminal.desktop 0644 <<'EOF'
 [Desktop Entry]

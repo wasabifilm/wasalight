@@ -84,6 +84,8 @@ uno spettacolo.
       collegato alla stessa rete; una nuova scansione aggiorna la tabella.
 - [ ] **Art-Net Monitor** mostra sorgente, universo e contatore quando un nodo o
       MagicQ trasmette ArtDMX; **Azzera** svuota correttamente l’elenco.
+- [ ] **System Monitor** apre LXTask e aggiorna processi, CPU e memoria senza
+      richiedere password o privilegi amministrativi.
 - [ ] Il clic destro mostra soltanto il menu Wasalight minimale, senza
       preferenze Openbox generiche.
 - [ ] Il clic destro sullo sfondo continua ad aprire il menu Openbox.

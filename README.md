@@ -384,9 +384,11 @@ Nella scheda **Support** del Hub sono disponibili anche:
 - **Art-Net Monitor**, che ascolta passivamente il traffico Art-Net su tutte le
   interfacce e raggruppa sorgente, destinazione, tipo di pacchetto, universo,
   numero di canali e contatore dei pacchetti.
+- **System Monitor**, un equivalente grafico e leggero di `htop` basato su
+  LXTask, con elenco dei processi e indicatori in tempo reale di CPU e memoria.
 
-Le due interfacce sono grandi e utilizzabili al tocco. Solo la cattura di rete
-passa attraverso helper amministrativi senza argomenti, esplicitamente limitati
+Le interfacce Wasalight sono grandi e utilizzabili al tocco. Solo la cattura di
+rete passa attraverso helper amministrativi senza argomenti, esplicitamente limitati
 in `sudoers`; le interfacce grafiche continuano a funzionare come `chamsys`. Gli
 errori confluiscono nel log persistente `/data/log/wasalight-network-tools.log`,
 gestito dalla stessa rotazione degli altri log Wasalight.
