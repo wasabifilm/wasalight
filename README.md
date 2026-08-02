@@ -261,15 +261,14 @@ MagicQ è fullscreen, perché deve essere sempre raggiungibile dal touchscreen.
 Openbox viene limitato a **un solo desktop virtuale**: all'avvio `wmctrl -n 1`
 elimina gli altri spazi di lavoro della sessione. PCManFM disegna uno sfondo
 nero con icone SVG da 64 pixel, ad alto contrasto e indipendenti dal tema di
-Ubuntu. I file applicazione reali sono installati sotto
-`/usr/local/share/applications`; sul Desktop vengono esposti come collegamenti
-simbolici protetti appartenenti a `root`. PCManFM riconosce così i launcher di
-sistema, carica le icone SVG e non li mostra più come eseguibili generici con
-un’icona anonima. LibFM usa `single_click=1` e `quick_exec=1`, quindi sul
-touchscreen basta un tocco e non appare la richiesta «Apri con…». Non viene
-usato il metadato GIO `metadata::trusted`, assente nel profilo PCManFM/GVFS
-dell’installazione Server. `chamsys` può avviare i collegamenti ma non
-cancellarli, rinominarli, spostarli o modificarli accidentalmente.
+Ubuntu. L’installer aggiunge `librsvg2-common`, il loader GDK-Pixbuf che manca
+nell’immagine Server minimale e che serve a PCManFM per visualizzare realmente
+gli SVG. I launcher restano file protetti appartenenti a `root`; LibFM usa
+`single_click=1` e `quick_exec=1`, quindi sul touchscreen basta un tocco e non
+appare la richiesta «Apri con…». Non viene usato il metadato GIO
+`metadata::trusted`, assente nel profilo PCManFM/GVFS dell’installazione
+Server. `chamsys` può avviare i launcher ma non cancellarli, rinominarli,
+spostarli o modificarli accidentalmente.
 Sono disponibili soltanto i comandi principali:
 
 - **Start MagicQ**;
@@ -318,6 +317,9 @@ Il rilevamento automatico è intenzionalmente limitato ai companion riconoscibil
 come MagicVis, MagicHD e strumenti Remote/Viewer ChamSys. Il programma MagicQ
 principale continua a essere avviato soltanto dal launcher Wasalight controllato
 e non attraverso un generico file `.desktop` del pacchetto.
+Il Hub rispetta anche la chiave standard `Path`: MagicHD e MagicVis vengono
+avviati da `/opt/magicq`, come richiesto dai launcher originali ChamSys, così i
+loro script trovano binari, plugin e librerie inclusi nel pacchetto.
 
 Per registrare un programma installato in futuro usare il relativo launcher
 standard presente normalmente sotto `/usr/share/applications`:
@@ -342,6 +344,8 @@ Tint2 non mostra più la scritta **desktop 1** e resta sempre visibile in basso.
 Il pannello riserva lo spazio necessario e offre pulsante Hub, applicazioni
 aperte, icone di stato e orologio. Questa scelta evita il gesto sul bordo, poco
 affidabile con molti touchscreen, e mantiene sempre raggiungibili i controlli.
+Il tema usa un blu scuro Wasalight (`#0d3b66`) con selezione blu brillante;
+i colori sono definiti nel file Tint2 generato dall’installer.
 
 Il clic destro apre soltanto un menu Wasalight minimale: Start/Stop MagicQ,
 Hub, Terminale, Update, VNC, SSH, riavvio e spegnimento. Le preferenze Openbox e

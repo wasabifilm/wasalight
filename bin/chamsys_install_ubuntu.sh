@@ -250,7 +250,7 @@ install_packages() {
         libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0
         libasound2-data alsa-utils
         openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps wmctrl x11-utils
-        conky-all zenity libglib2.0-bin desktop-file-utils
+        conky-all zenity libglib2.0-bin desktop-file-utils librsvg2-common
         python3 python3-gi gir1.2-gtk-3.0
         network-manager network-manager-gnome wpasupplicant policykit-1 policykit-1-gnome
         overlayroot initramfs-tools chrony
@@ -1264,7 +1264,8 @@ EOF
 </svg>
 EOF
 
-    # Remove links from an earlier run before recreating their source files.
+    # Remove launchers and the short-lived system-link experiment from earlier
+    # runs before recreating protected regular desktop files.
     rm -f -- \
         "$TARGET_HOME/Desktop/Start-MagicQ.desktop" \
         "$TARGET_HOME/Desktop/Stop-MagicQ.desktop" \
@@ -1272,7 +1273,14 @@ EOF
         "$TARGET_HOME/Desktop/VNC.desktop" \
         "$TARGET_HOME/Desktop/SSH.desktop" \
         "$TARGET_HOME/Desktop/Power-Off.desktop" \
-        "$TARGET_HOME/Desktop/Reboot.desktop"
+        "$TARGET_HOME/Desktop/Reboot.desktop" \
+        /usr/local/share/applications/wasalight-Start-MagicQ.desktop \
+        /usr/local/share/applications/wasalight-Stop-MagicQ.desktop \
+        /usr/local/share/applications/wasalight-Wasalight-Hub.desktop \
+        /usr/local/share/applications/wasalight-VNC.desktop \
+        /usr/local/share/applications/wasalight-SSH.desktop \
+        /usr/local/share/applications/wasalight-Power-Off.desktop \
+        /usr/local/share/applications/wasalight-Reboot.desktop
 
     write_file "$TARGET_HOME/Desktop/Start-MagicQ.desktop" 0755 <<'EOF'
 [Desktop Entry]
@@ -1356,21 +1364,6 @@ Icon=/usr/local/share/icons/wasalight/reboot.svg
 Terminal=false
 StartupNotify=false
 EOF
-
-    # Store trusted launchers in the system application directory and expose
-    # only root-owned symlinks on the protected desktop. PCManFM resolves the
-    # targets as application launchers instead of generic executable files.
-    install -d -o root -g root -m 0755 /usr/local/share/applications
-    local launcher_name application_launcher
-    for launcher_name in \
-        Start-MagicQ.desktop Stop-MagicQ.desktop Wasalight-Hub.desktop \
-        VNC.desktop SSH.desktop Power-Off.desktop Reboot.desktop; do
-        application_launcher="/usr/local/share/applications/wasalight-$launcher_name"
-        install -o root -g root -m 0644 \
-            "$TARGET_HOME/Desktop/$launcher_name" "$application_launcher"
-        rm -f -- "$TARGET_HOME/Desktop/$launcher_name"
-        ln -s "$application_launcher" "$TARGET_HOME/Desktop/$launcher_name"
-    done
 
     write_file /usr/local/bin/magicq-fullscreen-watch 0755 <<'EOF'
 #!/bin/sh
@@ -1812,6 +1805,7 @@ def read_launcher(path, forced_section=None):
         "exec": command,
         "icon": item.get("Icon", "application-x-executable"),
         "terminal": desktop_bool(item, "Terminal"),
+        "path": item.get("Path", "").strip() or None,
         "section": section,
         "order": order,
     }
@@ -1912,7 +1906,7 @@ class Hub(Gtk.Window):
             arguments = shlex.split(command)
             if item["terminal"]:
                 arguments = ["lxterminal", "-e"] + arguments
-            subprocess.Popen(arguments, start_new_session=True)
+            subprocess.Popen(arguments, cwd=item["path"], start_new_session=True)
             self.destroy()
         except (OSError, ValueError) as error:
             dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.ERROR, Gtk.ButtonsType.CLOSE,
@@ -1953,16 +1947,16 @@ exit "$rc"
 EOF
 
     write_file "$TARGET_HOME/.config/tint2/tint2rc" 0644 <<EOF
-# Wasalight touch panel: hidden during normal use, revealed at the bottom edge.
+# Wasalight touch panel: always visible, with a high-contrast blue theme.
 rounded = 0
 border_width = 0
-background_color = #111827 96
-border_color = #111827 100
+background_color = #0d3b66 100
+border_color = #0d3b66 100
 
 rounded = 8
 border_width = 0
-background_color = #30363d 100
-border_color = #30363d 100
+background_color = #1f6feb 100
+border_color = #58a6ff 100
 
 panel_items = LTSC
 panel_size = 100% 64
@@ -2302,8 +2296,8 @@ EOF
     # from misclassifying them as generic executables, so their SVGs are used.
     chown -R root:root "$TARGET_HOME/Desktop"
     chmod 0755 "$TARGET_HOME/Desktop"
-    find "$TARGET_HOME/Desktop" -maxdepth 1 -type l -name '*.desktop' \
-        -exec chown -h root:root {} +
+    find "$TARGET_HOME/Desktop" -maxdepth 1 -type f -name '*.desktop' \
+        -exec chmod 0444 {} +
 
     install -d -m 0755 /etc/systemd/system/getty@tty1.service.d
     write_file /etc/systemd/system/getty@tty1.service.d/autologin.conf 0644 <<EOF
@@ -2795,6 +2789,8 @@ final_checks() {
         die "OpenGL runtime check failed: libGLU.so.1 is unavailable"
     [[ -r /usr/share/alsa/alsa.conf ]] || \
         die "MagicQ audio runtime check failed: /usr/share/alsa/alsa.conf is unavailable"
+    python3 -c 'import gi; gi.require_version("GdkPixbuf", "2.0"); from gi.repository import GdkPixbuf; GdkPixbuf.Pixbuf.new_from_file("/usr/local/share/icons/wasalight/start.svg")' || \
+        die "desktop SVG icon loader is unavailable"
     if [[ -f /opt/magicq/plugins/platforms/libqxcb.so ]]; then
         if LD_LIBRARY_PATH=/opt/magicq/lib \
            ldd /opt/magicq/plugins/platforms/libqxcb.so | grep -F 'not found'; then

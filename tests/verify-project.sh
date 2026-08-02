@@ -52,7 +52,7 @@ required_patterns=(
     'libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0'
     'libasound2-data alsa-utils'
     'openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps wmctrl x11-utils'
-    'conky-all zenity libglib2.0-bin desktop-file-utils'
+    'conky-all zenity libglib2.0-bin desktop-file-utils librsvg2-common'
     'python3 python3-gi gir1.2-gtk-3.0'
     '/etc/netplan/99-wasalight-networkmanager.yaml'
     'renderer: NetworkManager'
@@ -110,8 +110,9 @@ required_patterns=(
     'launcher_item_app = $TARGET_HOME/Desktop/Wasalight-Hub.desktop'
     'quick_exec=1'
     'chown -R root:root "$TARGET_HOME/Desktop"'
-    '/usr/local/share/applications/wasalight-$launcher_name'
-    'ln -s "$application_launcher" "$TARGET_HOME/Desktop/$launcher_name"'
+    '-exec chmod 0444 {} +'
+    'desktop SVG icon loader is unavailable'
+    'background_color = #0d3b66 100'
     'magicq-vnc-password'
     'cleanup_candidates=(pollinate)'
     'cleanup_candidates+=(multipath-tools)'
@@ -279,6 +280,10 @@ grep -Fq '/data/system/apps.d/*.desktop' "$hub_script" || \
     fail "Wasalight Hub non legge il registro applicazioni persistente"
 grep -Fq 'magicvis|magichd' "$hub_script" || \
     fail "Wasalight Hub non rileva i companion ChamSys conosciuti"
+grep -Fq '"path": item.get("Path", "").strip() or None' "$hub_script" || \
+    fail "Wasalight Hub ignora la directory Path dei launcher"
+grep -Fq 'cwd=item["path"]' "$hub_script" || \
+    fail "Wasalight Hub non avvia i companion dalla directory richiesta"
 grep -Fq 'except ValueError' "$hub_script" || \
     fail "Wasalight Hub non gestisce i booleani desktop non validi"
 grep -Fq 'wasalight-hub.log' "$tmp_dir/wasalight-hub" || \
