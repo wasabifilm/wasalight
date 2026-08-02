@@ -32,6 +32,11 @@ modalità SHOW / PROTECTED. Durante l’installazione viene copiata nel tema
 Plymouth e inserita nell’initramfs; `/data` non è ancora disponibile abbastanza
 presto per essere letta direttamente durante il boot.
 
+Su Ubuntu 24.04 il tema viene registrato e selezionato nel gruppo
+`default.plymouth` di `update-alternatives`, che è la sorgente letta dallo hook
+Ubuntu durante la rigenerazione dell’initramfs. Wasalight non usa il vecchio
+comando `plymouth-set-default-theme`, non più distribuito da Plymouth 24.x.
+
 Quando cambia il logo ufficiale incluso in Wasalight, l’aggiornamento sostituisce
 automaticamente solo una copia identica al precedente logo predefinito. Un file
 personalizzato in `/data` viene riconosciuto dal checksum e non viene modificato.

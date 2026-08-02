@@ -3383,7 +3383,13 @@ logo_sprite.SetPosition((screen_width - logo_width) / 2,
                         (screen_height - logo_height) / 2, 100);
 EOF
 
-    plymouth-set-default-theme wasalight
+    # Plymouth 24.x on Ubuntu 24.04 no longer ships the legacy theme selector.
+    # Debian/Ubuntu select the graphical theme through the default.plymouth
+    # alternatives group used by the initramfs hook.
+    update-alternatives --install \
+        /usr/share/plymouth/themes/default.plymouth default.plymouth \
+        "$theme_dir/wasalight.plymouth" 200
+    update-alternatives --set default.plymouth "$theme_dir/wasalight.plymouth"
     install -d -m 0755 /etc/default/grub.d
     write_file /etc/default/grub.d/99-wasalight.cfg 0644 <<'EOF'
 # Quiet normal boot. Hold Esc during firmware/GRUB hand-off for the boot menu.
@@ -3443,7 +3449,8 @@ final_checks() {
     python3 -c 'compile(open("/usr/local/libexec/wasalight-artnet-monitor.py", encoding="utf-8").read(), "/usr/local/libexec/wasalight-artnet-monitor.py", "exec")'
     [[ -s /usr/share/plymouth/themes/wasalight/boot-logo.png ]] || \
         die "Wasalight Plymouth boot logo is unavailable"
-    [[ $(plymouth-set-default-theme) == wasalight ]] || \
+    [[ $(readlink -f /usr/share/plymouth/themes/default.plymouth) == \
+       /usr/share/plymouth/themes/wasalight/wasalight.plymouth ]] || \
         die "Wasalight is not the active Plymouth theme"
     [[ -r /etc/default/grub.d/99-wasalight.cfg ]] || \
         die "Wasalight quiet GRUB configuration is unavailable"

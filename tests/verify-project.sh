@@ -131,7 +131,7 @@ required_patterns=(
     'assets/branding/boot-logo.png'
     '$DATA_MOUNT/system/branding'
     '/usr/share/plymouth/themes/wasalight'
-    'plymouth-set-default-theme wasalight'
+    'update-alternatives --set default.plymouth'
     'GRUB_TIMEOUT_STYLE=hidden'
     'quiet splash loglevel=3'
     'screen_width * 0.34'
@@ -356,6 +356,11 @@ grep -Fq 'magicq-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
 [[ -s "$PROJECT_DIR/docs/system-cleanup.md" ]] || fail "guida pulizia sistema mancante"
 [[ -s "$PROJECT_DIR/docs/boot-branding.md" ]] || fail "guida branding di avvio mancante"
 [[ -s "$PROJECT_DIR/assets/branding/boot-logo.png" ]] || fail "logo Plymouth predefinito mancante"
+if grep -Fq 'plymouth-set-default-theme' "$INSTALLER"; then
+    fail "il comando Plymouth rimosso da Ubuntu 24.04 è ancora utilizzato"
+fi
+grep -Fq 'readlink -f /usr/share/plymouth/themes/default.plymouth' "$INSTALLER" || \
+    fail "il tema Plymouth attivo non viene verificato tramite alternatives"
 grep -Fq 'previous_default_sha256=1a063958609eb258b14679213e0739cdca87cf4a4f0669d5ddc41e19a208a5d1' "$INSTALLER" || \
     fail "migrazione del precedente logo Plymouth mancante"
 python3 - "$PROJECT_DIR/assets/branding/boot-logo.png" <<'PY' || fail "logo Plymouth predefinito non valido"
