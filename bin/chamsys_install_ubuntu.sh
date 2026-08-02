@@ -184,6 +184,7 @@ configure_data_mount() {
     install -d -m 0700 "$DATA_MOUNT/magicq/root-home/.config"
     install -d -m 0700 "$DATA_MOUNT/magicq/root-home/.local/share"
     install -d -m 0700 "$DATA_MOUNT/system/network"
+    install -d -m 0755 "$DATA_MOUNT/system/apps.d"
     install -d -m 0750 "$DATA_MOUNT/log"
 }
 
@@ -212,6 +213,7 @@ install_packages() {
         libasound2-data alsa-utils
         openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps wmctrl x11-utils
         conky-all zenity libglib2.0-bin desktop-file-utils
+        python3 python3-gi gir1.2-gtk-3.0
         network-manager network-manager-gnome wpasupplicant policykit-1 policykit-1-gnome
         overlayroot initramfs-tools chrony
         exfatprogs ntfs-3g dosfstools util-linux udev logrotate
@@ -281,6 +283,7 @@ configure_user() {
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/pcmanfm/default"
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/conky"
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/libfm"
+    install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/tint2"
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/magicq-touch"
 
     if mountpoint -q "$DATA_MOUNT"; then
@@ -878,6 +881,45 @@ else
 fi
 rm -f "$pid_file"
 EOF
+
+    write_file /usr/local/bin/wasalight-vnc-toggle 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || {
+    echo "Run this command as the chamsys desktop user." >&2
+    exit 1
+}
+
+if pgrep -u chamsys -x x11vnc >/dev/null 2>&1; then
+    zenity --question --width=460 --title="VNC · Wasalight" \
+        --text="<big><b>VNC è attivo.</b></big>\n\nFermare la condivisione della sessione corrente?" \
+        --ok-label="Stop VNC" --cancel-label="Cancel" || exit 0
+    output=$(/usr/local/bin/magicq-vnc-stop 2>&1) || {
+        zenity --error --width=460 --title="VNC · Wasalight" --text="$output"
+        exit 1
+    }
+    zenity --info --width=420 --title="VNC · Wasalight" --text="$output"
+    exit 0
+fi
+
+password_file=/home/chamsys/.config/wasalight-vnc/passwd
+[[ ! -r /data/system/vnc/passwd ]] || password_file=/data/system/vnc/passwd
+if [[ ! -r $password_file ]]; then
+    # x11vnc deliberately reads the new password from a terminal so it never
+    # appears in a process argument, temporary file or Wasalight log.
+    lxterminal --title="VNC password · Wasalight" -e bash -lc \
+        '/usr/local/bin/magicq-vnc-start; rc=$?; echo; echo "Premere Invio per chiudere."; read -r _; exit "$rc"'
+    exit 0
+fi
+
+output=$(/usr/local/bin/magicq-vnc-start 2>&1) || {
+    zenity --error --width=520 --title="VNC · Wasalight" --text="$output"
+    exit 1
+}
+ip_address=$(hostname -I 2>/dev/null | awk '{print $1}')
+zenity --info --width=500 --title="VNC · Wasalight" \
+    --text="<big><b>VNC attivo nella sessione corrente</b></big>\n\nIndirizzo: vnc://${ip_address:-SERVER_IP}:5900\n\nUsare soltanto su una rete locale fidata."
+EOF
 }
 
 configure_graphical_session() {
@@ -952,6 +994,16 @@ EOF
  <circle cx="48" cy="48" r="44" fill="#bc6b00"/><path d="M69 34A27 27 0 1 0 73 57" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/><path d="m66 18 4 17-17-3Z" fill="#fff"/>
 </svg>
 EOF
+    write_file /usr/local/share/icons/wasalight/hub.svg 0644 <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+ <rect x="6" y="6" width="84" height="84" rx="20" fill="#8957e5"/><g fill="#fff"><rect x="23" y="23" width="20" height="20" rx="5"/><rect x="53" y="23" width="20" height="20" rx="5"/><rect x="23" y="53" width="20" height="20" rx="5"/><rect x="53" y="53" width="20" height="20" rx="5"/></g>
+</svg>
+EOF
+    write_file /usr/local/share/icons/wasalight/vnc.svg 0644 <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+ <rect x="8" y="14" width="80" height="58" rx="10" fill="#0969da"/><rect x="16" y="22" width="64" height="42" rx="4" fill="#dbeafe"/><path d="M35 84h26M48 72v12" stroke="#fff" stroke-width="7" stroke-linecap="round"/><circle cx="48" cy="43" r="10" fill="#0969da"/><path d="M29 58c5-9 12-13 19-13s14 4 19 13" fill="none" stroke="#0969da" stroke-width="6" stroke-linecap="round"/>
+</svg>
+EOF
 
     write_file "$TARGET_HOME/Desktop/Start-MagicQ.desktop" 0755 <<'EOF'
 [Desktop Entry]
@@ -975,35 +1027,30 @@ Terminal=false
 StartupNotify=false
 EOF
 
-    write_file "$TARGET_HOME/Desktop/Network.desktop" 0755 <<'EOF'
+    # Earlier versions exposed support tools as separate desktop files. The
+    # Hub replaces them; remove only these installer-owned legacy launchers.
+    rm -f "$TARGET_HOME/Desktop/Network.desktop" \
+        "$TARGET_HOME/Desktop/Files.desktop" \
+        "$TARGET_HOME/Desktop/Terminal.desktop"
+
+    write_file "$TARGET_HOME/Desktop/Wasalight-Hub.desktop" 0755 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Network settings
-Comment=Configura Ethernet e Wi-Fi con NetworkManager
-Exec=nm-connection-editor
-Icon=/usr/local/share/icons/wasalight/network.svg
+Name=Wasalight Hub
+Comment=Applicazioni MagicQ, programmi e strumenti di supporto
+Exec=/usr/local/bin/wasalight-hub
+Icon=/usr/local/share/icons/wasalight/hub.svg
 Terminal=false
 StartupNotify=true
 EOF
 
-    write_file "$TARGET_HOME/Desktop/Files.desktop" 0755 <<'EOF'
+    write_file "$TARGET_HOME/Desktop/VNC.desktop" 0755 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=File manager
-Comment=Apre i file persistenti e le chiavette USB
-Exec=pcmanfm
-Icon=/usr/local/share/icons/wasalight/files.svg
-Terminal=false
-StartupNotify=true
-EOF
-
-    write_file "$TARGET_HOME/Desktop/Terminal.desktop" 0755 <<'EOF'
-[Desktop Entry]
-Type=Application
-Name=Terminal
-Comment=Apre il terminale di manutenzione
-Exec=lxterminal
-Icon=/usr/local/share/icons/wasalight/terminal.svg
+Name=VNC
+Comment=Avvia o ferma VNC nella sessione grafica corrente
+Exec=/usr/local/bin/wasalight-vnc-toggle
+Icon=/usr/local/share/icons/wasalight/vnc.svg
 Terminal=false
 StartupNotify=true
 EOF
@@ -1239,6 +1286,384 @@ ${execi 2 /usr/local/bin/wasalight-desktop-status}
 ]];
 EOF
 
+    write_file /usr/local/bin/wasalight-terminal-tool 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+case ${1:-} in
+    status) command_to_run=/usr/local/bin/magicq-status ;;
+    touch) command_to_run=/usr/local/bin/magicq-touch-status ;;
+    audio) command_to_run=/usr/local/bin/magicq-audio-test ;;
+    *) echo "Usage: wasalight-terminal-tool status|touch|audio" >&2; exit 2 ;;
+esac
+exec lxterminal --title="Wasalight support" -e bash -lc \
+    '"$1"; rc=$?; echo; echo "Premere Invio per chiudere."; read -r _; exit "$rc"' \
+    _ "$command_to_run"
+EOF
+
+    install -d -m 0755 /etc/wasalight/apps.d
+    write_file /etc/wasalight/apps.d/network.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Network
+Comment=Configura Ethernet e Wi-Fi
+Exec=nm-connection-editor
+Icon=/usr/local/share/icons/wasalight/network.svg
+TryExec=nm-connection-editor
+X-Wasalight-Section=Support
+X-Wasalight-Order=10
+EOF
+    write_file /etc/wasalight/apps.d/display.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Display
+Comment=Configura monitor e risoluzione
+Exec=lxrandr
+Icon=video-display
+TryExec=lxrandr
+X-Wasalight-Section=Support
+X-Wasalight-Order=20
+EOF
+    write_file /etc/wasalight/apps.d/touch.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Touchscreen
+Comment=Mostra dispositivi e associazione touch
+Exec=/usr/local/bin/wasalight-terminal-tool touch
+Icon=input-touchpad
+TryExec=/usr/local/bin/magicq-touch-status
+X-Wasalight-Section=Support
+X-Wasalight-Order=30
+EOF
+    write_file /etc/wasalight/apps.d/audio.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Audio test
+Comment=Prova il dispositivo ALSA predefinito
+Exec=/usr/local/bin/wasalight-terminal-tool audio
+Icon=audio-card
+TryExec=/usr/local/bin/magicq-audio-test
+X-Wasalight-Section=Support
+X-Wasalight-Order=40
+EOF
+    write_file /etc/wasalight/apps.d/files.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Files
+Comment=Apre dati persistenti e chiavette USB
+Exec=pcmanfm
+Icon=/usr/local/share/icons/wasalight/files.svg
+TryExec=pcmanfm
+X-Wasalight-Section=Support
+X-Wasalight-Order=50
+EOF
+    write_file /etc/wasalight/apps.d/terminal.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Terminal
+Comment=Apre il terminale di manutenzione
+Exec=lxterminal
+Icon=/usr/local/share/icons/wasalight/terminal.svg
+TryExec=lxterminal
+X-Wasalight-Section=Support
+X-Wasalight-Order=60
+EOF
+    write_file /etc/wasalight/apps.d/status.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=System status
+Comment=Mostra lo stato completo Wasalight
+Exec=/usr/local/bin/wasalight-terminal-tool status
+Icon=utilities-system-monitor
+TryExec=/usr/local/bin/magicq-status
+X-Wasalight-Section=Support
+X-Wasalight-Order=70
+EOF
+    write_file /etc/wasalight/apps.d/vnc.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=VNC session
+Comment=Avvia o ferma la condivisione corrente
+Exec=/usr/local/bin/wasalight-vnc-toggle
+Icon=/usr/local/share/icons/wasalight/vnc.svg
+TryExec=/usr/local/bin/wasalight-vnc-toggle
+X-Wasalight-Section=Support
+X-Wasalight-Order=80
+EOF
+
+    write_file /usr/local/sbin/wasalight-app-register 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $EUID -eq 0 ]] || exec sudo "$0" "$@"
+destination=/etc/wasalight/apps.d
+mountpoint -q /data && destination=/data/system/apps.d
+install -d -m 0755 "$destination"
+
+case ${1:-} in
+    --list)
+        {
+            for registry in /etc/wasalight/apps.d /data/system/apps.d; do
+                [[ ! -d $registry ]] || find "$registry" -maxdepth 1 \
+                    -type f -name '*.desktop' -print
+            done
+        } | sort
+        exit 0
+        ;;
+    --remove)
+        name=${2##*/}
+        [[ $name =~ ^[A-Za-z0-9._+-]+\.desktop$ ]] || {
+            echo "Invalid launcher name: $name" >&2; exit 2;
+        }
+        rm -f "$destination/$name"
+        echo "Removed: $destination/$name"
+        exit 0
+        ;;
+esac
+
+source_file=${1:?usage: wasalight-app-register FILE.desktop | --list | --remove NAME.desktop}
+[[ -f $source_file && ${source_file##*.} == desktop ]] || {
+    echo "A readable .desktop file is required: $source_file" >&2; exit 2;
+}
+desktop-file-validate "$source_file"
+name=${source_file##*/}
+install -m 0644 "$source_file" "$destination/$name"
+echo "Registered in Wasalight Hub: $destination/$name"
+EOF
+
+    write_file /usr/local/bin/wasalight-hub 0755 <<'PYEOF'
+#!/usr/bin/env python3
+import configparser
+import glob
+import os
+import re
+import shlex
+import shutil
+import subprocess
+
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gdk, GdkPixbuf, Gtk
+
+SECTIONS = ("MagicQ", "Applications", "Support")
+COMPANION = re.compile(r"magicvis|magichd|magicq[ -]?remote|chamsys.*(?:remote|viewer|media)", re.I)
+FIELD_CODE = re.compile(r"%[fFuUdDnNickvm]")
+
+
+def read_launcher(path, forced_section=None):
+    parser = configparser.RawConfigParser(interpolation=None, strict=False)
+    try:
+        parser.read(path, encoding="utf-8")
+        item = parser["Desktop Entry"]
+    except (OSError, KeyError, configparser.Error):
+        return None
+    if item.get("Type", "Application") != "Application":
+        return None
+    if item.getboolean("Hidden", fallback=False) or item.getboolean("NoDisplay", fallback=False):
+        return None
+    name = item.get("Name", "").strip()
+    command = item.get("Exec", "").strip()
+    try_exec = item.get("TryExec", "").strip()
+    if not name or not command:
+        return None
+    if try_exec and not (os.path.exists(try_exec) if os.path.isabs(try_exec) else shutil.which(try_exec)):
+        return None
+    section = forced_section or item.get("X-Wasalight-Section", "Applications")
+    if section not in SECTIONS:
+        section = "Applications"
+    try:
+        order = int(item.get("X-Wasalight-Order", "500"))
+    except ValueError:
+        order = 500
+    return {
+        "name": name,
+        "comment": item.get("Comment", ""),
+        "exec": command,
+        "icon": item.get("Icon", "application-x-executable"),
+        "terminal": item.getboolean("Terminal", fallback=False),
+        "section": section,
+        "order": order,
+    }
+
+
+def installed_launchers():
+    result, seen = [], set()
+    for pattern in ("/etc/wasalight/apps.d/*.desktop", "/data/system/apps.d/*.desktop"):
+        for path in sorted(glob.glob(pattern)):
+            launcher = read_launcher(path)
+            if launcher and (launcher["name"], launcher["exec"]) not in seen:
+                result.append(launcher)
+                seen.add((launcher["name"], launcher["exec"]))
+    for path in sorted(glob.glob("/usr/share/applications/*.desktop")):
+        launcher = read_launcher(path, "MagicQ")
+        if not launcher:
+            continue
+        searchable = " ".join((launcher["name"], launcher["exec"], launcher["comment"]))
+        if COMPANION.search(searchable) and (launcher["name"], launcher["exec"]) not in seen:
+            result.append(launcher)
+            seen.add((launcher["name"], launcher["exec"]))
+    return sorted(result, key=lambda value: (SECTIONS.index(value["section"]), value["order"], value["name"].lower()))
+
+
+def launcher_image(icon):
+    if os.path.isabs(icon) and os.path.isfile(icon):
+        try:
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(icon, 72, 72, True)
+            return Gtk.Image.new_from_pixbuf(pixbuf)
+        except Exception:
+            pass
+    image = Gtk.Image.new_from_icon_name(icon or "application-x-executable", Gtk.IconSize.DIALOG)
+    image.set_pixel_size(72)
+    return image
+
+
+class Hub(Gtk.Window):
+    def __init__(self):
+        super().__init__(title="Wasalight Hub")
+        self.set_default_size(900, 650)
+        self.set_position(Gtk.WindowPosition.CENTER)
+        self.set_icon_from_file("/usr/local/share/icons/wasalight/hub.svg")
+        self.connect("destroy", Gtk.main_quit)
+
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        outer.set_border_width(18)
+        header = Gtk.Label()
+        header.set_markup("<span size='22000' weight='bold'>Wasalight Hub</span>\n"
+                          "<span size='11000'>MagicQ · applicazioni · supporto</span>")
+        header.set_xalign(0)
+        outer.pack_start(header, False, False, 0)
+
+        notebook = Gtk.Notebook()
+        launchers = installed_launchers()
+        for section in SECTIONS:
+            flow = Gtk.FlowBox()
+            flow.set_selection_mode(Gtk.SelectionMode.NONE)
+            flow.set_row_spacing(14)
+            flow.set_column_spacing(14)
+            flow.set_max_children_per_line(4)
+            flow.set_min_children_per_line(2)
+            section_items = [item for item in launchers if item["section"] == section]
+            if not section_items:
+                empty = Gtk.Label(label="Nessuna applicazione registrata")
+                empty.set_margin_top(40)
+                flow.add(empty)
+            for item in section_items:
+                button = Gtk.Button()
+                button.set_size_request(190, 145)
+                button.set_tooltip_text(item["comment"])
+                content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+                content.pack_start(launcher_image(item["icon"]), True, True, 0)
+                label = Gtk.Label(label=item["name"])
+                label.set_line_wrap(True)
+                label.set_justify(Gtk.Justification.CENTER)
+                content.pack_start(label, False, False, 0)
+                button.add(content)
+                button.connect("clicked", self.launch, item)
+                flow.add(button)
+            scroll = Gtk.ScrolledWindow()
+            scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+            scroll.add(flow)
+            notebook.append_page(scroll, Gtk.Label(label=section))
+        outer.pack_start(notebook, True, True, 0)
+
+        close = Gtk.Button(label="Close")
+        close.set_size_request(-1, 56)
+        close.connect("clicked", lambda _button: self.destroy())
+        outer.pack_start(close, False, False, 0)
+        self.add(outer)
+
+    def launch(self, _button, item):
+        command = FIELD_CODE.sub("", item["exec"])
+        try:
+            arguments = shlex.split(command)
+            if item["terminal"]:
+                arguments = ["lxterminal", "-e"] + arguments
+            subprocess.Popen(arguments, start_new_session=True)
+            self.destroy()
+        except (OSError, ValueError) as error:
+            dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.ERROR, Gtk.ButtonsType.CLOSE,
+                                       "Impossibile avviare l'applicazione")
+            dialog.format_secondary_text(str(error))
+            dialog.run()
+            dialog.destroy()
+
+
+css = Gtk.CssProvider()
+css.load_from_data(b"button { font-size: 18px; padding: 12px; } notebook tab { padding: 14px 28px; font-size: 17px; }")
+Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+window = Hub()
+window.show_all()
+Gtk.main()
+PYEOF
+
+    write_file "$TARGET_HOME/.config/tint2/tint2rc" 0644 <<EOF
+# Wasalight touch panel: hidden during normal use, revealed at the bottom edge.
+rounded = 0
+border_width = 0
+background_color = #111827 96
+border_color = #111827 100
+
+rounded = 8
+border_width = 0
+background_color = #30363d 100
+border_color = #30363d 100
+
+panel_items = LTSC
+panel_size = 100% 64
+panel_margin = 0 0
+panel_padding = 10 6 10
+panel_background_id = 1
+panel_position = bottom center horizontal
+panel_layer = top
+panel_monitor = all
+panel_dock = 0
+wm_menu = 0
+strut_policy = none
+autohide = 1
+autohide_show_timeout = 0.15
+autohide_hide_timeout = 0.8
+autohide_height = 6
+
+launcher_padding = 8 4 8
+launcher_background_id = 2
+launcher_icon_background_id = 0
+launcher_icon_size = 46
+launcher_item_app = $TARGET_HOME/Desktop/Wasalight-Hub.desktop
+
+taskbar_mode = single_desktop
+taskbar_padding = 4 0 4
+taskbar_background_id = 0
+taskbar_active_background_id = 0
+taskbar_name = 0
+taskbar_hide_if_empty = 0
+taskbar_distribute_size = 1
+
+task_icon = 1
+task_text = 1
+task_centered = 1
+task_maximum_size = 220 52
+task_padding = 10 4 10
+task_font = Sans 12
+task_font_color = #ffffff 100
+task_active_font_color = #ffffff 100
+task_background_id = 0
+task_active_background_id = 2
+
+systray_padding = 8 4 8
+systray_icon_size = 30
+systray_icon_asb = 100 0 0
+
+time1_format = %H:%M
+time1_font = Sans Bold 13
+clock_font_color = #ffffff 100
+clock_padding = 12 0
+clock_background_id = 0
+
+mouse_left = toggle_iconify
+mouse_middle = none
+mouse_right = close
+mouse_scroll_up = none
+mouse_scroll_down = none
+EOF
+
     write_file /usr/local/sbin/magicq-root-launcher 0755 <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -1452,12 +1877,11 @@ xset -dpms
 wmctrl -n 1
 for launcher in "$HOME"/Desktop/*.desktop; do
     [ -f "$launcher" ] || continue
-    chmod 0755 "$launcher"
     gio set "$launcher" metadata::trusted true >/dev/null 2>&1 || true
 done
 pcmanfm --desktop --profile=default &
 conky --config="$HOME/.config/conky/wasalight.conf" --daemonize --pause=2
-tint2 &
+tint2 -c "$HOME/.config/tint2/tint2rc" &
 nm-applet --indicator &
 /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
 /usr/local/bin/magicq-touch-watch &
@@ -1469,25 +1893,33 @@ else
 fi
 EOF
 
-    local keyboard_item=''
     if ((ENABLE_ONSCREEN_KEYBOARD)); then
-        keyboard_item='    <item label="On-screen keyboard"><action name="Execute"><command>onboard</command></action></item>'
+        write_file /etc/wasalight/apps.d/keyboard.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=On-screen keyboard
+Comment=Apre la tastiera touch Onboard
+Exec=onboard
+Icon=input-keyboard
+TryExec=onboard
+X-Wasalight-Section=Support
+X-Wasalight-Order=90
+EOF
+    else
+        rm -f /etc/wasalight/apps.d/keyboard.desktop
     fi
-    write_file "$TARGET_HOME/.config/openbox/menu.xml" 0644 <<EOF
+    write_file "$TARGET_HOME/.config/openbox/menu.xml" 0644 <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <openbox_menu xmlns="http://openbox.org/3.4/menu">
-  <menu id="root-menu" label="MagicQ Appliance">
+  <menu id="root-menu" label="Wasalight">
     <item label="Start MagicQ"><action name="Execute"><command>/usr/local/bin/magicq-start</command></action></item>
     <item label="Stop MagicQ"><action name="Execute"><command>/usr/local/bin/magicq-stop</command></action></item>
     <separator />
-    <item label="Network settings"><action name="Execute"><command>nm-connection-editor</command></action></item>
-    <item label="Display settings"><action name="Execute"><command>lxrandr</command></action></item>
-${keyboard_item}
-    <item label="Touchscreen status"><action name="Execute"><command>lxterminal -e magicq-touch-status</command></action></item>
-    <item label="File manager"><action name="Execute"><command>pcmanfm</command></action></item>
-    <item label="Terminal"><action name="Execute"><command>lxterminal</command></action></item>
+    <item label="Wasalight Hub"><action name="Execute"><command>/usr/local/bin/wasalight-hub</command></action></item>
+    <item label="VNC"><action name="Execute"><command>/usr/local/bin/wasalight-vnc-toggle</command></action></item>
     <separator />
-    <item label="System status"><action name="Execute"><command>lxterminal -e magicq-status</command></action></item>
+    <item label="Reboot"><action name="Execute"><command>/usr/local/bin/wasalight-power reboot</command></action></item>
+    <item label="Power off"><action name="Execute"><command>/usr/local/bin/wasalight-power poweroff</command></action></item>
   </menu>
 </openbox_menu>
 EOF
@@ -1510,7 +1942,11 @@ polkit.addRule(function(action, subject) {
 EOF
 
     chown -R "$TARGET_USER:$TARGET_USER" \
-        "$TARGET_HOME/.config" "$TARGET_HOME/Desktop" "$TARGET_HOME/.xinitrc"
+        "$TARGET_HOME/.config" "$TARGET_HOME/.xinitrc"
+    chown -R root:root "$TARGET_HOME/Desktop"
+    chmod 0755 "$TARGET_HOME/Desktop"
+    find "$TARGET_HOME/Desktop" -maxdepth 1 -type f -name '*.desktop' \
+        -exec chmod 0555 {} +
 
     install -d -m 0755 /etc/systemd/system/getty@tty1.service.d
     write_file /etc/systemd/system/getty@tty1.service.d/autologin.conf 0644 <<EOF
@@ -1962,6 +2398,10 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-power
     bash -n /usr/local/sbin/wasalight-power-control
     bash -n /usr/local/bin/wasalight-desktop-status
+    bash -n /usr/local/bin/wasalight-vnc-toggle
+    bash -n /usr/local/bin/wasalight-terminal-tool
+    bash -n /usr/local/sbin/wasalight-app-register
+    python3 -c 'compile(open("/usr/local/bin/wasalight-hub", encoding="utf-8").read(), "/usr/local/bin/wasalight-hub", "exec")'
     logrotate --debug /etc/wasalight/magicq-logrotate.conf >/dev/null 2>&1
     ldconfig -p | grep -F 'libGLU.so.1' >/dev/null || \
         die "OpenGL runtime check failed: libGLU.so.1 is unavailable"
@@ -1993,6 +2433,9 @@ final_checks() {
     command -v wmctrl >/dev/null || \
         die "MagicQ fullscreen control is unavailable: wmctrl is missing"
     desktop-file-validate "$TARGET_HOME"/Desktop/*.desktop
+    desktop-file-validate /etc/wasalight/apps.d/*.desktop
+    runuser -u "$TARGET_USER" -- test ! -w "$TARGET_HOME/Desktop" || \
+        die "the appliance desktop is still writable by $TARGET_USER"
     conky --version >/dev/null || die "Wasalight desktop status is unavailable"
 }
 

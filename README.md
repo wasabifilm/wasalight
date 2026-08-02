@@ -173,6 +173,9 @@ magicq-touch-config list
 magicq-audio-test
 magicq-vnc-start
 magicq-vnc-stop
+wasalight-hub
+wasalight-vnc-toggle
+sudo wasalight-app-register --list
 sudo magicq-maintenance
 sudo magicq-protect
 ```
@@ -232,13 +235,14 @@ elimina gli altri spazi di lavoro della sessione. PCManFM disegna uno sfondo
 nero con icone SVG da 64 pixel, ad alto contrasto e indipendenti dal tema di
 Ubuntu. I launcher sono eseguibili, vengono marcati come attendibili con GIO e
 LibFM usa il clic singolo: sul touchscreen basta un tocco e non appare la
-richiesta «Apri con…». Sono disponibili i pulsanti:
+richiesta «Apri con…». Il desktop e i launcher appartengono a `root`: l'utente
+`chamsys` può usarli ma non cancellarli, rinominarli o spostarli per errore.
+Sono disponibili soltanto i comandi principali:
 
 - **Start MagicQ**;
 - **Stop MagicQ**;
-- **Network settings**;
-- **File manager**;
-- **Terminal**;
+- **Wasalight Hub**;
+- **VNC**;
 - **Power off**;
 - **Reboot**.
 
@@ -265,6 +269,55 @@ MAINTENANCE. In SHOW la finestra fullscreen di MagicQ copre intenzionalmente il
 desktop e il pannello di stato; per intervenire sulla configurazione si deve
 prima passare a MAINTENANCE oppure fermare MagicQ con `magicq-stop`.
 
+### Wasalight Hub e applicazioni future
+
+**Wasalight Hub** è un launcher GTK progettato per il touchscreen. Organizza i
+programmi in tre schede:
+
+- **MagicQ**: applicazioni companion ChamSys rilevate quando realmente
+  installate;
+- **Applications**: programmi registrati dall'amministratore;
+- **Support**: rete, monitor, touchscreen, audio, file, terminale, stato e VNC.
+
+Il rilevamento automatico è intenzionalmente limitato ai companion riconoscibili
+come MagicVis, MagicHD e strumenti Remote/Viewer ChamSys. Il programma MagicQ
+principale continua a essere avviato soltanto dal launcher Wasalight controllato
+e non attraverso un generico file `.desktop` del pacchetto.
+
+Per registrare un programma installato in futuro usare il relativo launcher
+standard presente normalmente sotto `/usr/share/applications`:
+
+```bash
+sudo wasalight-app-register /usr/share/applications/NOME.desktop
+sudo wasalight-app-register --list
+sudo wasalight-app-register --remove NOME.desktop
+```
+
+Con `/data` montata, le registrazioni sono conservate in
+`/data/system/apps.d`; in assenza di `/data` vengono mantenute sotto
+`/etc/wasalight/apps.d`. Il Hub rispetta `TryExec` e non mostra un'applicazione
+quando il suo eseguibile non è disponibile.
+
+Tint2 non mostra più la scritta **desktop 1**. Il pannello è normalmente
+nascosto e lascia MagicQ realmente fullscreen; toccando il bordo inferiore
+compare temporaneamente con il pulsante Hub, le applicazioni aperte, le icone
+di stato e l'orologio. Questo permette di passare a un companion senza lasciare
+un controllo permanente sopra l'interfaccia MagicQ.
+
+Il clic destro apre soltanto un menu Wasalight minimale: Start/Stop MagicQ,
+Hub, VNC, riavvio e spegnimento. Le preferenze Openbox e le impostazioni di
+sistema generiche non sono esposte.
+
+### VNC della sessione corrente
+
+Il pulsante **VNC** condivide esclusivamente il display Xorg corrente `:0`:
+
+- se VNC è spento, lo avvia e mostra l'indirizzo di connessione;
+- se è attivo, chiede conferma prima di fermarlo;
+- al primo utilizzo apre un terminale dedicato per creare la password senza
+  inserirla negli argomenti dei processi o nei log;
+- lo stato aggiornato rimane visibile nel pannello Conky.
+
 ### Audio ALSA
 
 L'installer verifica che la configurazione ALSA e gli strumenti diagnostici
@@ -284,7 +337,7 @@ l'inizializzazione. Errori come l'assenza di `alsa.conf`, nessuna scheda in
 `aplay -l` o l'impossibilità di aprire il dispositivo predefinito restano invece
 problemi reali e non vengono nascosti dai log.
 
-### Rete gestita da Openbox
+### Rete gestita da NetworkManager
 
 Ubuntu Server crea normalmente la prima configurazione Netplan usando
 `systemd-networkd`. In questo stato `nm-connection-editor` si apre, ma
@@ -294,7 +347,7 @@ vuota. Wasalight installa quindi il file
 `NetworkManager` come renderer conservando le definizioni DHCP, statiche, DNS e
 route già presenti negli altri file Netplan.
 
-Le nuove connessioni salvate dal pannello **Network settings** di Openbox sono
+Le nuove connessioni salvate dalla voce **Network** nel Wasalight Hub sono
 conservate nel bind persistente
 `/etc/NetworkManager/system-connections` → `/data/system/network`. Lo stato si
 controlla con:
@@ -375,7 +428,8 @@ diagnosi, rotazioni, configurazioni multimonitor e tastiera virtuale consultare
 
 Wasalight installa `x11vnc` per condividere temporaneamente la sessione
 Openbox/MagicQ già visibile sul monitor. Il server non parte automaticamente e
-non resta attivo dopo un riavvio. Per avviarlo dalla sessione `chamsys`:
+non resta attivo dopo un riavvio. Usare il pulsante desktop **VNC**, la voce nel
+Wasalight Hub oppure, dalla sessione `chamsys`, il comando:
 
 ```bash
 magicq-vnc-start

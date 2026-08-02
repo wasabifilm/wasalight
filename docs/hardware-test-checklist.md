@@ -48,14 +48,25 @@ uno spettacolo.
 - [ ] MagicQ parte in vero fullscreen, senza barra del titolo né pannello
       Tint2; chiudendolo e riavviandolo il fullscreen viene riapplicato.
 - [ ] Openbox espone un solo desktop virtuale (`wmctrl -d` mostra una riga).
-- [ ] Con MagicQ fermo, i sette pulsanti desktop hanno icone grandi e leggibili
+- [ ] Con MagicQ fermo, i sei pulsanti desktop hanno icone grandi e leggibili
       al touch e si avviano con un solo tocco senza mostrare «Apri con…».
+- [ ] `chamsys` non può cancellare, rinominare o spostare i launcher desktop.
+- [ ] Il pulsante VNC avvia la condivisione del display `:0`, mostra l'indirizzo
+      e propone l'arresto quando viene premuto mentre VNC è già attivo.
 - [ ] **Power off** e **Reboot** mostrano sempre la conferma; **Cancel** non
       esegue azioni e la conferma completa correttamente l'operazione scelta.
 - [ ] Il pannello destro mostra CURRENT, NEXT BOOT, MagicQ, supervisore, data,
       log, rete/IP, touch, USB, VNC e audio con colori coerenti.
 - [ ] Il pannello resta dietro alle applicazioni, non intercetta i tocchi e
       scompare alla vista quando MagicQ occupa il fullscreen.
+- [ ] Toccando il bordo inferiore Tint2 compare senza la scritta `desktop 1` e
+      consente di aprire il Hub o selezionare un'applicazione già aperta.
+- [ ] Wasalight Hub mostra le schede MagicQ, Applications e Support con pulsanti
+      grandi; gli strumenti di supporto si avviano correttamente.
+- [ ] Un launcher registrato con `wasalight-app-register` compare nel Hub e
+      sopravvive al riavvio protetto; dopo `--remove` non compare più.
+- [ ] Il clic destro mostra soltanto il menu Wasalight minimale, senza
+      preferenze Openbox generiche.
 - [ ] Il clic destro sullo sfondo continua ad aprire il menu Openbox.
 - [ ] `chamsys` può creare, modificare e cancellare un file di prova nelle
       directory MagicQ persistenti e in `/data/log` senza usare `sudo`.

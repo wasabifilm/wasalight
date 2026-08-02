@@ -51,6 +51,7 @@ required_patterns=(
     'libasound2-data alsa-utils'
     'openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps wmctrl x11-utils'
     'conky-all zenity libglib2.0-bin desktop-file-utils'
+    'python3 python3-gi gir1.2-gtk-3.0'
     '/etc/netplan/99-wasalight-networkmanager.yaml'
     'renderer: NetworkManager'
     'netplan apply'
@@ -76,7 +77,8 @@ required_patterns=(
     'pcmanfm --desktop --profile=default'
     '$TARGET_HOME/Desktop/Start-MagicQ.desktop'
     '$TARGET_HOME/Desktop/Stop-MagicQ.desktop'
-    '$TARGET_HOME/Desktop/Network.desktop'
+    '$TARGET_HOME/Desktop/Wasalight-Hub.desktop'
+    '$TARGET_HOME/Desktop/VNC.desktop'
     '$TARGET_HOME/Desktop/Power-Off.desktop'
     '$TARGET_HOME/Desktop/Reboot.desktop'
     'Icon=/usr/local/share/icons/wasalight/power.svg'
@@ -85,6 +87,14 @@ required_patterns=(
     'conky --config="$HOME/.config/conky/wasalight.conf"'
     'wasalight-desktop-status'
     'wasalight-power-control poweroff'
+    'wasalight-vnc-toggle'
+    '/etc/wasalight/apps.d/network.desktop'
+    '/data/system/apps.d'
+    'wasalight-app-register'
+    'taskbar_name = 0'
+    'autohide = 1'
+    'launcher_item_app = $TARGET_HOME/Desktop/Wasalight-Hub.desktop'
+    'chown -R root:root "$TARGET_HOME/Desktop"'
     'magicq-vnc-password'
     'cleanup_candidates=(pollinate)'
     'cleanup_candidates+=(multipath-tools)'
@@ -137,6 +147,9 @@ helpers=(
     /usr/local/bin/wasalight-power
     /usr/local/sbin/wasalight-power-control
     /usr/local/bin/wasalight-desktop-status
+    /usr/local/bin/wasalight-vnc-toggle
+    /usr/local/bin/wasalight-terminal-tool
+    /usr/local/sbin/wasalight-app-register
 )
 
 for helper in "${helpers[@]}"; do
@@ -194,6 +207,27 @@ grep -Fq 'systemctl poweroff' "$tmp_dir/wasalight-power-control" || \
     fail "il controllo di alimentazione non gestisce lo spegnimento"
 grep -Fq 'systemctl reboot' "$tmp_dir/wasalight-power-control" || \
     fail "il controllo di alimentazione non gestisce il riavvio"
+grep -Fq 'magicq-vnc-start' "$tmp_dir/wasalight-vnc-toggle" || \
+    fail "il pulsante VNC non avvia la sessione condivisa"
+grep -Fq 'magicq-vnc-stop' "$tmp_dir/wasalight-vnc-toggle" || \
+    fail "il pulsante VNC non ferma la sessione condivisa"
+if grep -Fq 'write_file "$TARGET_HOME/Desktop/Network.desktop"' "$INSTALLER" || \
+   grep -Fq 'write_file "$TARGET_HOME/Desktop/Files.desktop"' "$INSTALLER" || \
+   grep -Fq 'write_file "$TARGET_HOME/Desktop/Terminal.desktop"' "$INSTALLER"; then
+    fail "le vecchie icone di supporto sono ancora create sul desktop"
+fi
+
+hub_script="$tmp_dir/wasalight-hub.py"
+awk '/write_file \/usr\/local\/bin\/wasalight-hub / { capture=1; next }
+     capture && /^PYEOF$/ { exit }
+     capture { print }' "$INSTALLER" >"$hub_script"
+[[ -s $hub_script ]] || fail "Wasalight Hub non è estraibile dall'installer"
+python3 -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' \
+    "$hub_script"
+grep -Fq '/data/system/apps.d/*.desktop' "$hub_script" || \
+    fail "Wasalight Hub non legge il registro applicazioni persistente"
+grep -Fq 'magicvis|magichd' "$hub_script" || \
+    fail "Wasalight Hub non rileva i companion ChamSys conosciuti"
 
 [[ -s "$PROJECT_DIR/docs/touchscreen.md" ]] || fail "guida touchscreen mancante"
 grep -Fq 'magicq-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
