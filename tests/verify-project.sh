@@ -22,6 +22,8 @@ fail() {
 
 [[ -x "$INSTALLER" ]] || fail "installer mancante o non eseguibile"
 [[ -x "$ENTRYPOINT" ]] || fail "install.sh mancante o non eseguibile"
+grep -Fq '/data/system/packages/*.deb' "$ENTRYPOINT" || \
+    fail "install.sh non riutilizza il pacchetto MagicQ persistente"
 
 bash -n "$INSTALLER"
 bash -n "$ENTRYPOINT"
@@ -94,7 +96,11 @@ required_patterns=(
     'wasalight-power-control poweroff'
     'wasalight-vnc-toggle'
     'wasalight-ssh-toggle'
+    'wasalight-update'
     '${execpi 2 /usr/local/bin/wasalight-desktop-status}'
+    '/data/system/wasalight'
+    '/data/system/packages'
+    'git clone --branch main'
     '/etc/wasalight/apps.d/network.desktop'
     '/data/system/apps.d'
     'wasalight-app-register'
@@ -160,6 +166,7 @@ helpers=(
     /usr/local/bin/wasalight-vnc-toggle
     /usr/local/bin/wasalight-ssh-toggle
     /usr/local/sbin/wasalight-ssh-control
+    /usr/local/sbin/wasalight-update
     /usr/local/bin/wasalight-hub
     /usr/local/bin/wasalight-terminal-tool
     /usr/local/sbin/wasalight-app-register
@@ -232,6 +239,15 @@ grep -Fq 'systemctl start ssh.service' "$tmp_dir/wasalight-ssh-control" || \
     fail "il controllo SSH non avvia OpenSSH"
 grep -Fq 'systemctl stop ssh.service' "$tmp_dir/wasalight-ssh-control" || \
     fail "il controllo SSH non ferma OpenSSH"
+grep -Fq 'merge --ff-only FETCH_HEAD' "$tmp_dir/wasalight-update" || \
+    fail "l'aggiornamento Wasalight non impone un avanzamento Git sicuro"
+grep -Fq 'cmp -s -- "$source" "$destination"' "$tmp_dir/wasalight-update" || \
+    fail "la migrazione del pacchetto MagicQ non verifica la copia"
+grep -Fq 'tests/verify-project.sh' "$tmp_dir/wasalight-update" || \
+    fail "l'aggiornamento Wasalight non verifica il progetto scaricato"
+if grep -Fq 'git reset --hard' "$tmp_dir/wasalight-update"; then
+    fail "l'aggiornamento Wasalight non deve cancellare modifiche locali"
+fi
 if grep -Fq 'write_file "$TARGET_HOME/Desktop/Network.desktop"' "$INSTALLER" || \
    grep -Fq 'write_file "$TARGET_HOME/Desktop/Files.desktop"' "$INSTALLER" || \
    grep -Fq 'write_file "$TARGET_HOME/Desktop/Terminal.desktop"' "$INSTALLER"; then
@@ -260,6 +276,7 @@ grep -Fq 'magicq-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
 [[ -s "$PROJECT_DIR/docs/migration-24.04.md" ]] || fail "guida migrazione 24.04 mancante"
 [[ -s "$PROJECT_DIR/docs/vnc.md" ]] || fail "guida VNC mancante"
 [[ -s "$PROJECT_DIR/docs/ssh.md" ]] || fail "guida SSH mancante"
+[[ -s "$PROJECT_DIR/docs/update.md" ]] || fail "guida aggiornamenti mancante"
 [[ -s "$PROJECT_DIR/docs/system-cleanup.md" ]] || fail "guida pulizia sistema mancante"
 grep -Fq 'Ubuntu Server 24.04 LTS' "$PROJECT_DIR/README.md" || \
     fail "target Ubuntu 24.04 non documentato"

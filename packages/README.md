@@ -7,6 +7,10 @@ magicq_ubuntu_v1_9_8_3.deb
 ```
 
 Se è presente un solo file `.deb`, `install.sh` lo seleziona automaticamente.
+Durante l’installazione il file viene copiato e verificato in
+`/data/system/packages`. Se proviene da una cartella
+`/home/.../wasalight/packages` o `/root/wasalight/packages`, la vecchia copia
+non persistente viene rimossa soltanto dopo che il confronto è riuscito.
 Se sono presenti più versioni, indicare esplicitamente quella desiderata:
 
 ```bash

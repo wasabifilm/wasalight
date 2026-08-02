@@ -15,6 +15,9 @@ readonly TARGET_HOME="/home/${TARGET_USER}"
 readonly DATA_MOUNT="/data"
 readonly USB_MOUNT="/stick"
 readonly OVERLAY_CONF="/etc/overlayroot.local.conf"
+readonly UPDATE_CHECKOUT="/data/system/wasalight"
+readonly PACKAGE_STORE="/data/system/packages"
+readonly UPDATE_REPOSITORY="https://github.com/wasabifilm/wasalight.git"
 
 DEB_PATH=""
 DATA_DEVICE=""
@@ -188,6 +191,41 @@ configure_data_mount() {
     install -d -m 0750 "$DATA_MOUNT/log"
 }
 
+persist_magicq_package() {
+    [[ -n $DEB_PATH ]] || return 0
+    mountpoint -q "$DATA_MOUNT" || {
+        warn "MagicQ package cannot be persisted because /data is unavailable"
+        return 0
+    }
+
+    local source destination
+    source=$DEB_PATH
+    install -d -o root -g root -m 0750 "$PACKAGE_STORE"
+    destination="$PACKAGE_STORE/${source##*/}"
+
+    if [[ $(readlink -f -- "$source") != $(readlink -m -- "$destination") ]]; then
+        if [[ -e $destination ]] && ! cmp -s -- "$source" "$destination"; then
+            die "a different persistent MagicQ package already uses this name: $destination"
+        fi
+        if [[ ! -e $destination ]]; then
+            install -o root -g root -m 0640 "$source" "$destination"
+            cmp -s -- "$source" "$destination" || \
+                die "persistent MagicQ package verification failed: $destination"
+            log "MagicQ package persisted in $destination"
+        fi
+
+        # Remove only installer packages from known Wasalight working copies.
+        # A package supplied from USB or another arbitrary path is never removed.
+        case "$source" in
+            /home/*/wasalight/packages/*.deb|/root/wasalight/packages/*.deb)
+                rm -f -- "$source"
+                log "removed migrated package from the non-persistent checkout: $source"
+                ;;
+        esac
+    fi
+    DEB_PATH=$destination
+}
+
 install_packages() {
     log "refreshing package metadata"
     apt-get update
@@ -216,7 +254,7 @@ install_packages() {
         python3 python3-gi gir1.2-gtk-3.0
         network-manager network-manager-gnome wpasupplicant policykit-1 policykit-1-gnome
         overlayroot initramfs-tools chrony
-        exfatprogs ntfs-3g dosfstools util-linux udev logrotate openssh-server
+        exfatprogs ntfs-3g dosfstools util-linux udev logrotate openssh-server git
     )
     ((ENABLE_ONSCREEN_KEYBOARD)) && packages+=(onboard)
     apt_install "${packages[@]}"
@@ -979,6 +1017,147 @@ output=$(sudo -n /usr/local/sbin/wasalight-ssh-control start 2>&1) || {
 ip_address=$(hostname -I 2>/dev/null | awk '{print $1}')
 zenity --info --width=500 --title="SSH · Wasalight" \
     --text="<big><b>SSH attivo</b></big>\n\nIndirizzo: ssh://chamsys@${ip_address:-SERVER_IP}:22\nUtente: chamsys\nPassword: la password Linux di chamsys"
+EOF
+}
+
+configure_update() {
+    write_file /usr/local/sbin/wasalight-update 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+readonly repository=https://github.com/wasabifilm/wasalight.git
+readonly checkout=/data/system/wasalight
+readonly package_store=/data/system/packages
+readonly log_file=/data/log/wasalight-update.log
+
+protect=0
+code_only=0
+ssh_mode=preserve
+
+usage() {
+    cat <<'EOT'
+Usage: sudo wasalight-update [options]
+
+Downloads the current Wasalight main branch into /data/system/wasalight,
+migrates MagicQ .deb files into /data/system/packages, verifies the project
+and runs the installer in MAINTENANCE mode.
+
+Options:
+  --protect       Configure PROTECTED SHOW mode for the next boot.
+  --code-only     Download and verify Wasalight without running the installer.
+  --with-ssh      Keep SSH enabled automatically after reboot.
+  --without-ssh   Keep SSH disabled at boot; the touch button still works.
+  -h, --help      Show this help.
+EOT
+}
+
+while (($#)); do
+    case $1 in
+        --protect) protect=1 ;;
+        --code-only) code_only=1 ;;
+        --with-ssh) ssh_mode=enabled ;;
+        --without-ssh) ssh_mode=disabled ;;
+        -h|--help) usage; exit 0 ;;
+        *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
+    esac
+    shift
+done
+
+[[ $EUID -eq 0 ]] || { echo "Run with sudo: sudo wasalight-update" >&2; exit 1; }
+[[ $(findmnt -n -o FSTYPE / 2>/dev/null) != overlay ]] || {
+    echo "Updates require MAINTENANCE mode. Run sudo magicq-maintenance and reboot first." >&2
+    exit 1
+}
+mountpoint -q /data || { echo "/data is not mounted." >&2; exit 1; }
+install -d -o root -g root -m 0755 /data/system /data/log
+install -d -o root -g root -m 0750 "$package_store"
+touch "$log_file"
+chown root:adm "$log_file" 2>/dev/null || chown root:root "$log_file"
+chmod 0640 "$log_file"
+exec > >(tee -a "$log_file") 2>&1
+
+echo "[$(date --iso-8601=seconds)] Wasalight update started"
+
+migrate_package() {
+    local source=$1 destination
+    [[ -f $source ]] || return 0
+    dpkg-deb --info "$source" >/dev/null 2>&1 || {
+        echo "Ignoring invalid Debian package: $source" >&2
+        return 0
+    }
+    [[ $(dpkg-deb -f "$source" Architecture) == amd64 ]] || {
+        echo "Ignoring non-amd64 package: $source" >&2
+        return 0
+    }
+    destination="$package_store/${source##*/}"
+    [[ $(readlink -f -- "$source") != $(readlink -m -- "$destination") ]] || return 0
+    if [[ -e $destination ]] && ! cmp -s -- "$source" "$destination"; then
+        echo "A different package already uses this name: $destination" >&2
+        return 1
+    fi
+    if [[ ! -e $destination ]]; then
+        install -o root -g root -m 0640 "$source" "$destination"
+        cmp -s -- "$source" "$destination" || {
+            echo "Package copy verification failed: $destination" >&2
+            return 1
+        }
+    fi
+    rm -f -- "$source"
+    echo "MagicQ package moved to $destination"
+}
+
+while IFS= read -r -d '' legacy_package; do
+    migrate_package "$legacy_package"
+done < <(find /home /root -maxdepth 4 -type f \
+    -path '*/wasalight/packages/*.deb' -print0 2>/dev/null)
+
+if [[ -e $checkout && ! -d $checkout/.git ]]; then
+    echo "Update path exists but is not a Git checkout: $checkout" >&2
+    exit 1
+fi
+
+if [[ -d $checkout/.git ]]; then
+    if ! git -C "$checkout" diff --quiet || ! git -C "$checkout" diff --cached --quiet; then
+        echo "Persistent checkout has local tracked changes; update stopped: $checkout" >&2
+        exit 1
+    fi
+    git -C "$checkout" remote set-url origin "$repository"
+    git -C "$checkout" fetch origin main
+    git -C "$checkout" merge --ff-only FETCH_HEAD
+else
+    temporary_checkout="${checkout}.new.$$"
+    cleanup() { rm -rf -- "$temporary_checkout"; }
+    trap cleanup EXIT
+    git clone --branch main "$repository" "$temporary_checkout"
+    mv "$temporary_checkout" "$checkout"
+    trap - EXIT
+fi
+
+"$checkout/tests/verify-project.sh"
+echo "Wasalight code ready in $checkout"
+((code_only)) && exit 0
+
+installer_args=()
+((protect)) || installer_args+=(--no-protection)
+if [[ $ssh_mode == enabled ]] || \
+   [[ $ssh_mode == preserve ]] && systemctl is-enabled --quiet ssh.service; then
+    installer_args+=(--with-ssh)
+fi
+command -v onboard >/dev/null 2>&1 && installer_args+=(--with-onscreen-keyboard)
+
+mapfile -t packages < <(find "$package_store" -maxdepth 1 -type f -name '*.deb' -print | sort -V)
+if ((${#packages[@]})); then
+    selected_package=${packages[-1]}
+    echo "Using MagicQ package: $selected_package"
+    installer_args+=("$selected_package")
+else
+    echo "WARNING: no MagicQ package found in $package_store" >&2
+fi
+
+"$checkout/install.sh" "${installer_args[@]}"
+echo "[$(date --iso-8601=seconds)] Wasalight update completed"
+echo "Reboot after checking the installer result."
 EOF
 }
 
@@ -2556,6 +2735,7 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-vnc-toggle
     bash -n /usr/local/bin/wasalight-ssh-toggle
     bash -n /usr/local/sbin/wasalight-ssh-control
+    bash -n /usr/local/sbin/wasalight-update
     bash -n /usr/local/bin/wasalight-terminal-tool
     bash -n /usr/local/sbin/wasalight-app-register
     bash -n /usr/local/bin/wasalight-hub
@@ -2601,6 +2781,7 @@ main() {
     parse_args "$@"
     require_host
     configure_data_mount
+    persist_magicq_package
     install_packages
     configure_user
     configure_networkmanager
@@ -2608,6 +2789,7 @@ main() {
     configure_touchscreen
     configure_vnc
     configure_ssh
+    configure_update
     configure_graphical_session
     configure_usb
     install_magicq
