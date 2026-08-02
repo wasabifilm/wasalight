@@ -10,6 +10,7 @@ IFS=$'\n\t'
 umask 022
 
 readonly SCRIPT_NAME="${0##*/}"
+readonly PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly TARGET_USER="chamsys"
 readonly TARGET_HOME="/home/${TARGET_USER}"
 readonly DATA_MOUNT="/data"
@@ -253,7 +254,7 @@ install_packages() {
         conky-all zenity libglib2.0-bin desktop-file-utils librsvg2-common
         python3 python3-gi gir1.2-gtk-3.0 arp-scan iproute2
         network-manager network-manager-gnome wpasupplicant policykit-1 policykit-1-gnome
-        overlayroot initramfs-tools chrony
+        overlayroot initramfs-tools plymouth plymouth-themes file chrony
         exfatprogs ntfs-3g dosfstools util-linux udev logrotate openssh-server git
     )
     ((ENABLE_ONSCREEN_KEYBOARD)) && packages+=(onboard)
@@ -3289,6 +3290,91 @@ EOF
     visudo -cf /etc/sudoers.d/chamsys-magicq >/dev/null
 }
 
+configure_boot_branding() {
+    local default_logo="$PROJECT_DIR/assets/branding/boot-logo.png"
+    local persistent_dir="$DATA_MOUNT/system/branding"
+    local persistent_logo="$persistent_dir/boot-logo.png"
+    local selected_logo="$default_logo"
+    local theme_dir=/usr/share/plymouth/themes/wasalight
+
+    [[ -s $default_logo ]] || die "default boot logo is missing: $default_logo"
+    if mountpoint -q "$DATA_MOUNT"; then
+        install -d -o root -g root -m 0755 "$persistent_dir"
+        if [[ ! -e $persistent_logo ]]; then
+            install -o root -g root -m 0644 "$default_logo" "$persistent_logo"
+            log "installed the default persistent boot logo: $persistent_logo"
+        fi
+        selected_logo=$persistent_logo
+    fi
+
+    if ! python3 - "$selected_logo" <<'PYEOF'
+import pathlib
+import struct
+import sys
+
+path = pathlib.Path(sys.argv[1])
+with path.open("rb") as source:
+    if source.read(8) != b"\x89PNG\r\n\x1a\n":
+        raise SystemExit(1)
+    length = struct.unpack(">I", source.read(4))[0]
+    if source.read(4) != b"IHDR" or length != 13:
+        raise SystemExit(1)
+    width, height = struct.unpack(">II", source.read(8))
+if not (64 <= width <= 8192 and 64 <= height <= 8192):
+    raise SystemExit(1)
+print(f"Boot logo: {path} ({width}x{height})")
+PYEOF
+    then
+        warn "persistent boot logo is not a valid PNG; using the GitHub default"
+        selected_logo=$default_logo
+    fi
+
+    install -d -m 0755 "$theme_dir"
+    install -m 0644 "$selected_logo" "$theme_dir/boot-logo.png"
+    write_file "$theme_dir/wasalight.plymouth" 0644 <<'EOF'
+[Plymouth Theme]
+Name=Wasalight
+Description=Wasalight appliance boot screen
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/wasalight
+ScriptFile=/usr/share/plymouth/themes/wasalight/wasalight.script
+EOF
+    write_file "$theme_dir/wasalight.script" 0644 <<'EOF'
+# Near-black background shared with the Wasalight desktop panel.
+Window.SetBackgroundTopColor(0.031, 0.043, 0.063);
+Window.SetBackgroundBottomColor(0.031, 0.043, 0.063);
+
+# Keep the supplied mark discreet: at most 34% of screen width and 24% of
+# screen height, never larger than the stored PNG.
+logo = Image("boot-logo.png");
+logo_width = logo.GetWidth();
+logo_height = logo.GetHeight();
+screen_width = Window.GetWidth();
+screen_height = Window.GetHeight();
+scale = Math.Min(Math.Min((screen_width * 0.34) / logo_width,
+                          (screen_height * 0.24) / logo_height), 1);
+logo_width = logo_width * scale;
+logo_height = logo_height * scale;
+logo = logo.Scale(logo_width, logo_height);
+logo_sprite = Sprite(logo);
+logo_sprite.SetPosition((screen_width - logo_width) / 2,
+                        (screen_height - logo_height) / 2, 100);
+EOF
+
+    plymouth-set-default-theme wasalight
+    install -d -m 0755 /etc/default/grub.d
+    write_file /etc/default/grub.d/99-wasalight.cfg 0644 <<'EOF'
+# Quiet normal boot. Hold Esc during firmware/GRUB hand-off for the boot menu.
+GRUB_TIMEOUT_STYLE=hidden
+GRUB_TIMEOUT=1
+GRUB_RECORDFAIL_TIMEOUT=3
+GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} quiet splash loglevel=3 systemd.show_status=auto rd.udev.log_level=3 vt.global_cursor_default=0"
+EOF
+    update-grub
+}
+
 configure_overlay() {
     if ((ENABLE_PROTECTION)); then
         printf '%s\n' 'overlayroot="tmpfs:swap=0,recurse=0"' >"$OVERLAY_CONF"
@@ -3335,6 +3421,12 @@ final_checks() {
     python3 -c 'compile(open("/usr/local/libexec/wasalight-ip-scanner.py", encoding="utf-8").read(), "/usr/local/libexec/wasalight-ip-scanner.py", "exec")'
     python3 -c 'compile(open("/usr/local/sbin/wasalight-artnet-capture", encoding="utf-8").read(), "/usr/local/sbin/wasalight-artnet-capture", "exec")'
     python3 -c 'compile(open("/usr/local/libexec/wasalight-artnet-monitor.py", encoding="utf-8").read(), "/usr/local/libexec/wasalight-artnet-monitor.py", "exec")'
+    [[ -s /usr/share/plymouth/themes/wasalight/boot-logo.png ]] || \
+        die "Wasalight Plymouth boot logo is unavailable"
+    [[ $(plymouth-set-default-theme) == wasalight ]] || \
+        die "Wasalight is not the active Plymouth theme"
+    [[ -r /etc/default/grub.d/99-wasalight.cfg ]] || \
+        die "Wasalight quiet GRUB configuration is unavailable"
     logrotate --debug /etc/wasalight/magicq-logrotate.conf >/dev/null 2>&1
     ldconfig -p | grep -F 'libGLU.so.1' >/dev/null || \
         die "OpenGL runtime check failed: libGLU.so.1 is unavailable"
@@ -3394,6 +3486,7 @@ main() {
     configure_volatile_runtime
     optimize_system
     install_mode_commands
+    configure_boot_branding
     configure_overlay
     final_checks
 

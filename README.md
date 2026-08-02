@@ -123,6 +123,16 @@ interamente utilizzabile al touch. Da terminale si può ottenere lo stesso
 risultato senza domanda finale con `sudo wasalight-update --reboot`, combinabile
 con `--protect` quando il prossimo avvio deve tornare direttamente in SHOW mode.
 
+### Logo e avvio silenzioso
+
+Il progetto include il logo Wasabi Lightbulbfarm come immagine Plymouth
+predefinita. Il marchio appare centrato e discreto su fondo quasi nero, mentre
+GRUB e i normali messaggi Ubuntu restano nascosti. Alla prima installazione il
+file viene copiato in `/data/system/branding/boot-logo.png`: sostituendo questa
+immagine è possibile personalizzare i boot successivi senza perdere la modifica
+con gli aggiornamenti. Specifiche, dimensioni e procedura sono nella
+[guida al branding di avvio](docs/boot-branding.md).
+
 ### Account amministratore `chamsys`
 
 `chamsys` è sempre aggiunto a `sudo` e, quando presenti, ai gruppi `adm` e

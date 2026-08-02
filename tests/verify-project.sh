@@ -55,6 +55,7 @@ required_patterns=(
     'conky-all zenity libglib2.0-bin desktop-file-utils librsvg2-common'
     'python3 python3-gi gir1.2-gtk-3.0'
     'arp-scan iproute2'
+    'plymouth plymouth-themes file'
     '/etc/netplan/99-wasalight-networkmanager.yaml'
     'renderer: NetworkManager'
     'netplan apply'
@@ -125,6 +126,14 @@ required_patterns=(
     '/usr/local/sbin/wasalight-ip-scan'
     '/usr/local/sbin/wasalight-artnet-capture'
     'wasalight-network-tools.log'
+    'assets/branding/boot-logo.png'
+    '$DATA_MOUNT/system/branding'
+    '/usr/share/plymouth/themes/wasalight'
+    'plymouth-set-default-theme wasalight'
+    'GRUB_TIMEOUT_STYLE=hidden'
+    'quiet splash loglevel=3'
+    'screen_width * 0.34'
+    'screen_height * 0.24'
     'wasalight-companion-launcher magichd'
     'wasalight-companion-launcher magicvis'
     'magicq-vnc-password'
@@ -343,6 +352,18 @@ grep -Fq 'magicq-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
 [[ -s "$PROJECT_DIR/docs/ssh.md" ]] || fail "guida SSH mancante"
 [[ -s "$PROJECT_DIR/docs/update.md" ]] || fail "guida aggiornamenti mancante"
 [[ -s "$PROJECT_DIR/docs/system-cleanup.md" ]] || fail "guida pulizia sistema mancante"
+[[ -s "$PROJECT_DIR/docs/boot-branding.md" ]] || fail "guida branding di avvio mancante"
+[[ -s "$PROJECT_DIR/assets/branding/boot-logo.png" ]] || fail "logo Plymouth predefinito mancante"
+python3 - "$PROJECT_DIR/assets/branding/boot-logo.png" <<'PY' || fail "logo Plymouth predefinito non valido"
+import struct
+import sys
+with open(sys.argv[1], "rb") as source:
+    assert source.read(8) == b"\x89PNG\r\n\x1a\n"
+    assert struct.unpack(">I", source.read(4))[0] == 13
+    assert source.read(4) == b"IHDR"
+    width, height = struct.unpack(">II", source.read(8))
+assert (width, height) == (1360, 787)
+PY
 grep -Fq 'Ubuntu Server 24.04 LTS' "$PROJECT_DIR/README.md" || \
     fail "target Ubuntu 24.04 non documentato"
 grep -Fq 'packages/*.deb' "$PROJECT_DIR/.gitignore" || \

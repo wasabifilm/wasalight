@@ -5,6 +5,14 @@ uno spettacolo.
 
 ## Avvio e protezione
 
+- [ ] Dopo GRUB appare lo sfondo quasi nero con il logo Wasabi centrato e
+      discreto, senza testo Ubuntu sovrapposto durante un avvio normale.
+- [ ] Il logo non supera circa un terzo della larghezza e un quarto dell’altezza
+      dello schermo sia a 1280×720 sia alla risoluzione nativa del monitor.
+- [ ] Tenendo premuto `Esc` durante il passaggio firmware/GRUB il menu di
+      recupero resta raggiungibile.
+- [ ] `/data/system/branding/boot-logo.png` esiste e una personalizzazione PNG
+      valida sopravvive a un aggiornamento.
 - [ ] `magicq-status` mostra `PROTECTED` dopo il riavvio in SHOW mode.
 - [ ] `/data` risulta ext4 e in lettura/scrittura.
 - [ ] Le modifiche di prova sotto `/etc` scompaiono dopo un riavvio protetto.
