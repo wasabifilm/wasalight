@@ -200,6 +200,8 @@ magicq-audio-test
 magicq-vnc-start
 magicq-vnc-stop
 wasalight-hub
+wasalight-ip-scanner
+wasalight-artnet-monitor
 wasalight-vnc-toggle
 sudo wasalight-app-register --list
 sudo magicq-maintenance
@@ -352,6 +354,26 @@ antracite discrete e senza il precedente fondo blu acceso.
 Il clic destro apre soltanto un menu Wasalight minimale: Start/Stop MagicQ,
 Hub, File Manager, Terminale, Update, VNC, SSH, riavvio e spegnimento. Le
 preferenze Openbox e le impostazioni di sistema generiche non sono esposte.
+
+Le finestre Openbox usano il tema scuro **Wasalight** sia quando sono attive sia
+quando sono in secondo piano. La barra del titolo ha spaziatura maggiorata e un
+pulsante **X** da 16 px con una zona di tocco ampia; al passaggio o alla pressione
+diventa rosso. I piccoli pulsanti minimizza/massimizza sono rimossi dalla barra:
+le finestre restano gestibili dalla barra inferiore, più adatta al touchscreen.
+
+Nella scheda **Support** del Hub sono disponibili anche:
+
+- **IP Scanner**, che usa `arp-scan` sulle interfacce Ethernet/Wi-Fi connesse e
+  mostra interfaccia, IP, MAC e produttore in una tabella aggiornabile;
+- **Art-Net Monitor**, che ascolta passivamente il traffico Art-Net su tutte le
+  interfacce e raggruppa sorgente, destinazione, tipo di pacchetto, universo,
+  numero di canali e contatore dei pacchetti.
+
+Le due interfacce sono grandi e utilizzabili al tocco. Solo la cattura di rete
+passa attraverso helper amministrativi senza argomenti, esplicitamente limitati
+in `sudoers`; le interfacce grafiche continuano a funzionare come `chamsys`. Gli
+errori confluiscono nel log persistente `/data/log/wasalight-network-tools.log`,
+gestito dalla stessa rotazione degli altri log Wasalight.
 
 ### VNC della sessione corrente
 

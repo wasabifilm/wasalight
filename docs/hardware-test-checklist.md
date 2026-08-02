@@ -64,12 +64,18 @@ uno spettacolo.
       mostrare letteralmente sequenze `${color ...}`.
 - [ ] Il pannello Tint2 resta sempre visibile, non mostra `desktop 1` e consente
       con un tocco di aprire il Hub o selezionare un’applicazione già aperta.
+- [ ] Le finestre attive e inattive mantengono colori scuri; il pulsante X è
+      grande, facilmente premibile al touch e diventa rosso quando evidenziato.
 - [ ] Wasalight Hub mostra le schede MagicQ, Applications e Support con pulsanti
       grandi; gli strumenti di supporto si avviano correttamente.
 - [ ] MagicHD e MagicVis avviati dal Hub passano dal wrapper root ristretto,
       usano `/opt/magicq` come directory di lavoro e rimangono aperti.
 - [ ] Un launcher registrato con `wasalight-app-register` compare nel Hub e
       sopravvive al riavvio protetto; dopo `--remove` non compare più.
+- [ ] **IP Scanner** elenca IP e MAC almeno del gateway o di un secondo host
+      collegato alla stessa rete; una nuova scansione aggiorna la tabella.
+- [ ] **Art-Net Monitor** mostra sorgente, universo e contatore quando un nodo o
+      MagicQ trasmette ArtDMX; **Azzera** svuota correttamente l’elenco.
 - [ ] Il clic destro mostra soltanto il menu Wasalight minimale, senza
       preferenze Openbox generiche.
 - [ ] Il clic destro sullo sfondo continua ad aprire il menu Openbox.

@@ -54,6 +54,7 @@ required_patterns=(
     'openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps wmctrl x11-utils'
     'conky-all zenity libglib2.0-bin desktop-file-utils librsvg2-common'
     'python3 python3-gi gir1.2-gtk-3.0'
+    'arp-scan iproute2'
     '/etc/netplan/99-wasalight-networkmanager.yaml'
     'renderer: NetworkManager'
     'netplan apply'
@@ -116,6 +117,14 @@ required_patterns=(
     '-exec chmod 0444 {} +'
     'desktop SVG icon loader is unavailable'
     'background_color = #080b10 98'
+    '/usr/share/themes/Wasalight/openbox-3/themerc'
+    '<titleLayout>NLC</titleLayout>'
+    '#define close_width 16'
+    '/etc/wasalight/apps.d/ip-scanner.desktop'
+    '/etc/wasalight/apps.d/artnet-monitor.desktop'
+    '/usr/local/sbin/wasalight-ip-scan'
+    '/usr/local/sbin/wasalight-artnet-capture'
+    'wasalight-network-tools.log'
     'wasalight-companion-launcher magichd'
     'wasalight-companion-launcher magicvis'
     'magicq-vnc-password'
@@ -296,6 +305,22 @@ grep -Fq 'except ValueError' "$hub_script" || \
     fail "Wasalight Hub non gestisce i booleani desktop non validi"
 grep -Fq 'wasalight-hub.log' "$tmp_dir/wasalight-hub" || \
     fail "Wasalight Hub non conserva gli errori di avvio"
+
+for embedded in \
+    'wasalight-ip-scanner.py:/usr/local/libexec/wasalight-ip-scanner.py' \
+    'wasalight-artnet-capture:/usr/local/sbin/wasalight-artnet-capture' \
+    'wasalight-artnet-monitor.py:/usr/local/libexec/wasalight-artnet-monitor.py'; do
+    output=${embedded%%:*}
+    marker=${embedded#*:}
+    awk -v marker="$marker" '
+        index($0, "write_file " marker " ") { capture=1; next }
+        capture && /^PYEOF$/ { exit }
+        capture { print }
+    ' "$INSTALLER" >"$tmp_dir/$output"
+    [[ -s $tmp_dir/$output ]] || fail "strumento Python non estraibile: $output"
+    python3 -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' \
+        "$tmp_dir/$output"
+done
 
 [[ -s "$PROJECT_DIR/docs/touchscreen.md" ]] || fail "guida touchscreen mancante"
 grep -Fq 'magicq-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \

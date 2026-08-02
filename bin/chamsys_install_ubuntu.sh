@@ -251,7 +251,7 @@ install_packages() {
         libasound2-data alsa-utils
         openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps wmctrl x11-utils
         conky-all zenity libglib2.0-bin desktop-file-utils librsvg2-common
-        python3 python3-gi gir1.2-gtk-3.0
+        python3 python3-gi gir1.2-gtk-3.0 arp-scan iproute2
         network-manager network-manager-gnome wpasupplicant policykit-1 policykit-1-gnome
         overlayroot initramfs-tools chrony
         exfatprogs ntfs-3g dosfstools util-linux udev logrotate openssh-server git
@@ -1186,6 +1186,73 @@ EOF
 exec dbus-run-session -- openbox-session
 EOF
 
+    # Start from Ubuntu's complete Openbox configuration, changing only the
+    # appliance theme and title-button layout. NLC keeps a large close target
+    # and removes tiny minimise/maximise controls that are awkward on touch.
+    install -m 0644 /etc/xdg/openbox/rc.xml "$TARGET_HOME/.config/openbox/rc.xml"
+    sed -i \
+        -e '0,/<name>.*<\/name>/s//<name>Wasalight<\/name>/' \
+        -e 's#<titleLayout>.*</titleLayout>#<titleLayout>NLC</titleLayout>#' \
+        "$TARGET_HOME/.config/openbox/rc.xml"
+
+    install -d -m 0755 /usr/share/themes/Wasalight/openbox-3
+    write_file /usr/share/themes/Wasalight/openbox-3/themerc 0644 <<'EOF'
+# Wasalight: large touch title bar, dark in both active and inactive states.
+window.active.title.bg: flat
+window.active.title.bg.color: #11151b
+window.active.label.bg: parentrelative
+window.active.label.text.color: #f0f3f6
+window.active.button.unpressed.bg: flat
+window.active.button.unpressed.bg.color: #232933
+window.active.button.unpressed.image.color: #f0f3f6
+window.active.button.hover.bg: flat
+window.active.button.hover.bg.color: #b4232c
+window.active.button.hover.image.color: #ffffff
+window.active.button.pressed.bg: flat
+window.active.button.pressed.bg.color: #7d1920
+window.active.button.pressed.image.color: #ffffff
+window.active.border.color: #30363d
+window.active.client.color: #11151b
+
+window.inactive.title.bg: flat
+window.inactive.title.bg.color: #0b0e12
+window.inactive.label.bg: parentrelative
+window.inactive.label.text.color: #9da7b3
+window.inactive.button.unpressed.bg: flat
+window.inactive.button.unpressed.bg.color: #171b22
+window.inactive.button.unpressed.image.color: #c9d1d9
+window.inactive.button.hover.bg: flat
+window.inactive.button.hover.bg.color: #6e2026
+window.inactive.button.hover.image.color: #ffffff
+window.inactive.button.pressed.bg: flat
+window.inactive.button.pressed.bg.color: #50171b
+window.inactive.button.pressed.image.color: #ffffff
+window.inactive.border.color: #20252d
+window.inactive.client.color: #0b0e12
+
+window.label.text.justify: left
+padding.width: 10
+padding.height: 9
+border.width: 1
+menu.items.active.bg: flat
+menu.items.active.bg.color: #30363d
+menu.items.active.text.color: #ffffff
+menu.items.text.color: #d0d7de
+menu.items.bg.color: #11151b
+menu.title.bg.color: #080b10
+menu.title.text.color: #ffffff
+EOF
+
+    write_file /usr/share/themes/Wasalight/openbox-3/close.xbm 0644 <<'EOF'
+#define close_width 16
+#define close_height 16
+static unsigned char close_bits[] = {
+  0x03,0xc0, 0x07,0xe0, 0x0e,0x70, 0x1c,0x38,
+  0x38,0x1c, 0x70,0x0e, 0xe0,0x07, 0xc0,0x03,
+  0xc0,0x03, 0xe0,0x07, 0x70,0x0e, 0x38,0x1c,
+  0x1c,0x38, 0x0e,0x70, 0x07,0xe0, 0x03,0xc0 };
+EOF
+
     write_file "$TARGET_HOME/.config/pcmanfm/default/desktop-items-0.conf" 0644 <<'EOF'
 [*]
 wallpaper_mode=color
@@ -1226,6 +1293,16 @@ EOF
     write_file /usr/local/share/icons/wasalight/network.svg 0644 <<'EOF'
 <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
  <circle cx="48" cy="48" r="44" fill="#1f6feb"/><g fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"><path d="M22 38c15-14 37-14 52 0"/><path d="M32 50c9-8 23-8 32 0"/></g><circle cx="48" cy="65" r="6" fill="#fff"/>
+</svg>
+EOF
+    write_file /usr/local/share/icons/wasalight/ip-scanner.svg 0644 <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+ <circle cx="42" cy="42" r="29" fill="#0969da"/><circle cx="42" cy="42" r="17" fill="none" stroke="#fff" stroke-width="6"/><path d="m62 62 22 22" stroke="#fff" stroke-width="9" stroke-linecap="round"/><circle cx="30" cy="37" r="4" fill="#79c0ff"/><circle cx="48" cy="50" r="4" fill="#79c0ff"/>
+</svg>
+EOF
+    write_file /usr/local/share/icons/wasalight/artnet-monitor.svg 0644 <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+ <rect x="7" y="12" width="82" height="72" rx="13" fill="#161b22" stroke="#39d353" stroke-width="5"/><path d="M17 55h12l8-23 11 41 10-29 8 11h13" fill="none" stroke="#39d353" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="76" cy="26" r="5" fill="#f85149"/>
 </svg>
 EOF
     write_file /usr/local/share/icons/wasalight/files.svg 0644 <<'EOF'
@@ -1608,6 +1685,301 @@ exec lxterminal --title="Wasalight support" -e bash -lc \
     _ "$command_to_run"
 EOF
 
+    write_file /usr/local/sbin/wasalight-ip-scan 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $EUID -eq 0 ]] || { echo "wasalight-ip-scan requires root" >&2; exit 1; }
+(($# == 0)) || { echo "wasalight-ip-scan accepts no arguments" >&2; exit 2; }
+
+mapfile -t interfaces < <(
+    nmcli -t -f DEVICE,TYPE,STATE device status 2>/dev/null | \
+        awk -F: '($2 == "ethernet" || $2 == "wifi") && $3 == "connected" { print $1 }'
+)
+((${#interfaces[@]} > 0)) || { echo "!\tNessuna interfaccia di rete connessa"; exit 0; }
+
+for interface in "${interfaces[@]}"; do
+    echo "#\t$interface"
+    /usr/sbin/arp-scan --interface="$interface" --localnet --plain --ignoredups \
+        2>/dev/null | awk -v dev="$interface" 'NF >= 2 { vendor=""; for (i=3;i<=NF;i++) vendor=vendor (i==3?"":" ") $i; print dev "\t" $1 "\t" $2 "\t" vendor }'
+done
+EOF
+
+    write_file /usr/local/libexec/wasalight-ip-scanner.py 0755 <<'PYEOF'
+#!/usr/bin/env python3
+import subprocess
+import threading
+
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gdk, GLib, Gtk
+
+
+class Scanner(Gtk.Window):
+    def __init__(self):
+        super().__init__(title="Wasalight IP Scanner")
+        self.set_default_size(900, 560)
+        self.set_position(Gtk.WindowPosition.CENTER)
+        self.connect("destroy", Gtk.main_quit)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        box.set_border_width(16)
+        title = Gtk.Label()
+        title.set_markup("<span size='21000' weight='bold'>IP Scanner</span>\n"
+                         "<span size='11000'>Dispositivi raggiungibili nella rete locale</span>")
+        title.set_xalign(0)
+        box.pack_start(title, False, False, 0)
+
+        self.store = Gtk.ListStore(str, str, str, str)
+        view = Gtk.TreeView(model=self.store)
+        for index, label in enumerate(("Interfaccia", "Indirizzo IP", "MAC", "Produttore")):
+            renderer = Gtk.CellRendererText()
+            renderer.set_property("ypad", 9)
+            column = Gtk.TreeViewColumn(label, renderer, text=index)
+            column.set_resizable(True)
+            column.set_expand(index == 3)
+            view.append_column(column)
+        scroll = Gtk.ScrolledWindow()
+        scroll.add(view)
+        box.pack_start(scroll, True, True, 0)
+
+        controls = Gtk.Box(spacing=10)
+        self.status = Gtk.Label(label="Pronto")
+        self.status.set_xalign(0)
+        self.scan_button = Gtk.Button(label="Scansiona rete")
+        self.scan_button.set_size_request(210, 58)
+        self.scan_button.connect("clicked", self.start_scan)
+        close = Gtk.Button(label="Chiudi")
+        close.set_size_request(150, 58)
+        close.connect("clicked", lambda _button: self.destroy())
+        controls.pack_start(self.status, True, True, 0)
+        controls.pack_start(self.scan_button, False, False, 0)
+        controls.pack_start(close, False, False, 0)
+        box.pack_start(controls, False, False, 0)
+        self.add(box)
+        self.start_scan()
+
+    def start_scan(self, _button=None):
+        self.store.clear()
+        self.status.set_text("Scansione in corso…")
+        self.scan_button.set_sensitive(False)
+        threading.Thread(target=self.scan_worker, daemon=True).start()
+
+    def scan_worker(self):
+        try:
+            result = subprocess.run(
+                ["sudo", "-n", "/usr/local/sbin/wasalight-ip-scan"],
+                text=True, capture_output=True, timeout=60, check=False)
+            rows, message = [], ""
+            for line in result.stdout.splitlines():
+                if line.startswith("!\t"):
+                    message = line.split("\t", 1)[1]
+                elif not line.startswith("#\t"):
+                    fields = line.split("\t", 3)
+                    if len(fields) == 4:
+                        rows.append(fields)
+            if result.returncode and not message:
+                message = result.stderr.strip() or "Scansione non riuscita"
+            GLib.idle_add(self.finish_scan, rows, message)
+        except Exception as error:
+            GLib.idle_add(self.finish_scan, [], str(error))
+
+    def finish_scan(self, rows, message):
+        for row in rows:
+            self.store.append(row)
+        self.status.set_text(message or f"{len(rows)} dispositivi trovati")
+        self.scan_button.set_sensitive(True)
+        return False
+
+
+css = Gtk.CssProvider()
+css.load_from_data(b"button { font-size: 17px; padding: 10px; } treeview { font-size: 16px; }")
+Gtk.StyleContext.add_provider_for_screen(
+    Gdk.Screen.get_default(),
+    css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+window = Scanner()
+window.show_all()
+Gtk.main()
+PYEOF
+
+    write_file /usr/local/bin/wasalight-ip-scanner 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+log_file=/tmp/wasalight-network-tools.log
+[[ -d /data/log && -w /data/log ]] && log_file=/data/log/wasalight-network-tools.log
+exec /usr/local/libexec/wasalight-ip-scanner.py >>"$log_file" 2>&1
+EOF
+
+    write_file /usr/local/sbin/wasalight-artnet-capture 0755 <<'PYEOF'
+#!/usr/bin/env python3
+import datetime
+import os
+import socket
+import struct
+import sys
+
+if os.geteuid() != 0:
+    raise SystemExit("wasalight-artnet-capture requires root")
+if len(sys.argv) != 1:
+    raise SystemExit("wasalight-artnet-capture accepts no arguments")
+
+capture = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0003))
+capture.settimeout(1.0)
+parent_pid = os.getppid()
+while os.getppid() == parent_pid:
+    try:
+        frame = capture.recv(65535)
+    except socket.timeout:
+        continue
+    if len(frame) < 42:
+        continue
+    offset = 14
+    ether_type = struct.unpack("!H", frame[12:14])[0]
+    if ether_type in (0x8100, 0x88A8) and len(frame) >= 46:
+        ether_type = struct.unpack("!H", frame[16:18])[0]
+        offset = 18
+    if ether_type != 0x0800 or len(frame) < offset + 28:
+        continue
+    ihl = (frame[offset] & 0x0F) * 4
+    if ihl < 20 or frame[offset + 9] != 17:
+        continue
+    udp = offset + ihl
+    if len(frame) < udp + 8:
+        continue
+    source_port, destination_port = struct.unpack("!HH", frame[udp:udp + 4])
+    if source_port != 6454 and destination_port != 6454:
+        continue
+    payload = frame[udp + 8:]
+    if len(payload) < 12 or payload[:8] != b"Art-Net\x00":
+        continue
+    opcode = struct.unpack("<H", payload[8:10])[0]
+    source = socket.inet_ntoa(frame[offset + 12:offset + 16])
+    destination = socket.inet_ntoa(frame[offset + 16:offset + 20])
+    universe, length = -1, 0
+    if opcode == 0x5000 and len(payload) >= 18:
+        universe = payload[14] | (payload[15] << 8)
+        length = struct.unpack("!H", payload[16:18])[0]
+    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+    print(f"{timestamp}\t{source}\t{destination}\t0x{opcode:04x}\t{universe}\t{length}", flush=True)
+PYEOF
+
+    write_file /usr/local/libexec/wasalight-artnet-monitor.py 0755 <<'PYEOF'
+#!/usr/bin/env python3
+import subprocess
+import threading
+
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gdk, GLib, Gtk
+
+OPCODES = {"0x2000": "Poll", "0x2100": "Poll Reply", "0x5000": "ArtDMX", "0x5200": "Sync"}
+
+
+class Monitor(Gtk.Window):
+    def __init__(self):
+        super().__init__(title="Wasalight Art-Net Monitor")
+        self.set_default_size(1000, 580)
+        self.set_position(Gtk.WindowPosition.CENTER)
+        self.process = None
+        self.rows = {}
+        self.connect("destroy", self.close)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        box.set_border_width(16)
+        title = Gtk.Label()
+        title.set_markup("<span size='21000' weight='bold'>Art-Net Monitor</span>\n"
+                         "<span size='11000'>Traffico UDP Art-Net su tutte le interfacce</span>")
+        title.set_xalign(0)
+        box.pack_start(title, False, False, 0)
+
+        self.store = Gtk.ListStore(str, str, str, str, int, int, str)
+        view = Gtk.TreeView(model=self.store)
+        labels = ("Sorgente", "Destinazione", "Tipo", "Universo", "Canali", "Pacchetti", "Ultimo")
+        for index, label in enumerate(labels):
+            renderer = Gtk.CellRendererText()
+            renderer.set_property("ypad", 8)
+            column = Gtk.TreeViewColumn(label, renderer, text=index)
+            column.set_resizable(True)
+            column.set_expand(index in (0, 1))
+            view.append_column(column)
+        scroll = Gtk.ScrolledWindow()
+        scroll.add(view)
+        box.pack_start(scroll, True, True, 0)
+
+        controls = Gtk.Box(spacing=10)
+        self.status = Gtk.Label(label="In ascolto sulla porta UDP 6454")
+        self.status.set_xalign(0)
+        clear = Gtk.Button(label="Azzera")
+        clear.set_size_request(150, 58)
+        clear.connect("clicked", self.clear)
+        close = Gtk.Button(label="Chiudi")
+        close.set_size_request(150, 58)
+        close.connect("clicked", lambda _button: self.destroy())
+        controls.pack_start(self.status, True, True, 0)
+        controls.pack_start(clear, False, False, 0)
+        controls.pack_start(close, False, False, 0)
+        box.pack_start(controls, False, False, 0)
+        self.add(box)
+        self.start_capture()
+
+    def start_capture(self):
+        try:
+            self.process = subprocess.Popen(
+                ["sudo", "-n", "/usr/local/sbin/wasalight-artnet-capture"],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
+            threading.Thread(target=self.read_packets, daemon=True).start()
+        except Exception as error:
+            self.status.set_text(str(error))
+
+    def read_packets(self):
+        for line in self.process.stdout:
+            fields = line.rstrip().split("\t")
+            if len(fields) == 6:
+                GLib.idle_add(self.add_packet, *fields)
+        error = self.process.stderr.read().strip()
+        if error:
+            GLib.idle_add(self.status.set_text, error)
+
+    def add_packet(self, timestamp, source, destination, opcode, universe, length):
+        kind = OPCODES.get(opcode, opcode)
+        shown_universe = "—" if universe == "-1" else str(int(universe) + 1)
+        key = (source, destination, opcode, universe)
+        if key in self.rows:
+            row = self.rows[key]
+            self.store[row][5] += 1
+            self.store[row][6] = timestamp
+        else:
+            self.rows[key] = self.store.append(
+                [source, destination, kind, shown_universe, int(length), 1, timestamp])
+        return False
+
+    def clear(self, _button):
+        self.store.clear()
+        self.rows.clear()
+
+    def close(self, _window):
+        if self.process and self.process.poll() is None:
+            self.process.terminate()
+        Gtk.main_quit()
+
+
+css = Gtk.CssProvider()
+css.load_from_data(b"button { font-size: 17px; padding: 10px; } treeview { font-size: 15px; }")
+Gtk.StyleContext.add_provider_for_screen(
+    Gdk.Screen.get_default(),
+    css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+window = Monitor()
+window.show_all()
+Gtk.main()
+PYEOF
+
+    write_file /usr/local/bin/wasalight-artnet-monitor 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+log_file=/tmp/wasalight-network-tools.log
+[[ -d /data/log && -w /data/log ]] && log_file=/data/log/wasalight-network-tools.log
+exec /usr/local/libexec/wasalight-artnet-monitor.py >>"$log_file" 2>&1
+EOF
+
     install -d -m 0755 /etc/wasalight/apps.d
     write_file /etc/wasalight/apps.d/network.desktop 0644 <<'EOF'
 [Desktop Entry]
@@ -1663,6 +2035,28 @@ Icon=/usr/local/share/icons/wasalight/files.svg
 TryExec=pcmanfm
 X-Wasalight-Section=Support
 X-Wasalight-Order=50
+EOF
+    write_file /etc/wasalight/apps.d/ip-scanner.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=IP Scanner
+Comment=Trova dispositivi, indirizzi IP e produttori nella rete locale
+Exec=/usr/local/bin/wasalight-ip-scanner
+Icon=/usr/local/share/icons/wasalight/ip-scanner.svg
+TryExec=/usr/local/bin/wasalight-ip-scanner
+X-Wasalight-Section=Support
+X-Wasalight-Order=55
+EOF
+    write_file /etc/wasalight/apps.d/artnet-monitor.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Art-Net Monitor
+Comment=Mostra sorgenti, universi e pacchetti Art-Net in tempo reale
+Exec=/usr/local/bin/wasalight-artnet-monitor
+Icon=/usr/local/share/icons/wasalight/artnet-monitor.svg
+TryExec=/usr/local/bin/wasalight-artnet-monitor
+X-Wasalight-Section=Support
+X-Wasalight-Order=56
 EOF
     write_file /etc/wasalight/apps.d/terminal.desktop 0644 <<'EOF'
 [Desktop Entry]
@@ -2390,7 +2784,7 @@ configure_persistent_logs() {
                 warn "legacy log retained because the new file already exists: $DATA_MOUNT/log/$old_log"
             fi
         done
-        for log_file in wasalight-magicq-console.log wasalight-magicq-session.log wasalight-hub.log; do
+        for log_file in wasalight-magicq-console.log wasalight-magicq-session.log wasalight-hub.log wasalight-network-tools.log; do
             if [[ ! -e "$DATA_MOUNT/log/$log_file" ]]; then
                 install -o "$TARGET_USER" -g "$TARGET_USER" -m 0640 \
                     /dev/null "$DATA_MOUNT/log/$log_file"
@@ -2405,7 +2799,7 @@ configure_persistent_logs() {
 
     install -d -m 0755 /etc/wasalight
     write_file /etc/wasalight/magicq-logrotate.conf 0644 <<'EOF'
-/data/log/wasalight-magicq-console.log /data/log/wasalight-magicq-session.log /data/log/wasalight-hub.log {
+/data/log/wasalight-magicq-console.log /data/log/wasalight-magicq-session.log /data/log/wasalight-hub.log /data/log/wasalight-network-tools.log {
     size 5M
     rotate 5
     compress
@@ -2810,7 +3204,7 @@ EOT
 EOF
 
     write_file /etc/sudoers.d/chamsys-magicq 0440 <<'EOF'
-chamsys ALL=(root) NOPASSWD: /usr/local/sbin/magicq-maintenance, /usr/local/sbin/magicq-protect, /usr/local/sbin/magicq-root-launcher, /usr/local/sbin/magicq-root-stop, /usr/local/sbin/wasalight-companion-launcher magichd, /usr/local/sbin/wasalight-companion-launcher magicvis, /usr/local/sbin/wasalight-power-control poweroff, /usr/local/sbin/wasalight-power-control reboot, /usr/local/sbin/wasalight-ssh-control start, /usr/local/sbin/wasalight-ssh-control stop
+chamsys ALL=(root) NOPASSWD: /usr/local/sbin/magicq-maintenance, /usr/local/sbin/magicq-protect, /usr/local/sbin/magicq-root-launcher, /usr/local/sbin/magicq-root-stop, /usr/local/sbin/wasalight-companion-launcher magichd, /usr/local/sbin/wasalight-companion-launcher magicvis, /usr/local/sbin/wasalight-ip-scan, /usr/local/sbin/wasalight-artnet-capture, /usr/local/sbin/wasalight-power-control poweroff, /usr/local/sbin/wasalight-power-control reboot, /usr/local/sbin/wasalight-ssh-control start, /usr/local/sbin/wasalight-ssh-control stop
 EOF
     visudo -cf /etc/sudoers.d/chamsys-magicq >/dev/null
 }
@@ -2851,9 +3245,15 @@ final_checks() {
     bash -n /usr/local/sbin/wasalight-update
     bash -n /usr/local/bin/wasalight-update-terminal
     bash -n /usr/local/bin/wasalight-terminal-tool
+    bash -n /usr/local/sbin/wasalight-ip-scan
+    bash -n /usr/local/bin/wasalight-ip-scanner
+    bash -n /usr/local/bin/wasalight-artnet-monitor
     bash -n /usr/local/sbin/wasalight-app-register
     bash -n /usr/local/bin/wasalight-hub
     python3 -c 'compile(open("/usr/local/libexec/wasalight-hub.py", encoding="utf-8").read(), "/usr/local/libexec/wasalight-hub.py", "exec")'
+    python3 -c 'compile(open("/usr/local/libexec/wasalight-ip-scanner.py", encoding="utf-8").read(), "/usr/local/libexec/wasalight-ip-scanner.py", "exec")'
+    python3 -c 'compile(open("/usr/local/sbin/wasalight-artnet-capture", encoding="utf-8").read(), "/usr/local/sbin/wasalight-artnet-capture", "exec")'
+    python3 -c 'compile(open("/usr/local/libexec/wasalight-artnet-monitor.py", encoding="utf-8").read(), "/usr/local/libexec/wasalight-artnet-monitor.py", "exec")'
     logrotate --debug /etc/wasalight/magicq-logrotate.conf >/dev/null 2>&1
     ldconfig -p | grep -F 'libGLU.so.1' >/dev/null || \
         die "OpenGL runtime check failed: libGLU.so.1 is unavailable"
