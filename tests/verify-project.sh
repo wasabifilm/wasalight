@@ -245,6 +245,8 @@ grep -Fq 'cmp -s -- "$source" "$destination"' "$tmp_dir/wasalight-update" || \
     fail "la migrazione del pacchetto MagicQ non verifica la copia"
 grep -Fq 'tests/verify-project.sh' "$tmp_dir/wasalight-update" || \
     fail "l'aggiornamento Wasalight non verifica il progetto scaricato"
+grep -Fq '/usr/local/sbin/wasalight-update --code-only' "$INSTALLER" || \
+    fail "l'installer non inizializza il checkout persistente degli aggiornamenti"
 if grep -Fq 'git reset --hard' "$tmp_dir/wasalight-update"; then
     fail "l'aggiornamento Wasalight non deve cancellare modifiche locali"
 fi

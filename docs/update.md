@@ -16,6 +16,11 @@ Il repository pubblico non contiene il pacchetto MagicQ. Il `.deb` viene
 copiato separatamente, verificato byte per byte e protetto con permessi
 `root:root 0640`.
 
+L’installer inizializza automaticamente il repository persistente quando
+`/data` è disponibile. Se GitHub non è raggiungibile, mostra un avviso senza
+rimuovere i dati già presenti; ripetere in seguito
+`sudo wasalight-update --code-only`.
+
 ## Primo aggiornamento
 
 Entrare in MAINTENANCE:

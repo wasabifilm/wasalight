@@ -1159,6 +1159,12 @@ fi
 echo "[$(date --iso-8601=seconds)] Wasalight update completed"
 echo "Reboot after checking the installer result."
 EOF
+
+    if mountpoint -q "$DATA_MOUNT" && [[ ! -d $UPDATE_CHECKOUT/.git ]]; then
+        log "initializing the persistent Wasalight update checkout"
+        /usr/local/sbin/wasalight-update --code-only || \
+            warn "persistent update checkout could not be initialized; retry later with sudo wasalight-update --code-only"
+    fi
 }
 
 configure_graphical_session() {
