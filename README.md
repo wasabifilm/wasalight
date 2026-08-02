@@ -4,7 +4,7 @@ Progetto per trasformare un’installazione minimale **Ubuntu Server 24.04 LTS
 amd64** in una postazione MagicQ dedicata, con sistema operativo protetto dagli
 spegnimenti improvvisi e dati dello show persistenti.
 
-Progetto realizzato da **Michele Moser** e **Wasabi Lightbulb Farm**.
+Progetto realizzato da **Michele Moser** e **Wasabi Lightbulbfarm**.
 
 Citazione del progetto: **“Wasalight — created by Michele Moser / Wasabi
 Lightbulbfarm.”** Instagram: **[@wasabi_lightbulbfarm](https://www.instagram.com/wasabi_lightbulbfarm/)**.
