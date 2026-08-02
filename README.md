@@ -117,6 +117,12 @@ L’aggiornamento non usa `git reset --hard`: se trova modifiche locali ai file
 tracciati si ferma senza cancellarle. La procedura completa è descritta nella
 [guida aggiornamenti](docs/update.md).
 
+La voce grafica **Update Wasalight** mostra chiaramente le quattro fasi e, solo
+dopo un aggiornamento riuscito, propone **Riavvia ora** oppure **Più tardi**. È
+interamente utilizzabile al touch. Da terminale si può ottenere lo stesso
+risultato senza domanda finale con `sudo wasalight-update --reboot`, combinabile
+con `--protect` quando il prossimo avvio deve tornare direttamente in SHOW mode.
+
 ### Account amministratore `chamsys`
 
 `chamsys` è sempre aggiunto a `sudo` e, quando presenti, ai gruppi `adm` e

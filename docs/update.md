@@ -36,6 +36,17 @@ Poi eseguire:
 sudo wasalight-update
 ```
 
+Dal desktop non serve aprire manualmente il terminale: clic destro →
+**Update Wasalight**, oppure **Wasalight Hub → Support → Update Wasalight**.
+Si apre una finestra con quattro fasi leggibili: controllo del pacchetto MagicQ,
+download, verifica e installazione. Al termine compare un grande pulsante
+**Riavvia ora**; scegliendo **Più tardi** l’aggiornamento resta installato e viene
+ricordato che il riavvio è ancora necessario. Non occorre più premere Invio per
+chiudere la finestra, quindi il flusso è utilizzabile interamente al touch.
+
+In caso di errore non viene mai eseguito il riavvio automatico: appare un
+messaggio breve e i dettagli restano in `/data/log/wasalight-update.log`.
+
 Al primo utilizzo il comando:
 
 1. cerca eventuali `.deb` nelle vecchie cartelle
@@ -68,6 +79,16 @@ Preparare direttamente il prossimo avvio protetto:
 ```bash
 sudo wasalight-update --protect
 ```
+
+Aggiornare e riavviare automaticamente, utile da SSH o terminale:
+
+```bash
+sudo wasalight-update --reboot
+```
+
+Le opzioni possono essere combinate, ad esempio
+`sudo wasalight-update --protect --reboot`. `--code-only --reboot` viene invece
+rifiutato perché il solo download non modifica la configurazione del sistema.
 
 Mantenere SSH automatico oppure disabilitato all’avvio:
 

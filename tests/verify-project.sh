@@ -184,6 +184,7 @@ helpers=(
     /usr/local/bin/wasalight-ssh-toggle
     /usr/local/sbin/wasalight-ssh-control
     /usr/local/sbin/wasalight-update
+    /usr/local/libexec/wasalight-update-session
     /usr/local/bin/wasalight-update-terminal
     /usr/local/bin/wasalight-hub
     /usr/local/bin/wasalight-terminal-tool
@@ -268,8 +269,20 @@ grep -Fq '/usr/local/sbin/wasalight-update --code-only' "$INSTALLER" || \
 if grep -Fq 'git reset --hard' "$tmp_dir/wasalight-update"; then
     fail "l'aggiornamento Wasalight non deve cancellare modifiche locali"
 fi
-grep -Fq 'sudo /usr/local/sbin/wasalight-update' "$tmp_dir/wasalight-update-terminal" || \
-    fail "il menu Update non apre il comando in un terminale"
+grep -Fq '/usr/local/libexec/wasalight-update-session' "$tmp_dir/wasalight-update-terminal" || \
+    fail "il menu Update non apre la sessione guidata"
+grep -Fq 'sudo /usr/local/sbin/wasalight-update' "$tmp_dir/wasalight-update-session" || \
+    fail "la sessione guidata non esegue l'aggiornamento"
+grep -Fq 'wasalight-power-control reboot' "$tmp_dir/wasalight-update-session" || \
+    fail "la sessione guidata non offre il riavvio finale"
+grep -Fq -- '--reboot' "$tmp_dir/wasalight-update" || \
+    fail "wasalight-update non espone l'opzione di riavvio"
+grep -Fq 'systemctl reboot' "$tmp_dir/wasalight-update" || \
+    fail "wasalight-update --reboot non riavvia il sistema"
+if grep -Fq 'read -r _' "$tmp_dir/wasalight-update-terminal" || \
+   grep -Fq 'read -r _' "$tmp_dir/wasalight-update-session"; then
+    fail "l'interfaccia Update richiede ancora la tastiera per chiudersi"
+fi
 grep -Fq 'install -d -o chamsys -g chamsys -m 0750 /data/log' \
     "$tmp_dir/wasalight-update" || \
     fail "l'aggiornamento non preserva i permessi chamsys di /data/log"

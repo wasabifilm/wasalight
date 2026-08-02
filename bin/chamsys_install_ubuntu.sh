@@ -1033,22 +1033,23 @@ readonly log_file=/data/log/wasalight-update.log
 
 protect=0
 code_only=0
+reboot_after=0
 ssh_mode=preserve
 
 usage() {
     cat <<'EOT'
 Usage: sudo wasalight-update [options]
 
-Downloads the current Wasalight main branch into /data/system/wasalight,
-migrates MagicQ .deb files into /data/system/packages, verifies the project
-and runs the installer in MAINTENANCE mode.
+Scarica e verifica l'ultima versione di Wasalight, conserva il pacchetto
+MagicQ e aggiorna la macchina in modalità MAINTENANCE.
 
-Options:
-  --protect       Configure PROTECTED SHOW mode for the next boot.
-  --code-only     Download and verify Wasalight without running the installer.
-  --with-ssh      Keep SSH enabled automatically after reboot.
-  --without-ssh   Keep SSH disabled at boot; the touch button still works.
-  -h, --help      Show this help.
+Opzioni:
+  --protect       Prepara SHOW / PROTECTED per il prossimo avvio.
+  --code-only     Scarica e verifica il codice senza installarlo.
+  --reboot        Riavvia automaticamente dopo un aggiornamento riuscito.
+  --with-ssh      Mantiene SSH attivo automaticamente dopo il riavvio.
+  --without-ssh   Mantiene SSH spento all'avvio; il pulsante resta disponibile.
+  -h, --help      Mostra questo aiuto.
 EOT
 }
 
@@ -1056,20 +1057,26 @@ while (($#)); do
     case $1 in
         --protect) protect=1 ;;
         --code-only) code_only=1 ;;
+        --reboot) reboot_after=1 ;;
         --with-ssh) ssh_mode=enabled ;;
         --without-ssh) ssh_mode=disabled ;;
         -h|--help) usage; exit 0 ;;
-        *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
+        *) echo "Opzione sconosciuta: $1" >&2; usage >&2; exit 2 ;;
     esac
     shift
 done
 
-[[ $EUID -eq 0 ]] || { echo "Run with sudo: sudo wasalight-update" >&2; exit 1; }
+if ((code_only && reboot_after)); then
+    echo "--code-only e --reboot non possono essere usati insieme." >&2
+    exit 2
+fi
+
+[[ $EUID -eq 0 ]] || { echo "Esegui con: sudo wasalight-update" >&2; exit 1; }
 [[ $(findmnt -n -o FSTYPE / 2>/dev/null) != overlay ]] || {
-    echo "Updates require MAINTENANCE mode. Run sudo magicq-maintenance and reboot first." >&2
+    echo "Serve la modalità MAINTENANCE. Esegui sudo magicq-maintenance e riavvia." >&2
     exit 1
 }
-mountpoint -q /data || { echo "/data is not mounted." >&2; exit 1; }
+mountpoint -q /data || { echo "/data non è montata: aggiornamento interrotto." >&2; exit 1; }
 install -d -o root -g root -m 0755 /data/system
 install -d -o chamsys -g chamsys -m 0750 /data/log
 install -d -o root -g root -m 0750 "$package_store"
@@ -1078,49 +1085,65 @@ chown root:adm "$log_file" 2>/dev/null || chown root:root "$log_file"
 chmod 0640 "$log_file"
 exec > >(tee -a "$log_file") 2>&1
 
-echo "[$(date --iso-8601=seconds)] Wasalight update started"
+step() { printf '\n==> %s\n' "$*"; }
+update_failed() {
+    local rc=$?
+    trap - ERR
+    printf '\nAGGIORNAMENTO INTERROTTO (errore %d).\n' "$rc" >&2
+    echo "La macchina non verrà riavviata. Dettagli: $log_file" >&2
+    exit "$rc"
+}
+trap update_failed ERR
+
+printf '\n========================================\n'
+printf '       WASALIGHT · AGGIORNAMENTO\n'
+printf '========================================\n'
+echo "Avvio: $(date --iso-8601=seconds)"
+echo "Log:   $log_file"
 
 migrate_package() {
     local source=$1 destination
     [[ -f $source ]] || return 0
     dpkg-deb --info "$source" >/dev/null 2>&1 || {
-        echo "Ignoring invalid Debian package: $source" >&2
+        echo "Ignoro un pacchetto Debian non valido: $source" >&2
         return 0
     }
     [[ $(dpkg-deb -f "$source" Architecture) == amd64 ]] || {
-        echo "Ignoring non-amd64 package: $source" >&2
+        echo "Ignoro un pacchetto non amd64: $source" >&2
         return 0
     }
     destination="$package_store/${source##*/}"
     [[ $(readlink -f -- "$source") != $(readlink -m -- "$destination") ]] || return 0
     if [[ -e $destination ]] && ! cmp -s -- "$source" "$destination"; then
-        echo "A different package already uses this name: $destination" >&2
+        echo "Esiste già un pacchetto diverso con lo stesso nome: $destination" >&2
         return 1
     fi
     if [[ ! -e $destination ]]; then
         install -o root -g root -m 0640 "$source" "$destination"
         cmp -s -- "$source" "$destination" || {
-            echo "Package copy verification failed: $destination" >&2
+            echo "Verifica della copia del pacchetto non riuscita: $destination" >&2
             return 1
         }
     fi
     rm -f -- "$source"
-    echo "MagicQ package moved to $destination"
+    echo "Pacchetto MagicQ conservato in $destination"
 }
 
+step "1/4 · Controllo dei pacchetti MagicQ"
 while IFS= read -r -d '' legacy_package; do
     migrate_package "$legacy_package"
 done < <(find /home /root -maxdepth 4 -type f \
     -path '*/wasalight/packages/*.deb' -print0 2>/dev/null)
 
 if [[ -e $checkout && ! -d $checkout/.git ]]; then
-    echo "Update path exists but is not a Git checkout: $checkout" >&2
+    echo "Il percorso aggiornamenti esiste ma non è un repository Git: $checkout" >&2
     exit 1
 fi
 
+step "2/4 · Download dell'ultima versione"
 if [[ -d $checkout/.git ]]; then
     if ! git -C "$checkout" diff --quiet || ! git -C "$checkout" diff --cached --quiet; then
-        echo "Persistent checkout has local tracked changes; update stopped: $checkout" >&2
+        echo "Il repository persistente contiene modifiche locali: aggiornamento interrotto." >&2
         exit 1
     fi
     git -C "$checkout" remote set-url origin "$repository"
@@ -1135,9 +1158,14 @@ else
     trap - EXIT
 fi
 
+step "3/4 · Verifica del progetto scaricato"
 "$checkout/tests/verify-project.sh"
-echo "Wasalight code ready in $checkout"
-((code_only)) && exit 0
+echo "Codice verificato e pronto in $checkout"
+if ((code_only)); then
+    echo
+    echo "Aggiornamento del codice completato. Nessuna modifica applicata al sistema."
+    exit 0
+fi
 
 installer_args=()
 ((protect)) || installer_args+=(--no-protection)
@@ -1150,22 +1178,74 @@ command -v onboard >/dev/null 2>&1 && installer_args+=(--with-onscreen-keyboard)
 mapfile -t packages < <(find "$package_store" -maxdepth 1 -type f -name '*.deb' -print | sort -V)
 if ((${#packages[@]})); then
     selected_package=${packages[-1]}
-    echo "Using MagicQ package: $selected_package"
+    echo "Pacchetto MagicQ selezionato: $selected_package"
     installer_args+=("$selected_package")
 else
-    echo "WARNING: no MagicQ package found in $package_store" >&2
+    echo "ATTENZIONE: nessun pacchetto MagicQ trovato in $package_store" >&2
 fi
 
+step "4/4 · Installazione della configurazione Wasalight"
 "$checkout/install.sh" "${installer_args[@]}"
-echo "[$(date --iso-8601=seconds)] Wasalight update completed"
-echo "Reboot after checking the installer result."
+
+trap - ERR
+printf '\n========================================\n'
+printf '       AGGIORNAMENTO COMPLETATO\n'
+printf '========================================\n'
+echo "Fine: $(date --iso-8601=seconds)"
+if ((protect)); then
+    echo "Prossimo avvio: SHOW / PROTECTED"
+else
+    echo "Prossimo avvio: MAINTENANCE"
+fi
+
+if ((reboot_after)); then
+    echo "Riavvio in corso…"
+    sync
+    systemctl reboot
+else
+    echo "Riavvia per rendere effettive tutte le modifiche."
+fi
+EOF
+
+    write_file /usr/local/libexec/wasalight-update-session 0755 <<'EOF'
+#!/usr/bin/env bash
+set -u
+
+clear
+printf '\n  WASALIGHT UPDATE\n'
+printf '  Scarico, verifico e installo l’ultima versione.\n'
+printf '  La password richiesta è quella Linux di chamsys.\n\n'
+
+sudo /usr/local/sbin/wasalight-update
+rc=$?
+if ((rc == 0)); then
+    echo
+    echo "Aggiornamento completato correttamente."
+    if zenity --question --width=520 --title="Wasalight aggiornato" \
+        --text="<big><b>Aggiornamento completato.</b></big>\n\nRiavviare ora per applicare la nuova configurazione?" \
+        --ok-label="Riavvia ora" --cancel-label="Più tardi"; then
+        echo "Riavvio in corso…"
+        sudo -n /usr/local/sbin/wasalight-power-control reboot
+        exit $?
+    fi
+    zenity --info --width=500 --title="Wasalight aggiornato" \
+        --text="Aggiornamento installato.\n\nRicordati di riavviare prima del prossimo utilizzo." \
+        --ok-label="Chiudi"
+    exit 0
+fi
+
+echo
+echo "Aggiornamento non completato. La macchina non verrà riavviata."
+zenity --error --width=560 --title="Aggiornamento non riuscito" \
+    --text="<big><b>Wasalight non è stato aggiornato.</b></big>\n\nLa macchina non verrà riavviata.\nControlla: /data/log/wasalight-update.log" \
+    --ok-label="Chiudi" 2>/dev/null || true
+exit "$rc"
 EOF
 
     write_file /usr/local/bin/wasalight-update-terminal 0755 <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
-exec lxterminal --title="Wasalight update" -e bash -lc \
-    'sudo /usr/local/sbin/wasalight-update; rc=$?; echo; echo "Premere Invio per chiudere."; read -r _; exit "$rc"'
+exec lxterminal --title="Wasalight Update" -e /usr/local/libexec/wasalight-update-session
 EOF
 
     if mountpoint -q "$DATA_MOUNT" && [[ ! -d $UPDATE_CHECKOUT/.git ]]; then
@@ -3243,6 +3323,7 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-ssh-toggle
     bash -n /usr/local/sbin/wasalight-ssh-control
     bash -n /usr/local/sbin/wasalight-update
+    bash -n /usr/local/libexec/wasalight-update-session
     bash -n /usr/local/bin/wasalight-update-terminal
     bash -n /usr/local/bin/wasalight-terminal-tool
     bash -n /usr/local/sbin/wasalight-ip-scan
