@@ -13,6 +13,7 @@ in uso.
 | `multipath-tools` | Accesso ridondante a storage SAN | Rimosso solo se root e `/data` non dipendono da un dispositivo `mpath` |
 | `open-iscsi` | Accesso a dischi iSCSI di rete | Rimosso solo se root e `/data` non dipendono dal trasporto iSCSI |
 | `pollinate` | Seed di entropia, soprattutto per istanze cloud | Rimosso sulla postazione dedicata |
+| `os-prober` | Ricerca altri sistemi operativi per GRUB | Rimosso: Wasalight è un’appliance a sistema singolo e dichiara `GRUB_DISABLE_OS_PROBER=true` |
 
 Il controllo risale la gerarchia dei dispositivi con `lsblk`. Un volume LVM
 sotto `/dev/mapper`, come quelli usati normalmente da Wasalight, ha tipo `lvm`

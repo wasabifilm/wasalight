@@ -1235,6 +1235,11 @@ EOF
 #!/usr/bin/env bash
 set -u
 
+# The minimal Openbox session does not run the AT-SPI accessibility bus.
+# Disable GTK accessibility only for this small update UI so Zenity does not
+# print a harmless GDBus warning after a successful installation.
+export GTK_A11Y=none
+
 clear
 printf '\n  WASALIGHT UPDATE\n'
 printf '  Scarico, verifico e installo l’ultima versione.\n'
@@ -3153,7 +3158,7 @@ optimize_system() {
     # instead of treating every device-mapper path as multipath storage.
     local root_source data_source source
     local uses_multipath=0 uses_iscsi=0
-    local cleanup_candidates=(pollinate)
+    local cleanup_candidates=(pollinate os-prober)
     local cleanup_installed=()
     root_source=$(findmnt -n -o SOURCE -M /)
     data_source=$(findmnt -n -o SOURCE -M "$DATA_MOUNT" 2>/dev/null || true)
@@ -3419,6 +3424,7 @@ EOF
 GRUB_TIMEOUT_STYLE=hidden
 GRUB_TIMEOUT=1
 GRUB_RECORDFAIL_TIMEOUT=3
+GRUB_DISABLE_OS_PROBER=true
 GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} quiet splash loglevel=3 systemd.show_status=auto rd.udev.log_level=3 vt.global_cursor_default=0"
 EOF
     update-grub

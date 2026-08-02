@@ -111,5 +111,12 @@ La tastiera Onboard viene conservata automaticamente quando è già installata.
 - Il codice scaricato viene verificato prima di eseguire l’installer.
 - Il log completo resta in `/data/log/wasalight-update.log`.
 
+L’interfaccia grafica dell’aggiornamento disabilita AT-SPI soltanto per i propri
+popup Zenity, perché la sessione Openbox minimale non avvia il relativo bus di
+accessibilità. Questo evita il falso `Gtk-WARNING` finale senza modificare
+l’accessibilità delle altre applicazioni. La ricerca GRUB di altri sistemi
+operativi è disabilitata esplicitamente perché Wasalight è un’appliance a sistema
+singolo.
+
 Se il download non riesce, correggere rete o DNS e ripetere lo stesso comando;
 la copia persistente precedente resta disponibile.
