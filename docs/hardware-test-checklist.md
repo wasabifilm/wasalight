@@ -48,11 +48,11 @@ uno spettacolo.
 - [ ] MagicQ parte senza barra del titolo; Tint2 resta visibile e utilizzabile
       sul bordo inferiore anche dopo un riavvio di MagicQ.
 - [ ] Openbox espone un solo desktop virtuale (`wmctrl -d` mostra una riga).
-- [ ] Con MagicQ fermo, i sette pulsanti desktop hanno icone grandi e leggibili
+- [ ] Con MagicQ fermo, gli otto pulsanti desktop hanno icone grandi e leggibili
       al touch e si avviano con un solo tocco senza mostrare «Apri con…».
 - [ ] `chamsys` non può cancellare, rinominare o spostare i launcher desktop.
 - [ ] `stat -c '%U:%G %a %n' /home/chamsys/Desktop /home/chamsys/Desktop/*.desktop`
-      mostra la directory `root:root 755` e sette launcher `root:root 444`.
+      mostra la directory `root:root 755` e otto launcher `root:root 444`.
 - [ ] Il pulsante VNC avvia la condivisione del display `:0`, mostra l'indirizzo
       e propone l'arresto quando viene premuto mentre VNC è già attivo.
 - [ ] Il pulsante SSH avvia e ferma OpenSSH dopo conferma e mostra indirizzo,
@@ -66,8 +66,8 @@ uno spettacolo.
       con un tocco di aprire il Hub o selezionare un’applicazione già aperta.
 - [ ] Wasalight Hub mostra le schede MagicQ, Applications e Support con pulsanti
       grandi; gli strumenti di supporto si avviano correttamente.
-- [ ] MagicHD e MagicVis avviati dal Hub usano `/opt/magicq` come directory di
-      lavoro e non mostrano l’errore relativo alla versione portatile.
+- [ ] MagicHD e MagicVis avviati dal Hub passano dal wrapper root ristretto,
+      usano `/opt/magicq` come directory di lavoro e rimangono aperti.
 - [ ] Un launcher registrato con `wasalight-app-register` compare nel Hub e
       sopravvive al riavvio protetto; dopo `--remove` non compare più.
 - [ ] Il clic destro mostra soltanto il menu Wasalight minimale, senza

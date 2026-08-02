@@ -317,9 +317,11 @@ Il rilevamento automatico è intenzionalmente limitato ai companion riconoscibil
 come MagicVis, MagicHD e strumenti Remote/Viewer ChamSys. Il programma MagicQ
 principale continua a essere avviato soltanto dal launcher Wasalight controllato
 e non attraverso un generico file `.desktop` del pacchetto.
-Il Hub rispetta anche la chiave standard `Path`: MagicHD e MagicVis vengono
-avviati da `/opt/magicq`, come richiesto dai launcher originali ChamSys, così i
-loro script trovano binari, plugin e librerie inclusi nel pacchetto.
+Il Hub rispetta anche la chiave standard `Path`. Per MagicHD e MagicVis riconosce
+i launcher originali ChamSys e li inoltra a un wrapper root ristretto ai soli due
+comandi. In questo modo usano `/opt/magicq`, l’ambiente X11 e lo stesso runtime
+Qt/OpenGL con cui MagicQ funziona sul target, senza concedere al Hub un sudo
+generico. Gli errori rimangono nel log persistente del Hub.
 
 Per registrare un programma installato in futuro usare il relativo launcher
 standard presente normalmente sotto `/usr/share/applications`:
@@ -341,15 +343,15 @@ a schermo e registrati in `/data/log/wasalight-hub.log` (oppure in `/tmp` se
 `/data` non è disponibile).
 
 Tint2 non mostra più la scritta **desktop 1** e resta sempre visibile in basso.
-Il pannello riserva lo spazio necessario e offre pulsante Hub, applicazioni
-aperte, icone di stato e orologio. Questa scelta evita il gesto sul bordo, poco
-affidabile con molti touchscreen, e mantiene sempre raggiungibili i controlli.
-Il tema usa un blu scuro Wasalight (`#0d3b66`) con selezione blu brillante;
-i colori sono definiti nel file Tint2 generato dall’installer.
+Il pannello riserva lo spazio necessario e offre i pulsanti Hub e File Manager,
+le applicazioni aperte, le icone di stato e l’orologio. Questa scelta evita il
+gesto sul bordo, poco affidabile con molti touchscreen, e mantiene sempre
+raggiungibili i controlli. Il tema è quasi nero (`#080b10`), con selezioni
+antracite discrete e senza il precedente fondo blu acceso.
 
 Il clic destro apre soltanto un menu Wasalight minimale: Start/Stop MagicQ,
-Hub, Terminale, Update, VNC, SSH, riavvio e spegnimento. Le preferenze Openbox e
-le impostazioni di sistema generiche non sono esposte.
+Hub, File Manager, Terminale, Update, VNC, SSH, riavvio e spegnimento. Le
+preferenze Openbox e le impostazioni di sistema generiche non sono esposte.
 
 ### VNC della sessione corrente
 

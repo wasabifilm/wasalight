@@ -1270,6 +1270,7 @@ EOF
         "$TARGET_HOME/Desktop/Start-MagicQ.desktop" \
         "$TARGET_HOME/Desktop/Stop-MagicQ.desktop" \
         "$TARGET_HOME/Desktop/Wasalight-Hub.desktop" \
+        "$TARGET_HOME/Desktop/Files.desktop" \
         "$TARGET_HOME/Desktop/VNC.desktop" \
         "$TARGET_HOME/Desktop/SSH.desktop" \
         "$TARGET_HOME/Desktop/Power-Off.desktop" \
@@ -1304,10 +1305,9 @@ Terminal=false
 StartupNotify=false
 EOF
 
-    # Earlier versions exposed support tools as separate desktop files. The
-    # Hub replaces them; remove only these installer-owned legacy launchers.
+    # The Hub replaces the less frequently used support launchers. Keep the
+    # File Manager as a first-class touch target on both desktop and panel.
     rm -f "$TARGET_HOME/Desktop/Network.desktop" \
-        "$TARGET_HOME/Desktop/Files.desktop" \
         "$TARGET_HOME/Desktop/Terminal.desktop"
 
     write_file "$TARGET_HOME/Desktop/Wasalight-Hub.desktop" 0755 <<'EOF'
@@ -1317,6 +1317,17 @@ Name=Wasalight Hub
 Comment=Applicazioni MagicQ, programmi e strumenti di supporto
 Exec=/usr/local/bin/wasalight-hub
 Icon=/usr/local/share/icons/wasalight/hub.svg
+Terminal=false
+StartupNotify=true
+EOF
+
+    write_file "$TARGET_HOME/Desktop/Files.desktop" 0755 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=File Manager
+Comment=Apre dati persistenti e chiavette USB
+Exec=pcmanfm /data
+Icon=/usr/local/share/icons/wasalight/files.svg
 Terminal=false
 StartupNotify=true
 EOF
@@ -1647,7 +1658,7 @@ EOF
 Type=Application
 Name=Files
 Comment=Apre dati persistenti e chiavette USB
-Exec=pcmanfm
+Exec=pcmanfm /data
 Icon=/usr/local/share/icons/wasalight/files.svg
 TryExec=pcmanfm
 X-Wasalight-Section=Support
@@ -1842,6 +1853,20 @@ def launcher_image(icon):
     return image
 
 
+def companion_kind(command):
+    """Return the supported ChamSys companion selected by a desktop Exec."""
+    try:
+        executable = os.path.basename(shlex.split(command)[0])
+    except (ValueError, IndexError):
+        return None
+    return {
+        "runmagichd.sh": "magichd",
+        "mqhd": "magichd",
+        "runmagicvis.sh": "magicvis",
+        "mqvis": "magicvis",
+    }.get(executable)
+
+
 class Hub(Gtk.Window):
     def __init__(self):
         super().__init__(title="Wasalight Hub")
@@ -1903,7 +1928,13 @@ class Hub(Gtk.Window):
     def launch(self, _button, item):
         command = FIELD_CODE.sub("", item["exec"])
         try:
-            arguments = shlex.split(command)
+            companion = companion_kind(command)
+            if companion:
+                # The target's proprietary Qt/OpenGL bundle works with the
+                # same root X11 environment required by MagicQ itself.
+                arguments = ["sudo", "-n", "/usr/local/sbin/wasalight-companion-launcher", companion]
+            else:
+                arguments = shlex.split(command)
             if item["terminal"]:
                 arguments = ["lxterminal", "-e"] + arguments
             subprocess.Popen(arguments, cwd=item["path"], start_new_session=True)
@@ -1947,16 +1978,16 @@ exit "$rc"
 EOF
 
     write_file "$TARGET_HOME/.config/tint2/tint2rc" 0644 <<EOF
-# Wasalight touch panel: always visible, with a high-contrast blue theme.
+# Wasalight touch panel: always visible, with a discreet near-black theme.
 rounded = 0
 border_width = 0
-background_color = #0d3b66 100
-border_color = #0d3b66 100
+background_color = #080b10 98
+border_color = #080b10 100
 
 rounded = 8
-border_width = 0
-background_color = #1f6feb 100
-border_color = #58a6ff 100
+border_width = 1
+background_color = #20252d 100
+border_color = #3d444d 100
 
 panel_items = LTSC
 panel_size = 100% 64
@@ -1976,6 +2007,7 @@ launcher_background_id = 2
 launcher_icon_background_id = 0
 launcher_icon_size = 46
 launcher_item_app = $TARGET_HOME/Desktop/Wasalight-Hub.desktop
+launcher_item_app = $TARGET_HOME/Desktop/Files.desktop
 
 taskbar_mode = single_desktop
 taskbar_padding = 4 0 4
@@ -2011,6 +2043,42 @@ mouse_middle = none
 mouse_right = close
 mouse_scroll_up = none
 mouse_scroll_down = none
+EOF
+
+    write_file /usr/local/sbin/wasalight-companion-launcher 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+[[ $EUID -eq 0 ]] || {
+    echo "Wasalight companion launcher must be run through sudo." >&2
+    exit 1
+}
+
+case ${1:-} in
+    magichd) launcher=/opt/magicq/runmagichd.sh ;;
+    magicvis) launcher=/opt/magicq/runmagicvis.sh ;;
+    *) echo "Usage: wasalight-companion-launcher magichd|magicvis" >&2; exit 2 ;;
+esac
+[[ -x $launcher ]] || {
+    echo "ChamSys companion launcher not found: $launcher" >&2
+    exit 127
+}
+
+# MagicHD and MagicVis use the same proprietary Qt/OpenGL runtime as MagicQ.
+# Match the root X11 environment already proven on the target while keeping
+# root's Documents/MagicQ directory backed by persistent /data bind mounts.
+export HOME=/root
+export USER=root
+export LOGNAME=root
+export XDG_DATA_HOME=/root/.local/share
+export XDG_CONFIG_HOME=/root/.config
+export DISPLAY=:0
+export XAUTHORITY=/home/chamsys/.Xauthority
+unset DBUS_SESSION_BUS_ADDRESS XDG_CACHE_HOME XDG_RUNTIME_DIR
+umask 0022
+
+cd /opt/magicq
+exec "$launcher"
 EOF
 
     write_file /usr/local/sbin/magicq-root-launcher 0755 <<'EOF'
@@ -2261,6 +2329,7 @@ EOF
     <item label="Stop MagicQ"><action name="Execute"><command>/usr/local/bin/magicq-stop</command></action></item>
     <separator />
     <item label="Wasalight Hub"><action name="Execute"><command>/usr/local/bin/wasalight-hub</command></action></item>
+    <item label="File Manager"><action name="Execute"><command>pcmanfm /data</command></action></item>
     <item label="Terminal"><action name="Execute"><command>lxterminal</command></action></item>
     <item label="Update Wasalight"><action name="Execute"><command>/usr/local/bin/wasalight-update-terminal</command></action></item>
     <item label="VNC"><action name="Execute"><command>/usr/local/bin/wasalight-vnc-toggle</command></action></item>
@@ -2741,7 +2810,7 @@ EOT
 EOF
 
     write_file /etc/sudoers.d/chamsys-magicq 0440 <<'EOF'
-chamsys ALL=(root) NOPASSWD: /usr/local/sbin/magicq-maintenance, /usr/local/sbin/magicq-protect, /usr/local/sbin/magicq-root-launcher, /usr/local/sbin/magicq-root-stop, /usr/local/sbin/wasalight-power-control poweroff, /usr/local/sbin/wasalight-power-control reboot, /usr/local/sbin/wasalight-ssh-control start, /usr/local/sbin/wasalight-ssh-control stop
+chamsys ALL=(root) NOPASSWD: /usr/local/sbin/magicq-maintenance, /usr/local/sbin/magicq-protect, /usr/local/sbin/magicq-root-launcher, /usr/local/sbin/magicq-root-stop, /usr/local/sbin/wasalight-companion-launcher magichd, /usr/local/sbin/wasalight-companion-launcher magicvis, /usr/local/sbin/wasalight-power-control poweroff, /usr/local/sbin/wasalight-power-control reboot, /usr/local/sbin/wasalight-ssh-control start, /usr/local/sbin/wasalight-ssh-control stop
 EOF
     visudo -cf /etc/sudoers.d/chamsys-magicq >/dev/null
 }
@@ -2765,6 +2834,7 @@ final_checks() {
     bash -n /usr/local/bin/magicq-status
     bash -n /usr/local/bin/magicq-session
     bash -n /usr/local/sbin/magicq-root-launcher
+    bash -n /usr/local/sbin/wasalight-companion-launcher
     bash -n /usr/local/sbin/magicq-root-stop
     bash -n /usr/local/bin/magicq-start
     bash -n /usr/local/bin/magicq-stop

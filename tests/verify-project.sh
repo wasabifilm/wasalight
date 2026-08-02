@@ -80,6 +80,7 @@ required_patterns=(
     '$TARGET_HOME/Desktop/Start-MagicQ.desktop'
     '$TARGET_HOME/Desktop/Stop-MagicQ.desktop'
     '$TARGET_HOME/Desktop/Wasalight-Hub.desktop'
+    '$TARGET_HOME/Desktop/Files.desktop'
     '$TARGET_HOME/Desktop/VNC.desktop'
     '$TARGET_HOME/Desktop/SSH.desktop'
     '$TARGET_HOME/Desktop/Power-Off.desktop'
@@ -87,6 +88,7 @@ required_patterns=(
     'Icon=/usr/local/share/icons/wasalight/start.svg'
     'Icon=/usr/local/share/icons/wasalight/stop.svg'
     'Icon=/usr/local/share/icons/wasalight/hub.svg'
+    'Icon=/usr/local/share/icons/wasalight/files.svg'
     'Icon=/usr/local/share/icons/wasalight/vnc.svg'
     'Icon=/usr/local/share/icons/wasalight/ssh.svg'
     'Icon=/usr/local/share/icons/wasalight/power.svg'
@@ -108,11 +110,14 @@ required_patterns=(
     'autohide = 0'
     'strut_policy = follow_size'
     'launcher_item_app = $TARGET_HOME/Desktop/Wasalight-Hub.desktop'
+    'launcher_item_app = $TARGET_HOME/Desktop/Files.desktop'
     'quick_exec=1'
     'chown -R root:root "$TARGET_HOME/Desktop"'
     '-exec chmod 0444 {} +'
     'desktop SVG icon loader is unavailable'
-    'background_color = #0d3b66 100'
+    'background_color = #080b10 98'
+    'wasalight-companion-launcher magichd'
+    'wasalight-companion-launcher magicvis'
     'magicq-vnc-password'
     'cleanup_candidates=(pollinate)'
     'cleanup_candidates+=(multipath-tools)'
@@ -264,10 +269,11 @@ if grep -Fq 'install -d -o root -g root -m 0755 /data/system /data/log' \
     fail "l'aggiornamento assegna ancora /data/log a root"
 fi
 if grep -Fq 'write_file "$TARGET_HOME/Desktop/Network.desktop"' "$INSTALLER" || \
-   grep -Fq 'write_file "$TARGET_HOME/Desktop/Files.desktop"' "$INSTALLER" || \
    grep -Fq 'write_file "$TARGET_HOME/Desktop/Terminal.desktop"' "$INSTALLER"; then
-    fail "le vecchie icone di supporto sono ancora create sul desktop"
+    fail "le vecchie icone Network/Terminal sono ancora create sul desktop"
 fi
+grep -Fq 'write_file "$TARGET_HOME/Desktop/Files.desktop"' "$INSTALLER" || \
+    fail "il File Manager non è disponibile sul desktop"
 
 hub_script="$tmp_dir/wasalight-hub.py"
 awk '/write_file \/usr\/local\/libexec\/wasalight-hub.py / { capture=1; next }
@@ -284,6 +290,8 @@ grep -Fq '"path": item.get("Path", "").strip() or None' "$hub_script" || \
     fail "Wasalight Hub ignora la directory Path dei launcher"
 grep -Fq 'cwd=item["path"]' "$hub_script" || \
     fail "Wasalight Hub non avvia i companion dalla directory richiesta"
+grep -Fq '/usr/local/sbin/wasalight-companion-launcher' "$hub_script" || \
+    fail "Wasalight Hub non usa il launcher root dedicato per MagicHD/MagicVis"
 grep -Fq 'except ValueError' "$hub_script" || \
     fail "Wasalight Hub non gestisce i booleani desktop non validi"
 grep -Fq 'wasalight-hub.log' "$tmp_dir/wasalight-hub" || \
