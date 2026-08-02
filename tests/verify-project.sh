@@ -81,9 +81,12 @@ required_patterns=(
     '$TARGET_HOME/Desktop/VNC.desktop'
     '$TARGET_HOME/Desktop/Power-Off.desktop'
     '$TARGET_HOME/Desktop/Reboot.desktop'
+    'Icon=/usr/local/share/icons/wasalight/start.svg'
+    'Icon=/usr/local/share/icons/wasalight/stop.svg'
+    'Icon=/usr/local/share/icons/wasalight/hub.svg'
+    'Icon=/usr/local/share/icons/wasalight/vnc.svg'
     'Icon=/usr/local/share/icons/wasalight/power.svg'
     'Icon=/usr/local/share/icons/wasalight/reboot.svg'
-    'gio set "$launcher" metadata::trusted true'
     'conky --config="$HOME/.config/conky/wasalight.conf"'
     'wasalight-desktop-status'
     'wasalight-power-control poweroff'
@@ -94,7 +97,9 @@ required_patterns=(
     'taskbar_name = 0'
     'autohide = 1'
     'launcher_item_app = $TARGET_HOME/Desktop/Wasalight-Hub.desktop'
+    'quick_exec=1'
     'chown -R root:root "$TARGET_HOME/Desktop"'
+    '-exec chmod 0444 {} +'
     'magicq-vnc-password'
     'cleanup_candidates=(pollinate)'
     'cleanup_candidates+=(multipath-tools)'
@@ -258,6 +263,16 @@ grep -Fq -- '--reset-chamsys-password' "$PROJECT_DIR/README.md" || \
     fail "l'accesso amministrativo chamsys non è documentato"
 grep -Fq 'chown -R "$TARGET_USER:$TARGET_USER" "$DATA_MOUNT/magicq"' "$INSTALLER" || \
     fail "la riparazione dei proprietari MagicQ persistenti è assente"
+grep -Fq 'repair_magicq_persistent_permissions' "$INSTALLER" || \
+    fail "la riparazione post-installazione dei permessi MagicQ è assente"
+if grep -Eq 'gio[[:space:]]+set.*metadata::trusted' "$INSTALLER"; then
+    fail "l'installer dipende ancora dal metadato GIO non supportato da PCManFM"
+fi
+
+install_magicq_line=$(grep -n '^[[:space:]]*install_magicq$' "$INSTALLER" | tail -n1 | cut -d: -f1)
+repair_magicq_line=$(grep -n '^[[:space:]]*repair_magicq_persistent_permissions$' "$INSTALLER" | tail -n1 | cut -d: -f1)
+[[ -n $install_magicq_line && -n $repair_magicq_line && $repair_magicq_line -gt $install_magicq_line ]] || \
+    fail "i permessi MagicQ devono essere riparati dopo l'installazione del pacchetto"
 
 group_helper="$tmp_dir/existing-groups.sh"
 {

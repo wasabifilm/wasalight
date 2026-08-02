@@ -51,6 +51,8 @@ uno spettacolo.
 - [ ] Con MagicQ fermo, i sei pulsanti desktop hanno icone grandi e leggibili
       al touch e si avviano con un solo tocco senza mostrare «Apri con…».
 - [ ] `chamsys` non può cancellare, rinominare o spostare i launcher desktop.
+- [ ] `stat -c '%U:%G %a %n' /home/chamsys/Desktop /home/chamsys/Desktop/*.desktop`
+      mostra la directory `root:root 755` e i launcher `root:root 444`.
 - [ ] Il pulsante VNC avvia la condivisione del display `:0`, mostra l'indirizzo
       e propone l'arresto quando viene premuto mentre VNC è già attivo.
 - [ ] **Power off** e **Reboot** mostrano sempre la conferma; **Cancel** non

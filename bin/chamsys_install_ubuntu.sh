@@ -952,6 +952,7 @@ EOF
     write_file "$TARGET_HOME/.config/libfm/libfm.conf" 0644 <<'EOF'
 [config]
 single_click=1
+quick_exec=1
 auto_selection_delay=600
 use_trash=1
 confirm_del=1
@@ -1875,10 +1876,6 @@ xset s off
 xset s noblank
 xset -dpms
 wmctrl -n 1
-for launcher in "$HOME"/Desktop/*.desktop; do
-    [ -f "$launcher" ] || continue
-    gio set "$launcher" metadata::trusted true >/dev/null 2>&1 || true
-done
 pcmanfm --desktop --profile=default &
 conky --config="$HOME/.config/conky/wasalight.conf" --daemonize --pause=2
 tint2 -c "$HOME/.config/tint2/tint2rc" &
@@ -1943,10 +1940,13 @@ EOF
 
     chown -R "$TARGET_USER:$TARGET_USER" \
         "$TARGET_HOME/.config" "$TARGET_HOME/.xinitrc"
+    # LibFM recognises readable application/x-desktop files without an execute
+    # bit. Keeping the root-owned launchers at 0444 prevents its fast MIME pass
+    # from misclassifying them as generic executables, so their SVGs are used.
     chown -R root:root "$TARGET_HOME/Desktop"
     chmod 0755 "$TARGET_HOME/Desktop"
     find "$TARGET_HOME/Desktop" -maxdepth 1 -type f -name '*.desktop' \
-        -exec chmod 0555 {} +
+        -exec chmod 0444 {} +
 
     install -d -m 0755 /etc/systemd/system/getty@tty1.service.d
     write_file /etc/systemd/system/getty@tty1.service.d/autologin.conf 0644 <<EOF
@@ -2134,6 +2134,26 @@ install_magicq() {
         [[ -z $missing_libraries ]] || \
             die "MagicQ has unresolved runtime libraries: $missing_libraries"
     fi
+}
+
+repair_magicq_persistent_permissions() {
+    # The vendor package can recreate paths below Documents/MagicQ as root.
+    # Repair only the two user-owned persistent trees: root-home must remain
+    # private to root because it contains the configuration used by sudo runs.
+    mountpoint -q "$DATA_MOUNT" || return 0
+
+    install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0770 \
+        "$DATA_MOUNT/magicq/Documents/MagicQ" \
+        "$DATA_MOUNT/magicq/.local/share"
+    chown -R "$TARGET_USER:$TARGET_USER" \
+        "$DATA_MOUNT/magicq/Documents/MagicQ" \
+        "$DATA_MOUNT/magicq/.local/share"
+    find "$DATA_MOUNT/magicq/Documents/MagicQ" \
+        "$DATA_MOUNT/magicq/.local/share" -type d \
+        -exec chmod u+rwx,g+rwx,o-rwx {} +
+    find "$DATA_MOUNT/magicq/Documents/MagicQ" \
+        "$DATA_MOUNT/magicq/.local/share" -type f \
+        -exec chmod u+rw,g+rw,o-rwx {} +
 }
 
 configure_volatile_runtime() {
@@ -2452,6 +2472,7 @@ main() {
     configure_graphical_session
     configure_usb
     install_magicq
+    repair_magicq_persistent_permissions
     configure_volatile_runtime
     optimize_system
     install_mode_commands

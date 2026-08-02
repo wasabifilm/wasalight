@@ -128,6 +128,10 @@ MagicQ ignora XDG, il file resta comunque su `/data` e non nell'overlay root.
 Il comando concesso senza password è soltanto il launcher fisso, non un comando
 arbitrario. Alla chiusura di MagicQ il launcher ripristina inoltre proprietà e
 permessi dei dati persistenti affinché restino accessibili da `chamsys`.
+L’installer esegue la stessa riparazione subito dopo l’installazione del file
+`.deb`: alcuni pacchetti MagicQ ricreano infatti `Documents/MagicQ` come
+`root:root`. Il controllo finale interrompe l’installazione se le directory
+persistenti non risultano realmente scrivibili da `chamsys`.
 
 Senza `--with-ssh`, OpenSSH non viene installato e un eventuale servizio SSH
 preesistente viene disabilitato.
@@ -233,10 +237,16 @@ diagnosi senza che venga riattivato sulla stessa finestra.
 Openbox viene limitato a **un solo desktop virtuale**: all'avvio `wmctrl -n 1`
 elimina gli altri spazi di lavoro della sessione. PCManFM disegna uno sfondo
 nero con icone SVG da 64 pixel, ad alto contrasto e indipendenti dal tema di
-Ubuntu. I launcher sono eseguibili, vengono marcati come attendibili con GIO e
-LibFM usa il clic singolo: sul touchscreen basta un tocco e non appare la
-richiesta «Apri con…». Il desktop e i launcher appartengono a `root`: l'utente
-`chamsys` può usarli ma non cancellarli, rinominarli o spostarli per errore.
+Ubuntu. I launcher sono file `application/x-desktop` leggibili e appartengono a
+`root`; non viene aggiunto il bit eseguibile, che nel primo controllo rapido di
+LibFM li farebbe apparire come eseguibili generici con un’icona anonima. LibFM
+usa `single_click=1` e `quick_exec=1`: sul touchscreen basta un tocco, viene
+caricata l’icona SVG indicata dal launcher e non appare la richiesta «Apri
+con…». Non viene usato il metadato GIO `metadata::trusted`, perché non è
+supportato dal profilo PCManFM/GVFS dell’installazione Server. La directory
+Desktop e i launcher appartengono a `root`, con file in sola lettura:
+`chamsys` può avviarli ma non cancellarli, rinominarli, spostarli o modificarli
+accidentalmente.
 Sono disponibili soltanto i comandi principali:
 
 - **Start MagicQ**;
