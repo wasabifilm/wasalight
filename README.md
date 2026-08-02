@@ -229,20 +229,41 @@ diagnosi senza che venga riattivato sulla stessa finestra.
 
 Openbox viene limitato a **un solo desktop virtuale**: all'avvio `wmctrl -n 1`
 elimina gli altri spazi di lavoro della sessione. PCManFM disegna uno sfondo
-nero con icone da 64 pixel, adatte anche all'uso touchscreen. Sono disponibili
-i pulsanti:
+nero con icone SVG da 64 pixel, ad alto contrasto e indipendenti dal tema di
+Ubuntu. I launcher sono eseguibili, vengono marcati come attendibili con GIO e
+LibFM usa il clic singolo: sul touchscreen basta un tocco e non appare la
+richiesta «Apri con…». Sono disponibili i pulsanti:
 
 - **Start MagicQ**;
 - **Stop MagicQ**;
 - **Network settings**;
 - **File manager**;
-- **Terminal**.
+- **Terminal**;
+- **Power off**;
+- **Reboot**.
+
+Spegnimento e riavvio mostrano sempre una grande finestra di conferma. Soltanto
+dopo la conferma viene eseguito un comando amministrativo ristretto, senza
+chiedere la password e senza concedere al desktop un accesso `sudo` generico.
+
+Sul lato destro Conky mostra un pannello aggiornato ogni due secondi con:
+
+- modalità corrente e modalità prevista al prossimo avvio;
+- stato di MagicQ e del supervisore;
+- montaggio e spazio libero di `/data`;
+- persistenza dei log;
+- rete e indirizzo IP, evidenziando dispositivi `unmanaged`;
+- touchscreen, chiavette USB, VNC e audio ALSA.
+
+Verde significa operativo, giallo indica uno stato fermo o non collegato ma non
+necessariamente errato, rosso richiede attenzione. Il pannello esegue solo
+letture, non produce log e non scrive periodicamente su `/data`.
 
 Il clic destro sullo sfondo continua ad aprire il menu Openbox. I pulsanti sono
 visibili quando MagicQ è chiuso, in particolare durante la modalità
 MAINTENANCE. In SHOW la finestra fullscreen di MagicQ copre intenzionalmente il
-desktop; per intervenire sulla configurazione si deve prima passare a
-MAINTENANCE oppure fermare MagicQ con `magicq-stop`.
+desktop e il pannello di stato; per intervenire sulla configurazione si deve
+prima passare a MAINTENANCE oppure fermare MagicQ con `magicq-stop`.
 
 ### Audio ALSA
 

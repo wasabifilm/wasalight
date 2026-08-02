@@ -211,6 +211,7 @@ install_packages() {
         libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0
         libasound2-data alsa-utils
         openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps wmctrl x11-utils
+        conky-all zenity libglib2.0-bin desktop-file-utils
         network-manager network-manager-gnome wpasupplicant policykit-1 policykit-1-gnome
         overlayroot initramfs-tools chrony
         exfatprogs ntfs-3g dosfstools util-linux udev logrotate
@@ -278,6 +279,8 @@ configure_user() {
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.local/share"
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/openbox"
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/pcmanfm/default"
+    install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/conky"
+    install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/libfm"
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/magicq-touch"
 
     if mountpoint -q "$DATA_MOUNT"; then
@@ -904,13 +907,59 @@ show_trash=0
 show_mounts=0
 EOF
 
+    write_file "$TARGET_HOME/.config/libfm/libfm.conf" 0644 <<'EOF'
+[config]
+single_click=1
+auto_selection_delay=600
+use_trash=1
+confirm_del=1
+thumbnail_local=1
+EOF
+
+    install -d -m 0755 /usr/local/share/icons/wasalight
+    write_file /usr/local/share/icons/wasalight/start.svg 0644 <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+ <circle cx="48" cy="48" r="44" fill="#238636"/><path d="M39 29 70 48 39 67Z" fill="#fff"/>
+</svg>
+EOF
+    write_file /usr/local/share/icons/wasalight/stop.svg 0644 <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+ <circle cx="48" cy="48" r="44" fill="#da3633"/><rect x="31" y="31" width="34" height="34" rx="3" fill="#fff"/>
+</svg>
+EOF
+    write_file /usr/local/share/icons/wasalight/network.svg 0644 <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+ <circle cx="48" cy="48" r="44" fill="#1f6feb"/><g fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"><path d="M22 38c15-14 37-14 52 0"/><path d="M32 50c9-8 23-8 32 0"/></g><circle cx="48" cy="65" r="6" fill="#fff"/>
+</svg>
+EOF
+    write_file /usr/local/share/icons/wasalight/files.svg 0644 <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+ <rect x="10" y="25" width="76" height="56" rx="8" fill="#d29922"/><path d="M12 32V23c0-5 4-8 9-8h23l10 12h24c5 0 8 4 8 9v4H12Z" fill="#f2cc60"/>
+</svg>
+EOF
+    write_file /usr/local/share/icons/wasalight/terminal.svg 0644 <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+ <rect x="6" y="12" width="84" height="72" rx="10" fill="#30363d" stroke="#8b949e" stroke-width="4"/><path d="m24 34 14 14-14 14M46 63h24" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+EOF
+    write_file /usr/local/share/icons/wasalight/power.svg 0644 <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+ <circle cx="48" cy="48" r="44" fill="#b62324"/><path d="M48 20v28M31 31a27 27 0 1 0 34 0" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+</svg>
+EOF
+    write_file /usr/local/share/icons/wasalight/reboot.svg 0644 <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+ <circle cx="48" cy="48" r="44" fill="#bc6b00"/><path d="M69 34A27 27 0 1 0 73 57" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/><path d="m66 18 4 17-17-3Z" fill="#fff"/>
+</svg>
+EOF
+
     write_file "$TARGET_HOME/Desktop/Start-MagicQ.desktop" 0755 <<'EOF'
 [Desktop Entry]
 Type=Application
 Name=Start MagicQ
 Comment=Avvia MagicQ e il supervisore Wasalight
 Exec=/usr/local/bin/magicq-start
-Icon=media-playback-start
+Icon=/usr/local/share/icons/wasalight/start.svg
 Terminal=false
 StartupNotify=false
 EOF
@@ -921,7 +970,7 @@ Type=Application
 Name=Stop MagicQ
 Comment=Ferma MagicQ e lo mantiene chiuso
 Exec=/usr/local/bin/magicq-stop
-Icon=media-playback-stop
+Icon=/usr/local/share/icons/wasalight/stop.svg
 Terminal=false
 StartupNotify=false
 EOF
@@ -932,7 +981,7 @@ Type=Application
 Name=Network settings
 Comment=Configura Ethernet e Wi-Fi con NetworkManager
 Exec=nm-connection-editor
-Icon=preferences-system-network
+Icon=/usr/local/share/icons/wasalight/network.svg
 Terminal=false
 StartupNotify=true
 EOF
@@ -943,7 +992,7 @@ Type=Application
 Name=File manager
 Comment=Apre i file persistenti e le chiavette USB
 Exec=pcmanfm
-Icon=system-file-manager
+Icon=/usr/local/share/icons/wasalight/files.svg
 Terminal=false
 StartupNotify=true
 EOF
@@ -954,9 +1003,31 @@ Type=Application
 Name=Terminal
 Comment=Apre il terminale di manutenzione
 Exec=lxterminal
-Icon=utilities-terminal
+Icon=/usr/local/share/icons/wasalight/terminal.svg
 Terminal=false
 StartupNotify=true
+EOF
+
+    write_file "$TARGET_HOME/Desktop/Power-Off.desktop" 0755 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Power off
+Comment=Spegne la postazione dopo una conferma
+Exec=/usr/local/bin/wasalight-power poweroff
+Icon=/usr/local/share/icons/wasalight/power.svg
+Terminal=false
+StartupNotify=false
+EOF
+
+    write_file "$TARGET_HOME/Desktop/Reboot.desktop" 0755 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Reboot
+Comment=Riavvia la postazione dopo una conferma
+Exec=/usr/local/bin/wasalight-power reboot
+Icon=/usr/local/share/icons/wasalight/reboot.svg
+Terminal=false
+StartupNotify=false
 EOF
 
     write_file /usr/local/bin/magicq-fullscreen-watch 0755 <<'EOF'
@@ -999,6 +1070,173 @@ aplay -l
 echo
 echo "Playing the left and right test samples once through the default device."
 speaker-test -D default -c 2 -t wav -l 1
+EOF
+
+    write_file /usr/local/bin/wasalight-power 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+action=${1:-}
+case "$action" in
+    poweroff)
+        title="Power off Wasalight"
+        question="Spegnere completamente la postazione?"
+        confirm="Power off"
+        ;;
+    reboot)
+        title="Reboot Wasalight"
+        question="Riavviare adesso la postazione?"
+        confirm="Reboot"
+        ;;
+    *)
+        echo "Usage: wasalight-power poweroff|reboot" >&2
+        exit 2
+        ;;
+esac
+
+zenity --question --width=460 --title="$title" \
+    --text="<big><b>$question</b></big>\n\nGli show salvati in /data resteranno persistenti." \
+    --ok-label="$confirm" --cancel-label="Cancel" || exit 0
+sudo -n /usr/local/sbin/wasalight-power-control "$action"
+EOF
+
+    write_file /usr/local/sbin/wasalight-power-control 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $EUID -eq 0 ]] || {
+    echo "Wasalight power control must be run through sudo." >&2
+    exit 1
+}
+
+case ${1:-} in
+    poweroff) exec systemctl poweroff ;;
+    reboot) exec systemctl reboot ;;
+    *) echo "Usage: wasalight-power-control poweroff|reboot" >&2; exit 2 ;;
+esac
+EOF
+
+    write_file /usr/local/bin/wasalight-desktop-status 0755 <<'EOF'
+#!/usr/bin/env bash
+set -u
+
+readonly green='#3fb950'
+readonly yellow='#d29922'
+readonly red='#f85149'
+readonly blue='#58a6ff'
+
+status_line() {
+    printf '${color %s}%-13s${color white}%s\n' "$1" "$2" "$3"
+}
+
+root_fs=$(findmnt -n -o FSTYPE / 2>/dev/null || echo unknown)
+if [[ $root_fs == overlay ]]; then
+    status_line "$green" 'CURRENT' 'PROTECTED'
+else
+    status_line "$yellow" 'CURRENT' 'MAINTENANCE'
+fi
+
+if grep -Eq '^overlayroot="tmpfs:' /etc/overlayroot.local.conf 2>/dev/null; then
+    status_line "$green" 'NEXT BOOT' 'PROTECTED'
+elif grep -Fqx 'overlayroot="disabled"' /etc/overlayroot.local.conf 2>/dev/null; then
+    status_line "$yellow" 'NEXT BOOT' 'MAINTENANCE'
+else
+    status_line "$red" 'NEXT BOOT' 'UNKNOWN'
+fi
+
+if pgrep -x mqqt >/dev/null 2>&1; then
+    status_line "$green" 'MAGICQ' 'RUNNING'
+else
+    status_line "$yellow" 'MAGICQ' 'STOPPED'
+fi
+if pgrep -u chamsys -f '/usr/local/bin/magicq-session' >/dev/null 2>&1; then
+    status_line "$green" 'SUPERVISOR' 'RUNNING'
+else
+    status_line "$yellow" 'SUPERVISOR' 'STOPPED'
+fi
+
+if mountpoint -q /data; then
+    data_free=$(df -h --output=avail /data 2>/dev/null | tail -n 1 | xargs)
+    status_line "$green" 'DATA' "MOUNTED · ${data_free:-?} free"
+else
+    status_line "$red" 'DATA' 'NOT MOUNTED'
+fi
+if [[ -d /data/log && -w /data/log ]]; then
+    status_line "$green" 'LOGS' 'PERSISTENT'
+else
+    status_line "$red" 'LOGS' 'UNAVAILABLE'
+fi
+
+unmanaged=$(nmcli -t -f DEVICE,TYPE,STATE device status 2>/dev/null | \
+    awk -F: '$2 == "ethernet" || $2 == "wifi" { if ($3 == "unmanaged") print $1 }' | \
+    paste -sd, -)
+ip_address=$(hostname -I 2>/dev/null | awk '{print $1}')
+if [[ -n $unmanaged ]]; then
+    status_line "$red" 'NETWORK' "UNMANAGED: $unmanaged"
+elif [[ -n $ip_address ]]; then
+    status_line "$green" 'NETWORK' "$ip_address"
+else
+    status_line "$yellow" 'NETWORK' 'DISCONNECTED'
+fi
+
+touch_state=$(/usr/local/bin/magicq-touch-status --summary 2>/dev/null || true)
+if [[ $touch_state == *ready* ]]; then
+    status_line "$green" 'TOUCH' 'READY'
+elif [[ -n $touch_state ]]; then
+    status_line "$yellow" 'TOUCH' "${touch_state:0:32}"
+else
+    status_line "$yellow" 'TOUCH' 'NOT DETECTED'
+fi
+
+usb_count=$(findmnt -rn -o TARGET 2>/dev/null | \
+    awk '$0 ~ "^/stick/" { count++ } END { print count+0 }')
+if ((usb_count > 0)); then
+    status_line "$green" 'USB' "$usb_count MOUNTED"
+else
+    status_line "$yellow" 'USB' 'EMPTY'
+fi
+
+if pgrep -u chamsys -x x11vnc >/dev/null 2>&1; then
+    status_line "$blue" 'VNC' 'ACTIVE'
+else
+    status_line "$yellow" 'VNC' 'OFF'
+fi
+if aplay -l 2>/dev/null | grep -q '^card '; then
+    status_line "$green" 'AUDIO' 'READY'
+else
+    status_line "$red" 'AUDIO' 'NO DEVICE'
+fi
+EOF
+
+    write_file "$TARGET_HOME/.config/conky/wasalight.conf" 0644 <<'EOF'
+conky.config = {
+    alignment = 'top_right',
+    background = true,
+    double_buffer = true,
+    update_interval = 2,
+    gap_x = 32,
+    gap_y = 32,
+    minimum_width = 380,
+    maximum_width = 440,
+    use_xft = true,
+    font = 'Sans:size=14',
+    default_color = 'white',
+    own_window = true,
+    own_window_type = 'normal',
+    own_window_hints = 'undecorated,below,sticky,skip_taskbar,skip_pager',
+    own_window_argb_visual = true,
+    own_window_argb_value = 215,
+    own_window_colour = '#161b22',
+    draw_borders = false,
+    draw_outline = false,
+    draw_shades = false,
+};
+
+conky.text = [[
+${font Sans:bold:size=22}${color #58a6ff}WASALIGHT${color white}${font}
+${font Sans:size=11}Michele Moser · Wasabi Lightbulbfarm${font}
+${color #30363d}${hr 2}${color white}
+${execi 2 /usr/local/bin/wasalight-desktop-status}
+]];
 EOF
 
     write_file /usr/local/sbin/magicq-root-launcher 0755 <<'EOF'
@@ -1212,7 +1450,13 @@ xset s off
 xset s noblank
 xset -dpms
 wmctrl -n 1
+for launcher in "$HOME"/Desktop/*.desktop; do
+    [ -f "$launcher" ] || continue
+    chmod 0755 "$launcher"
+    gio set "$launcher" metadata::trusted true >/dev/null 2>&1 || true
+done
 pcmanfm --desktop --profile=default &
+conky --config="$HOME/.config/conky/wasalight.conf" --daemonize --pause=2
 tint2 &
 nm-applet --indicator &
 /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
@@ -1684,7 +1928,7 @@ EOT
 EOF
 
     write_file /etc/sudoers.d/chamsys-magicq 0440 <<'EOF'
-chamsys ALL=(root) NOPASSWD: /usr/local/sbin/magicq-maintenance, /usr/local/sbin/magicq-protect, /usr/local/sbin/magicq-root-launcher, /usr/local/sbin/magicq-root-stop
+chamsys ALL=(root) NOPASSWD: /usr/local/sbin/magicq-maintenance, /usr/local/sbin/magicq-protect, /usr/local/sbin/magicq-root-launcher, /usr/local/sbin/magicq-root-stop, /usr/local/sbin/wasalight-power-control poweroff, /usr/local/sbin/wasalight-power-control reboot
 EOF
     visudo -cf /etc/sudoers.d/chamsys-magicq >/dev/null
 }
@@ -1715,6 +1959,9 @@ final_checks() {
     bash -n /usr/local/bin/magicq-vnc-password
     bash -n /usr/local/bin/magicq-vnc-start
     bash -n /usr/local/bin/magicq-vnc-stop
+    bash -n /usr/local/bin/wasalight-power
+    bash -n /usr/local/sbin/wasalight-power-control
+    bash -n /usr/local/bin/wasalight-desktop-status
     logrotate --debug /etc/wasalight/magicq-logrotate.conf >/dev/null 2>&1
     ldconfig -p | grep -F 'libGLU.so.1' >/dev/null || \
         die "OpenGL runtime check failed: libGLU.so.1 is unavailable"
@@ -1745,6 +1992,8 @@ final_checks() {
         die "NetworkManager Netplan renderer configuration is unavailable"
     command -v wmctrl >/dev/null || \
         die "MagicQ fullscreen control is unavailable: wmctrl is missing"
+    desktop-file-validate "$TARGET_HOME"/Desktop/*.desktop
+    conky --version >/dev/null || die "Wasalight desktop status is unavailable"
 }
 
 main() {

@@ -50,6 +50,7 @@ required_patterns=(
     'libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0'
     'libasound2-data alsa-utils'
     'openbox tint2 pcmanfm lxterminal lxrandr x11vnc procps wmctrl x11-utils'
+    'conky-all zenity libglib2.0-bin desktop-file-utils'
     '/etc/netplan/99-wasalight-networkmanager.yaml'
     'renderer: NetworkManager'
     'netplan apply'
@@ -76,6 +77,14 @@ required_patterns=(
     '$TARGET_HOME/Desktop/Start-MagicQ.desktop'
     '$TARGET_HOME/Desktop/Stop-MagicQ.desktop'
     '$TARGET_HOME/Desktop/Network.desktop'
+    '$TARGET_HOME/Desktop/Power-Off.desktop'
+    '$TARGET_HOME/Desktop/Reboot.desktop'
+    'Icon=/usr/local/share/icons/wasalight/power.svg'
+    'Icon=/usr/local/share/icons/wasalight/reboot.svg'
+    'gio set "$launcher" metadata::trusted true'
+    'conky --config="$HOME/.config/conky/wasalight.conf"'
+    'wasalight-desktop-status'
+    'wasalight-power-control poweroff'
     'magicq-vnc-password'
     'cleanup_candidates=(pollinate)'
     'cleanup_candidates+=(multipath-tools)'
@@ -125,6 +134,9 @@ helpers=(
     /usr/local/bin/magicq-vnc-stop
     /usr/local/bin/magicq-fullscreen-watch
     /usr/local/bin/magicq-audio-test
+    /usr/local/bin/wasalight-power
+    /usr/local/sbin/wasalight-power-control
+    /usr/local/bin/wasalight-desktop-status
 )
 
 for helper in "${helpers[@]}"; do
@@ -176,6 +188,12 @@ grep -Fq 'speaker-test -D default -c 2 -t wav -l 1' \
     fail "il test audio ALSA non verifica il dispositivo predefinito"
 grep -Fq 'desktop_icon_size=64' "$INSTALLER" || \
     fail "i pulsanti desktop non sono dimensionati per l'uso touch"
+grep -Fq 'zenity --question' "$tmp_dir/wasalight-power" || \
+    fail "spegnimento e riavvio non richiedono una conferma touch"
+grep -Fq 'systemctl poweroff' "$tmp_dir/wasalight-power-control" || \
+    fail "il controllo di alimentazione non gestisce lo spegnimento"
+grep -Fq 'systemctl reboot' "$tmp_dir/wasalight-power-control" || \
+    fail "il controllo di alimentazione non gestisce il riavvio"
 
 [[ -s "$PROJECT_DIR/docs/touchscreen.md" ]] || fail "guida touchscreen mancante"
 grep -Fq 'magicq-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
