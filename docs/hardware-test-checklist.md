@@ -48,17 +48,20 @@ uno spettacolo.
 - [ ] MagicQ parte in vero fullscreen, senza barra del titolo né pannello
       Tint2; chiudendolo e riavviandolo il fullscreen viene riapplicato.
 - [ ] Openbox espone un solo desktop virtuale (`wmctrl -d` mostra una riga).
-- [ ] Con MagicQ fermo, i sei pulsanti desktop hanno icone grandi e leggibili
+- [ ] Con MagicQ fermo, i sette pulsanti desktop hanno icone grandi e leggibili
       al touch e si avviano con un solo tocco senza mostrare «Apri con…».
 - [ ] `chamsys` non può cancellare, rinominare o spostare i launcher desktop.
 - [ ] `stat -c '%U:%G %a %n' /home/chamsys/Desktop /home/chamsys/Desktop/*.desktop`
       mostra la directory `root:root 755` e i launcher `root:root 444`.
 - [ ] Il pulsante VNC avvia la condivisione del display `:0`, mostra l'indirizzo
       e propone l'arresto quando viene premuto mentre VNC è già attivo.
+- [ ] Il pulsante SSH avvia e ferma OpenSSH dopo conferma e mostra indirizzo,
+      utente e tipo di attivazione (`SESSION` oppure `AUTO`).
 - [ ] **Power off** e **Reboot** mostrano sempre la conferma; **Cancel** non
       esegue azioni e la conferma completa correttamente l'operazione scelta.
 - [ ] Il pannello destro mostra CURRENT, NEXT BOOT, MagicQ, supervisore, data,
-      log, rete/IP, touch, USB, VNC e audio con colori coerenti.
+      log, rete/IP, touch, USB, VNC, SSH e audio con colori coerenti, senza
+      mostrare letteralmente sequenze `${color ...}`.
 - [ ] Il pannello resta dietro alle applicazioni, non intercetta i tocchi e
       scompare alla vista quando MagicQ occupa il fullscreen.
 - [ ] Toccando il bordo inferiore Tint2 compare senza la scritta `desktop 1` e
@@ -93,7 +96,8 @@ uno spettacolo.
 - [ ] `nm-connection-editor` salva DHCP e indirizzi statici.
 - [ ] Le connessioni sopravvivono a un riavvio protetto.
 - [ ] Nessun indirizzo o servizio inatteso interferisce con la rete show.
-- [ ] SSH è raggiungibile solo se installato con `--with-ssh`.
+- [ ] SSH non è raggiungibile finché non viene attivato dal pulsante oppure
+      installato con `--with-ssh` per l’avvio automatico.
 
 ## Chiavette USB
 

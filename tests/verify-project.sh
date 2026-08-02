@@ -79,18 +79,22 @@ required_patterns=(
     '$TARGET_HOME/Desktop/Stop-MagicQ.desktop'
     '$TARGET_HOME/Desktop/Wasalight-Hub.desktop'
     '$TARGET_HOME/Desktop/VNC.desktop'
+    '$TARGET_HOME/Desktop/SSH.desktop'
     '$TARGET_HOME/Desktop/Power-Off.desktop'
     '$TARGET_HOME/Desktop/Reboot.desktop'
     'Icon=/usr/local/share/icons/wasalight/start.svg'
     'Icon=/usr/local/share/icons/wasalight/stop.svg'
     'Icon=/usr/local/share/icons/wasalight/hub.svg'
     'Icon=/usr/local/share/icons/wasalight/vnc.svg'
+    'Icon=/usr/local/share/icons/wasalight/ssh.svg'
     'Icon=/usr/local/share/icons/wasalight/power.svg'
     'Icon=/usr/local/share/icons/wasalight/reboot.svg'
     'conky --config="$HOME/.config/conky/wasalight.conf"'
     'wasalight-desktop-status'
     'wasalight-power-control poweroff'
     'wasalight-vnc-toggle'
+    'wasalight-ssh-toggle'
+    '${execpi 2 /usr/local/bin/wasalight-desktop-status}'
     '/etc/wasalight/apps.d/network.desktop'
     '/data/system/apps.d'
     'wasalight-app-register'
@@ -124,6 +128,7 @@ required_patterns=(
     'magicq-stop'
     'magicq-root-stop'
     'SUPERVISOR: $supervisor'
+    'SSH:        $ssh'
     'MAINTENANCE mode: automatic MagicQ start skipped'
 )
 
@@ -153,6 +158,9 @@ helpers=(
     /usr/local/sbin/wasalight-power-control
     /usr/local/bin/wasalight-desktop-status
     /usr/local/bin/wasalight-vnc-toggle
+    /usr/local/bin/wasalight-ssh-toggle
+    /usr/local/sbin/wasalight-ssh-control
+    /usr/local/bin/wasalight-hub
     /usr/local/bin/wasalight-terminal-tool
     /usr/local/sbin/wasalight-app-register
 )
@@ -216,6 +224,14 @@ grep -Fq 'magicq-vnc-start' "$tmp_dir/wasalight-vnc-toggle" || \
     fail "il pulsante VNC non avvia la sessione condivisa"
 grep -Fq 'magicq-vnc-stop' "$tmp_dir/wasalight-vnc-toggle" || \
     fail "il pulsante VNC non ferma la sessione condivisa"
+grep -Fq 'wasalight-ssh-control start' "$tmp_dir/wasalight-ssh-toggle" || \
+    fail "il pulsante SSH non avvia il servizio controllato"
+grep -Fq 'wasalight-ssh-control stop' "$tmp_dir/wasalight-ssh-toggle" || \
+    fail "il pulsante SSH non ferma il servizio controllato"
+grep -Fq 'systemctl start ssh.service' "$tmp_dir/wasalight-ssh-control" || \
+    fail "il controllo SSH non avvia OpenSSH"
+grep -Fq 'systemctl stop ssh.service' "$tmp_dir/wasalight-ssh-control" || \
+    fail "il controllo SSH non ferma OpenSSH"
 if grep -Fq 'write_file "$TARGET_HOME/Desktop/Network.desktop"' "$INSTALLER" || \
    grep -Fq 'write_file "$TARGET_HOME/Desktop/Files.desktop"' "$INSTALLER" || \
    grep -Fq 'write_file "$TARGET_HOME/Desktop/Terminal.desktop"' "$INSTALLER"; then
@@ -223,7 +239,7 @@ if grep -Fq 'write_file "$TARGET_HOME/Desktop/Network.desktop"' "$INSTALLER" || 
 fi
 
 hub_script="$tmp_dir/wasalight-hub.py"
-awk '/write_file \/usr\/local\/bin\/wasalight-hub / { capture=1; next }
+awk '/write_file \/usr\/local\/libexec\/wasalight-hub.py / { capture=1; next }
      capture && /^PYEOF$/ { exit }
      capture { print }' "$INSTALLER" >"$hub_script"
 [[ -s $hub_script ]] || fail "Wasalight Hub non è estraibile dall'installer"
@@ -233,12 +249,17 @@ grep -Fq '/data/system/apps.d/*.desktop' "$hub_script" || \
     fail "Wasalight Hub non legge il registro applicazioni persistente"
 grep -Fq 'magicvis|magichd' "$hub_script" || \
     fail "Wasalight Hub non rileva i companion ChamSys conosciuti"
+grep -Fq 'except ValueError' "$hub_script" || \
+    fail "Wasalight Hub non gestisce i booleani desktop non validi"
+grep -Fq 'wasalight-hub.log' "$tmp_dir/wasalight-hub" || \
+    fail "Wasalight Hub non conserva gli errori di avvio"
 
 [[ -s "$PROJECT_DIR/docs/touchscreen.md" ]] || fail "guida touchscreen mancante"
 grep -Fq 'magicq-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
     fail "configurazione touchscreen non documentata"
 [[ -s "$PROJECT_DIR/docs/migration-24.04.md" ]] || fail "guida migrazione 24.04 mancante"
 [[ -s "$PROJECT_DIR/docs/vnc.md" ]] || fail "guida VNC mancante"
+[[ -s "$PROJECT_DIR/docs/ssh.md" ]] || fail "guida SSH mancante"
 [[ -s "$PROJECT_DIR/docs/system-cleanup.md" ]] || fail "guida pulizia sistema mancante"
 grep -Fq 'Ubuntu Server 24.04 LTS' "$PROJECT_DIR/README.md" || \
     fail "target Ubuntu 24.04 non documentato"

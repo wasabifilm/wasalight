@@ -18,8 +18,8 @@ Il controllo risale la gerarchia dei dispositivi con `lsblk`. Un volume LVM
 sotto `/dev/mapper`, come quelli usati normalmente da Wasalight, ha tipo `lvm`
 e non viene confuso con un volume multipath di tipo `mpath`.
 
-La pulizia non rimuove LVM, NetworkManager, Xorg, Openbox, udev, OpenSSH
-richiesto con `--with-ssh`, `needrestart` o le dipendenze grafiche di MagicQ.
+La pulizia non rimuove LVM, NetworkManager, Xorg, Openbox, udev, OpenSSH usato
+dal controllo remoto, `needrestart` o le dipendenze grafiche di MagicQ.
 Le librerie XCB richieste dal plugin Qt di MagicQ sono elencate esplicitamente
 tra le dipendenze dell'appliance, così APT non può considerarle superflue.
 

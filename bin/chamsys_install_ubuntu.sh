@@ -44,7 +44,7 @@ Usage:
 Options:
   --data-device SPEC   Existing ext4 filesystem for /data. SPEC may be a
                        device path, UUID=..., or LABEL=.... It is never formatted.
-  --with-ssh           Install and enable OpenSSH server.
+  --with-ssh           Enable OpenSSH at boot (otherwise use the SSH button).
   --with-onscreen-keyboard
                        Install Onboard and add it to the Openbox menu.
   --reset-chamsys-password
@@ -216,9 +216,8 @@ install_packages() {
         python3 python3-gi gir1.2-gtk-3.0
         network-manager network-manager-gnome wpasupplicant policykit-1 policykit-1-gnome
         overlayroot initramfs-tools chrony
-        exfatprogs ntfs-3g dosfstools util-linux udev logrotate
+        exfatprogs ntfs-3g dosfstools util-linux udev logrotate openssh-server
     )
-    ((ENABLE_SSH)) && packages+=(openssh-server)
     ((ENABLE_ONSCREEN_KEYBOARD)) && packages+=(onboard)
     apt_install "${packages[@]}"
 
@@ -922,6 +921,67 @@ zenity --info --width=500 --title="VNC · Wasalight" \
 EOF
 }
 
+configure_ssh() {
+    write_file /usr/local/sbin/wasalight-ssh-control 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $EUID -eq 0 ]] || {
+    echo "Wasalight SSH control must be run through sudo." >&2
+    exit 1
+}
+
+case ${1:-} in
+    start)
+        systemctl start ssh.service
+        systemctl is-active --quiet ssh.service
+        echo "SSH started."
+        ;;
+    stop)
+        systemctl stop ssh.service
+        echo "SSH stopped."
+        ;;
+    *) echo "Usage: wasalight-ssh-control start|stop" >&2; exit 2 ;;
+esac
+EOF
+
+    write_file /usr/local/bin/wasalight-ssh-toggle 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || {
+    echo "Run this command as the chamsys desktop user." >&2
+    exit 1
+}
+
+ip_address=$(hostname -I 2>/dev/null | awk '{print $1}')
+if systemctl is-active --quiet ssh.service; then
+    next_boot=""
+    if systemctl is-enabled --quiet ssh.service; then
+        next_boot="\n\nNota: SSH è configurato per riattivarsi al prossimo avvio."
+    fi
+    zenity --question --width=500 --title="SSH · Wasalight" \
+        --text="<big><b>SSH è attivo.</b></big>\n\nIndirizzo: ssh://chamsys@${ip_address:-SERVER_IP}:22${next_boot}\n\nFermare ora l’accesso SSH?" \
+        --ok-label="Stop SSH" --cancel-label="Cancel" || exit 0
+    output=$(sudo -n /usr/local/sbin/wasalight-ssh-control stop 2>&1) || {
+        zenity --error --width=500 --title="SSH · Wasalight" --text="$output"
+        exit 1
+    }
+    zenity --info --width=420 --title="SSH · Wasalight" --text="$output"
+    exit 0
+fi
+
+zenity --question --width=520 --title="SSH · Wasalight" \
+    --text="<big><b>Attivare SSH?</b></big>\n\nL’accesso userà l’utente chamsys e la sua password Linux. Attivarlo soltanto su una rete fidata." \
+    --ok-label="Start SSH" --cancel-label="Cancel" || exit 0
+output=$(sudo -n /usr/local/sbin/wasalight-ssh-control start 2>&1) || {
+    zenity --error --width=500 --title="SSH · Wasalight" --text="$output"
+    exit 1
+}
+ip_address=$(hostname -I 2>/dev/null | awk '{print $1}')
+zenity --info --width=500 --title="SSH · Wasalight" \
+    --text="<big><b>SSH attivo</b></big>\n\nIndirizzo: ssh://chamsys@${ip_address:-SERVER_IP}:22\nUtente: chamsys\nPassword: la password Linux di chamsys"
+EOF
+}
+
 configure_graphical_session() {
     write_file /etc/X11/Xwrapper.config 0644 <<'EOF'
 allowed_users=console
@@ -1005,6 +1065,11 @@ EOF
  <rect x="8" y="14" width="80" height="58" rx="10" fill="#0969da"/><rect x="16" y="22" width="64" height="42" rx="4" fill="#dbeafe"/><path d="M35 84h26M48 72v12" stroke="#fff" stroke-width="7" stroke-linecap="round"/><circle cx="48" cy="43" r="10" fill="#0969da"/><path d="M29 58c5-9 12-13 19-13s14 4 19 13" fill="none" stroke="#0969da" stroke-width="6" stroke-linecap="round"/>
 </svg>
 EOF
+    write_file /usr/local/share/icons/wasalight/ssh.svg 0644 <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+ <rect x="7" y="14" width="82" height="68" rx="14" fill="#238636"/><path d="m25 34 14 14-14 14M48 63h24" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><path d="M68 20v17m-7-9h14" stroke="#9be9a8" stroke-width="5" stroke-linecap="round"/>
+</svg>
+EOF
 
     write_file "$TARGET_HOME/Desktop/Start-MagicQ.desktop" 0755 <<'EOF'
 [Desktop Entry]
@@ -1052,6 +1117,17 @@ Name=VNC
 Comment=Avvia o ferma VNC nella sessione grafica corrente
 Exec=/usr/local/bin/wasalight-vnc-toggle
 Icon=/usr/local/share/icons/wasalight/vnc.svg
+Terminal=false
+StartupNotify=true
+EOF
+
+    write_file "$TARGET_HOME/Desktop/SSH.desktop" 0755 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=SSH
+Comment=Avvia o ferma l’accesso remoto SSH
+Exec=/usr/local/bin/wasalight-ssh-toggle
+Icon=/usr/local/share/icons/wasalight/ssh.svg
 Terminal=false
 StartupNotify=true
 EOF
@@ -1248,6 +1324,15 @@ if pgrep -u chamsys -x x11vnc >/dev/null 2>&1; then
 else
     status_line "$yellow" 'VNC' 'OFF'
 fi
+if systemctl is-active --quiet ssh.service; then
+    if systemctl is-enabled --quiet ssh.service; then
+        status_line "$blue" 'SSH' 'ACTIVE · AUTO'
+    else
+        status_line "$blue" 'SSH' 'ACTIVE · SESSION'
+    fi
+else
+    status_line "$yellow" 'SSH' 'OFF'
+fi
 if aplay -l 2>/dev/null | grep -q '^card '; then
     status_line "$green" 'AUDIO' 'READY'
 else
@@ -1261,12 +1346,12 @@ conky.config = {
     background = true,
     double_buffer = true,
     update_interval = 2,
-    gap_x = 32,
-    gap_y = 32,
-    minimum_width = 380,
-    maximum_width = 440,
+    gap_x = 24,
+    gap_y = 24,
+    minimum_width = 460,
+    maximum_width = 520,
     use_xft = true,
-    font = 'Sans:size=14',
+    font = 'Sans:size=12',
     default_color = 'white',
     own_window = true,
     own_window_type = 'normal',
@@ -1283,7 +1368,7 @@ conky.text = [[
 ${font Sans:bold:size=22}${color #58a6ff}WASALIGHT${color white}${font}
 ${font Sans:size=11}Michele Moser · Wasabi Lightbulbfarm${font}
 ${color #30363d}${hr 2}${color white}
-${execi 2 /usr/local/bin/wasalight-desktop-status}
+${execpi 2 /usr/local/bin/wasalight-desktop-status}
 ]];
 EOF
 
@@ -1390,6 +1475,17 @@ TryExec=/usr/local/bin/wasalight-vnc-toggle
 X-Wasalight-Section=Support
 X-Wasalight-Order=80
 EOF
+    write_file /etc/wasalight/apps.d/ssh.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=SSH access
+Comment=Avvia o ferma il server SSH
+Exec=/usr/local/bin/wasalight-ssh-toggle
+Icon=/usr/local/share/icons/wasalight/ssh.svg
+TryExec=/usr/local/bin/wasalight-ssh-toggle
+X-Wasalight-Section=Support
+X-Wasalight-Order=90
+EOF
 
     write_file /usr/local/sbin/wasalight-app-register 0755 <<'EOF'
 #!/usr/bin/env bash
@@ -1430,7 +1526,7 @@ install -m 0644 "$source_file" "$destination/$name"
 echo "Registered in Wasalight Hub: $destination/$name"
 EOF
 
-    write_file /usr/local/bin/wasalight-hub 0755 <<'PYEOF'
+    write_file /usr/local/libexec/wasalight-hub.py 0755 <<'PYEOF'
 #!/usr/bin/env python3
 import configparser
 import glob
@@ -1449,6 +1545,13 @@ COMPANION = re.compile(r"magicvis|magichd|magicq[ -]?remote|chamsys.*(?:remote|v
 FIELD_CODE = re.compile(r"%[fFuUdDnNickvm]")
 
 
+def desktop_bool(item, key, default=False):
+    try:
+        return item.getboolean(key, fallback=default)
+    except ValueError:
+        return default
+
+
 def read_launcher(path, forced_section=None):
     parser = configparser.RawConfigParser(interpolation=None, strict=False)
     try:
@@ -1458,7 +1561,7 @@ def read_launcher(path, forced_section=None):
         return None
     if item.get("Type", "Application") != "Application":
         return None
-    if item.getboolean("Hidden", fallback=False) or item.getboolean("NoDisplay", fallback=False):
+    if desktop_bool(item, "Hidden") or desktop_bool(item, "NoDisplay"):
         return None
     name = item.get("Name", "").strip()
     command = item.get("Exec", "").strip()
@@ -1479,7 +1582,7 @@ def read_launcher(path, forced_section=None):
         "comment": item.get("Comment", ""),
         "exec": command,
         "icon": item.get("Icon", "application-x-executable"),
-        "terminal": item.getboolean("Terminal", fallback=False),
+        "terminal": desktop_bool(item, "Terminal"),
         "section": section,
         "order": order,
     }
@@ -1521,7 +1624,10 @@ class Hub(Gtk.Window):
         super().__init__(title="Wasalight Hub")
         self.set_default_size(900, 650)
         self.set_position(Gtk.WindowPosition.CENTER)
-        self.set_icon_from_file("/usr/local/share/icons/wasalight/hub.svg")
+        try:
+            self.set_icon_from_file("/usr/local/share/icons/wasalight/hub.svg")
+        except Exception:
+            pass
         self.connect("destroy", Gtk.main_quit)
 
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
@@ -1594,6 +1700,28 @@ window = Hub()
 window.show_all()
 Gtk.main()
 PYEOF
+
+    write_file /usr/local/bin/wasalight-hub 0755 <<'EOF'
+#!/usr/bin/env bash
+set -u
+
+log_dir=/tmp
+if [[ -d /data/log && -w /data/log ]]; then
+    log_dir=/data/log
+fi
+log_file="$log_dir/wasalight-hub.log"
+
+if /usr/local/libexec/wasalight-hub.py >>"$log_file" 2>&1; then
+    exit 0
+else
+    rc=$?
+fi
+details=$(tail -n 16 "$log_file" 2>/dev/null || true)
+zenity --error --width=620 --title="Wasalight Hub" \
+    --text="<big><b>Wasalight Hub non è riuscito ad avviarsi.</b></big>\n\n$details\n\nLog: $log_file" \
+    2>/dev/null || true
+exit "$rc"
+EOF
 
     write_file "$TARGET_HOME/.config/tint2/tint2rc" 0644 <<EOF
 # Wasalight touch panel: hidden during normal use, revealed at the bottom edge.
@@ -1900,7 +2028,7 @@ Exec=onboard
 Icon=input-keyboard
 TryExec=onboard
 X-Wasalight-Section=Support
-X-Wasalight-Order=90
+X-Wasalight-Order=100
 EOF
     else
         rm -f /etc/wasalight/apps.d/keyboard.desktop
@@ -1914,6 +2042,7 @@ EOF
     <separator />
     <item label="Wasalight Hub"><action name="Execute"><command>/usr/local/bin/wasalight-hub</command></action></item>
     <item label="VNC"><action name="Execute"><command>/usr/local/bin/wasalight-vnc-toggle</command></action></item>
+    <item label="SSH"><action name="Execute"><command>/usr/local/bin/wasalight-ssh-toggle</command></action></item>
     <separator />
     <item label="Reboot"><action name="Execute"><command>/usr/local/bin/wasalight-power reboot</command></action></item>
     <item label="Power off"><action name="Execute"><command>/usr/local/bin/wasalight-power poweroff</command></action></item>
@@ -1970,7 +2099,7 @@ configure_persistent_logs() {
                 warn "legacy log retained because the new file already exists: $DATA_MOUNT/log/$old_log"
             fi
         done
-        for log_file in wasalight-magicq-console.log wasalight-magicq-session.log; do
+        for log_file in wasalight-magicq-console.log wasalight-magicq-session.log wasalight-hub.log; do
             if [[ ! -e "$DATA_MOUNT/log/$log_file" ]]; then
                 install -o "$TARGET_USER" -g "$TARGET_USER" -m 0640 \
                     /dev/null "$DATA_MOUNT/log/$log_file"
@@ -1985,7 +2114,7 @@ configure_persistent_logs() {
 
     install -d -m 0755 /etc/wasalight
     write_file /etc/wasalight/magicq-logrotate.conf 0644 <<'EOF'
-/data/log/wasalight-magicq-console.log /data/log/wasalight-magicq-session.log {
+/data/log/wasalight-magicq-console.log /data/log/wasalight-magicq-session.log /data/log/wasalight-hub.log {
     size 5M
     rotate 5
     compress
@@ -2364,6 +2493,11 @@ touch="unavailable"
     touch=$(/usr/local/bin/magicq-touch-status --summary 2>/dev/null || echo unavailable)
 vnc="stopped"
 pgrep -u chamsys -x x11vnc >/dev/null 2>&1 && vnc="running on TCP 5900"
+ssh="stopped"
+if systemctl is-active --quiet ssh.service; then
+    ssh="running on TCP 22 (session)"
+    systemctl is-enabled --quiet ssh.service && ssh="running on TCP 22 (automatic)"
+fi
 logs="unavailable"
 [[ -d /data/log && -w /data/log ]] && logs="persistent in /data/log"
 
@@ -2378,13 +2512,14 @@ SUPERVISOR: $supervisor
 NETWORK:    $network
 TOUCH:      $touch
 VNC:        $vnc
+SSH:        $ssh
 USB:        $usb
 LOGS:       $logs
 EOT
 EOF
 
     write_file /etc/sudoers.d/chamsys-magicq 0440 <<'EOF'
-chamsys ALL=(root) NOPASSWD: /usr/local/sbin/magicq-maintenance, /usr/local/sbin/magicq-protect, /usr/local/sbin/magicq-root-launcher, /usr/local/sbin/magicq-root-stop, /usr/local/sbin/wasalight-power-control poweroff, /usr/local/sbin/wasalight-power-control reboot
+chamsys ALL=(root) NOPASSWD: /usr/local/sbin/magicq-maintenance, /usr/local/sbin/magicq-protect, /usr/local/sbin/magicq-root-launcher, /usr/local/sbin/magicq-root-stop, /usr/local/sbin/wasalight-power-control poweroff, /usr/local/sbin/wasalight-power-control reboot, /usr/local/sbin/wasalight-ssh-control start, /usr/local/sbin/wasalight-ssh-control stop
 EOF
     visudo -cf /etc/sudoers.d/chamsys-magicq >/dev/null
 }
@@ -2419,9 +2554,12 @@ final_checks() {
     bash -n /usr/local/sbin/wasalight-power-control
     bash -n /usr/local/bin/wasalight-desktop-status
     bash -n /usr/local/bin/wasalight-vnc-toggle
+    bash -n /usr/local/bin/wasalight-ssh-toggle
+    bash -n /usr/local/sbin/wasalight-ssh-control
     bash -n /usr/local/bin/wasalight-terminal-tool
     bash -n /usr/local/sbin/wasalight-app-register
-    python3 -c 'compile(open("/usr/local/bin/wasalight-hub", encoding="utf-8").read(), "/usr/local/bin/wasalight-hub", "exec")'
+    bash -n /usr/local/bin/wasalight-hub
+    python3 -c 'compile(open("/usr/local/libexec/wasalight-hub.py", encoding="utf-8").read(), "/usr/local/libexec/wasalight-hub.py", "exec")'
     logrotate --debug /etc/wasalight/magicq-logrotate.conf >/dev/null 2>&1
     ldconfig -p | grep -F 'libGLU.so.1' >/dev/null || \
         die "OpenGL runtime check failed: libGLU.so.1 is unavailable"
@@ -2469,6 +2607,7 @@ main() {
     configure_persistent_logs
     configure_touchscreen
     configure_vnc
+    configure_ssh
     configure_graphical_session
     configure_usb
     install_magicq

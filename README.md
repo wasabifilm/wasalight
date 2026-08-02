@@ -133,8 +133,8 @@ L’installer esegue la stessa riparazione subito dopo l’installazione del fil
 `root:root`. Il controllo finale interrompe l’installazione se le directory
 persistenti non risultano realmente scrivibili da `chamsys`.
 
-Senza `--with-ssh`, OpenSSH non viene installato e un eventuale servizio SSH
-preesistente viene disabilitato.
+OpenSSH viene installato per il pulsante di assistenza, ma senza `--with-ssh`
+il servizio viene disabilitato e fermato fino a un’attivazione manuale.
 
 Su una postazione fisica dedicata l'installer elimina automaticamente
 `cloud-init`, `multipath-tools`, `open-iscsi` e `pollinate` quando non servono
@@ -253,6 +253,7 @@ Sono disponibili soltanto i comandi principali:
 - **Stop MagicQ**;
 - **Wasalight Hub**;
 - **VNC**;
+- **SSH**;
 - **Power off**;
 - **Reboot**.
 
@@ -267,7 +268,7 @@ Sul lato destro Conky mostra un pannello aggiornato ogni due secondi con:
 - montaggio e spazio libero di `/data`;
 - persistenza dei log;
 - rete e indirizzo IP, evidenziando dispositivi `unmanaged`;
-- touchscreen, chiavette USB, VNC e audio ALSA.
+- touchscreen, chiavette USB, VNC, SSH e audio ALSA.
 
 Verde significa operativo, giallo indica uno stato fermo o non collegato ma non
 necessariamente errato, rosso richiede attenzione. Il pannello esegue solo
@@ -287,7 +288,8 @@ programmi in tre schede:
 - **MagicQ**: applicazioni companion ChamSys rilevate quando realmente
   installate;
 - **Applications**: programmi registrati dall'amministratore;
-- **Support**: rete, monitor, touchscreen, audio, file, terminale, stato e VNC.
+- **Support**: rete, monitor, touchscreen, audio, file, terminale, stato, VNC e
+  SSH.
 
 Il rilevamento automatico è intenzionalmente limitato ai companion riconoscibili
 come MagicVis, MagicHD e strumenti Remote/Viewer ChamSys. Il programma MagicQ
@@ -308,6 +310,11 @@ Con `/data` montata, le registrazioni sono conservate in
 `/etc/wasalight/apps.d`. Il Hub rispetta `TryExec` e non mostra un'applicazione
 quando il suo eseguibile non è disponibile.
 
+Se un launcher di terze parti contiene un valore booleano non standard, il Hub
+lo ignora invece di terminare. Gli eventuali errori di avvio vengono mostrati
+a schermo e registrati in `/data/log/wasalight-hub.log` (oppure in `/tmp` se
+`/data` non è disponibile).
+
 Tint2 non mostra più la scritta **desktop 1**. Il pannello è normalmente
 nascosto e lascia MagicQ realmente fullscreen; toccando il bordo inferiore
 compare temporaneamente con il pulsante Hub, le applicazioni aperte, le icone
@@ -315,7 +322,7 @@ di stato e l'orologio. Questo permette di passare a un companion senza lasciare
 un controllo permanente sopra l'interfaccia MagicQ.
 
 Il clic destro apre soltanto un menu Wasalight minimale: Start/Stop MagicQ,
-Hub, VNC, riavvio e spegnimento. Le preferenze Openbox e le impostazioni di
+Hub, VNC, SSH, riavvio e spegnimento. Le preferenze Openbox e le impostazioni di
 sistema generiche non sono esposte.
 
 ### VNC della sessione corrente
@@ -327,6 +334,15 @@ Il pulsante **VNC** condivide esclusivamente il display Xorg corrente `:0`:
 - al primo utilizzo apre un terminale dedicato per creare la password senza
   inserirla negli argomenti dei processi o nei log;
 - lo stato aggiornato rimane visibile nel pannello Conky.
+
+### SSH temporaneo
+
+OpenSSH è installato ma, senza `--with-ssh`, resta disabilitato e fermo. Il
+pulsante **SSH** sul desktop o nel Hub chiede conferma e avvia il servizio per
+la sessione corrente; una seconda pressione consente di fermarlo. L’accesso usa
+`chamsys` e la sua password Linux. Con `--with-ssh` il servizio viene invece
+abilitato anche agli avvii successivi. Il pannello Conky distingue `SESSION` da
+`AUTO`. Dettagli e comandi sono nella [guida SSH](docs/ssh.md).
 
 ### Audio ALSA
 
@@ -454,6 +470,19 @@ magicq-vnc-stop
 
 La modalità LAN usa la porta TCP 5900 e non offre cifratura completa. Per uso,
 tunnel SSH, cambio password e rimozione consultare la [guida VNC](docs/vnc.md).
+
+## Assistenza remota SSH
+
+Usare il pulsante desktop **SSH** o la voce **SSH access** nel Wasalight Hub.
+Quando è attivo, collegarsi con:
+
+```bash
+ssh chamsys@INDIRIZZO_IP
+```
+
+SSH usa la password Linux di `chamsys`; non crea né salva una nuova password.
+Per modalità temporanea, attivazione automatica e sicurezza consultare la
+[guida SSH](docs/ssh.md).
 
 ## Chiavette USB per MagicQ
 
