@@ -50,6 +50,11 @@ USB tramite udev, le monta in sola lettura sotto `/run/wasalight-usb-scan`,
 importa il pacchetto e le smonta subito. La chiavetta FAT32 è la scelta più
 compatibile con Ubuntu Server minimale.
 
+L’assenza di un mount preesistente è il caso normale: il risultato “non
+montato” di `findmnt` non interrompe l’installer. Non è quindi necessario creare
+manualmente `/stick`, `/media` o un altro mountpoint prima di eseguire
+`sudo ./install.sh`.
+
 Dopo la prima installazione Wasalight dispone anche della lettura APFS tramite
 `libfsapfs-utils`. I volumi APFS non cifrati vengono esposti in sola lettura
 sotto `fsapfs1`, `fsapfs2`, ecc.; l’updater cerca il `.deb` anche nella radice e

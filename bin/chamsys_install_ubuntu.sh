@@ -298,7 +298,10 @@ discover_magicq_from_usb() {
             grep -qx 'ID_BUS=usb' <<<"$properties" || continue
         fi
 
-        target=$(findmnt -rn -S "$device" -o TARGET 2>/dev/null | head -n1)
+        # findmnt returns 1 when the device is not mounted. That is the normal
+        # bootstrap case, not an installer error: keep going so the device can
+        # be mounted temporarily below /run/wasalight-usb-scan.
+        target=$(findmnt -rn -S "$device" -o TARGET 2>/dev/null | head -n1 || true)
         if [[ -n $target ]]; then
             case $target in
                 /|/boot|/boot/efi|/data) continue ;;
