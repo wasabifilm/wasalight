@@ -67,6 +67,12 @@ required_patterns=(
     '$TARGET_HOME/.local/share'
     '/etc/NetworkManager/system-connections'
     'magicq-usb@%k.service'
+    'discover_magicq_from_usb'
+    'ID_BUS=usb'
+    '/run/wasalight-usb-scan'
+    'mount -o ro,nosuid,nodev,noexec'
+    'scan_bootstrap_magicq_directory "$mount_dir"'
+    'require_magicq_or_override'
     'readonly USB_MOUNT="/stick"'
     'mountpoint="$base/$dev_name"'
     'state="$state_dir/$dev_name.mount"'
@@ -99,7 +105,7 @@ required_patterns=(
     'MagicQ audio runtime check failed: /usr/share/alsa/alsa.conf is unavailable'
     '--with-onscreen-keyboard'
     '--allow-missing-magicq'
-    'MagicQ is not installed and no valid .deb was supplied.'
+    'MagicQ is not installed and no valid .deb was found locally or on USB.'
     '--reset-chamsys-password'
     'audio video plugdev sudo adm systemd-journal'
     'passwd "$TARGET_USER"'
@@ -225,6 +231,21 @@ record_version_line=$(grep -n '^    record_installed_version$' <<<"$main_body" |
     fail "ordine di registrazione versione non verificabile"
 ((record_version_line > final_checks_line)) || \
     fail "la versione viene registrata prima dei controlli finali"
+
+data_mount_line=$(grep -n '^    configure_data_mount$' <<<"$main_body" | cut -d: -f1)
+usb_discovery_line=$(grep -n '^    discover_magicq_from_usb$' <<<"$main_body" | cut -d: -f1)
+persist_package_line=$(grep -n '^    persist_magicq_package$' <<<"$main_body" | cut -d: -f1)
+require_magicq_line=$(grep -n '^    require_magicq_or_override$' <<<"$main_body" | cut -d: -f1)
+[[ $data_mount_line =~ ^[0-9]+$ && $usb_discovery_line =~ ^[0-9]+$ && \
+   $persist_package_line =~ ^[0-9]+$ && $require_magicq_line =~ ^[0-9]+$ ]] || \
+    fail "ordine del bootstrap MagicQ da USB non verificabile"
+((usb_discovery_line > data_mount_line && persist_package_line > usb_discovery_line && \
+   require_magicq_line > persist_package_line)) || \
+    fail "il bootstrap USB non avviene tra il mount di /data e il controllo MagicQ"
+grep -Fq 'trap cleanup_bootstrap_mounts EXIT' "$INSTALLER" || \
+    fail "i mount USB temporanei non hanno una pulizia garantita"
+grep -Fq 'case $target in' "$INSTALLER" || \
+    fail "il bootstrap USB non esclude i filesystem di sistema montati"
 
 install_packages_body=$(awk '/^install_packages\(\) \{/,/^}/' "$INSTALLER")
 metadata_line=$(grep -n '^    apt-get update$' <<<"$install_packages_body" | head -n1 | cut -d: -f1)

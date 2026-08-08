@@ -79,7 +79,8 @@ file `.deb`.
 
 1. Installare Ubuntu Server 24.04 LTS minimale su una macchina amd64.
 2. Preparare una partizione ext4 separata per i dati persistenti.
-3. Copiare il pacchetto ChamSys in `packages/`.
+3. Copiare il pacchetto ChamSys in `packages/`, oppure lasciarlo nella root o
+   nella cartella `packages/` di una chiavetta USB, preferibilmente FAT32.
 4. Identificare la partizione dati con `lsblk -f` o `blkid`.
 
 Se MagicQ non è già installato e lo script non trova un `.deb` valido, si ferma
@@ -89,6 +90,13 @@ l’applicazione. Tutte le opzioni sono consultabili anche con:
 ```bash
 sudo ./install.sh -help
 ```
+
+Durante la prima installazione le regole di automount Wasalight non sono ancora
+presenti. L’installer identifica quindi direttamente le partizioni appartenenti
+a dispositivi USB, le monta temporaneamente in sola lettura sotto `/run`, copia
+e verifica MagicQ in `/data/system/packages`, quindi le smonta prima di
+proseguire. Dischi interni, root, boot e `/data` non vengono montati dalla
+procedura bootstrap.
 
 L’installer non formatta mai dischi. La partizione dati deve esistere già e può
 essere indicata come `UUID=...`, `LABEL=...` oppure `/dev/...`.

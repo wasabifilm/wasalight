@@ -73,12 +73,11 @@ if ((deb_supplied == 0)); then
         if dpkg-query -W -f='${db:Status-Abbrev}' magicq 2>/dev/null | grep -q '^ii'; then
             printf 'MagicQ è già installato: continuo senza reinstallare il pacchetto.\n' >&2
         elif ((allow_missing_magicq == 0)); then
-            printf 'Per continuare intenzionalmente senza MagicQ, ripeti aggiungendo:\n' >&2
-            printf '  --allow-missing-magicq\n' >&2
-            printf 'Esempio: sudo ./install.sh --allow-missing-magicq [altre opzioni]\n' >&2
-            exit 2
+            printf 'Avvio la ricerca iniziale anche nelle USB non ancora montate.\n' >&2
+            printf 'Se non verrà trovato nulla, lo script indicherà --allow-missing-magicq.\n' >&2
+        else
+            printf 'Assenza di MagicQ ignorata esplicitamente.\n' >&2
         fi
-        printf 'Assenza di MagicQ ignorata esplicitamente.\n' >&2
     fi
 fi
 

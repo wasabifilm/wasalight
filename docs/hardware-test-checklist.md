@@ -132,6 +132,12 @@ uno spettacolo.
 
 ## Chiavette USB
 
+- [ ] Su Ubuntu minimale non ancora configurato, una chiavetta FAT32 non
+      montata con MagicQ nella root viene rilevata dal bootstrap, montata in
+      sola lettura, importata in `/data/system/packages` e smontata.
+- [ ] La stessa prima installazione funziona con il `.deb` in `packages/`.
+- [ ] Il bootstrap non monta root, boot, `/data` o un dispositivo non USB e non
+      lascia mount attivi sotto `/run/wasalight-usb-scan` dopo un errore.
 - [ ] Con un `.deb` MagicQ più recente nella root della USB, **Update
       Wasalight** lo valida, lo copia in `/data/system/packages` e lo installa.
 - [ ] La stessa prova riesce collocando il file in `packages/` sulla USB.

@@ -44,6 +44,12 @@ diverso bloccano l’operazione, evitando una sostituzione ambigua. Fra più USB
 più file viene selezionata la versione più recente usando i metadati Debian,
 non il nome del file.
 
+Alla prima installazione `/stick` non è ancora gestito da Wasalight. In quel
+caso l’installer usa una scansione bootstrap separata: riconosce le partizioni
+USB tramite udev, le monta in sola lettura sotto `/run/wasalight-usb-scan`,
+importa il pacchetto e le smonta subito. La chiavetta FAT32 è la scelta più
+compatibile con Ubuntu Server minimale.
+
 L’installer inizializza automaticamente il repository persistente quando
 `/data` è disponibile. Se GitHub non è raggiungibile, mostra un avviso senza
 rimuovere i dati già presenti; ripetere in seguito

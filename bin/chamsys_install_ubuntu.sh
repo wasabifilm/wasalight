@@ -29,6 +29,9 @@ ENABLE_PROTECTION=1
 ENABLE_ONSCREEN_KEYBOARD=0
 RESET_CHAMSYS_PASSWORD=0
 ALLOW_MISSING_MAGICQ=0
+BOOTSTRAP_MAGICQ_PATH=""
+BOOTSTRAP_MAGICQ_VERSION=""
+BOOTSTRAP_TEMP_MOUNTS=()
 
 log()  { printf '[%s] %s\n' "$SCRIPT_NAME" "$*"; }
 warn() { printf '[%s] WARNING: %s\n' "$SCRIPT_NAME" "$*" >&2; }
@@ -41,6 +44,22 @@ on_error() {
     exit "$rc"
 }
 trap on_error ERR
+
+cleanup_bootstrap_mounts() {
+    local mount_dir
+    set +e
+    for mount_dir in "${BOOTSTRAP_TEMP_MOUNTS[@]-}"; do
+        [[ -n $mount_dir ]] || continue
+        mountpoint -q "$mount_dir" && umount "$mount_dir"
+        rmdir "$mount_dir" 2>/dev/null || true
+    done
+    case $BOOTSTRAP_MAGICQ_PATH in
+        "$PACKAGE_STORE"/.magicq-usb-candidate.*)
+            rm -f -- "$BOOTSTRAP_MAGICQ_PATH"
+            ;;
+    esac
+}
+trap cleanup_bootstrap_mounts EXIT
 
 usage() {
     cat <<'EOF'
@@ -117,12 +136,6 @@ require_host() {
     [[ $(dpkg --print-architecture) == amd64 ]] || die "MagicQ appliance requires amd64"
     [[ $(findmnt -n -o FSTYPE /) != overlay ]] || \
         die "run the installer in MAINTENANCE mode, not through the active root overlay"
-
-    if [[ -z $DEB_PATH ]] && ! is_installed magicq && ((ALLOW_MISSING_MAGICQ == 0)); then
-        die "MagicQ is not installed and no valid .deb was supplied.
-To continue intentionally without MagicQ, add: --allow-missing-magicq
-Example: sudo ./install.sh --allow-missing-magicq [other options]"
-    fi
 
     if [[ -n "$DEB_PATH" ]]; then
         DEB_PATH=$(readlink -f -- "$DEB_PATH")
@@ -216,6 +229,133 @@ configure_data_mount() {
     install -d -m 0700 "$DATA_MOUNT/system/network"
     install -d -m 0755 "$DATA_MOUNT/system/apps.d"
     install -d -m 0750 "$DATA_MOUNT/log"
+}
+
+magicq_deb_version_of() {
+    local source=$1 version
+    dpkg-deb --info "$source" >/dev/null 2>&1 || return 1
+    [[ $(dpkg-deb -f "$source" Package 2>/dev/null) == magicq ]] || return 1
+    [[ $(dpkg-deb -f "$source" Architecture 2>/dev/null) == amd64 ]] || return 1
+    version=$(dpkg-deb -f "$source" Version 2>/dev/null) || return 1
+    dpkg --validate-version "$version" >/dev/null 2>&1 || return 1
+    printf '%s\n' "$version"
+}
+
+consider_bootstrap_magicq_package() {
+    local source=$1 version staging
+    version=$(magicq_deb_version_of "$source") || {
+        warn "ignoring a USB .deb that is not valid MagicQ amd64: $source"
+        return 0
+    }
+
+    staging="$PACKAGE_STORE/.magicq-usb-candidate.$$"
+    if [[ -z $BOOTSTRAP_MAGICQ_PATH ]] || \
+       dpkg --compare-versions "$version" gt "$BOOTSTRAP_MAGICQ_VERSION"; then
+        install -o root -g root -m 0640 "$source" "$staging"
+        cmp -s -- "$source" "$staging" || \
+            die "USB MagicQ package copy verification failed: $source"
+        BOOTSTRAP_MAGICQ_PATH=$staging
+        BOOTSTRAP_MAGICQ_VERSION=$version
+    elif dpkg --compare-versions "$version" eq "$BOOTSTRAP_MAGICQ_VERSION" && \
+         ! cmp -s -- "$source" "$BOOTSTRAP_MAGICQ_PATH"; then
+        die "conflicting USB packages declare MagicQ version $version"
+    fi
+}
+
+scan_bootstrap_magicq_directory() {
+    local root=$1 candidate
+    while IFS= read -r -d '' candidate; do
+        consider_bootstrap_magicq_package "$candidate"
+    done < <(find "$root" -maxdepth 1 -type f -iname '*.deb' -print0 2>/dev/null)
+    if [[ -d $root/packages ]]; then
+        while IFS= read -r -d '' candidate; do
+            consider_bootstrap_magicq_package "$candidate"
+        done < <(find "$root/packages" -maxdepth 1 -type f -iname '*.deb' -print0 2>/dev/null)
+    fi
+}
+
+discover_magicq_from_usb() {
+    [[ -z $DEB_PATH ]] || return 0
+    mountpoint -q "$DATA_MOUNT" || {
+        warn "automatic initial USB discovery requires the persistent /data mount"
+        return 0
+    }
+
+    local device device_type filesystem properties parent_device mount_dir target
+    local existing_same_version= stored stored_version destination
+    install -d -o root -g root -m 0750 "$PACKAGE_STORE"
+    install -d -m 0700 /run/wasalight-usb-scan
+
+    while read -r device device_type filesystem; do
+        [[ $device_type == part || $device_type == disk ]] || continue
+        [[ -n $filesystem ]] || continue
+        properties=$(udevadm info --query=property --name="$device" 2>/dev/null || true)
+        if ! grep -qx 'ID_BUS=usb' <<<"$properties"; then
+            parent_device=$(lsblk -dnro PKNAME "$device" 2>/dev/null | head -n1)
+            [[ -n $parent_device ]] || continue
+            properties=$(udevadm info --query=property --name="/dev/$parent_device" \
+                2>/dev/null || true)
+            grep -qx 'ID_BUS=usb' <<<"$properties" || continue
+        fi
+
+        target=$(findmnt -rn -S "$device" -o TARGET 2>/dev/null | head -n1)
+        if [[ -n $target ]]; then
+            case $target in
+                /|/boot|/boot/efi|/data) continue ;;
+            esac
+            log "scanning mounted USB for MagicQ: $target"
+            scan_bootstrap_magicq_directory "$target"
+            continue
+        fi
+
+        case $filesystem in
+            vfat|exfat|ntfs|ntfs3|ext4) ;;
+            *) warn "skipping unsupported initial USB filesystem $filesystem on $device"; continue ;;
+        esac
+        mount_dir="/run/wasalight-usb-scan/${device##*/}"
+        install -d -m 0700 "$mount_dir"
+        if mount -o ro,nosuid,nodev,noexec "$device" "$mount_dir"; then
+            BOOTSTRAP_TEMP_MOUNTS+=("$mount_dir")
+            log "temporarily mounted $device read-only to search for MagicQ"
+            scan_bootstrap_magicq_directory "$mount_dir"
+            umount "$mount_dir"
+            rmdir "$mount_dir" 2>/dev/null || true
+        else
+            warn "could not mount initial USB $device ($filesystem); FAT32 is recommended"
+        fi
+    done < <(lsblk -rpno NAME,TYPE,FSTYPE 2>/dev/null)
+
+    [[ -n $BOOTSTRAP_MAGICQ_PATH ]] || return 0
+
+    while IFS= read -r -d '' stored; do
+        [[ $stored == "$BOOTSTRAP_MAGICQ_PATH" ]] && continue
+        stored_version=$(magicq_deb_version_of "$stored") || continue
+        if dpkg --compare-versions "$stored_version" eq "$BOOTSTRAP_MAGICQ_VERSION"; then
+            cmp -s -- "$stored" "$BOOTSTRAP_MAGICQ_PATH" || \
+                die "persistent MagicQ $stored_version differs from the USB package"
+            existing_same_version=$stored
+            break
+        fi
+    done < <(find "$PACKAGE_STORE" -maxdepth 1 -type f -name '*.deb' -print0)
+
+    if [[ -n $existing_same_version ]]; then
+        rm -f -- "$BOOTSTRAP_MAGICQ_PATH"
+        DEB_PATH=$existing_same_version
+    else
+        destination="$PACKAGE_STORE/magicq_${BOOTSTRAP_MAGICQ_VERSION}_amd64.deb"
+        mv -f -- "$BOOTSTRAP_MAGICQ_PATH" "$destination"
+        chmod 0640 "$destination"
+        DEB_PATH=$destination
+        log "MagicQ $BOOTSTRAP_MAGICQ_VERSION imported from USB into $destination"
+    fi
+}
+
+require_magicq_or_override() {
+    if [[ -z $DEB_PATH ]] && ! is_installed magicq && ((ALLOW_MISSING_MAGICQ == 0)); then
+        die "MagicQ is not installed and no valid .deb was found locally or on USB.
+To continue intentionally without MagicQ, add: --allow-missing-magicq
+Example: sudo ./install.sh --allow-missing-magicq [other options]"
+    fi
 }
 
 persist_magicq_package() {
@@ -3805,7 +3945,9 @@ main() {
     require_host
     log "starting Wasalight installer version $PROJECT_VERSION"
     configure_data_mount
+    discover_magicq_from_usb
     persist_magicq_package
+    require_magicq_or_override
     install_packages
     configure_user
     configure_networkmanager

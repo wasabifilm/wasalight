@@ -24,6 +24,13 @@ cartella `packages/` di una chiavetta. Dopo il montaggio in
 `/data` senza modificare il file sulla USB. Due file con la stessa versione ma
 contenuto differente vengono considerati un conflitto e fermano l’operazione.
 
+La stessa disposizione funziona durante la prima installazione, anche prima che
+sia attivo l’automount in `/stick`. Il bootstrap riconosce tramite udev soltanto
+dispositivi USB, monta temporaneamente le partizioni in sola lettura sotto
+`/run/wasalight-usb-scan`, importa il pacchetto in `/data` e le smonta. Usare
+preferibilmente FAT32, disponibile anche nell’installazione Ubuntu minimale;
+exFAT, NTFS ed ext4 vengono provati quando supportati dal kernel presente.
+
 Quando nessun pacchetto valido è disponibile e MagicQ non risulta già
 installato, l’installazione si interrompe mostrando il comando esplicito
 `--allow-missing-magicq`. Usarlo soltanto quando si vuole preparare Wasalight
