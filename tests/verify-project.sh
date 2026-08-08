@@ -167,6 +167,9 @@ required_patterns=(
     'wasalight-companion-launcher magicvis'
     'magicq-vnc-password'
     'cleanup_candidates=(pollinate os-prober)'
+    'purge_safe_unused_packages'
+    'apt-get autoremove --purge -y'
+    'apt-get clean'
     'export GTK_A11Y=none'
     'GRUB_DISABLE_OS_PROBER=true'
     'cleanup_candidates+=(multipath-tools)'
@@ -206,6 +209,28 @@ record_version_line=$(grep -n '^    record_installed_version$' <<<"$main_body" |
     fail "ordine di registrazione versione non verificabile"
 ((record_version_line > final_checks_line)) || \
     fail "la versione viene registrata prima dei controlli finali"
+
+install_packages_body=$(awk '/^install_packages\(\) \{/,/^}/' "$INSTALLER")
+metadata_line=$(grep -n '^    apt-get update$' <<<"$install_packages_body" | head -n1 | cut -d: -f1)
+safe_purge_line=$(grep -n '^    purge_safe_unused_packages$' <<<"$install_packages_body" | cut -d: -f1)
+required_install_line=$(grep -n '^    apt_install "${packages\[@\]}"$' <<<"$install_packages_body" | cut -d: -f1)
+[[ $metadata_line =~ ^[0-9]+$ && $safe_purge_line =~ ^[0-9]+$ && \
+   $required_install_line =~ ^[0-9]+$ ]] || \
+    fail "ordine della pulizia APT iniziale non verificabile"
+((safe_purge_line > metadata_line && safe_purge_line < required_install_line)) || \
+    fail "i pacchetti inutili non vengono rimossi prima dell'installazione Wasalight"
+[[ $(grep -Fc 'apt-get autoremove --purge -y' "$INSTALLER") == 1 ]] || \
+    fail "autoremove deve essere eseguito una sola volta alla fine"
+
+optimize_body=$(awk '/^optimize_system\(\) \{/,/^}/' "$INSTALLER")
+storage_purge_line=$(grep -n 'apt-get purge -y "${cleanup_installed\[@\]}"' \
+    <<<"$optimize_body" | cut -d: -f1)
+autoremove_line=$(grep -n 'apt-get autoremove --purge -y' \
+    <<<"$optimize_body" | cut -d: -f1)
+[[ $storage_purge_line =~ ^[0-9]+$ && $autoremove_line =~ ^[0-9]+$ ]] || \
+    fail "ordine della pulizia APT finale non verificabile"
+((autoremove_line > storage_purge_line)) || \
+    fail "autoremove viene eseguito prima della pulizia storage-aware"
 
 helpers=(
     /usr/local/libexec/magicq-usb-mount

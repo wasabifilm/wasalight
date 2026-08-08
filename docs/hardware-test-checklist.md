@@ -56,6 +56,8 @@ uno spettacolo.
 - [ ] `systemctl status magicq-logrotate.timer` mostra il timer abilitato.
 - [ ] Un log di prova oltre 5 MiB viene ruotato senza interrompere MagicQ e
       restano al massimo cinque copie.
+- [ ] Il log `wasalight-update.log` mostra la pulizia dei pacchetti estranei
+      prima dell’installazione Wasalight e un solo `autoremove --purge` finale.
 - [ ] Il controllo di `libqxcb.so`, eseguito con le librerie incluse da MagicQ,
       non mostra dipendenze `not found`.
 - [ ] `/usr/share/alsa/alsa.conf` esiste e `magicq-audio-test` riproduce una

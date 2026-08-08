@@ -181,6 +181,14 @@ Openbox, senza perdere la modifica con gli aggiornamenti. Logo, dimensione,
 posizione e colore di fondo sono gli stessi. Specifiche e procedura sono nella
 [guida al branding di avvio](docs/boot-branding.md).
 
+### Pulizia dei pacchetti
+
+L’installer rimuove i componenti sicuramente inutili prima di installare lo
+stack Wasalight. Le rimozioni dipendenti dall’hardware restano successive ai
+controlli su disco, multipath e iSCSI; un unico `autoremove --purge` conclusivo
+evita di cancellare e riscaricare dipendenze. La sequenza completa è descritta
+nella [guida alla pulizia del sistema](docs/system-cleanup.md).
+
 ### Account amministratore `chamsys`
 
 `chamsys` è sempre aggiunto a `sudo` e, quando presenti, ai gruppi `adm` e

@@ -24,6 +24,24 @@ dal controllo remoto, `needrestart` o le dipendenze grafiche di MagicQ.
 Le librerie XCB richieste dal plugin Qt di MagicQ sono elencate esplicitamente
 tra le dipendenze dell'appliance, così APT non può considerarle superflue.
 
+## Ordine delle operazioni APT
+
+L’installer evita che i timer APT e `unattended-upgrades` lavorino in parallelo,
+quindi aggiorna gli indici dei pacchetti. `apt-get update` scarica soltanto i
+metadati: non aggiorna ancora i programmi installati.
+
+Prima di installare lo stack Wasalight vengono rimossi i componenti certamente
+estranei all’appliance: Snap, stampa, Bluetooth, ModemManager, Avahi, Whoopsie,
+Apport e aggiornamenti automatici. Non viene ancora eseguito `autoremove`, così
+una dipendenza necessaria a Wasalight non viene eliminata e poi scaricata di
+nuovo.
+
+Dopo l’installazione di Wasalight e MagicQ vengono eseguiti i controlli reali
+su multipath e iSCSI e la pulizia dei componenti cloud/SAN. Soltanto a questo
+punto l’installer esegue un unico `apt-get autoremove --purge`, seguito da
+`apt-get clean`. In questo modo APT conosce già l’insieme definitivo dei
+pacchetti dell’appliance.
+
 ## Messaggio QEMU dopo APT
 
 Wasalight non installa QEMU. Dopo un'operazione APT, `needrestart` può mostrare

@@ -232,9 +232,38 @@ persist_magicq_package() {
     DEB_PATH=$destination
 }
 
+purge_safe_unused_packages() {
+    # These components are unrelated to a dedicated lighting appliance and do
+    # not participate in storage discovery. Remove them before installing or
+    # refreshing the Wasalight stack, but postpone autoremove until every
+    # required package and the storage-aware cleanup have been completed.
+    local candidates=(
+        snapd modemmanager cups cups-daemon bluez avahi-daemon whoopsie apport
+        unattended-upgrades
+    )
+    local installed=() pkg
+
+    for pkg in "${candidates[@]}"; do
+        is_installed "$pkg" && installed+=("$pkg")
+    done
+    if ((${#installed[@]})); then
+        log "removing packages not used by the appliance before installation"
+        DEBIAN_FRONTEND=noninteractive apt-get purge -y "${installed[@]}"
+    fi
+}
+
 install_packages() {
+    # Prevent background APT jobs from competing for dpkg while the installer
+    # owns package management. PackageKit is deliberately masked only after all
+    # APT operations because masking it earlier produces a misleading warning.
+    disable_service_if_present \
+        apt-daily.timer apt-daily-upgrade.timer apt-daily.service \
+        apt-daily-upgrade.service unattended-upgrades.service
+
     log "refreshing package metadata"
     apt-get update
+
+    purge_safe_unused_packages
 
     # Openbox, libinput-tools, lxrandr and other appliance components are in
     # Ubuntu's official Universe component. Standard Server installations
@@ -3249,22 +3278,10 @@ disable_service_if_present() {
 }
 
 optimize_system() {
-    local candidates=(snapd modemmanager cups cups-daemon bluez avahi-daemon whoopsie apport unattended-upgrades)
-    local installed=() pkg
-    for pkg in "${candidates[@]}"; do
-        is_installed "$pkg" && installed+=("$pkg")
-    done
-    if ((${#installed[@]})); then
-        DEBIAN_FRONTEND=noninteractive apt-get purge -y "${installed[@]}"
-        DEBIAN_FRONTEND=noninteractive apt-get autoremove -y
-    fi
-
     disable_service_if_present \
         snapd.service snapd.socket ModemManager.service cups.service cups.socket \
         bluetooth.service avahi-daemon.service avahi-daemon.socket whoopsie.service \
         apport.service unattended-upgrades.service
-
-    disable_service_if_present apt-daily.timer apt-daily-upgrade.timer
 
     # Cloud-init is disabled only after this script has completed the machine
     # configuration. A dedicated physical appliance does not need it after
@@ -3316,6 +3333,12 @@ optimize_system() {
     if ((${#cleanup_installed[@]})); then
         DEBIAN_FRONTEND=noninteractive apt-get purge -y "${cleanup_installed[@]}"
     fi
+
+    # Run this exactly once, after the definitive Wasalight package set is
+    # installed and every safe purge is complete. This avoids removing a
+    # dependency early only to download it again later.
+    DEBIAN_FRONTEND=noninteractive apt-get autoremove --purge -y
+    apt-get clean
 
     # Mask PackageKit only after every APT/dpkg operation above. Masking it
     # earlier makes dpkg's cache refresh emit a misleading UnitMasked warning.
