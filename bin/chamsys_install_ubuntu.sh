@@ -286,7 +286,10 @@ discover_magicq_from_usb() {
     install -d -o root -g root -m 0750 "$PACKAGE_STORE"
     install -d -m 0700 /run/wasalight-usb-scan
 
-    while read -r device device_type filesystem; do
+    # The script-wide IFS deliberately excludes spaces, while lsblk separates
+    # these columns with whitespace. Restore it locally so type and filesystem
+    # do not remain empty and make every USB device get skipped.
+    while IFS=$' \t' read -r device device_type filesystem; do
         [[ $device_type == part || $device_type == disk ]] || continue
         [[ -n $filesystem ]] || continue
         properties=$(udevadm info --query=property --name="$device" 2>/dev/null || true)

@@ -251,6 +251,9 @@ grep -Fq 'case $target in' "$INSTALLER" || \
 grep -Fq 'target=$(findmnt -rn -S "$device" -o TARGET 2>/dev/null | head -n1 || true)' \
     "$INSTALLER" || \
     fail "una USB non montata fa terminare il bootstrap a causa di findmnt"
+grep -Fq "while IFS=\$' \\t' read -r device device_type filesystem; do" \
+    "$INSTALLER" || \
+    fail "il bootstrap USB non separa le colonne di lsblk con un IFS locale"
 if grep -Fq 'apfs-dkms' "$INSTALLER"; then
     fail "il driver APFS kernel sperimentale non deve essere installato"
 fi

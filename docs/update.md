@@ -53,7 +53,9 @@ compatibile con Ubuntu Server minimale.
 L’assenza di un mount preesistente è il caso normale: il risultato “non
 montato” di `findmnt` non interrompe l’installer. Non è quindi necessario creare
 manualmente `/stick`, `/media` o un altro mountpoint prima di eseguire
-`sudo ./install.sh`.
+`sudo ./install.sh`. La scansione interpreta esplicitamente le colonne
+dispositivo, tipo e filesystem prodotte da `lsblk`, indipendentemente dall’`IFS`
+restrittivo usato dal resto dell’installer.
 
 Dopo la prima installazione Wasalight dispone anche della lettura APFS tramite
 `libfsapfs-utils`. I volumi APFS non cifrati vengono esposti in sola lettura
