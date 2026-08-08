@@ -20,6 +20,9 @@ readonly OVERLAY_CONF="/etc/overlayroot.local.conf"
 readonly UPDATE_CHECKOUT="/data/system/wasalight"
 readonly PACKAGE_STORE="/data/system/packages"
 readonly UPDATE_REPOSITORY="https://github.com/wasabifilm/wasalight.git"
+readonly COMPANION_REPOSITORY="https://github.com/bitfocus/companion-pi.git"
+readonly COMPANION_PI_COMMIT="07024263dbb54512f3acdc705eca70cd74dbae43"
+readonly COMPANION_VERSION="5.0.3"
 
 DEB_PATH=""
 DATA_DEVICE=""
@@ -27,6 +30,7 @@ ENABLE_SSH=0
 PURGE_CLOUD_INIT=1
 ENABLE_PROTECTION=1
 ENABLE_ONSCREEN_KEYBOARD=0
+ENABLE_COMPANION=0
 RESET_CHAMSYS_PASSWORD=0
 ALLOW_MISSING_MAGICQ=0
 BOOTSTRAP_MAGICQ_PATH=""
@@ -72,6 +76,8 @@ Options:
   --with-ssh           Enable OpenSSH at boot (otherwise use the SSH button).
   --with-onscreen-keyboard
                        Install Onboard and add it to the Openbox menu.
+  --with-companion     Install the pinned Bitfocus Companion headless build,
+                       persist its configuration in /data and enable its service.
   --reset-chamsys-password
                        Interactively replace the chamsys password. The account
                        is always an administrator; its password is never stored.
@@ -103,6 +109,7 @@ parse_args() {
                 ;;
             --with-ssh) ENABLE_SSH=1; shift ;;
             --with-onscreen-keyboard) ENABLE_ONSCREEN_KEYBOARD=1; shift ;;
+            --with-companion) ENABLE_COMPANION=1; shift ;;
             --reset-chamsys-password) RESET_CHAMSYS_PASSWORD=1; shift ;;
             # Earlier releases used this option to enable administrator access.
             # Administrator access is now mandatory; retain the password prompt.
@@ -460,6 +467,12 @@ install_packages() {
         openssh-server git
     )
     ((ENABLE_ONSCREEN_KEYBOARD)) && packages+=(onboard)
+    if ((ENABLE_COMPANION)) || [[ -d /opt/companion ]]; then
+        packages+=(
+            adduser curl wget zip unzip libusb-1.0-0-dev libudev-dev
+            libfontconfig1 libatomic1 libasound2t64 falkon
+        )
+    fi
     apt_install "${packages[@]}"
 
     systemctl enable NetworkManager.service chrony.service
@@ -554,21 +567,26 @@ configure_user() {
         ensure_fstab_line "Persistent NetworkManager connections" \
             "$DATA_MOUNT/system/network /etc/NetworkManager/system-connections none bind,x-systemd.requires-mounts-for=$DATA_MOUNT 0 0"
 
+        # Refresh systemd's generated mount units after changing fstab. Without
+        # this, every immediate mount emits a stale-fstab warning even though
+        # the bind itself succeeds.
+        systemctl daemon-reload
+
         mountpoint -q "$TARGET_HOME/Documents/MagicQ" || mount "$TARGET_HOME/Documents/MagicQ"
         mountpoint -q "$TARGET_HOME/.local/share" || mount "$TARGET_HOME/.local/share"
         install -d -o root -g root -m 0700 \
             /root/.config /root/.local/share /root/Documents/MagicQ
         if ! mountpoint -q /root/.config; then
-            cp -an /root/.config/. "$DATA_MOUNT/magicq/root-home/.config/"
+            cp -a --update=none /root/.config/. "$DATA_MOUNT/magicq/root-home/.config/"
             mount /root/.config
         fi
         if ! mountpoint -q /root/.local/share; then
-            cp -an /root/.local/share/. \
+            cp -a --update=none /root/.local/share/. \
                 "$DATA_MOUNT/magicq/root-home/.local/share/"
             mount /root/.local/share
         fi
         if ! mountpoint -q /root/Documents/MagicQ; then
-            cp -an /root/Documents/MagicQ/. \
+            cp -a --update=none /root/Documents/MagicQ/. \
                 "$DATA_MOUNT/magicq/Documents/MagicQ/"
             chown -R "$TARGET_USER:$TARGET_USER" \
                 "$DATA_MOUNT/magicq/Documents/MagicQ"
@@ -1262,6 +1280,7 @@ code_only=0
 reboot_after=0
 ssh_mode=preserve
 allow_missing_magicq=0
+with_companion=0
 
 usage() {
     cat <<'EOT'
@@ -1276,6 +1295,9 @@ Opzioni:
   --reboot        Riavvia automaticamente dopo un aggiornamento riuscito.
   --with-ssh      Mantiene SSH attivo automaticamente dopo il riavvio.
   --without-ssh   Mantiene SSH spento all'avvio; il pulsante resta disponibile.
+  --with-companion
+                  Installa Bitfocus Companion se non è ancora presente; le
+                  installazioni esistenti vengono sempre conservate.
   --allow-missing-magicq
                   Continua esplicitamente se MagicQ non è installato e non è
                   disponibile alcun .deb valido nel sistema o sulle USB.
@@ -1291,6 +1313,7 @@ while (($#)); do
         --reboot) reboot_after=1 ;;
         --with-ssh) ssh_mode=enabled ;;
         --without-ssh) ssh_mode=disabled ;;
+        --with-companion) with_companion=1 ;;
         --allow-missing-magicq) allow_missing_magicq=1 ;;
         -h|-help|--help) usage; exit 0 ;;
         *) echo "Opzione sconosciuta: $1" >&2; usage >&2; exit 2 ;;
@@ -1499,6 +1522,7 @@ if [[ $ssh_mode == enabled ]] || \
     installer_args+=(--with-ssh)
 fi
 command -v onboard >/dev/null 2>&1 && installer_args+=(--with-onscreen-keyboard)
+((with_companion)) && installer_args+=(--with-companion)
 
 select_newest_magicq_package
 if [[ -n $selected_package ]]; then
@@ -1590,6 +1614,390 @@ EOF
         /usr/local/sbin/wasalight-update --code-only || \
             warn "persistent update checkout could not be initialized; retry later with sudo wasalight-update --code-only"
     fi
+}
+
+configure_companion() {
+    local companion_source=/usr/local/src/companionpi
+    local temporary_source="${companion_source}.new.$$"
+    local companion_present=0
+    local installed_companion_version
+
+    [[ -d /opt/companion && -x $companion_source/launch.sh ]] && companion_present=1
+
+    if ((ENABLE_COMPANION)) && ((companion_present == 0)); then
+        mountpoint -q "$DATA_MOUNT" || \
+            die "Bitfocus Companion requires the persistent /data mount"
+        log "installing Bitfocus Companion $COMPANION_VERSION headless"
+        id companion >/dev/null 2>&1 || adduser --disabled-password --gecos "" companion
+
+        install -d -m 0755 /usr/local/src
+        if [[ -e $companion_source && ! -d $companion_source/.git ]]; then
+            die "Companion source path exists but is not a Git checkout: $companion_source"
+        fi
+        if [[ -d $companion_source/.git ]]; then
+            git -C "$companion_source" remote set-url origin "$COMPANION_REPOSITORY"
+            git -C "$companion_source" fetch --depth=1 origin "$COMPANION_PI_COMMIT"
+            git -C "$companion_source" checkout --detach "$COMPANION_PI_COMMIT"
+        else
+            [[ ! -e $temporary_source ]] || \
+                die "temporary Companion source path already exists: $temporary_source"
+            git clone --no-checkout "$COMPANION_REPOSITORY" "$temporary_source"
+            git -C "$temporary_source" checkout --detach "$COMPANION_PI_COMMIT"
+            mv "$temporary_source" "$companion_source"
+        fi
+
+        "$companion_source/update.sh" stable "$COMPANION_VERSION"
+        [[ -d /opt/companion && -s /opt/companion/BUILD && \
+           -f /etc/systemd/system/companion.service ]] || \
+            die "the official Companion installer did not create the expected runtime"
+        installed_companion_version=$(sed 's/^[vV]//' /opt/companion/BUILD)
+        [[ $installed_companion_version == "$COMPANION_VERSION" ]] || \
+            die "Companion requested $COMPANION_VERSION but installed $installed_companion_version"
+        companion_present=1
+    fi
+
+    if ((companion_present == 0)); then
+        rm -f \
+            /etc/wasalight/apps.d/companion.desktop \
+            /etc/wasalight/apps.d/companion-web.desktop
+        return 0
+    fi
+
+    id companion >/dev/null 2>&1 || \
+        die "Companion runtime exists but its dedicated user is missing"
+    mountpoint -q "$DATA_MOUNT" || \
+        die "installed Companion cannot be configured without /data"
+    [[ -s /opt/companion/BUILD ]] || \
+        die "installed Companion has no readable BUILD version"
+    installed_companion_version=$(sed 's/^[vV]//' /opt/companion/BUILD)
+
+    # The execute-only permission for other users lets the chamsys desktop
+    # reach its dedicated browser profile without exposing Companion data.
+    install -d -o root -g companion -m 0751 "$DATA_MOUNT/companion"
+    install -d -o companion -g companion -m 0750 \
+        "$DATA_MOUNT/companion/home" \
+        "$DATA_MOUNT/companion/log" \
+        "$DATA_MOUNT/companion/backups"
+    install -d -o root -g companion -m 0750 "$DATA_MOUNT/companion/etc"
+    install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0700 \
+        "$DATA_MOUNT/companion/browser" \
+        "$DATA_MOUNT/companion/browser/config" \
+        "$DATA_MOUNT/companion/browser/data"
+    install -d -o companion -g companion -m 0750 /home/companion
+    install -d -o root -g root -m 0755 /etc/companion
+
+    if ! mountpoint -q /home/companion; then
+        cp -a --update=none /home/companion/. "$DATA_MOUNT/companion/home/"
+    fi
+    if ! mountpoint -q /etc/companion; then
+        cp -a --update=none /etc/companion/. "$DATA_MOUNT/companion/etc/"
+    fi
+    chown -R companion:companion "$DATA_MOUNT/companion/home"
+    chown -R root:companion "$DATA_MOUNT/companion/etc"
+
+    ensure_fstab_line "Bitfocus Companion persistent home" \
+        "$DATA_MOUNT/companion/home /home/companion none bind,x-systemd.requires-mounts-for=$DATA_MOUNT 0 0"
+    ensure_fstab_line "Bitfocus Companion persistent launch configuration" \
+        "$DATA_MOUNT/companion/etc /etc/companion none bind,x-systemd.requires-mounts-for=$DATA_MOUNT 0 0"
+    systemctl daemon-reload
+    mountpoint -q /home/companion || mount /home/companion
+    mountpoint -q /etc/companion || mount /etc/companion
+
+    if [[ ! -e $DATA_MOUNT/companion/log/companion.log ]]; then
+        install -o companion -g companion -m 0640 /dev/null \
+            "$DATA_MOUNT/companion/log/companion.log"
+    else
+        chown companion:companion "$DATA_MOUNT/companion/log/companion.log"
+        chmod 0640 "$DATA_MOUNT/companion/log/companion.log"
+    fi
+
+    install -d -m 0755 /etc/wasalight/logrotate.d
+    write_file /etc/wasalight/logrotate.d/companion 0644 <<'EOF'
+/data/companion/log/companion.log {
+    size 5M
+    rotate 5
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    create 0640 companion companion
+    su companion companion
+}
+EOF
+
+    install -d -m 0755 /etc/wasalight
+    write_file /etc/wasalight/companion-target-version 0644 <<EOF
+$COMPANION_VERSION
+EOF
+    write_file /etc/wasalight/companion-pi-commit 0644 <<EOF
+$COMPANION_PI_COMMIT
+EOF
+    if [[ ! -s $DATA_MOUNT/companion/installed-version ]]; then
+        write_file "$DATA_MOUNT/companion/installed-version" 0644 <<EOF
+$installed_companion_version
+EOF
+    fi
+
+    install -d -m 0755 /etc/systemd/system/companion.service.d
+    write_file /etc/systemd/system/companion.service.d/wasalight.conf 0644 <<'EOF'
+[Unit]
+RequiresMountsFor=/data/companion/home /data/companion/etc /data/companion/log
+After=NetworkManager-wait-online.service
+Wants=NetworkManager-wait-online.service
+
+[Service]
+Restart=on-failure
+RestartSec=3
+StandardOutput=append:/data/companion/log/companion.log
+StandardError=append:/data/companion/log/companion.log
+EOF
+
+    write_file /usr/local/bin/wasalight-companion-version 0755 <<'EOF'
+#!/usr/bin/env bash
+set -u
+installed=$(cat /data/companion/installed-version 2>/dev/null || echo unknown)
+target=$(cat /etc/wasalight/companion-target-version 2>/dev/null || echo unknown)
+printf '%s\n' "$installed"
+[[ $installed == "$target" ]] || printf 'target: %s\n' "$target"
+EOF
+
+    write_file /usr/local/sbin/wasalight-companion-control 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $EUID -eq 0 ]] || { echo "Companion control must be run through sudo." >&2; exit 1; }
+[[ -f /etc/systemd/system/companion.service ]] || {
+    echo "Bitfocus Companion is not installed." >&2; exit 1;
+}
+case ${1:-} in
+    start) exec systemctl start companion.service ;;
+    stop) exec systemctl stop companion.service ;;
+    restart) exec systemctl restart companion.service ;;
+    *) echo "Usage: wasalight-companion-control start|stop|restart" >&2; exit 2 ;;
+esac
+EOF
+
+    write_file /usr/local/sbin/wasalight-companion-backup 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $EUID -eq 0 ]] || exec sudo "$0" "$@"
+(($# == 0)) || { echo "Usage: wasalight-companion-backup" >&2; exit 2; }
+[[ $(findmnt -n -o FSTYPE / 2>/dev/null) != overlay ]] || {
+    echo "Companion backups must be created in MAINTENANCE mode." >&2; exit 1;
+}
+mountpoint -q /data || { echo "/data is not mounted." >&2; exit 1; }
+backup_dir=/data/companion/backups
+stamp=$(date +%Y%m%d-%H%M%S)
+destination="$backup_dir/companion-$stamp.tar.gz"
+temporary="$destination.tmp"
+was_active=0
+systemctl is-active --quiet companion.service && was_active=1
+cleanup() {
+    rm -f -- "$temporary"
+    ((was_active == 0)) || systemctl start companion.service
+}
+trap cleanup EXIT
+((was_active == 0)) || systemctl stop companion.service
+install -d -o companion -g companion -m 0750 "$backup_dir"
+tar -C /data/companion -czf "$temporary" home etc installed-version
+mv "$temporary" "$destination"
+chmod 0640 "$destination"
+trap - EXIT
+((was_active == 0)) || systemctl start companion.service
+echo "Companion backup created: $destination"
+EOF
+
+    write_file /usr/local/sbin/wasalight-companion-update 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $EUID -eq 0 ]] || exec sudo "$0" "$@"
+(($# == 0)) || { echo "Usage: wasalight-companion-update" >&2; exit 2; }
+[[ $(findmnt -n -o FSTYPE / 2>/dev/null) != overlay ]] || {
+    echo "Companion updates require MAINTENANCE mode." >&2; exit 1;
+}
+mountpoint -q /data || { echo "/data is not mounted." >&2; exit 1; }
+source_dir=/usr/local/src/companionpi
+repository=https://github.com/bitfocus/companion-pi.git
+commit=$(cat /etc/wasalight/companion-pi-commit)
+version=$(cat /etc/wasalight/companion-target-version)
+[[ -d $source_dir/.git ]] || { echo "CompanionPi checkout is unavailable." >&2; exit 1; }
+was_active=0
+systemctl is-active --quiet companion.service && was_active=1
+/usr/local/sbin/wasalight-companion-backup
+restore_service() {
+    ((was_active == 0)) || systemctl start companion.service
+}
+trap restore_service EXIT
+((was_active == 0)) || systemctl stop companion.service
+git -C "$source_dir" remote set-url origin "$repository"
+git -C "$source_dir" fetch --depth=1 origin "$commit"
+git -C "$source_dir" checkout --detach "$commit"
+"$source_dir/update.sh" stable "$version"
+[[ -s /opt/companion/BUILD ]] || { echo "Updated Companion BUILD file is missing." >&2; exit 1; }
+actual=$(sed 's/^[vV]//' /opt/companion/BUILD)
+[[ $actual == "$version" ]] || {
+    echo "Companion update requested $version but installed $actual." >&2; exit 1;
+}
+printf '%s\n' "$actual" >/data/companion/installed-version
+systemctl daemon-reload
+trap - EXIT
+((was_active == 0)) || systemctl start companion.service
+echo "Bitfocus Companion $version updated successfully."
+EOF
+
+    write_file /usr/local/libexec/wasalight-companion-update-session 0755 <<'EOF'
+#!/usr/bin/env bash
+set -u
+clear
+echo "BITFOCUS COMPANION UPDATE"
+echo "Updates are allowed only in MAINTENANCE mode."
+echo
+sudo /usr/local/sbin/wasalight-companion-update
+rc=$?
+echo
+if ((rc == 0)); then
+    echo "Companion update completed."
+else
+    echo "Companion update failed (exit $rc)."
+fi
+echo "Press Enter to close."
+read -r _
+exit "$rc"
+EOF
+
+    write_file /usr/local/bin/wasalight-companion-update-terminal 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+exec lxterminal --title="Bitfocus Companion Update" \
+    -e /usr/local/libexec/wasalight-companion-update-session
+EOF
+
+    write_file /usr/local/bin/wasalight-companion-panel 0755 <<'EOF'
+#!/usr/bin/env bash
+set -u
+state=STOPPED
+systemctl is-active --quiet companion.service && state=RUNNING
+installed=$(/usr/local/bin/wasalight-companion-version 2>/dev/null | head -n1)
+ip_address=$(hostname -I 2>/dev/null | awk '{print $1}')
+url="http://${ip_address:-SERVER_IP}:8000"
+action=$(zenity --list --width=720 --height=470 \
+    --title="Bitfocus Companion" \
+    --text="<big><b>Bitfocus Companion $installed · $state</b></big>\n\nWeb UI: $url\nMagicQ locale: 127.0.0.1" \
+    --column="Action" --column="Description" \
+    web "Open the local Companion Web UI" \
+    info "Show connection information" \
+    start "Start the Companion service" \
+    stop "Stop the Companion service" \
+    restart "Restart the Companion service" \
+    backup "Create a persistent backup (MAINTENANCE)" \
+    update "Install the Wasalight-approved Companion build (MAINTENANCE)" \
+    2>/dev/null) || exit 0
+case $action in
+    web) exec /usr/local/bin/wasalight-companion-browser ;;
+    info)
+        zenity --info --width=560 --title="Bitfocus Companion" \
+            --text="Web interface:\n<b>$url</b>\n\nOpen this address from a Mac, tablet or another computer.\nFor MagicQ on this console use 127.0.0.1." ;;
+    start|stop|restart)
+        sudo -n /usr/local/sbin/wasalight-companion-control "$action" || \
+            zenity --error --text="Companion action failed: $action" ;;
+    backup)
+        sudo -n /usr/local/sbin/wasalight-companion-backup 2>&1 | \
+            zenity --text-info --width=720 --height=320 --title="Companion Backup" ;;
+    update) exec /usr/local/bin/wasalight-companion-update-terminal ;;
+esac
+EOF
+
+    write_file /usr/local/bin/wasalight-companion-browser 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || {
+    echo "Run the Companion browser as the chamsys desktop user." >&2
+    exit 1
+}
+command -v falkon >/dev/null 2>&1 || {
+    zenity --error --title="Companion Web UI" \
+        --text="Falkon is not installed. Run Wasalight update again." 2>/dev/null
+    exit 1
+}
+[[ -d /opt/companion ]] || {
+    zenity --error --title="Companion Web UI" \
+        --text="Bitfocus Companion is not installed." 2>/dev/null
+    exit 1
+}
+
+if ! systemctl is-active --quiet companion.service; then
+    zenity --question --width=520 --title="Companion Web UI" \
+        --text="Bitfocus Companion is stopped. Start it for this session?" \
+        2>/dev/null || exit 0
+    sudo -n /usr/local/sbin/wasalight-companion-control start || {
+        zenity --error --title="Companion Web UI" \
+            --text="Unable to start Bitfocus Companion." 2>/dev/null
+        exit 1
+    }
+fi
+
+url=http://127.0.0.1:8000
+ready=0
+for _ in {1..30}; do
+    if curl -sS --output /dev/null --connect-timeout 1 "$url" 2>/dev/null; then
+        ready=1
+        break
+    fi
+    sleep 0.3
+done
+((ready)) || {
+    zenity --error --width=560 --title="Companion Web UI" \
+        --text="Companion is running but its web interface did not respond on $url." \
+        2>/dev/null
+    exit 1
+}
+
+export XDG_CONFIG_HOME=/data/companion/browser/config
+export XDG_DATA_HOME=/data/companion/browser/data
+runtime_base=${XDG_RUNTIME_DIR:-/tmp}
+export XDG_CACHE_HOME="$runtime_base/wasalight-companion-browser-cache"
+install -d -m 0700 "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME"
+
+falkon --profile wasalight-companion "$url" &
+browser_pid=$!
+# Maximise without EWMH fullscreen so Tint2 remains reachable on touchscreens.
+for _ in {1..30}; do
+    window_id=$(wmctrl -lp 2>/dev/null | awk -v pid="$browser_pid" '$3 == pid { print $1; exit }')
+    if [[ -n $window_id ]]; then
+        wmctrl -ir "$window_id" -b add,maximized_vert,maximized_horz || true
+        break
+    fi
+    sleep 0.2
+done
+wait "$browser_pid"
+EOF
+
+    install -d -m 0755 /etc/wasalight/apps.d
+    write_file /etc/wasalight/apps.d/companion.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Bitfocus Companion
+Comment=Stato, controllo, backup e aggiornamento Companion
+Exec=/usr/local/bin/wasalight-companion-panel
+Icon=/usr/local/share/icons/wasalight/companion.svg
+TryExec=/usr/local/bin/wasalight-companion-panel
+X-Wasalight-Section=Applications
+X-Wasalight-Order=30
+EOF
+    write_file /etc/wasalight/apps.d/companion-web.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Companion Web UI
+Comment=Apre l'interfaccia locale Companion nel browser touch
+Exec=/usr/local/bin/wasalight-companion-browser
+Icon=/usr/local/share/icons/wasalight/companion-web.svg
+TryExec=/usr/local/bin/wasalight-companion-browser
+X-Wasalight-Section=Applications
+X-Wasalight-Order=31
+EOF
+
+    systemctl daemon-reload
+    systemctl enable --now companion.service
 }
 
 configure_graphical_session() {
@@ -1798,6 +2206,21 @@ EOF
     write_file /usr/local/share/icons/wasalight/artnet-monitor.svg 0644 <<'EOF'
 <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
  <rect x="7" y="12" width="82" height="72" rx="13" fill="#161b22" stroke="#39d353" stroke-width="5"/><path d="M17 55h12l8-23 11 41 10-29 8 11h13" fill="none" stroke="#39d353" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="76" cy="26" r="5" fill="#f85149"/>
+</svg>
+EOF
+    write_file /usr/local/share/icons/wasalight/companion.svg 0644 <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+ <rect x="6" y="6" width="84" height="84" rx="18" fill="#161b22" stroke="#58a6ff" stroke-width="4"/>
+ <g fill="#58a6ff"><rect x="19" y="19" width="16" height="16" rx="4"/><rect x="40" y="19" width="16" height="16" rx="4"/><rect x="61" y="19" width="16" height="16" rx="4"/><rect x="19" y="40" width="16" height="16" rx="4"/><rect x="40" y="40" width="16" height="16" rx="4"/><rect x="61" y="40" width="16" height="16" rx="4"/><rect x="19" y="61" width="16" height="16" rx="4"/><rect x="40" y="61" width="16" height="16" rx="4"/></g>
+ <path d="M66 64h12M72 58v12" stroke="#3fb950" stroke-width="5" stroke-linecap="round"/>
+</svg>
+EOF
+    write_file /usr/local/share/icons/wasalight/companion-web.svg 0644 <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+ <rect x="6" y="6" width="84" height="84" rx="18" fill="#161b22" stroke="#58a6ff" stroke-width="4"/>
+ <circle cx="48" cy="48" r="27" fill="none" stroke="#58a6ff" stroke-width="5"/>
+ <path d="M21 48h54M48 21c9 9 13 18 13 27S57 66 48 75M48 21c-9 9-13 18-13 27s4 18 13 27" fill="none" stroke="#58a6ff" stroke-width="4" stroke-linecap="round"/>
+ <circle cx="73" cy="73" r="13" fill="#238636" stroke="#161b22" stroke-width="4"/><path d="m67 73 4 4 8-9" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
 EOF
     write_file /usr/local/share/icons/wasalight/files.svg 0644 <<'EOF'
@@ -2102,6 +2525,14 @@ if pgrep -u chamsys -f '/usr/local/bin/magicq-session' >/dev/null 2>&1; then
     status_line "$green" 'SUPERVISOR' 'RUNNING'
 else
     status_line "$yellow" 'SUPERVISOR' 'STOPPED'
+fi
+if [[ -d /opt/companion ]]; then
+    companion_version=$(cat /data/companion/installed-version 2>/dev/null || echo UNKNOWN)
+    if systemctl is-active --quiet companion.service; then
+        status_line "$green" 'COMPANION' "RUNNING · $companion_version"
+    else
+        status_line "$yellow" 'COMPANION' "STOPPED · $companion_version"
+    fi
 fi
 
 if mountpoint -q /data; then
@@ -3338,7 +3769,10 @@ configure_persistent_logs() {
     fi
 
     install -d -m 0755 /etc/wasalight
+    install -d -m 0755 /etc/wasalight/logrotate.d
     write_file /etc/wasalight/magicq-logrotate.conf 0644 <<'EOF'
+include /etc/wasalight/logrotate.d
+
 /data/log/wasalight-magicq-console.log /data/log/wasalight-magicq-session.log /data/log/wasalight-hub.log /data/log/wasalight-network-tools.log /data/log/wasalight-xorg-startup.log {
     size 5M
     rotate 5
@@ -3741,6 +4175,15 @@ if systemctl is-active --quiet ssh.service; then
     ssh="running on TCP 22 (session)"
     systemctl is-enabled --quiet ssh.service && ssh="running on TCP 22 (automatic)"
 fi
+companion="not installed"
+if [[ -d /opt/companion ]]; then
+    companion_version=$(cat /data/companion/installed-version 2>/dev/null || echo unknown)
+    companion="stopped ($companion_version)"
+    if systemctl is-active --quiet companion.service; then
+        companion_ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+        companion="running ($companion_version) on http://${companion_ip:-SERVER_IP}:8000"
+    fi
+fi
 logs="unavailable"
 [[ -d /data/log && -w /data/log ]] && logs="persistent in /data/log"
 
@@ -3758,13 +4201,14 @@ NETWORK:    $network
 TOUCH:      $touch
 VNC:        $vnc
 SSH:        $ssh
+COMPANION:  $companion
 USB:        $usb
 LOGS:       $logs
 EOT
 EOF
 
     write_file /etc/sudoers.d/chamsys-magicq 0440 <<'EOF'
-chamsys ALL=(root) NOPASSWD: /usr/local/sbin/magicq-maintenance, /usr/local/sbin/magicq-protect, /usr/local/sbin/magicq-root-launcher, /usr/local/sbin/magicq-root-stop, /usr/local/sbin/wasalight-companion-launcher magichd, /usr/local/sbin/wasalight-companion-launcher magicvis, /usr/local/sbin/wasalight-ip-scan, /usr/local/sbin/wasalight-artnet-capture, /usr/local/sbin/wasalight-power-control poweroff, /usr/local/sbin/wasalight-power-control reboot, /usr/local/sbin/wasalight-ssh-control start, /usr/local/sbin/wasalight-ssh-control stop
+chamsys ALL=(root) NOPASSWD: /usr/local/sbin/magicq-maintenance, /usr/local/sbin/magicq-protect, /usr/local/sbin/magicq-root-launcher, /usr/local/sbin/magicq-root-stop, /usr/local/sbin/wasalight-companion-launcher magichd, /usr/local/sbin/wasalight-companion-launcher magicvis, /usr/local/sbin/wasalight-ip-scan, /usr/local/sbin/wasalight-artnet-capture, /usr/local/sbin/wasalight-power-control poweroff, /usr/local/sbin/wasalight-power-control reboot, /usr/local/sbin/wasalight-ssh-control start, /usr/local/sbin/wasalight-ssh-control stop, /usr/local/sbin/wasalight-companion-control start, /usr/local/sbin/wasalight-companion-control stop, /usr/local/sbin/wasalight-companion-control restart, /usr/local/sbin/wasalight-companion-backup
 EOF
     visudo -cf /etc/sudoers.d/chamsys-magicq >/dev/null
 }
@@ -3925,6 +4369,29 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-artnet-monitor
     bash -n /usr/local/sbin/wasalight-app-register
     bash -n /usr/local/bin/wasalight-hub
+    if [[ -d /opt/companion ]]; then
+        bash -n /usr/local/bin/wasalight-companion-version
+        bash -n /usr/local/sbin/wasalight-companion-control
+        bash -n /usr/local/sbin/wasalight-companion-backup
+        bash -n /usr/local/sbin/wasalight-companion-update
+        bash -n /usr/local/libexec/wasalight-companion-update-session
+        bash -n /usr/local/bin/wasalight-companion-update-terminal
+        bash -n /usr/local/bin/wasalight-companion-panel
+        bash -n /usr/local/bin/wasalight-companion-browser
+        command -v falkon >/dev/null 2>&1 || \
+            die "Falkon Companion browser is unavailable"
+        mountpoint -q /home/companion || \
+            die "Companion persistent home bind is unavailable"
+        mountpoint -q /etc/companion || \
+            die "Companion persistent configuration bind is unavailable"
+        runuser -u companion -- test -w /home/companion || \
+            die "Companion persistent home is not writable by its service user"
+        runuser -u companion -- test -r /etc/companion/config.yaml || \
+            die "Companion persistent launch configuration is not readable"
+        runuser -u "$TARGET_USER" -- test -w "$DATA_MOUNT/companion/browser" || \
+            die "Companion browser profile is not writable by $TARGET_USER"
+        systemd-analyze verify /etc/systemd/system/companion.service
+    fi
     python3 -c 'compile(open("/usr/local/libexec/wasalight-hub.py", encoding="utf-8").read(), "/usr/local/libexec/wasalight-hub.py", "exec")'
     python3 -c 'compile(open("/usr/local/libexec/wasalight-ip-scanner.py", encoding="utf-8").read(), "/usr/local/libexec/wasalight-ip-scanner.py", "exec")'
     python3 -c 'compile(open("/usr/local/sbin/wasalight-artnet-capture", encoding="utf-8").read(), "/usr/local/sbin/wasalight-artnet-capture", "exec")'
@@ -3943,6 +4410,12 @@ final_checks() {
         die "MagicQ audio runtime check failed: /usr/share/alsa/alsa.conf is unavailable"
     python3 -c 'import gi; gi.require_version("GdkPixbuf", "2.0"); from gi.repository import GdkPixbuf; GdkPixbuf.Pixbuf.new_from_file("/usr/local/share/icons/wasalight/start.svg")' || \
         die "desktop SVG icon loader is unavailable"
+    if [[ -d /opt/companion ]]; then
+        python3 -c 'import gi; gi.require_version("GdkPixbuf", "2.0"); from gi.repository import GdkPixbuf; GdkPixbuf.Pixbuf.new_from_file("/usr/local/share/icons/wasalight/companion.svg")' || \
+            die "Companion desktop SVG icon is unavailable"
+        python3 -c 'import gi; gi.require_version("GdkPixbuf", "2.0"); from gi.repository import GdkPixbuf; GdkPixbuf.Pixbuf.new_from_file("/usr/local/share/icons/wasalight/companion-web.svg")' || \
+            die "Companion Web UI SVG icon is unavailable"
+    fi
     if [[ -f /opt/magicq/plugins/platforms/libqxcb.so ]]; then
         if LD_LIBRARY_PATH=/opt/magicq/lib \
            ldd /opt/magicq/plugins/platforms/libqxcb.so | grep -F 'not found'; then
@@ -3993,6 +4466,7 @@ main() {
     configure_vnc
     configure_ssh
     configure_update
+    configure_companion
     configure_graphical_session
     configure_usb
     install_magicq

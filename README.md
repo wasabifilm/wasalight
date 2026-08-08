@@ -25,6 +25,7 @@ magicq-ubuntu-appliance/
 │   └── magicq_ubuntu_v1_9_8_3.deb    da aggiungere
 ├── docs/
 │   ├── hardware-test-checklist.md
+│   ├── companion.md
 │   ├── licensing.md
 │   ├── migration-24.04.md
 │   ├── versioning.md
@@ -158,6 +159,21 @@ Per aggiungere la tastiera virtuale Onboard:
 sudo ./install.sh \
   --data-device LABEL=DATA \
   --with-onscreen-keyboard
+```
+
+Per installare anche Bitfocus Companion headless con configurazione persistente:
+
+```bash
+sudo ./install.sh \
+  --data-device LABEL=DATA \
+  --with-companion
+```
+
+Su una console Wasalight già configurata è possibile abilitarlo direttamente
+durante l'aggiornamento:
+
+```bash
+sudo wasalight-update --with-companion
 ```
 
 ### Aggiornamenti successivi
@@ -384,7 +400,7 @@ Sul lato destro Conky mostra un pannello aggiornato ogni due secondi con:
 - montaggio e spazio libero di `/data`;
 - persistenza dei log;
 - rete e indirizzo IP, evidenziando dispositivi `unmanaged`;
-- touchscreen, chiavette USB, VNC, SSH e audio ALSA.
+- touchscreen, chiavette USB, VNC, SSH, Bitfocus Companion e audio ALSA.
 
 Verde significa operativo, giallo indica uno stato fermo o non collegato ma non
 necessariamente errato, rosso richiede attenzione. Il pannello esegue solo
@@ -462,6 +478,28 @@ Nella scheda **Support** del Hub sono disponibili anche:
   numero di canali e contatore dei pacchetti.
 - **System Monitor**, un equivalente grafico e leggero di `htop` basato su
   LXTask, con elenco dei processi e indicatori in tempo reale di CPU e memoria.
+
+### Bitfocus Companion
+
+Con l'opzione `--with-companion`, Wasalight installa una build headless nativa
+e verificabile di Bitfocus Companion. Il servizio usa l'utente dedicato
+`companion`, parte automaticamente dopo la rete e mantiene home, configurazione,
+moduli, log e backup sotto `/data/companion`.
+
+Il pannello Conky e `magicq-status` mostrano lo stato Companion. La voce
+**Bitfocus Companion** nel Hub offre start, stop, restart, backup e update e
+indica l'interfaccia web `http://INDIRIZZO:8000`. Backup e aggiornamento sono
+consentiti solo in MAINTENANCE; in SHOW la configurazione rimane persistente ma
+il runtime protetto non viene modificato.
+
+La voce **Companion Web UI** apre l'interfaccia locale in Falkon, massimizzata
+ma con la barra Tint2 ancora accessibile al touch. Profilo e preferenze sono
+persistenti in `/data/companion/browser`, mentre la cache resta temporanea.
+
+Per controllare MagicQ dalla stessa macchina, installare nella web UI Companion
+il modulo ChamSys MagicQ OSC o UDP e usare `127.0.0.1` come host. Installazione,
+percorsi, sicurezza e comandi sono descritti nella
+[guida Companion](docs/companion.md).
 
 Le interfacce Wasalight sono grandi e utilizzabili al tocco. Solo la cattura di
 rete passa attraverso helper amministrativi senza argomenti, esplicitamente limitati

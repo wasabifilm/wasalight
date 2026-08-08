@@ -34,6 +34,8 @@ grep -Fq -- '--allow-missing-magicq' <<<"$help_output" || \
     fail "-help non mostra l'opzione per continuare senza MagicQ"
 grep -Fq -- '--data-device SPEC' <<<"$help_output" || \
     fail "-help non mostra tutte le opzioni dell'installer"
+grep -Fq -- '--with-companion' <<<"$help_output" || \
+    fail "-help non mostra l'installazione opzionale di Bitfocus Companion"
 grep -Fq '/data/system/packages/*.deb' "$ENTRYPOINT" || \
     fail "install.sh non riutilizza il pacchetto MagicQ persistente"
 grep -Fq '^/stick/[^/]+$' "$ENTRYPOINT" || \
@@ -218,6 +220,32 @@ required_patterns=(
     'magicq-stop'
     'magicq-root-stop'
     'SUPERVISOR: $supervisor'
+    '--with-companion'
+    'readonly COMPANION_VERSION="5.0.3"'
+    'readonly COMPANION_PI_COMMIT="07024263dbb54512f3acdc705eca70cd74dbae43"'
+    '$DATA_MOUNT/companion/home /home/companion none bind'
+    '$DATA_MOUNT/companion/etc /etc/companion none bind'
+    'RequiresMountsFor=/data/companion/home /data/companion/etc /data/companion/log'
+    'StandardOutput=append:/data/companion/log/companion.log'
+    'Companion requested $COMPANION_VERSION but installed $installed_companion_version'
+    'wasalight-companion-control start'
+    'wasalight-companion-control stop'
+    'wasalight-companion-control restart'
+    'wasalight-companion-backup'
+    'wasalight-companion-update'
+    'Companion updates require MAINTENANCE mode.'
+    'COMPANION:  $companion'
+    "status_line \"\$green\" 'COMPANION'"
+    '/etc/wasalight/apps.d/companion.desktop'
+    'Icon=/usr/local/share/icons/wasalight/companion.svg'
+    '/etc/wasalight/apps.d/companion-web.desktop'
+    'Icon=/usr/local/share/icons/wasalight/companion-web.svg'
+    '/data/companion/browser/config'
+    'XDG_CACHE_HOME="$runtime_base/wasalight-companion-browser-cache"'
+    'falkon --profile wasalight-companion "$url"'
+    'add,maximized_vert,maximized_horz'
+    'web) exec /usr/local/bin/wasalight-companion-browser'
+    'http://${ip_address:-SERVER_IP}:8000'
     'SSH:        $ssh'
     'MAINTENANCE mode: automatic MagicQ start skipped'
 )
@@ -233,6 +261,15 @@ record_version_line=$(grep -n '^    record_installed_version$' <<<"$main_body" |
     fail "ordine di registrazione versione non verificabile"
 ((record_version_line > final_checks_line)) || \
     fail "la versione viene registrata prima dei controlli finali"
+
+update_config_line=$(grep -n '^    configure_update$' <<<"$main_body" | cut -d: -f1)
+companion_config_line=$(grep -n '^    configure_companion$' <<<"$main_body" | cut -d: -f1)
+graphical_config_line=$(grep -n '^    configure_graphical_session$' <<<"$main_body" | cut -d: -f1)
+[[ $update_config_line =~ ^[0-9]+$ && $companion_config_line =~ ^[0-9]+$ && \
+   $graphical_config_line =~ ^[0-9]+$ ]] || \
+    fail "ordine dell'integrazione Companion non verificabile"
+((companion_config_line > update_config_line && graphical_config_line > companion_config_line)) || \
+    fail "Companion deve essere configurato dopo rete/update e prima del Hub"
 
 data_mount_line=$(grep -n '^    configure_data_mount$' <<<"$main_body" | cut -d: -f1)
 usb_discovery_line=$(grep -n '^    discover_magicq_from_usb$' <<<"$main_body" | cut -d: -f1)
@@ -254,12 +291,22 @@ grep -Fq 'target=$(findmnt -rn -S "$device" -o TARGET 2>/dev/null | head -n1 || 
 grep -Fq "while IFS=\$' \\t' read -r device device_type filesystem; do" \
     "$INSTALLER" || \
     fail "il bootstrap USB non separa le colonne di lsblk con un IFS locale"
+if grep -Eq 'cp[[:space:]]+-[^[:space:]]*n([^[:alnum:]_]|$)' "$INSTALLER"; then
+    fail "cp -n è deprecato/non portabile: usare --update=none"
+fi
+grep -Fq 'cp -a --update=none /root/.config/.' "$INSTALLER" || \
+    fail "la migrazione persistente non preserva i file esistenti senza cp -n"
 if grep -Fq 'apfs-dkms' "$INSTALLER"; then
     fail "il driver APFS kernel sperimentale non deve essere installato"
 fi
 if grep -Eq 'fsapfsmount[^\n]*readwrite|apfs;[^\n]*opts=.*rw' "$INSTALLER"; then
     fail "APFS non deve essere abilitato in scrittura"
 fi
+if grep -Eq 'docker (run|compose)|ghcr\.io/bitfocus/companion' "$INSTALLER"; then
+    fail "Companion non deve usare Docker: le superfici USB locali non sono supportate"
+fi
+grep -Fq 'libfontconfig1 libatomic1 libasound2t64 falkon' "$INSTALLER" || \
+    fail "Falkon non viene installato insieme a Companion"
 grep -Fq -- "-name 'fsapfs[0-9]*'" "$ENTRYPOINT" || \
     fail "install.sh non cerca MagicQ nei volumi APFS esposti da libfsapfs"
 
@@ -436,6 +483,10 @@ grep -Fq 'wasalight-power-control reboot' "$tmp_dir/wasalight-update-session" ||
     fail "la sessione guidata non offre il riavvio finale"
 grep -Fq -- '--reboot' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non espone l'opzione di riavvio"
+grep -Fq -- '--with-companion' "$tmp_dir/wasalight-update" || \
+    fail "wasalight-update non espone --with-companion"
+grep -Fq 'installer_args+=(--with-companion)' "$tmp_dir/wasalight-update" || \
+    fail "wasalight-update non inoltra --with-companion all'installer"
 grep -Fq -- '-h, -help, --help' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non accetta -help"
 grep -Fq 'sudo wasalight-update --allow-missing-magicq' \
@@ -499,6 +550,38 @@ for embedded in \
         "$tmp_dir/$output"
 done
 
+for embedded in \
+    'companion-control:/usr/local/sbin/wasalight-companion-control' \
+    'companion-backup:/usr/local/sbin/wasalight-companion-backup' \
+    'companion-update:/usr/local/sbin/wasalight-companion-update' \
+    'companion-panel:/usr/local/bin/wasalight-companion-panel' \
+    'companion-browser:/usr/local/bin/wasalight-companion-browser'; do
+    output=${embedded%%:*}
+    marker=${embedded#*:}
+    awk -v marker="$marker" '
+        index($0, "write_file " marker " ") { capture=1; next }
+        capture && /^EOF$/ { exit }
+        capture { print }
+    ' "$INSTALLER" >"$tmp_dir/$output"
+    [[ -s $tmp_dir/$output ]] || fail "strumento Companion non estraibile: $output"
+    bash -n "$tmp_dir/$output"
+done
+grep -Fq '!= overlay' "$tmp_dir/companion-backup" || \
+    fail "il backup Companion non è limitato alla modalità MAINTENANCE"
+grep -Fq '!= overlay' "$tmp_dir/companion-update" || \
+    fail "l'aggiornamento Companion non è limitato alla modalità MAINTENANCE"
+grep -Fq '/usr/local/sbin/wasalight-companion-backup' "$tmp_dir/companion-update" || \
+    fail "l'aggiornamento Companion non crea prima un backup"
+grep -Fq '/opt/companion/BUILD' "$tmp_dir/companion-update" || \
+    fail "l'aggiornamento Companion non verifica la versione realmente installata"
+grep -Fq 'http://127.0.0.1:8000' "$tmp_dir/companion-browser" || \
+    fail "il browser Companion non usa l'interfaccia locale"
+grep -Fq '/data/companion/browser/config' "$tmp_dir/companion-browser" || \
+    fail "il profilo Falkon Companion non è persistente"
+if grep -Fq '/data/companion/browser/cache' "$tmp_dir/companion-browser"; then
+    fail "la cache Falkon non deve essere persistente in /data"
+fi
+
 [[ -s "$PROJECT_DIR/docs/touchscreen.md" ]] || fail "guida touchscreen mancante"
 grep -Fq 'magicq-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
     fail "configurazione touchscreen non documentata"
@@ -512,6 +595,19 @@ grep -Fq '/stick/<dispositivo>' "$PROJECT_DIR/packages/README.md" || \
 [[ -s "$PROJECT_DIR/docs/boot-branding.md" ]] || fail "guida branding di avvio mancante"
 [[ -s "$PROJECT_DIR/docs/licensing.md" ]] || fail "guida licenza mancante"
 [[ -s "$PROJECT_DIR/docs/versioning.md" ]] || fail "guida versionamento mancante"
+[[ -s "$PROJECT_DIR/docs/companion.md" ]] || fail "guida Bitfocus Companion mancante"
+grep -Fq '/data/companion/home' "$PROJECT_DIR/docs/companion.md" || \
+    fail "persistenza Companion non documentata"
+grep -Fq '127.0.0.1' "$PROJECT_DIR/docs/companion.md" || \
+    fail "collegamento locale MagicQ/Companion non documentato"
+grep -Fq 'wasalight-update --with-companion' "$PROJECT_DIR/docs/companion.md" || \
+    fail "installazione Companion tramite updater non documentata"
+grep -Fq 'Opzione sconosciuta' "$PROJECT_DIR/docs/companion.md" || \
+    fail "migrazione dal vecchio updater a Companion non documentata"
+grep -Fq '/data/companion/browser' "$PROJECT_DIR/docs/companion.md" || \
+    fail "profilo persistente Falkon non documentato"
+grep -Fq '## Bitfocus Companion opzionale' "$PROJECT_DIR/docs/hardware-test-checklist.md" || \
+    fail "collaudo hardware Companion non documentato"
 [[ -s "$PROJECT_DIR/LICENSE" ]] || fail "Apache License 2.0 mancante"
 grep -Fq 'Apache License' "$PROJECT_DIR/LICENSE" || fail "testo licenza Apache non valido"
 grep -Fq 'Version 2.0, January 2004' "$PROJECT_DIR/LICENSE" || \

@@ -130,6 +130,36 @@ uno spettacolo.
 - [ ] SSH non è raggiungibile finché non viene attivato dal pulsante oppure
       installato con `--with-ssh` per l’avvio automatico.
 
+## Bitfocus Companion opzionale
+
+- [ ] Una prima installazione con `--with-companion` installa la versione
+      indicata in `/etc/wasalight/companion-target-version` e abilita
+      `companion.service` senza installare Docker.
+- [ ] `systemctl status companion` mostra il processo eseguito dall'utente
+      dedicato `companion`; MagicQ continua a funzionare dopo stop o restart
+      del solo servizio Companion.
+- [ ] Da un altro dispositivo della LAN la web UI risponde su
+      `http://INDIRIZZO_WASALIGHT:8000`.
+- [ ] `/home/companion` e `/etc/companion` risultano bind mount provenienti da
+      `/data/companion`; una configurazione di prova resta presente dopo un
+      riavvio in SHOW.
+- [ ] Il pannello Conky, `magicq-status` e la voce **Bitfocus Companion** nel Hub
+      mostrano versione e stato coerenti.
+- [ ] **Companion Web UI** avvia Falkon su `http://127.0.0.1:8000`; se il servizio
+      è fermo ne propone l'avvio e la finestra massimizzata lascia Tint2 visibile.
+- [ ] Editor pulsanti, installazione moduli, drag-and-drop, WebSocket e feedback
+      funzionano correttamente nel Falkon fornito da Ubuntu 24.04.
+- [ ] Preferenze e cookie Falkon sopravvivono in `/data/companion/browser`, ma
+      la cache sotto la directory runtime scompare al riavvio.
+- [ ] Start, stop e restart dal Hub funzionano in SHOW senza chiedere password;
+      backup e update vengono invece rifiutati fino al riavvio in MAINTENANCE.
+- [ ] Un backup valido compare in `/data/companion/backups` e l'aggiornamento
+      conserva lo stato precedente del servizio.
+- [ ] Un modulo ChamSys MagicQ OSC o UDP configurato verso `127.0.0.1` riceve
+      feedback ed esegue almeno un comando di prova.
+- [ ] Una superficie USB supportata (per esempio Stream Deck) viene rilevata
+      anche dopo scollegamento, ricollegamento e riavvio protetto.
+
 ## Chiavette USB
 
 - [ ] Su Ubuntu minimale non ancora configurato, una chiavetta FAT32 non
