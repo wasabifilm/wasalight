@@ -29,6 +29,11 @@ project_version=$(<"$VERSION_FILE")
     fail "VERSION non usa il formato AAAA.MM.GG.BUILD"
 [[ $("$ENTRYPOINT" --version) == "$project_version" ]] || \
     fail "install.sh --version non corrisponde a VERSION"
+help_output=$("$ENTRYPOINT" -help)
+grep -Fq -- '--allow-missing-magicq' <<<"$help_output" || \
+    fail "-help non mostra l'opzione per continuare senza MagicQ"
+grep -Fq -- '--data-device SPEC' <<<"$help_output" || \
+    fail "-help non mostra tutte le opzioni dell'installer"
 grep -Fq '/data/system/packages/*.deb' "$ENTRYPOINT" || \
     fail "install.sh non riutilizza il pacchetto MagicQ persistente"
 grep -Fq '^/stick/[^/]+$' "$ENTRYPOINT" || \
@@ -37,6 +42,8 @@ grep -Fq '$usb_mount/packages' "$ENTRYPOINT" || \
     fail "install.sh non cerca MagicQ nella cartella packages della USB"
 grep -Fq 'dpkg --compare-versions' "$ENTRYPOINT" || \
     fail "install.sh sceglie MagicQ dal nome file invece che dalla versione Debian"
+grep -Fq "dpkg-query -W -f='\${db:Status-Abbrev}' magicq" "$ENTRYPOINT" || \
+    fail "install.sh non riconosce una MagicQ già installata quando manca il .deb"
 
 bash -n "$INSTALLER"
 bash -n "$ENTRYPOINT"
@@ -91,6 +98,8 @@ required_patterns=(
     'MagicQ Qt xcb platform plugin has unresolved runtime libraries'
     'MagicQ audio runtime check failed: /usr/share/alsa/alsa.conf is unavailable'
     '--with-onscreen-keyboard'
+    '--allow-missing-magicq'
+    'MagicQ is not installed and no valid .deb was supplied.'
     '--reset-chamsys-password'
     'audio video plugdev sudo adm systemd-journal'
     'passwd "$TARGET_USER"'
@@ -390,6 +399,11 @@ grep -Fq 'wasalight-power-control reboot' "$tmp_dir/wasalight-update-session" ||
     fail "la sessione guidata non offre il riavvio finale"
 grep -Fq -- '--reboot' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non espone l'opzione di riavvio"
+grep -Fq -- '-h, -help, --help' "$tmp_dir/wasalight-update" || \
+    fail "wasalight-update non accetta -help"
+grep -Fq 'sudo wasalight-update --allow-missing-magicq' \
+    "$tmp_dir/wasalight-update" || \
+    fail "l'updater non spiega come ignorare l'assenza di MagicQ"
 grep -Fq 'systemctl reboot' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update --reboot non riavvia il sistema"
 if grep -Fq 'read -r _' "$tmp_dir/wasalight-update-terminal" || \

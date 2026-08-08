@@ -34,6 +34,9 @@ uno spettacolo.
 
 ## MagicQ e grafica
 
+- [ ] Senza MagicQ installato e senza `.deb`, l’installer si ferma mostrando
+      `--allow-missing-magicq`; ripetendo con l’opzione prosegue consapevolmente.
+- [ ] `./install.sh -help` e `wasalight-update -help` mostrano tutte le opzioni.
 - [ ] La riga `MAGICQ VER` del pannello e di `magicq-status` coincide con
       `dpkg-query -W -f='${Version}\n' magicq` (per esempio `1.9.8.3`).
 - [ ] Autologin dell’utente `chamsys` e avvio automatico di X/Openbox.

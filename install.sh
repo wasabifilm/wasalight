@@ -18,10 +18,12 @@ magicq_version_of() {
     printf '%s\n' "$version"
 }
 
+allow_missing_magicq=0
 for arg in "$@"; do
-    if [[ "$arg" == -h || "$arg" == --help || "$arg" == --version ]]; then
+    if [[ "$arg" == -h || "$arg" == -help || "$arg" == --help || "$arg" == --version ]]; then
         exec "$INSTALLER" "$@"
     fi
+    [[ "$arg" == --allow-missing-magicq ]] && allow_missing_magicq=1
     [[ "$arg" == *.deb ]] && deb_supplied=1
 done
 
@@ -68,7 +70,15 @@ if ((deb_supplied == 0)); then
         args+=("$selected_package")
     else
         printf 'Pacchetto MagicQ non trovato nel progetto, in /data o nelle USB montate.\n' >&2
-        printf 'Lo script può continuare senza MagicQ, ma l’applicazione non verrà installata.\n' >&2
+        if dpkg-query -W -f='${db:Status-Abbrev}' magicq 2>/dev/null | grep -q '^ii'; then
+            printf 'MagicQ è già installato: continuo senza reinstallare il pacchetto.\n' >&2
+        elif ((allow_missing_magicq == 0)); then
+            printf 'Per continuare intenzionalmente senza MagicQ, ripeti aggiungendo:\n' >&2
+            printf '  --allow-missing-magicq\n' >&2
+            printf 'Esempio: sudo ./install.sh --allow-missing-magicq [altre opzioni]\n' >&2
+            exit 2
+        fi
+        printf 'Assenza di MagicQ ignorata esplicitamente.\n' >&2
     fi
 fi
 

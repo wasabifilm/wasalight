@@ -24,6 +24,11 @@ cartella `packages/` di una chiavetta. Dopo il montaggio in
 `/data` senza modificare il file sulla USB. Due file con la stessa versione ma
 contenuto differente vengono considerati un conflitto e fermano l’operazione.
 
+Quando nessun pacchetto valido è disponibile e MagicQ non risulta già
+installato, l’installazione si interrompe mostrando il comando esplicito
+`--allow-missing-magicq`. Usarlo soltanto quando si vuole preparare Wasalight
+senza installare l’applicazione ChamSys.
+
 Prima dell’uso è consigliato controllare il checksum pubblicato dal fornitore e
 verificare architettura, metadati e contenuto del pacchetto con:
 

@@ -28,6 +28,7 @@ PURGE_CLOUD_INIT=1
 ENABLE_PROTECTION=1
 ENABLE_ONSCREEN_KEYBOARD=0
 RESET_CHAMSYS_PASSWORD=0
+ALLOW_MISSING_MAGICQ=0
 
 log()  { printf '[%s] %s\n' "$SCRIPT_NAME" "$*"; }
 warn() { printf '[%s] WARNING: %s\n' "$SCRIPT_NAME" "$*" >&2; }
@@ -57,8 +58,15 @@ Options:
                        is always an administrator; its password is never stored.
   --keep-cloud-init    Disable cloud-init services but retain the package.
   --no-protection      Configure the appliance but leave overlayroot disabled.
+  --allow-missing-magicq
+                       Continue explicitly when MagicQ is neither installed nor
+                       available as a valid amd64 .deb.
   --version            Show the Wasalight installer version and exit.
-  -h, --help           Show this help.
+  -h, -help, --help    Show this complete help.
+
+Compatibility options:
+  --chamsys-admin      Alias for --reset-chamsys-password.
+  --purge-cloud-init   Explicitly select the current default cloud-init purge.
 
 For protected SHOW mode, /data must be a separate mounted ext4 filesystem.
 Create and format that partition beforehand; this script deliberately never
@@ -84,8 +92,9 @@ parse_args() {
             # Accepted for compatibility with earlier Wasalight releases.
             --purge-cloud-init) PURGE_CLOUD_INIT=1; shift ;;
             --no-protection) ENABLE_PROTECTION=0; shift ;;
+            --allow-missing-magicq) ALLOW_MISSING_MAGICQ=1; shift ;;
             --version) printf '%s\n' "$PROJECT_VERSION"; exit 0 ;;
-            -h|--help) usage; exit 0 ;;
+            -h|-help|--help) usage; exit 0 ;;
             --*) die "unknown option: $1" ;;
             *)
                 [[ -z "$DEB_PATH" ]] || die "only one MagicQ .deb may be supplied"
@@ -108,6 +117,12 @@ require_host() {
     [[ $(dpkg --print-architecture) == amd64 ]] || die "MagicQ appliance requires amd64"
     [[ $(findmnt -n -o FSTYPE /) != overlay ]] || \
         die "run the installer in MAINTENANCE mode, not through the active root overlay"
+
+    if [[ -z $DEB_PATH ]] && ! is_installed magicq && ((ALLOW_MISSING_MAGICQ == 0)); then
+        die "MagicQ is not installed and no valid .deb was supplied.
+To continue intentionally without MagicQ, add: --allow-missing-magicq
+Example: sudo ./install.sh --allow-missing-magicq [other options]"
+    fi
 
     if [[ -n "$DEB_PATH" ]]; then
         DEB_PATH=$(readlink -f -- "$DEB_PATH")
@@ -1099,6 +1114,7 @@ protect=0
 code_only=0
 reboot_after=0
 ssh_mode=preserve
+allow_missing_magicq=0
 
 usage() {
     cat <<'EOT'
@@ -1113,7 +1129,11 @@ Opzioni:
   --reboot        Riavvia automaticamente dopo un aggiornamento riuscito.
   --with-ssh      Mantiene SSH attivo automaticamente dopo il riavvio.
   --without-ssh   Mantiene SSH spento all'avvio; il pulsante resta disponibile.
-  -h, --help      Mostra questo aiuto.
+  --allow-missing-magicq
+                  Continua esplicitamente se MagicQ non è installato e non è
+                  disponibile alcun .deb valido nel sistema o sulle USB.
+  -h, -help, --help
+                  Mostra tutte le opzioni.
 EOT
 }
 
@@ -1124,7 +1144,8 @@ while (($#)); do
         --reboot) reboot_after=1 ;;
         --with-ssh) ssh_mode=enabled ;;
         --without-ssh) ssh_mode=disabled ;;
-        -h|--help) usage; exit 0 ;;
+        --allow-missing-magicq) allow_missing_magicq=1 ;;
+        -h|-help|--help) usage; exit 0 ;;
         *) echo "Opzione sconosciuta: $1" >&2; usage >&2; exit 2 ;;
     esac
     shift
@@ -1325,8 +1346,16 @@ select_newest_magicq_package
 if [[ -n $selected_package ]]; then
     echo "Pacchetto MagicQ selezionato: $selected_package (versione $selected_package_version)"
     installer_args+=("$selected_package")
+elif dpkg-query -W -f='${db:Status-Abbrev}' magicq 2>/dev/null | grep -q '^ii'; then
+    echo "MagicQ è già installato; aggiornamento della configurazione senza reinstallare il pacchetto."
+elif ((allow_missing_magicq)); then
+    echo "ATTENZIONE: assenza di MagicQ ignorata esplicitamente." >&2
+    installer_args+=(--allow-missing-magicq)
 else
-    echo "ATTENZIONE: nessun pacchetto MagicQ trovato in $package_store" >&2
+    echo "ERRORE: MagicQ non è installato e nessun pacchetto valido è stato trovato." >&2
+    echo "Per continuare intenzionalmente senza MagicQ, ripeti con:" >&2
+    echo "  sudo wasalight-update --allow-missing-magicq" >&2
+    exit 2
 fi
 
 step "4/4 · Installazione della configurazione Wasalight"

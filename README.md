@@ -82,6 +82,14 @@ file `.deb`.
 3. Copiare il pacchetto ChamSys in `packages/`.
 4. Identificare la partizione dati con `lsblk -f` o `blkid`.
 
+Se MagicQ non è già installato e lo script non trova un `.deb` valido, si ferma
+e indica `--allow-missing-magicq` per continuare intenzionalmente senza
+l’applicazione. Tutte le opzioni sono consultabili anche con:
+
+```bash
+sudo ./install.sh -help
+```
+
 L’installer non formatta mai dischi. La partizione dati deve esistere già e può
 essere indicata come `UUID=...`, `LABEL=...` oppure `/dev/...`.
 

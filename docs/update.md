@@ -129,6 +129,23 @@ sudo wasalight-update --without-ssh
 Senza queste opzioni viene conservato lo stato di abilitazione SSH esistente.
 La tastiera Onboard viene conservata automaticamente quando è già installata.
 
+Se MagicQ non è installato e non viene trovato alcun `.deb` valido, il comando
+si ferma invece di creare silenziosamente una postazione incompleta. Per
+continuare consapevolmente senza MagicQ:
+
+```bash
+sudo wasalight-update --allow-missing-magicq
+```
+
+L’elenco completo e aggiornato delle opzioni è disponibile con una qualsiasi
+delle forme:
+
+```bash
+sudo wasalight-update -h
+sudo wasalight-update -help
+sudo wasalight-update --help
+```
+
 ## Protezioni
 
 - Il comando rifiuta di operare in SHOW mode con overlay attivo.
