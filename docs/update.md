@@ -21,6 +21,29 @@ Durante ogni esecuzione l’updater mostra la versione installata letta da
 `VERSION` del checkout persistente. Il numero installato viene aggiornato solo
 dopo un’installazione conclusa e verificata.
 
+## Aggiornare MagicQ da USB
+
+Copiare il pacchetto `.deb` di MagicQ in una delle due posizioni della
+chiavetta, senza rinominarlo obbligatoriamente:
+
+```text
+MAGICQ_USB/*.deb
+MAGICQ_USB/packages/*.deb
+```
+
+Dopo il montaggio automatico in `/stick/<dispositivo>`, entrare in MAINTENANCE
+e avviare normalmente **Update Wasalight**. L’updater controlla tutte le USB
+attualmente montate, non le directory residue, e accetta soltanto un archivio
+Debian integro con `Package: magicq`, `Architecture: amd64` e una versione
+Debian valida.
+
+Il file scelto viene copiato in `/data/system/packages` e verificato byte per
+byte; l’originale sulla chiavetta non viene mai spostato o cancellato. Versioni
+precedenti vengono ignorate. Due pacchetti con la stessa versione ma contenuto
+diverso bloccano l’operazione, evitando una sostituzione ambigua. Fra più USB e
+più file viene selezionata la versione più recente usando i metadati Debian,
+non il nome del file.
+
 L’installer inizializza automaticamente il repository persistente quando
 `/data` è disponibile. Se GitHub non è raggiungibile, mostra un avviso senza
 rimuovere i dati già presenti; ripetere in seguito
@@ -52,17 +75,18 @@ chiudere la finestra, quindi il flusso è utilizzabile interamente al touch.
 In caso di errore non viene mai eseguito il riavvio automatico: appare un
 messaggio breve e i dettagli restano in `/data/log/wasalight-update.log`.
 
-Al primo utilizzo il comando:
+Ad ogni utilizzo il comando:
 
 1. cerca eventuali `.deb` nelle vecchie cartelle
    `/home/*/wasalight/packages` e `/root/wasalight/packages`;
-2. valida formato e architettura `amd64`;
-3. copia ogni pacchetto in `/data/system/packages`, confronta origine e
-   destinazione e soltanto dopo elimina la vecchia copia;
-4. scarica `https://github.com/wasabifilm/wasalight.git` in
+2. cerca MagicQ nella root e in `packages/` di ogni USB montata;
+3. valida nome del pacchetto, formato, versione e architettura `amd64`;
+4. conserva in `/data/system/packages` soltanto candidati non precedenti;
+5. scarica `https://github.com/wasabifilm/wasalight.git` in
    `/data/system/wasalight`;
-5. esegue `tests/verify-project.sh` sul codice scaricato;
-6. seleziona la versione MagicQ più recente e rilancia l’installer.
+6. esegue `tests/verify-project.sh` sul codice scaricato;
+7. seleziona la versione MagicQ più recente tramite `dpkg` e rilancia
+   l’installer.
 
 Per sicurezza l’installer lascia la macchina in MAINTENANCE. Dopo il collaudo:
 
@@ -111,8 +135,9 @@ La tastiera Onboard viene conservata automaticamente quando è già installata.
 - Un aggiornamento Git deve essere un avanzamento lineare (`fast-forward`).
 - Le modifiche locali ai file tracciati interrompono l’operazione e non vengono
   cancellate.
-- Una destinazione `.deb` con lo stesso nome ma contenuto diverso interrompe la
-  migrazione.
+- Due `.deb` con la stessa versione MagicQ ma contenuto diverso interrompono
+  l’aggiornamento, anche quando hanno nomi differenti.
+- I file trovati sulle USB sono soltanto letti e copiati, mai rimossi.
 - Il codice scaricato viene verificato prima di eseguire l’installer.
 - Il log completo resta in `/data/log/wasalight-update.log`.
 

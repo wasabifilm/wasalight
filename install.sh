@@ -8,6 +8,16 @@ INSTALLER="$PROJECT_DIR/bin/chamsys_install_ubuntu.sh"
 args=("$@")
 deb_supplied=0
 
+magicq_version_of() {
+    local package=$1 version
+    dpkg-deb --info "$package" >/dev/null 2>&1 || return 1
+    [[ $(dpkg-deb -f "$package" Package 2>/dev/null) == magicq ]] || return 1
+    [[ $(dpkg-deb -f "$package" Architecture 2>/dev/null) == amd64 ]] || return 1
+    version=$(dpkg-deb -f "$package" Version 2>/dev/null) || return 1
+    dpkg --validate-version "$version" >/dev/null 2>&1 || return 1
+    printf '%s\n' "$version"
+}
+
 for arg in "$@"; do
     if [[ "$arg" == -h || "$arg" == --help || "$arg" == --version ]]; then
         exec "$INSTALLER" "$@"
@@ -17,23 +27,49 @@ done
 
 if ((deb_supplied == 0)); then
     shopt -s nullglob
-    packages=("$PROJECT_DIR"/packages/*.deb)
-    if ((${#packages[@]} == 0)); then
-        packages=(/data/system/packages/*.deb)
-    fi
+    packages=("$PROJECT_DIR"/packages/*.deb /data/system/packages/*.deb)
     shopt -u nullglob
-    case ${#packages[@]} in
-        0)
-            printf 'Pacchetto MagicQ non trovato in %s o /data/system/packages\n' \
-                "$PROJECT_DIR/packages" >&2
-            printf 'Lo script può continuare senza MagicQ, ma l’applicazione non verrà installata.\n' >&2
-            ;;
-        1) args+=("${packages[0]}") ;;
-        *)
-            printf 'Sono presenti più pacchetti .deb. Specifica quello da usare sulla riga di comando.\n' >&2
+
+    # A mounted USB may contain the installer either in its root or in the
+    # conventional packages/ directory. Ignore stale directories below /stick:
+    # only targets currently reported by findmnt are scanned.
+    while IFS= read -r usb_mount; do
+        while IFS= read -r -d '' usb_package; do
+            packages+=("$usb_package")
+        done < <(find "$usb_mount" -maxdepth 1 -type f -name '*.deb' -print0 2>/dev/null)
+        if [[ -d $usb_mount/packages ]]; then
+            while IFS= read -r -d '' usb_package; do
+                packages+=("$usb_package")
+            done < <(find "$usb_mount/packages" -maxdepth 1 -type f -name '*.deb' -print0 2>/dev/null)
+        fi
+    done < <(findmnt -rn -o TARGET 2>/dev/null | awk '$0 ~ "^/stick/[^/]+$"')
+
+    selected_package=
+    selected_version=
+    for package in "${packages[@]}"; do
+        version=$(magicq_version_of "$package") || {
+            printf 'Ignoro un file che non è MagicQ amd64 valido: %s\n' "$package" >&2
+            continue
+        }
+        if [[ -z $selected_package ]] || dpkg --compare-versions "$version" gt "$selected_version"; then
+            selected_package=$package
+            selected_version=$version
+        elif dpkg --compare-versions "$version" eq "$selected_version" && \
+             ! cmp -s -- "$package" "$selected_package"; then
+            printf 'Conflitto: due pacchetti MagicQ %s hanno contenuto differente.\n' \
+                "$version" >&2
             exit 2
-            ;;
-    esac
+        fi
+    done
+
+    if [[ -n $selected_package ]]; then
+        printf 'Pacchetto MagicQ selezionato: %s (versione %s)\n' \
+            "$selected_package" "$selected_version"
+        args+=("$selected_package")
+    else
+        printf 'Pacchetto MagicQ non trovato nel progetto, in /data o nelle USB montate.\n' >&2
+        printf 'Lo script può continuare senza MagicQ, ma l’applicazione non verrà installata.\n' >&2
+    fi
 fi
 
 exec "$INSTALLER" "${args[@]}"

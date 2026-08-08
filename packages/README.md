@@ -6,16 +6,23 @@ Copiare in questa cartella il pacchetto originale:
 magicq_ubuntu_v1_9_8_3.deb
 ```
 
-Se è presente un solo file `.deb`, `install.sh` lo seleziona automaticamente.
+`install.sh` verifica che ogni `.deb` dichiari `Package: magicq` e architettura
+`amd64`, poi seleziona automaticamente la versione Debian più recente.
 Durante l’installazione il file viene copiato e verificato in
 `/data/system/packages`. Se proviene da una cartella
 `/home/.../wasalight/packages` o `/root/wasalight/packages`, la vecchia copia
 non persistente viene rimossa soltanto dopo che il confronto è riuscito.
-Se sono presenti più versioni, indicare esplicitamente quella desiderata:
+Per forzare una versione specifica, indicarla esplicitamente:
 
 ```bash
 sudo ./install.sh --data-device UUID=... ./packages/magicq_ubuntu_v1_9_8_3.deb
 ```
+
+Per gli aggiornamenti è possibile lasciare il `.deb` nella root oppure nella
+cartella `packages/` di una chiavetta. Dopo il montaggio in
+`/stick/<dispositivo>`, **Update Wasalight** importa la versione più recente in
+`/data` senza modificare il file sulla USB. Due file con la stessa versione ma
+contenuto differente vengono considerati un conflitto e fermano l’operazione.
 
 Prima dell’uso è consigliato controllare il checksum pubblicato dal fornitore e
 verificare architettura, metadati e contenuto del pacchetto con:

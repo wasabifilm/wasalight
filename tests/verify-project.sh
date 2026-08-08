@@ -31,6 +31,12 @@ project_version=$(<"$VERSION_FILE")
     fail "install.sh --version non corrisponde a VERSION"
 grep -Fq '/data/system/packages/*.deb' "$ENTRYPOINT" || \
     fail "install.sh non riutilizza il pacchetto MagicQ persistente"
+grep -Fq '^/stick/[^/]+$' "$ENTRYPOINT" || \
+    fail "install.sh non cerca MagicQ nelle USB realmente montate"
+grep -Fq '$usb_mount/packages' "$ENTRYPOINT" || \
+    fail "install.sh non cerca MagicQ nella cartella packages della USB"
+grep -Fq 'dpkg --compare-versions' "$ENTRYPOINT" || \
+    fail "install.sh sceglie MagicQ dal nome file invece che dalla versione Debian"
 
 bash -n "$INSTALLER"
 bash -n "$ENTRYPOINT"
@@ -57,6 +63,7 @@ required_patterns=(
     'readonly USB_MOUNT="/stick"'
     'mountpoint="$base/$dev_name"'
     'state="$state_dir/$dev_name.mount"'
+    '[[ $(dpkg-deb -f "$DEB_PATH" Package) == magicq ]]'
     'ID_FS_TYPE}=="vfat|exfat|ntfs"'
     'magicq-maintenance'
     'magicq-protect'
@@ -351,6 +358,23 @@ grep -Fq 'merge --ff-only FETCH_HEAD' "$tmp_dir/wasalight-update" || \
     fail "l'aggiornamento Wasalight non impone un avanzamento Git sicuro"
 grep -Fq 'cmp -s -- "$source" "$destination"' "$tmp_dir/wasalight-update" || \
     fail "la migrazione del pacchetto MagicQ non verifica la copia"
+grep -Fq 'findmnt -rn -o TARGET' "$tmp_dir/wasalight-update" || \
+    fail "l'updater non controlla le USB attualmente montate"
+grep -Fq 'find "$usb_mount" -maxdepth 1' "$tmp_dir/wasalight-update" || \
+    fail "l'updater non cerca il pacchetto MagicQ nella root USB"
+grep -Fq 'find "$usb_mount/packages" -maxdepth 1' "$tmp_dir/wasalight-update" || \
+    fail "l'updater non cerca il pacchetto MagicQ nella cartella packages USB"
+grep -Fq '[[ $(dpkg-deb -f "$source" Package 2>/dev/null) == magicq ]]' \
+    "$tmp_dir/wasalight-update" || \
+    fail "l'updater non verifica che il pacchetto USB sia MagicQ"
+grep -Fq 'dpkg --compare-versions' "$tmp_dir/wasalight-update" || \
+    fail "l'updater non confronta le vere versioni Debian di MagicQ"
+grep -Fq 'CONFLITTO: MagicQ $version' "$tmp_dir/wasalight-update" || \
+    fail "l'updater non blocca pacchetti della stessa versione ma differenti"
+if grep -Fq 'find "$package_store" -maxdepth 1 -type f -name '"'"'*.deb'"'"' -print | sort -V' \
+    "$tmp_dir/wasalight-update"; then
+    fail "l'updater sceglie ancora MagicQ ordinando i nomi dei file"
+fi
 grep -Fq 'tests/verify-project.sh' "$tmp_dir/wasalight-update" || \
     fail "l'aggiornamento Wasalight non verifica il progetto scaricato"
 grep -Fq '/usr/local/sbin/wasalight-update --code-only' "$INSTALLER" || \
@@ -428,6 +452,8 @@ done
 grep -Fq 'magicq-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
     fail "configurazione touchscreen non documentata"
 [[ -s "$PROJECT_DIR/docs/migration-24.04.md" ]] || fail "guida migrazione 24.04 mancante"
+grep -Fq '/stick/<dispositivo>' "$PROJECT_DIR/packages/README.md" || \
+    fail "aggiornamento MagicQ da USB non documentato in packages/README.md"
 [[ -s "$PROJECT_DIR/docs/vnc.md" ]] || fail "guida VNC mancante"
 [[ -s "$PROJECT_DIR/docs/ssh.md" ]] || fail "guida SSH mancante"
 [[ -s "$PROJECT_DIR/docs/update.md" ]] || fail "guida aggiornamenti mancante"

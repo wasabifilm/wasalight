@@ -129,6 +129,12 @@ uno spettacolo.
 
 ## Chiavette USB
 
+- [ ] Con un `.deb` MagicQ più recente nella root della USB, **Update
+      Wasalight** lo valida, lo copia in `/data/system/packages` e lo installa.
+- [ ] La stessa prova riesce collocando il file in `packages/` sulla USB.
+- [ ] Il `.deb` originale resta invariato sulla chiavetta dopo l’aggiornamento.
+- [ ] Un pacchetto non `magicq`, non `amd64` o precedente viene ignorato e due
+      file della stessa versione con contenuto diverso bloccano l’operazione.
 - [ ] FAT32, exFAT e NTFS vengono montati in `/stick/<dispositivo>` e sono
       visibili da MagicQ.
 - [ ] Due o più chiavette collegate insieme restano tutte visibili nella vista

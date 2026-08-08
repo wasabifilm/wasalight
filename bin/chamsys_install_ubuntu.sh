@@ -113,8 +113,14 @@ require_host() {
         DEB_PATH=$(readlink -f -- "$DEB_PATH")
         [[ -f "$DEB_PATH" ]] || die "MagicQ package not found: $DEB_PATH"
         dpkg-deb --info "$DEB_PATH" >/dev/null || die "invalid Debian package: $DEB_PATH"
+        [[ $(dpkg-deb -f "$DEB_PATH" Package) == magicq ]] || \
+            die "the Debian package is not ChamSys MagicQ: $DEB_PATH"
         [[ $(dpkg-deb -f "$DEB_PATH" Architecture) == amd64 ]] || \
             die "the MagicQ package is not amd64"
+        local magicq_deb_version
+        magicq_deb_version=$(dpkg-deb -f "$DEB_PATH" Version)
+        dpkg --validate-version "$magicq_deb_version" >/dev/null 2>&1 || \
+            die "the MagicQ package has an invalid version: $magicq_deb_version"
     fi
 }
 
@@ -1161,39 +1167,117 @@ echo "Log:   $log_file"
 installed_version=$(cat /etc/wasalight/version 2>/dev/null || echo non-installata)
 echo "Versione installata: $installed_version"
 
-migrate_package() {
-    local source=$1 destination
+magicq_version_of() {
+    local source=$1 version
+    dpkg-deb --info "$source" >/dev/null 2>&1 || return 1
+    [[ $(dpkg-deb -f "$source" Package 2>/dev/null) == magicq ]] || return 1
+    [[ $(dpkg-deb -f "$source" Architecture 2>/dev/null) == amd64 ]] || return 1
+    version=$(dpkg-deb -f "$source" Version 2>/dev/null) || return 1
+    dpkg --validate-version "$version" >/dev/null 2>&1 || return 1
+    printf '%s\n' "$version"
+}
+
+newest_stored_version() {
+    local stored version newest=
+    while IFS= read -r -d '' stored; do
+        version=$(magicq_version_of "$stored") || continue
+        if [[ -z $newest ]] || dpkg --compare-versions "$version" gt "$newest"; then
+            newest=$version
+        fi
+    done < <(find "$package_store" -maxdepth 1 -type f -name '*.deb' -print0)
+    printf '%s\n' "$newest"
+}
+
+import_magicq_package() {
+    local source=$1 remove_source=${2:-0}
+    local version installed_record installed_magicq_version= stored stored_version
+    local baseline destination
+
     [[ -f $source ]] || return 0
-    dpkg-deb --info "$source" >/dev/null 2>&1 || {
-        echo "Ignoro un pacchetto Debian non valido: $source" >&2
+    version=$(magicq_version_of "$source") || {
+        echo "Ignoro un file che non è MagicQ amd64 valido: $source" >&2
         return 0
     }
-    [[ $(dpkg-deb -f "$source" Architecture) == amd64 ]] || {
-        echo "Ignoro un pacchetto non amd64: $source" >&2
+
+    # Equal versions must also be byte-identical. This prevents an ambiguous or
+    # repackaged installer from silently replacing the trusted persistent copy.
+    while IFS= read -r -d '' stored; do
+        stored_version=$(magicq_version_of "$stored") || continue
+        if dpkg --compare-versions "$version" eq "$stored_version"; then
+            if ! cmp -s -- "$source" "$stored"; then
+                echo "CONFLITTO: MagicQ $version esiste già con contenuto differente: $stored" >&2
+                return 1
+            fi
+            ((remove_source)) && rm -f -- "$source"
+            echo "MagicQ $version è già conservato in $stored"
+            return 0
+        fi
+    done < <(find "$package_store" -maxdepth 1 -type f -name '*.deb' -print0)
+
+    baseline=$(newest_stored_version)
+    installed_record=$(dpkg-query -W -f='${db:Status-Abbrev}\t${Version}' magicq \
+        2>/dev/null || true)
+    [[ $installed_record == ii*$'\t'* ]] && \
+        installed_magicq_version=${installed_record#*$'\t'}
+    if [[ -n $installed_magicq_version ]] && \
+       { [[ -z $baseline ]] || dpkg --compare-versions "$installed_magicq_version" gt "$baseline"; }; then
+        baseline=$installed_magicq_version
+    fi
+    if [[ -n $baseline ]] && dpkg --compare-versions "$version" lt "$baseline"; then
+        echo "Ignoro MagicQ $version da $source: è precedente alla versione $baseline"
+        ((remove_source)) && rm -f -- "$source"
         return 0
-    }
-    destination="$package_store/${source##*/}"
-    [[ $(readlink -f -- "$source") != $(readlink -m -- "$destination") ]] || return 0
-    if [[ -e $destination ]] && ! cmp -s -- "$source" "$destination"; then
-        echo "Esiste già un pacchetto diverso con lo stesso nome: $destination" >&2
+    fi
+
+    destination="$package_store/magicq_${version}_amd64.deb"
+    install -o root -g root -m 0640 "$source" "$destination"
+    cmp -s -- "$source" "$destination" || {
+        echo "Verifica della copia del pacchetto non riuscita: $destination" >&2
+        rm -f -- "$destination"
         return 1
-    fi
-    if [[ ! -e $destination ]]; then
-        install -o root -g root -m 0640 "$source" "$destination"
-        cmp -s -- "$source" "$destination" || {
-            echo "Verifica della copia del pacchetto non riuscita: $destination" >&2
-            return 1
+    }
+    ((remove_source)) && rm -f -- "$source"
+    echo "MagicQ $version importato e conservato in $destination"
+}
+
+select_newest_magicq_package() {
+    local stored version
+    selected_package=
+    selected_package_version=
+    while IFS= read -r -d '' stored; do
+        version=$(magicq_version_of "$stored") || {
+            echo "Ignoro un pacchetto persistente non valido: $stored" >&2
+            continue
         }
-    fi
-    rm -f -- "$source"
-    echo "Pacchetto MagicQ conservato in $destination"
+        if [[ -z $selected_package ]] || \
+           dpkg --compare-versions "$version" gt "$selected_package_version"; then
+            selected_package=$stored
+            selected_package_version=$version
+        elif dpkg --compare-versions "$version" eq "$selected_package_version" && \
+             ! cmp -s -- "$stored" "$selected_package"; then
+            echo "CONFLITTO: due pacchetti MagicQ $version persistenti hanno contenuto differente." >&2
+            return 1
+        fi
+    done < <(find "$package_store" -maxdepth 1 -type f -name '*.deb' -print0)
 }
 
 step "1/4 · Controllo dei pacchetti MagicQ"
 while IFS= read -r -d '' legacy_package; do
-    migrate_package "$legacy_package"
+    import_magicq_package "$legacy_package" 1
 done < <(find /home /root -maxdepth 4 -type f \
     -path '*/wasalight/packages/*.deb' -print0 2>/dev/null)
+
+while IFS= read -r usb_mount; do
+    echo "Controllo USB montata: $usb_mount"
+    while IFS= read -r -d '' usb_package; do
+        import_magicq_package "$usb_package" 0
+    done < <(find "$usb_mount" -maxdepth 1 -type f -name '*.deb' -print0 2>/dev/null)
+    if [[ -d $usb_mount/packages ]]; then
+        while IFS= read -r -d '' usb_package; do
+            import_magicq_package "$usb_package" 0
+        done < <(find "$usb_mount/packages" -maxdepth 1 -type f -name '*.deb' -print0 2>/dev/null)
+    fi
+done < <(findmnt -rn -o TARGET 2>/dev/null | awk '$0 ~ "^/stick/[^/]+$"')
 
 if [[ -e $checkout && ! -d $checkout/.git ]]; then
     echo "Il percorso aggiornamenti esiste ma non è un repository Git: $checkout" >&2
@@ -1237,10 +1321,9 @@ if [[ $ssh_mode == enabled ]] || \
 fi
 command -v onboard >/dev/null 2>&1 && installer_args+=(--with-onscreen-keyboard)
 
-mapfile -t packages < <(find "$package_store" -maxdepth 1 -type f -name '*.deb' -print | sort -V)
-if ((${#packages[@]})); then
-    selected_package=${packages[-1]}
-    echo "Pacchetto MagicQ selezionato: $selected_package"
+select_newest_magicq_package
+if [[ -n $selected_package ]]; then
+    echo "Pacchetto MagicQ selezionato: $selected_package (versione $selected_package_version)"
     installer_args+=("$selected_package")
 else
     echo "ATTENZIONE: nessun pacchetto MagicQ trovato in $package_store" >&2

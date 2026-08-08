@@ -157,6 +157,10 @@ in `/data/system/wasalight`, conserva i pacchetti MagicQ proprietari in
 `/data/system/packages` e rilancia l’installer lasciando la protezione
 disattivata per il collaudo. Quando tutto è corretto usare
 `sudo magicq-protect` oppure eseguire `sudo wasalight-update --protect`.
+Per aggiornare MagicQ basta inserire il `.deb` nella root o nella cartella
+`packages/` di una chiavetta: **Update Wasalight** verifica tutte le USB montate,
+conserva il file in `/data` senza cancellare l’originale e sceglie la versione
+più recente dai metadati Debian.
 L’installer prova a inizializzare automaticamente questa copia persistente;
 un problema temporaneo di rete produce un avviso e può essere recuperato con
 `sudo wasalight-update --code-only`.
