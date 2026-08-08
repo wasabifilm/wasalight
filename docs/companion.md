@@ -119,9 +119,12 @@ dopo un riavvio prima di tornare in SHOW.
 `wasalight-companion-update` installa soltanto la versione Companion approvata
 dalla release Wasalight corrente. Non usa `latest` e conserva un backup prima
 dell'aggiornamento. Al termine confronta inoltre il target con il file `BUILD`
-del runtime: una selezione upstream vuota o diversa viene trattata come errore e
-non aggiorna la versione registrata. Un cambio della versione target deve quindi
-passare da una nuova build Wasalight e dai relativi test.
+del runtime. Il metadata SemVer aggiunto da Bitfocus, per esempio
+`5.0.3+9703-stable-2daa0d7670`, identifica correttamente la versione base
+`5.0.3`; una selezione upstream vuota o con una versione base diversa viene
+invece trattata come errore e non aggiorna la versione registrata. Un cambio
+della versione target deve quindi passare da una nuova build Wasalight e dai
+relativi test.
 
 La web UI sulla porta `8000` deve essere esposta soltanto su una LAN show
 fidata. Le azioni amministrative del Hub passano attraverso wrapper con

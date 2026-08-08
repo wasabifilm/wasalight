@@ -227,7 +227,8 @@ required_patterns=(
     '$DATA_MOUNT/companion/etc /etc/companion none bind'
     'RequiresMountsFor=/data/companion/home /data/companion/etc /data/companion/log'
     'StandardOutput=append:/data/companion/log/companion.log'
-    'Companion requested $COMPANION_VERSION but installed $installed_companion_version'
+    'Companion requested $COMPANION_VERSION but BUILD reports $companion_build'
+    'installed_companion_version=${installed_companion_version%%+*}'
     'wasalight-companion-control start'
     'wasalight-companion-control stop'
     'wasalight-companion-control restart'
@@ -574,6 +575,13 @@ grep -Fq '/usr/local/sbin/wasalight-companion-backup' "$tmp_dir/companion-update
     fail "l'aggiornamento Companion non crea prima un backup"
 grep -Fq '/opt/companion/BUILD' "$tmp_dir/companion-update" || \
     fail "l'aggiornamento Companion non verifica la versione realmente installata"
+grep -Fq 'actual=${actual%%+*}' "$tmp_dir/companion-update" || \
+    fail "l'aggiornamento Companion non ignora correttamente i metadata SemVer"
+companion_build='5.0.3+9703-stable-2daa0d7670'
+companion_core=${companion_build#[vV]}
+companion_core=${companion_core%%+*}
+[[ $companion_core == 5.0.3 ]] || \
+    fail "normalizzazione SemVer Companion non valida"
 grep -Fq 'http://127.0.0.1:8000' "$tmp_dir/companion-browser" || \
     fail "il browser Companion non usa l'interfaccia locale"
 grep -Fq '/data/companion/browser/config' "$tmp_dir/companion-browser" || \

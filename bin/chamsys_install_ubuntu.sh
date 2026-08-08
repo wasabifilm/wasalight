@@ -1620,6 +1620,7 @@ configure_companion() {
     local companion_source=/usr/local/src/companionpi
     local temporary_source="${companion_source}.new.$$"
     local companion_present=0
+    local companion_build
     local installed_companion_version
 
     [[ -d /opt/companion && -x $companion_source/launch.sh ]] && companion_present=1
@@ -1650,9 +1651,11 @@ configure_companion() {
         [[ -d /opt/companion && -s /opt/companion/BUILD && \
            -f /etc/systemd/system/companion.service ]] || \
             die "the official Companion installer did not create the expected runtime"
-        installed_companion_version=$(sed 's/^[vV]//' /opt/companion/BUILD)
+        companion_build=$(tr -d '\r\n' </opt/companion/BUILD)
+        installed_companion_version=${companion_build#[vV]}
+        installed_companion_version=${installed_companion_version%%+*}
         [[ $installed_companion_version == "$COMPANION_VERSION" ]] || \
-            die "Companion requested $COMPANION_VERSION but installed $installed_companion_version"
+            die "Companion requested $COMPANION_VERSION but BUILD reports $companion_build"
         companion_present=1
     fi
 
@@ -1669,7 +1672,9 @@ configure_companion() {
         die "installed Companion cannot be configured without /data"
     [[ -s /opt/companion/BUILD ]] || \
         die "installed Companion has no readable BUILD version"
-    installed_companion_version=$(sed 's/^[vV]//' /opt/companion/BUILD)
+    companion_build=$(tr -d '\r\n' </opt/companion/BUILD)
+    installed_companion_version=${companion_build#[vV]}
+    installed_companion_version=${installed_companion_version%%+*}
 
     # The execute-only permission for other users lets the chamsys desktop
     # reach its dedicated browser profile without exposing Companion data.
@@ -1834,9 +1839,11 @@ git -C "$source_dir" fetch --depth=1 origin "$commit"
 git -C "$source_dir" checkout --detach "$commit"
 "$source_dir/update.sh" stable "$version"
 [[ -s /opt/companion/BUILD ]] || { echo "Updated Companion BUILD file is missing." >&2; exit 1; }
-actual=$(sed 's/^[vV]//' /opt/companion/BUILD)
+actual_build=$(tr -d '\r\n' </opt/companion/BUILD)
+actual=${actual_build#[vV]}
+actual=${actual%%+*}
 [[ $actual == "$version" ]] || {
-    echo "Companion update requested $version but installed $actual." >&2; exit 1;
+    echo "Companion update requested $version but BUILD reports $actual_build." >&2; exit 1;
 }
 printf '%s\n' "$actual" >/data/companion/installed-version
 systemctl daemon-reload
