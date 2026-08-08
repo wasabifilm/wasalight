@@ -176,8 +176,9 @@ Il progetto include il logo Wasabi Lightbulbfarm come immagine Plymouth
 predefinita. Il marchio appare centrato e discreto su fondo quasi nero, mentre
 GRUB e i normali messaggi Ubuntu restano nascosti. Alla prima installazione il
 file viene copiato in `/data/system/branding/boot-logo.png`: sostituendo questa
-immagine è possibile personalizzare i boot successivi senza perdere la modifica
-con gli aggiornamenti. Specifiche, dimensioni e procedura sono nella
+immagine è possibile personalizzare insieme i boot successivi e lo sfondo
+Openbox, senza perdere la modifica con gli aggiornamenti. Logo, dimensione,
+posizione e colore di fondo sono gli stessi. Specifiche e procedura sono nella
 [guida al branding di avvio](docs/boot-branding.md).
 
 ### Account amministratore `chamsys`

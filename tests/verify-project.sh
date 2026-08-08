@@ -96,6 +96,10 @@ required_patterns=(
     'magicq-fullscreen-watch'
     'magicq-audio-test'
     'wmctrl -n 1'
+    '/usr/local/bin/wasalight-desktop-wallpaper'
+    'wallpaper_mode=stretch'
+    'wallpapers_configured=1'
+    'desktop_bg=#080b10'
     'pcmanfm --desktop --profile=default'
     '$TARGET_HOME/Desktop/Start-MagicQ.desktop'
     '$TARGET_HOME/Desktop/Stop-MagicQ.desktop'
@@ -224,6 +228,7 @@ helpers=(
     /usr/local/bin/wasalight-power
     /usr/local/sbin/wasalight-power-control
     /usr/local/bin/wasalight-desktop-status
+    /usr/local/bin/wasalight-desktop-wallpaper
     /usr/local/bin/wasalight-vnc-toggle
     /usr/local/bin/wasalight-ssh-toggle
     /usr/local/sbin/wasalight-ssh-control
@@ -245,6 +250,21 @@ for helper in "${helpers[@]}"; do
     [[ -s "$output" ]] || fail "impossibile estrarre $helper"
     bash -n "$output"
 done
+
+wallpaper_python="$tmp_dir/wasalight-desktop-wallpaper.py"
+awk '/^python3 .*PYEOF/ { capture=1; next }
+     capture && /^PYEOF$/ { exit }
+     capture { print }' \
+    "$tmp_dir/wasalight-desktop-wallpaper" >"$wallpaper_python"
+[[ -s $wallpaper_python ]] || fail "renderer Python dello sfondo non estraibile"
+python3 -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' \
+    "$wallpaper_python"
+grep -Fq 'screen_width * 0.34' "$wallpaper_python" || \
+    fail "lo sfondo desktop non usa la larghezza del logo Plymouth"
+grep -Fq 'screen_height * 0.24' "$wallpaper_python" || \
+    fail "lo sfondo desktop non usa l'altezza del logo Plymouth"
+grep -Fq 'wallpaper.fill(0x080B10FF)' "$wallpaper_python" || \
+    fail "lo sfondo desktop non usa il colore Plymouth"
 
 grep -Fq 'sudo -n /usr/local/sbin/magicq-root-launcher' "$tmp_dir/magicq-session" || \
     fail "MagicQ non viene avviato tramite il launcher root controllato"

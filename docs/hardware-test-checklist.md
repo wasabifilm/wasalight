@@ -11,6 +11,10 @@ uno spettacolo.
       discreto, senza testo Ubuntu sovrapposto durante un avvio normale.
 - [ ] Il logo non supera circa un terzo della larghezza e un quarto dell’altezza
       dello schermo sia a 1280×720 sia alla risoluzione nativa del monitor.
+- [ ] Dopo l’ingresso in Openbox, sfondo `#080b10`, logo, dimensione e posizione
+      coincidono visivamente con la schermata Plymouth appena mostrata.
+- [ ] `/home/chamsys/.cache/wasalight/desktop-wallpaper.png` ha la stessa
+      risoluzione indicata da `xdpyinfo` e usa il logo persistente in `/data`.
 - [ ] Tenendo premuto `Esc` durante il passaggio firmware/GRUB il menu di
       recupero resta raggiungibile.
 - [ ] `/data/system/branding/boot-logo.png` esiste e una personalizzazione PNG

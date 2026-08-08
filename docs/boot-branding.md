@@ -14,9 +14,10 @@ assets/branding/boot-logo.png     immagine pronta per il boot
 
 `boot-logo.png` usa la variante bianca e verde del marchio, con fondo
 trasparente e senza targa: è quindi adatto direttamente allo sfondo scuro.
-La risoluzione del file è **1200 × 627 px**, PNG RGBA. Plymouth non lo mostra a
-grandezza piena: lo centra, limita la larghezza al **34%** dello schermo e
-l’altezza al **24%**, senza ingrandire l’immagine oltre la dimensione originale.
+La risoluzione del file è **1200 × 627 px**, PNG RGBA. Plymouth e il desktop non
+lo mostrano a grandezza piena: lo centrano, limitano la larghezza al **34%** dello
+schermo e l’altezza al **24%**, senza ingrandire l’immagine oltre la dimensione
+originale. Entrambi usano lo stesso fondo quasi nero `#080b10`.
 
 ## Copia persistente
 
@@ -58,6 +59,21 @@ sudo wasalight-update
 L’aggiornamento valida la firma PNG, controlla le dimensioni e rigenera il tema.
 Se l’immagine persistente non è valida, non viene cancellata: l’installer usa
 temporaneamente il logo predefinito di GitHub e mostra un avviso.
+
+## Sfondo del desktop
+
+All’avvio di Openbox, `wasalight-desktop-wallpaper` legge la risoluzione attiva
+di Xorg e genera:
+
+```text
+/home/chamsys/.cache/wasalight/desktop-wallpaper.png
+```
+
+La composizione usa direttamente il logo persistente in `/data`, con le stesse
+regole di posizione, dimensione e colore del tema Plymouth. PCManFM carica poi
+il PNG già delle dimensioni esatte dello schermo. Cambiando il logo persistente
+e riavviando la sessione o il sistema vengono quindi aggiornati insieme boot e
+desktop; non serve mantenere una seconda immagine.
 
 ## Avvio silenzioso e recupero
 
