@@ -17,6 +17,7 @@ magicq-ubuntu-appliance/
 ├── LICENSE                            Apache License 2.0
 ├── NOTICE                             attribuzione da conservare
 ├── CITATION.cff                       citazione standard del progetto
+├── VERSION                            versione CalVer dell’installer
 ├── bin/
 │   └── chamsys_install_ubuntu.sh      installer completo
 ├── packages/
@@ -26,6 +27,7 @@ magicq-ubuntu-appliance/
 │   ├── hardware-test-checklist.md
 │   ├── licensing.md
 │   ├── migration-24.04.md
+│   ├── versioning.md
 │   ├── ssh.md
 │   ├── system-cleanup.md
 │   ├── touchscreen.md
@@ -53,6 +55,21 @@ Quando il progetto viene mostrato sui social, il tag Instagram
 condizione d’uso renderebbe la licenza meno compatibile con il normale modello
 open source. La forma di citazione consigliata e i metadati per GitHub sono
 descritti nella [guida alla licenza](docs/licensing.md) e in `CITATION.cff`.
+
+## Versione Wasalight
+
+La release dell’installer usa il formato `AAAA.MM.GG.BUILD`, per esempio
+`2026.08.08.1`. La sorgente unica è il file `VERSION`; per leggerla senza
+installare nulla:
+
+```bash
+./install.sh --version
+```
+
+Dopo un’installazione riuscita la stessa versione appare sul pannello desktop e
+in `magicq-status`. `UPDATE READY` indica che il codice già scaricato in `/data`
+è più recente della configurazione installata. Dettagli e procedura di incremento
+sono nella [guida al versionamento](docs/versioning.md).
 
 ## Prima dell’installazione
 

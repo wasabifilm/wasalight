@@ -5,6 +5,8 @@ uno spettacolo.
 
 ## Avvio e protezione
 
+- [ ] `magicq-status`, il pannello desktop e `/etc/wasalight/version` mostrano
+      lo stesso numero `AAAA.MM.GG.BUILD` pubblicato nel file `VERSION`.
 - [ ] Dopo GRUB appare lo sfondo quasi nero con il logo Wasabi centrato e
       discreto, senza testo Ubuntu sovrapposto durante un avvio normale.
 - [ ] Il logo non supera circa un terzo della larghezza e un quarto dell’altezza

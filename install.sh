@@ -9,7 +9,7 @@ args=("$@")
 deb_supplied=0
 
 for arg in "$@"; do
-    if [[ "$arg" == -h || "$arg" == --help ]]; then
+    if [[ "$arg" == -h || "$arg" == --help || "$arg" == --version ]]; then
         exec "$INSTALLER" "$@"
     fi
     [[ "$arg" == *.deb ]] && deb_supplied=1

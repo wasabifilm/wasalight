@@ -11,6 +11,7 @@ umask 022
 
 readonly SCRIPT_NAME="${0##*/}"
 readonly PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly PROJECT_VERSION="$(<"$PROJECT_DIR/VERSION")"
 readonly TARGET_USER="chamsys"
 readonly TARGET_HOME="/home/${TARGET_USER}"
 readonly DATA_MOUNT="/data"
@@ -56,6 +57,7 @@ Options:
                        is always an administrator; its password is never stored.
   --keep-cloud-init    Disable cloud-init services but retain the package.
   --no-protection      Configure the appliance but leave overlayroot disabled.
+  --version            Show the Wasalight installer version and exit.
   -h, --help           Show this help.
 
 For protected SHOW mode, /data must be a separate mounted ext4 filesystem.
@@ -82,6 +84,7 @@ parse_args() {
             # Accepted for compatibility with earlier Wasalight releases.
             --purge-cloud-init) PURGE_CLOUD_INIT=1; shift ;;
             --no-protection) ENABLE_PROTECTION=0; shift ;;
+            --version) printf '%s\n' "$PROJECT_VERSION"; exit 0 ;;
             -h|--help) usage; exit 0 ;;
             --*) die "unknown option: $1" ;;
             *)
@@ -94,6 +97,8 @@ parse_args() {
 }
 
 require_host() {
+    [[ $PROJECT_VERSION =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]] || \
+        die "invalid or missing Wasalight VERSION: $PROJECT_VERSION"
     [[ $EUID -eq 0 ]] || die "run this installer as root (sudo)"
     [[ -r /etc/os-release ]] || die "/etc/os-release is missing"
     # shellcheck disable=SC1091
@@ -1124,6 +1129,8 @@ printf '       WASALIGHT · AGGIORNAMENTO\n'
 printf '========================================\n'
 echo "Avvio: $(date --iso-8601=seconds)"
 echo "Log:   $log_file"
+installed_version=$(cat /etc/wasalight/version 2>/dev/null || echo non-installata)
+echo "Versione installata: $installed_version"
 
 migrate_package() {
     local source=$1 destination
@@ -1184,6 +1191,8 @@ fi
 
 step "3/4 · Verifica del progetto scaricato"
 "$checkout/tests/verify-project.sh"
+available_version=$(<"$checkout/VERSION")
+echo "Versione disponibile: $available_version"
 echo "Codice verificato e pronto in $checkout"
 if ((code_only)); then
     echo
@@ -1659,6 +1668,26 @@ readonly blue='#58a6ff'
 status_line() {
     printf '${color %s}%-13s${color white}%s\n' "$1" "$2" "$3"
 }
+
+installed_version=$(cat /etc/wasalight/version 2>/dev/null || echo UNKNOWN)
+available_version=$(cat /data/system/wasalight/VERSION 2>/dev/null || true)
+status_line "$blue" 'VERSION' "$installed_version"
+if [[ $available_version =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]]; then
+    if [[ $installed_version == "$available_version" ]]; then
+        status_line "$green" 'UPDATE' 'CODE MATCH'
+    else
+        newest_version=$(printf '%s\n%s\n' "$installed_version" "$available_version" | \
+            sort -V | tail -n 1)
+        if [[ ! $installed_version =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]] || \
+           [[ $newest_version == "$available_version" ]]; then
+            status_line "$yellow" 'UPDATE' "READY · $available_version"
+        else
+            status_line "$yellow" 'UPDATE' "CHECKOUT OLDER · $available_version"
+        fi
+    fi
+else
+    status_line "$yellow" 'UPDATE' 'NOT CHECKED'
+fi
 
 root_fs=$(findmnt -n -o FSTYPE / 2>/dev/null || echo unknown)
 if [[ $root_fs == overlay ]]; then
@@ -3261,6 +3290,7 @@ EOF
     write_file /usr/local/bin/magicq-status 0755 <<'EOF'
 #!/usr/bin/env bash
 set -u
+version=$(cat /etc/wasalight/version 2>/dev/null || echo unknown)
 os=$(. /etc/os-release 2>/dev/null; printf '%s' "${PRETTY_NAME:-unknown}")
 root_fs=$(findmnt -n -o FSTYPE / 2>/dev/null || echo unknown)
 if [[ $root_fs == overlay ]]; then mode=PROTECTED; else mode=MAINTENANCE; fi
@@ -3308,6 +3338,7 @@ logs="unavailable"
 
 cat <<EOT
 MagicQ Appliance
+WASALIGHT:  $version
 OS:         $os
 MODE:       $mode
 ROOT:       $root_fs
@@ -3439,6 +3470,19 @@ configure_overlay() {
     update-initramfs -u
 }
 
+record_installed_version() {
+    write_file /etc/wasalight/version 0644 <<EOF
+$PROJECT_VERSION
+EOF
+    if mountpoint -q "$DATA_MOUNT"; then
+        install -d -o root -g root -m 0755 "$DATA_MOUNT/system"
+        write_file "$DATA_MOUNT/system/installed-version" 0644 <<EOF
+$PROJECT_VERSION
+EOF
+    fi
+    log "installed Wasalight version: $PROJECT_VERSION"
+}
+
 final_checks() {
     local writable_path
     bash -n /usr/local/libexec/magicq-usb-mount
@@ -3525,6 +3569,7 @@ final_checks() {
 main() {
     parse_args "$@"
     require_host
+    log "starting Wasalight installer version $PROJECT_VERSION"
     configure_data_mount
     persist_magicq_package
     install_packages
@@ -3545,8 +3590,9 @@ main() {
     configure_boot_branding
     configure_overlay
     final_checks
+    record_installed_version
 
-    log "installation completed"
+    log "installation completed: Wasalight $PROJECT_VERSION"
     if ((ENABLE_PROTECTION)); then
         cat <<'EOF'
 

@@ -16,6 +16,11 @@ Il repository pubblico non contiene il pacchetto MagicQ. Il `.deb` viene
 copiato separatamente, verificato byte per byte e protetto con permessi
 `root:root 0640`.
 
+Durante ogni esecuzione l’updater mostra la versione installata letta da
+`/etc/wasalight/version` e, dopo il download, la versione disponibile nel file
+`VERSION` del checkout persistente. Il numero installato viene aggiornato solo
+dopo un’installazione conclusa e verificata.
+
 L’installer inizializza automaticamente il repository persistente quando
 `/data` è disponibile. Se GitHub non è raggiungibile, mostra un avviso senza
 rimuovere i dati già presenti; ripetere in seguito

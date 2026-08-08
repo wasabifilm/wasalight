@@ -5,6 +5,7 @@ set -Eeuo pipefail
 PROJECT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 INSTALLER="$PROJECT_DIR/bin/chamsys_install_ubuntu.sh"
 ENTRYPOINT="$PROJECT_DIR/install.sh"
+VERSION_FILE="$PROJECT_DIR/VERSION"
 tmp_dir=$(mktemp -d)
 vnc_test_pid=
 cleanup() {
@@ -22,6 +23,12 @@ fail() {
 
 [[ -x "$INSTALLER" ]] || fail "installer mancante o non eseguibile"
 [[ -x "$ENTRYPOINT" ]] || fail "install.sh mancante o non eseguibile"
+[[ -s "$VERSION_FILE" ]] || fail "file VERSION mancante"
+project_version=$(<"$VERSION_FILE")
+[[ $project_version =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]] || \
+    fail "VERSION non usa il formato AAAA.MM.GG.BUILD"
+[[ $("$ENTRYPOINT" --version) == "$project_version" ]] || \
+    fail "install.sh --version non corrisponde a VERSION"
 grep -Fq '/data/system/packages/*.deb' "$ENTRYPOINT" || \
     fail "install.sh non riutilizza il pacchetto MagicQ persistente"
 
@@ -30,6 +37,13 @@ bash -n "$ENTRYPOINT"
 
 required_patterns=(
     'VERSION_ID:-} == 24.04'
+    'PROJECT_VERSION="$(<"$PROJECT_DIR/VERSION")"'
+    '/etc/wasalight/version'
+    '$DATA_MOUNT/system/installed-version'
+    "status_line \"\$blue\" 'VERSION'"
+    "status_line \"\$yellow\" 'UPDATE' \"READY · \$available_version\""
+    'WASALIGHT:  $version'
+    'record_installed_version'
     'add-apt-repository -y universe'
     'overlayroot="tmpfs:swap=0,recurse=0"'
     '$TARGET_HOME/Documents/MagicQ'
@@ -176,6 +190,14 @@ required_patterns=(
 for pattern in "${required_patterns[@]}"; do
     grep -Fq -- "$pattern" "$INSTALLER" || fail "funzione richiesta non trovata: $pattern"
 done
+
+main_body=$(awk '/^main\(\) \{/,/^}/' "$INSTALLER")
+final_checks_line=$(grep -n '^    final_checks$' <<<"$main_body" | cut -d: -f1)
+record_version_line=$(grep -n '^    record_installed_version$' <<<"$main_body" | cut -d: -f1)
+[[ $final_checks_line =~ ^[0-9]+$ && $record_version_line =~ ^[0-9]+$ ]] || \
+    fail "ordine di registrazione versione non verificabile"
+((record_version_line > final_checks_line)) || \
+    fail "la versione viene registrata prima dei controlli finali"
 
 helpers=(
     /usr/local/libexec/magicq-usb-mount
@@ -363,6 +385,7 @@ grep -Fq 'magicq-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
 [[ -s "$PROJECT_DIR/docs/system-cleanup.md" ]] || fail "guida pulizia sistema mancante"
 [[ -s "$PROJECT_DIR/docs/boot-branding.md" ]] || fail "guida branding di avvio mancante"
 [[ -s "$PROJECT_DIR/docs/licensing.md" ]] || fail "guida licenza mancante"
+[[ -s "$PROJECT_DIR/docs/versioning.md" ]] || fail "guida versionamento mancante"
 [[ -s "$PROJECT_DIR/LICENSE" ]] || fail "Apache License 2.0 mancante"
 grep -Fq 'Apache License' "$PROJECT_DIR/LICENSE" || fail "testo licenza Apache non valido"
 grep -Fq 'Version 2.0, January 2004' "$PROJECT_DIR/LICENSE" || \
