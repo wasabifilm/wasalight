@@ -44,6 +44,19 @@ if ((deb_supplied == 0)); then
                 packages+=("$usb_package")
             done < <(find "$usb_mount/packages" -maxdepth 1 -type f -name '*.deb' -print0 2>/dev/null)
         fi
+        # libfsapfs exposes every APFS volume as fsapfs1, fsapfs2, ... below
+        # the FUSE mount. Search those volume roots without scanning recursively.
+        while IFS= read -r -d '' apfs_volume; do
+            while IFS= read -r -d '' usb_package; do
+                packages+=("$usb_package")
+            done < <(find "$apfs_volume" -maxdepth 1 -type f -iname '*.deb' -print0 2>/dev/null)
+            if [[ -d $apfs_volume/packages ]]; then
+                while IFS= read -r -d '' usb_package; do
+                    packages+=("$usb_package")
+                done < <(find "$apfs_volume/packages" -maxdepth 1 -type f -iname '*.deb' -print0 2>/dev/null)
+            fi
+        done < <(find "$usb_mount" -mindepth 1 -maxdepth 1 -type d \
+            -name 'fsapfs[0-9]*' -print0 2>/dev/null)
     done < <(findmnt -rn -o TARGET 2>/dev/null | awk '$0 ~ "^/stick/[^/]+$"')
 
     selected_package=

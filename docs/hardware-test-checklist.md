@@ -146,6 +146,12 @@ uno spettacolo.
       file della stessa versione con contenuto diverso bloccano l’operazione.
 - [ ] FAT32, exFAT e NTFS vengono montati in `/stick/<dispositivo>` e sono
       visibili da MagicQ.
+- [ ] Un container APFS non cifrato viene montato tramite `fsapfsmount`; i
+      volumi `fsapfs1`, `fsapfs2`, ecc. sono leggibili da `chamsys` ma non
+      consentono creazione, modifica o cancellazione di file.
+- [ ] **Update Wasalight** trova un `.deb` nella radice o in `packages/` di un
+      volume APFS; un container cifrato fallisce senza chiedere password sullo
+      schermo dello show.
 - [ ] Due o più chiavette collegate insieme restano tutte visibili nella vista
       Flash, ciascuna nella propria sottodirectory.
 - [ ] Dopo la rimozione scompare soltanto la sottodirectory della chiavetta

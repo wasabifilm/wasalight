@@ -77,7 +77,6 @@ required_patterns=(
     'mountpoint="$base/$dev_name"'
     'state="$state_dir/$dev_name.mount"'
     '[[ $(dpkg-deb -f "$DEB_PATH" Package) == magicq ]]'
-    'ID_FS_TYPE}=="vfat|exfat|ntfs"'
     'magicq-maintenance'
     'magicq-protect'
     'magicq-status'
@@ -98,7 +97,10 @@ required_patterns=(
     'renderer: NetworkManager'
     'netplan apply'
     'network-manager network-manager-gnome wpasupplicant'
-    'util-linux udev logrotate'
+    'libfsapfs-utils util-linux udev logrotate'
+    'fsapfsmount -X ro,allow_other,nosuid,nodev,noexec'
+    'Mounted $dev (APFS) read-only'
+    'ID_FS_TYPE}=="vfat|exfat|ntfs|apfs"'
     "grep -F 'libGLU.so.1'"
     'MagicQ has unresolved runtime libraries'
     'MagicQ Qt xcb platform plugin has unresolved runtime libraries'
@@ -246,6 +248,14 @@ grep -Fq 'trap cleanup_bootstrap_mounts EXIT' "$INSTALLER" || \
     fail "i mount USB temporanei non hanno una pulizia garantita"
 grep -Fq 'case $target in' "$INSTALLER" || \
     fail "il bootstrap USB non esclude i filesystem di sistema montati"
+if grep -Fq 'apfs-dkms' "$INSTALLER"; then
+    fail "il driver APFS kernel sperimentale non deve essere installato"
+fi
+if grep -Eq 'fsapfsmount[^\n]*readwrite|apfs;[^\n]*opts=.*rw' "$INSTALLER"; then
+    fail "APFS non deve essere abilitato in scrittura"
+fi
+grep -Fq -- "-name 'fsapfs[0-9]*'" "$ENTRYPOINT" || \
+    fail "install.sh non cerca MagicQ nei volumi APFS esposti da libfsapfs"
 
 install_packages_body=$(awk '/^install_packages\(\) \{/,/^}/' "$INSTALLER")
 metadata_line=$(grep -n '^    apt-get update$' <<<"$install_packages_body" | head -n1 | cut -d: -f1)

@@ -31,6 +31,11 @@ dispositivi USB, monta temporaneamente le partizioni in sola lettura sotto
 preferibilmente FAT32, disponibile anche nell’installazione Ubuntu minimale;
 exFAT, NTFS ed ext4 vengono provati quando supportati dal kernel presente.
 
+Dopo che Wasalight è stato installato, anche una USB APFS non cifrata può essere
+usata per importare un `.deb`, ma soltanto in lettura. Il bootstrap iniziale non
+include ancora il lettore APFS: per la prima esecuzione usare FAT32. Per una USB
+destinata anche al salvataggio degli show usare exFAT, non APFS.
+
 Quando nessun pacchetto valido è disponibile e MagicQ non risulta già
 installato, l’installazione si interrompe mostrando il comando esplicito
 `--allow-missing-magicq`. Usarlo soltanto quando si vuole preparare Wasalight

@@ -50,6 +50,12 @@ USB tramite udev, le monta in sola lettura sotto `/run/wasalight-usb-scan`,
 importa il pacchetto e le smonta subito. La chiavetta FAT32 è la scelta più
 compatibile con Ubuntu Server minimale.
 
+Dopo la prima installazione Wasalight dispone anche della lettura APFS tramite
+`libfsapfs-utils`. I volumi APFS non cifrati vengono esposti in sola lettura
+sotto `fsapfs1`, `fsapfs2`, ecc.; l’updater cerca il `.deb` anche nella radice e
+in `packages/` di queste sottodirectory. APFS non è disponibile nel bootstrap
+Ubuntu minimale precedente all’installazione dei pacchetti Wasalight.
+
 L’installer inizializza automaticamente il repository persistente quando
 `/data` è disponibile. Se GitHub non è raggiungibile, mostra un avviso senza
 rimuovere i dati già presenti; ripetere in seguito

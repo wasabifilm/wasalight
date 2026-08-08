@@ -450,7 +450,8 @@ install_packages() {
         python3 python3-gi gir1.2-gtk-3.0 arp-scan iproute2
         network-manager network-manager-gnome wpasupplicant policykit-1 policykit-1-gnome
         overlayroot initramfs-tools plymouth plymouth-themes file chrony
-        exfatprogs ntfs-3g dosfstools util-linux udev logrotate openssh-server git
+        exfatprogs ntfs-3g dosfstools libfsapfs-utils util-linux udev logrotate
+        openssh-server git
     )
     ((ENABLE_ONSCREEN_KEYBOARD)) && packages+=(onboard)
     apt_install "${packages[@]}"
@@ -1438,6 +1439,17 @@ while IFS= read -r usb_mount; do
             import_magicq_package "$usb_package" 0
         done < <(find "$usb_mount/packages" -maxdepth 1 -type f -name '*.deb' -print0 2>/dev/null)
     fi
+    while IFS= read -r -d '' apfs_volume; do
+        while IFS= read -r -d '' usb_package; do
+            import_magicq_package "$usb_package" 0
+        done < <(find "$apfs_volume" -maxdepth 1 -type f -iname '*.deb' -print0 2>/dev/null)
+        if [[ -d $apfs_volume/packages ]]; then
+            while IFS= read -r -d '' usb_package; do
+                import_magicq_package "$usb_package" 0
+            done < <(find "$apfs_volume/packages" -maxdepth 1 -type f -iname '*.deb' -print0 2>/dev/null)
+        fi
+    done < <(find "$usb_mount" -mindepth 1 -maxdepth 1 -type d \
+        -name 'fsapfs[0-9]*' -print0 2>/dev/null)
 done < <(findmnt -rn -o TARGET 2>/dev/null | awk '$0 ~ "^/stick/[^/]+$"')
 
 if [[ -e $checkout && ! -d $checkout/.git ]]; then
@@ -3389,15 +3401,32 @@ case "$fs" in
     vfat)   type=vfat;    opts='rw,nosuid,nodev,noexec,sync,flush,uid=chamsys,gid=chamsys,umask=0022,shortname=mixed,utf8=1' ;;
     exfat)  type=exfat;   opts='rw,nosuid,nodev,noexec,sync,uid=chamsys,gid=chamsys,umask=0022' ;;
     ntfs)   type=ntfs-3g; opts='rw,nosuid,nodev,noexec,sync,uid=chamsys,gid=chamsys,umask=0022' ;;
+    apfs)   type=apfs;    opts=read-only ;;
     *) logger -t magicq-usb "Ignoring $dev: unsupported filesystem '$fs'"; exit 0 ;;
 esac
 
 install -d -m 0755 "$state_dir"
 install -d -o chamsys -g chamsys -m 0755 "$base" "$mountpoint"
 mountpoint -q "$mountpoint" && exit 0
-if mount -t "$type" -o "$opts" "$dev" "$mountpoint"; then
+mounted=0
+if [[ $type == apfs ]]; then
+    # Ubuntu's libfsapfs implementation exposes APFS through FUSE without write
+    # callbacks. Never substitute the experimental read/write kernel module.
+    if command -v fsapfsmount >/dev/null 2>&1 && \
+       fsapfsmount -X ro,allow_other,nosuid,nodev,noexec "$dev" "$mountpoint" && \
+       mountpoint -q "$mountpoint"; then
+        mounted=1
+    fi
+elif mount -t "$type" -o "$opts" "$dev" "$mountpoint"; then
+    mounted=1
+fi
+if ((mounted)); then
     printf '%s\n' "$mountpoint" >"$state"
-    logger -t magicq-usb "Mounted $dev ($fs) at $mountpoint with synchronous writes"
+    if [[ $type == apfs ]]; then
+        logger -t magicq-usb "Mounted $dev (APFS) read-only at $mountpoint"
+    else
+        logger -t magicq-usb "Mounted $dev ($fs) at $mountpoint with synchronous writes"
+    fi
 else
     logger -t magicq-usb "Failed to mount $dev ($fs)"
     exit 1
@@ -3447,7 +3476,7 @@ EOF
     write_file /etc/udev/rules.d/90-magicq-usb.rules 0644 <<'EOF'
 # Start a systemd unit for supported USB filesystem partitions. Mounting is
 # intentionally not performed inside udev.
-ACTION=="add", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition|disk", ENV{ID_BUS}=="usb", ENV{ID_FS_TYPE}=="vfat|exfat|ntfs", TAG+="systemd", ENV{SYSTEMD_WANTS}+="magicq-usb@%k.service"
+ACTION=="add", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition|disk", ENV{ID_BUS}=="usb", ENV{ID_FS_TYPE}=="vfat|exfat|ntfs|apfs", TAG+="systemd", ENV{SYSTEMD_WANTS}+="magicq-usb@%k.service"
 EOF
 
     udevadm control --reload-rules
@@ -3933,6 +3962,8 @@ final_checks() {
         die "NetworkManager Netplan renderer configuration is unavailable"
     command -v wmctrl >/dev/null || \
         die "MagicQ fullscreen control is unavailable: wmctrl is missing"
+    command -v fsapfsmount >/dev/null || \
+        die "read-only APFS support is unavailable: fsapfsmount is missing"
     desktop-file-validate "$TARGET_HOME"/Desktop/*.desktop
     desktop-file-validate /etc/wasalight/apps.d/*.desktop
     runuser -u "$TARGET_USER" -- test ! -w "$TARGET_HOME/Desktop" || \

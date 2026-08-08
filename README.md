@@ -633,10 +633,20 @@ Per modalità temporanea, attivazione automatica e sicurezza consultare la
 MagicQ cerca i supporti rimovibili nel percorso `/stick`. L'installer crea una
 sottodirectory distinta per ogni partizione USB supportata, usando il nome del
 dispositivo: per esempio `/stick/sdb1` e `/stick/sdc1`. FAT32, exFAT e NTFS
-possono quindi restare montati e visibili contemporaneamente nella vista Flash
-di MagicQ. Una seconda chiavetta non nasconde né sostituisce la prima.
+possono quindi restare montati in lettura/scrittura e visibili contemporaneamente
+nella vista Flash di MagicQ. Una seconda chiavetta non nasconde né sostituisce
+la prima.
 
-Le scritture vengono richieste in modalità sincrona per ridurre il rischio di
+APFS è supportato tramite il pacchetto Ubuntu `libfsapfs-utils`, ma
+**esclusivamente in lettura**. Serve per aprire o importare file provenienti da
+un Mac, compreso un installer MagicQ collocato nella radice di un volume APFS o
+in `packages/`; non può essere usato per salvare show. I volumi del container
+appaiono come sottodirectory `fsapfs1`, `fsapfs2`, ecc. I container cifrati che
+richiedono una password non vengono aperti automaticamente. Per lavorare tra
+macOS e Wasalight resta consigliato exFAT.
+
+Sui filesystem scrivibili, le scritture vengono richieste in modalità sincrona
+per ridurre il rischio di
 perdita dati. Prima di estrarre una chiavetta attendere comunque la conclusione
 del salvataggio; nessun filesystem può garantire l'integrità durante una
 rimozione fisica nel mezzo di una scrittura.
