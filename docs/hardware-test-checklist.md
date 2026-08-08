@@ -30,6 +30,8 @@ uno spettacolo.
 
 ## MagicQ e grafica
 
+- [ ] La riga `MAGICQ VER` del pannello e di `magicq-status` coincide con
+      `dpkg-query -W -f='${Version}\n' magicq` (per esempio `1.9.8.3`).
 - [ ] Autologin dell’utente `chamsys` e avvio automatico di X/Openbox.
 - [ ] Avvio automatico e riavvio di MagicQ dopo una chiusura inattesa.
 - [ ] La chiusura della sola finestra riavvia MagicQ entro pochi secondi.
@@ -71,9 +73,9 @@ uno spettacolo.
       utente e tipo di attivazione (`SESSION` oppure `AUTO`).
 - [ ] **Power off** e **Reboot** mostrano sempre la conferma; **Cancel** non
       esegue azioni e la conferma completa correttamente l'operazione scelta.
-- [ ] Il pannello destro mostra CURRENT, NEXT BOOT, MagicQ, supervisore, data,
-      log, rete/IP, touch, USB, VNC, SSH e audio con colori coerenti, senza
-      mostrare letteralmente sequenze `${color ...}`.
+- [ ] Il pannello destro mostra CURRENT, NEXT BOOT, versione e stato MagicQ,
+      supervisore, data, log, rete/IP, touch, USB, VNC, SSH e audio con colori
+      coerenti, senza mostrare letteralmente sequenze `${color ...}`.
 - [ ] Il pannello Tint2 resta sempre visibile, non mostra `desktop 1` e consente
       con un tocco di aprire il Hub o selezionare un’applicazione già aperta.
 - [ ] Le finestre attive e inattive mantengono colori scuri; il pulsante X è

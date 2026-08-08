@@ -1704,6 +1704,18 @@ else
     status_line "$red" 'NEXT BOOT' 'UNKNOWN'
 fi
 
+if command -v dpkg-query >/dev/null 2>&1; then
+    magicq_package=$(dpkg-query -W -f='${db:Status-Abbrev}\t${Version}' magicq \
+        2>/dev/null || true)
+    if [[ $magicq_package == ii*$'\t'* ]]; then
+        status_line "$blue" 'MAGICQ VER' "${magicq_package#*$'\t'}"
+    else
+        status_line "$red" 'MAGICQ VER' 'NOT INSTALLED'
+    fi
+else
+    status_line "$red" 'MAGICQ VER' 'UNKNOWN'
+fi
+
 if pgrep -x mqqt >/dev/null 2>&1; then
     status_line "$green" 'MAGICQ' 'RUNNING'
 else
@@ -3292,6 +3304,12 @@ EOF
 set -u
 version=$(cat /etc/wasalight/version 2>/dev/null || echo unknown)
 os=$(. /etc/os-release 2>/dev/null; printf '%s' "${PRETTY_NAME:-unknown}")
+magicq_version="not installed"
+if command -v dpkg-query >/dev/null 2>&1; then
+    magicq_package=$(dpkg-query -W -f='${db:Status-Abbrev}\t${Version}' magicq \
+        2>/dev/null || true)
+    [[ $magicq_package == ii*$'\t'* ]] && magicq_version=${magicq_package#*$'\t'}
+fi
 root_fs=$(findmnt -n -o FSTYPE / 2>/dev/null || echo unknown)
 if [[ $root_fs == overlay ]]; then mode=PROTECTED; else mode=MAINTENANCE; fi
 data="NOT MOUNTED"
@@ -3343,6 +3361,7 @@ OS:         $os
 MODE:       $mode
 ROOT:       $root_fs
 DATA:       $data
+MAGICQ VER: $magicq_version
 MAGICQ:     $magicq
 SUPERVISOR: $supervisor
 NETWORK:    $network

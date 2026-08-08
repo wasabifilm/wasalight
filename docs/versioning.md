@@ -42,6 +42,8 @@ utile per diagnosi e recupero.
 Il pannello mostra:
 
 - `VERSION`: versione realmente installata;
+- `MAGICQ VER`: versione del pacchetto MagicQ realmente installato, letta dal
+  database `dpkg` (è indipendente dalla versione Wasalight);
 - `UPDATE CODE MATCH`: versione installata uguale al checkout in
   `/data/system/wasalight`;
 - `UPDATE READY`: checkout persistente più recente del sistema installato;
@@ -51,6 +53,10 @@ Il pannello mostra:
 `CODE MATCH` confronta il sistema con il codice già scaricato, non interroga
 continuamente GitHub. Eseguire `sudo wasalight-update` per aggiornare il checkout,
 verificare la versione disponibile e installarla.
+
+Anche `magicq-status` riporta la versione installata alla voce `MAGICQ VER`. Se
+il pacchetto non è installato, il pannello mostra `NOT INSTALLED` invece di
+dedurre una versione dal nome del file `.deb`.
 
 ## Pubblicare una build
 

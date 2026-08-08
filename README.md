@@ -71,6 +71,10 @@ in `magicq-status`. `UPDATE READY` indica che il codice già scaricato in `/data
 è più recente della configurazione installata. Dettagli e procedura di incremento
 sono nella [guida al versionamento](docs/versioning.md).
 
+La riga `MAGICQ VER` mostra invece la versione del pacchetto MagicQ realmente
+installato secondo `dpkg`, per esempio `1.9.8.3`; non viene ricavata dal nome del
+file `.deb`.
+
 ## Prima dell’installazione
 
 1. Installare Ubuntu Server 24.04 LTS minimale su una macchina amd64.

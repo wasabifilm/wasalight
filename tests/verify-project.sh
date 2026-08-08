@@ -42,7 +42,11 @@ required_patterns=(
     '$DATA_MOUNT/system/installed-version'
     "status_line \"\$blue\" 'VERSION'"
     "status_line \"\$yellow\" 'UPDATE' \"READY · \$available_version\""
+    "status_line \"\$blue\" 'MAGICQ VER'"
+    "status_line \"\$red\" 'MAGICQ VER' 'NOT INSTALLED'"
+    "dpkg-query -W -f='\${db:Status-Abbrev}\\t\${Version}' magicq"
     'WASALIGHT:  $version'
+    'MAGICQ VER: $magicq_version'
     'record_installed_version'
     'add-apt-repository -y universe'
     'overlayroot="tmpfs:swap=0,recurse=0"'
