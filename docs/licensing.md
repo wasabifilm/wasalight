@@ -45,3 +45,8 @@ chiaro lo status open source del progetto.
 Il pacchetto proprietario ChamSys MagicQ non è contenuto nel repository e non è
 coperto dalla licenza Wasalight. Ogni utilizzatore deve procurarselo e rispettare
 separatamente le condizioni del produttore.
+
+Anche Bitfocus Companion e il tooling CompanionPi sono componenti esterni:
+l'opzione `--with-companion` li scarica dai repository ufficiali, ma non li
+incorpora nel repository Wasalight. Restano soggetti alle licenze e alle note di
+terze parti pubblicate da Bitfocus.

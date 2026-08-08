@@ -57,6 +57,11 @@ manualmente `/stick`, `/media` o un altro mountpoint prima di eseguire
 dispositivo, tipo e filesystem prodotte da `lsblk`, indipendentemente dall’`IFS`
 restrittivo usato dal resto dell’installer.
 
+Quando crea i bind persistenti, l’installer ricarica le unità generate da
+`/etc/fstab` prima del primo mount. I file root già persistenti non vengono
+sovrascritti: la copia iniziale usa `cp --update=none`, evitando anche il vecchio
+avviso di portabilità prodotto da `cp -n`.
+
 Dopo la prima installazione Wasalight dispone anche della lettura APFS tramite
 `libfsapfs-utils`. I volumi APFS non cifrati vengono esposti in sola lettura
 sotto `fsapfs1`, `fsapfs2`, ecc.; l’updater cerca il `.deb` anche nella radice e
@@ -147,6 +152,28 @@ sudo wasalight-update --without-ssh
 
 Senza queste opzioni viene conservato lo stato di abilitazione SSH esistente.
 La tastiera Onboard viene conservata automaticamente quando è già installata.
+
+Per installare Bitfocus Companion durante un aggiornamento Wasalight:
+
+```bash
+sudo wasalight-update --with-companion
+```
+
+L'opzione serve per la prima installazione. Dopo che Companion è presente, gli
+aggiornamenti normali lo riconoscono e ne conservano servizio e dati persistenti
+anche senza ripetere `--with-companion`. L'opzione non aggiorna automaticamente
+una versione Companion già installata: per quello usare il comando dedicato in
+MAINTENANCE descritto in `docs/companion.md`.
+
+Una console che possiede un updater precedente all'introduzione di questa
+opzione deve eseguire una sola volta i due passaggi seguenti:
+
+```bash
+sudo wasalight-update
+sudo wasalight-update --with-companion
+```
+
+Il primo comando installa il nuovo updater; il secondo abilita Companion.
 
 Se MagicQ non è installato e non viene trovato alcun `.deb` valido, il comando
 si ferma invece di creare silenziosamente una postazione incompleta. Per
