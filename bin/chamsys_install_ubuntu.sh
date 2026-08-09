@@ -2362,8 +2362,10 @@ window.inactive.border.color: #20252d
 window.inactive.client.color: #0b0e12
 
 window.label.text.justify: left
-padding.width: 10
-padding.height: 9
+# Openbox keeps title-button masks relatively small. Enlarge the click target
+# with decoration padding instead of using an oversized bitmap that is clipped.
+padding.width: 14
+padding.height: 14
 border.width: 1
 menu.items.active.bg: flat
 menu.items.active.bg.color: #30363d
@@ -2375,23 +2377,22 @@ menu.title.text.color: #ffffff
 EOF
 
     write_file /usr/share/themes/Wasalight/openbox-3/close.xbm 0644 <<'EOF'
-#define close_width 24
-#define close_height 24
+#define close_width 16
+#define close_height 16
 static unsigned char close_bits[] = {
-  0x03,0x00,0xc0,0x07,0x00,0xe0,0x0e,0x00,0x70,0x1c,0x00,0x38,
-  0x38,0x00,0x1c,0x70,0x00,0x0e,0xe0,0x00,0x07,0xc0,0x81,0x03,
-  0x80,0xc3,0x01,0x00,0xe7,0x00,0x00,0x7e,0x00,0x00,0x3c,0x00,
-  0x00,0x3c,0x00,0x00,0x7e,0x00,0x00,0xe7,0x00,0x80,0xc3,0x01,
-  0xc0,0x81,0x03,0xe0,0x00,0x07,0x70,0x00,0x0e,0x38,0x00,0x1c,
-  0x1c,0x00,0x38,0x0e,0x00,0x70,0x07,0x00,0xe0,0x03,0x00,0xc0 };
+  0x03,0xc0, 0x06,0x60, 0x0c,0x30, 0x18,0x18,
+  0x30,0x0c, 0x60,0x06, 0xc0,0x03, 0x80,0x01,
+  0xc0,0x03, 0x60,0x06, 0x30,0x0c, 0x18,0x18,
+  0x0c,0x30, 0x06,0x60, 0x03,0xc0, 0x01,0x80 };
 EOF
 
     # Keep the same clear X in all interaction states. Openbox recolours the
     # monochrome mask using the active/inactive/hover values in themerc.
-    for close_variant in \
-        close_hover.xbm close_pressed.xbm \
-        close_unfocused.xbm close_unfocused_hover.xbm \
-        close_unfocused_pressed.xbm; do
+    rm -f \
+        /usr/share/themes/Wasalight/openbox-3/close_unfocused.xbm \
+        /usr/share/themes/Wasalight/openbox-3/close_unfocused_hover.xbm \
+        /usr/share/themes/Wasalight/openbox-3/close_unfocused_pressed.xbm
+    for close_variant in close_hover.xbm close_pressed.xbm close_disabled.xbm; do
         install -m 0644 /usr/share/themes/Wasalight/openbox-3/close.xbm \
             "/usr/share/themes/Wasalight/openbox-3/$close_variant"
     done

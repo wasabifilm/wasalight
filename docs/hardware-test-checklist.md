@@ -72,7 +72,7 @@ uno spettacolo.
       sul bordo inferiore anche dopo un riavvio di MagicQ.
 - [ ] Openbox espone un solo desktop virtuale (`wmctrl -d` mostra una riga).
 - [ ] Il pulsante di chiusura Openbox mostra una X netta e il bersaglio touch è
-      alto circa 42 px; gli stati normale, inattivo, hover e pressione non
+      circa 44×44 px; gli stati normale, inattivo, hover e pressione non
       sostituiscono o fanno scomparire l'icona.
 - [ ] Il pannello Conky ha un fondo scuro semitrasparente e testo leggibile;
       avviando MagicQ fullscreen, Picom libera la finestra dal compositing.

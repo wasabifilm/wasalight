@@ -486,11 +486,12 @@ preferenze Openbox e le impostazioni di sistema generiche non sono esposte.
 
 Le finestre Openbox usano il tema scuro **Wasalight** sia quando sono attive sia
 quando sono in secondo piano. La barra del titolo ha spaziatura maggiorata e un
-pulsante **X** netto da 24 px con una zona di tocco ampia; al passaggio o alla pressione
-diventa rosso. I piccoli pulsanti minimizza/massimizza sono rimossi dalla barra:
+pulsante **X** netto da 16 px dentro una zona di tocco di circa 44×44 px; al
+passaggio o alla pressione diventa rosso. I piccoli pulsanti
+minimizza/massimizza sono rimossi dalla barra:
 le finestre restano gestibili dalla barra inferiore, più adatta al touchscreen.
 
-Nella scheda **Support** del Hub sono disponibili anche:
+Nella scheda **Support** del Control Center sono disponibili anche:
 
 - **IP Scanner**, che usa `arp-scan` sulle interfacce Ethernet/Wi-Fi connesse e
   mostra interfaccia, IP, MAC e produttore in una tabella aggiornabile;
