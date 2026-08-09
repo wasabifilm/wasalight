@@ -90,7 +90,7 @@ required_patterns=(
     'libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0'
     'libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0'
     'libasound2-data alsa-utils'
-    'openbox tint2 pcmanfm lxterminal lxrandr lxtask x11vnc procps wmctrl x11-utils'
+    'openbox tint2 picom pcmanfm lxterminal lxrandr lxtask x11vnc procps wmctrl x11-utils'
     'conky-all zenity libglib2.0-bin desktop-file-utils librsvg2-common'
     'python3 python3-gi gir1.2-gtk-3.0'
     'arp-scan iproute2'
@@ -168,7 +168,13 @@ required_patterns=(
     'background_color = #080b10 98'
     '/usr/share/themes/Wasalight/openbox-3/themerc'
     '<titleLayout>NLC</titleLayout>'
-    '#define close_width 16'
+    '#define close_width 24'
+    'close_unfocused_pressed.xbm'
+    '$TARGET_HOME/.config/picom/wasalight.conf'
+    'unredir-if-possible = true'
+    'picom --config "$HOME/.config/picom/wasalight.conf" --daemon'
+    'own_window_argb_value = 165'
+    'border_inner_margin = 16'
     '/etc/wasalight/apps.d/ip-scanner.desktop'
     '/etc/wasalight/apps.d/artnet-monitor.desktop'
     '/etc/wasalight/apps.d/system-monitor.desktop'
@@ -243,6 +249,13 @@ required_patterns=(
     'Icon=/usr/local/share/icons/wasalight/companion-web.svg'
     '/data/companion/browser/config'
     'XDG_CACHE_HOME="$runtime_base/wasalight-companion-browser-cache"'
+    '/usr/local/bin/wasalight-falkon-profile'
+    'plugin == "internal:adblock"'
+    'profile_marker="$profile_root/.wasalight-profile-$profile_schema"'
+    'set_ini_value Web-URL-Settings afterLaunch 1'
+    'set_ini_value Web-Browser-Settings DefaultZoomLevel 8'
+    "set_ini_value NavigationBar Layout 'button-backforward, button-reloadstop, button-home, locationbar, button-tools'"
+    '#navigationbar QToolButton'
     'falkon --profile wasalight-companion "$url"'
     'add,maximized_vert,maximized_horz'
     'web) exec /usr/local/bin/wasalight-companion-browser'
@@ -556,7 +569,8 @@ for embedded in \
     'companion-backup:/usr/local/sbin/wasalight-companion-backup' \
     'companion-update:/usr/local/sbin/wasalight-companion-update' \
     'companion-panel:/usr/local/bin/wasalight-companion-panel' \
-    'companion-browser:/usr/local/bin/wasalight-companion-browser'; do
+    'companion-browser:/usr/local/bin/wasalight-companion-browser' \
+    'falkon-profile:/usr/local/bin/wasalight-falkon-profile'; do
     output=${embedded%%:*}
     marker=${embedded#*:}
     awk -v marker="$marker" '
@@ -590,6 +604,71 @@ if grep -Fq '/data/companion/browser/cache' "$tmp_dir/companion-browser"; then
     fail "la cache Falkon non deve essere persistente in /data"
 fi
 
+falkon_profile_fixture="$tmp_dir/falkon-profile-fixture"
+mkdir -p "$falkon_profile_fixture"
+cat >"$falkon_profile_fixture/settings.ini" <<'EOF'
+[General]
+keep=true
+
+[Plugin-Settings]
+AllowedPlugins=internal:adblock, lib:KDEFrameworksIntegration.so
+
+[Other]
+keep=this-too
+EOF
+WASALIGHT_FALKON_PROFILE_ROOT="$falkon_profile_fixture" \
+    bash "$tmp_dir/falkon-profile"
+grep -Fq 'AllowedPlugins=lib:KDEFrameworksIntegration.so' \
+    "$falkon_profile_fixture/settings.ini" || \
+    fail "il profilo Falkon non conserva gli altri plugin"
+if grep -Fq 'internal:adblock' "$falkon_profile_fixture/settings.ini"; then
+    fail "il profilo Falkon non disattiva AdBlock"
+fi
+grep -Fq 'keep=this-too' "$falkon_profile_fixture/settings.ini" || \
+    fail "il profilo Falkon altera sezioni non correlate"
+grep -Fq 'homepage=http://127.0.0.1:8000' \
+    "$falkon_profile_fixture/settings.ini" || \
+    fail "il profilo Falkon non imposta Companion come pagina iniziale"
+grep -Fq 'afterLaunch=1' "$falkon_profile_fixture/settings.ini" || \
+    fail "il profilo Falkon ripristina ancora la sessione precedente"
+grep -Fq 'DefaultZoomLevel=8' "$falkon_profile_fixture/settings.ini" || \
+    fail "il profilo Falkon non usa lo zoom touch al 120 percento"
+grep -Fq 'hideTabsWithOneTab=true' "$falkon_profile_fixture/settings.ini" || \
+    fail "il profilo Falkon non nasconde la barra con una singola scheda"
+grep -Fq 'Layout=button-backforward, button-reloadstop, button-home, locationbar, button-tools' \
+    "$falkon_profile_fixture/settings.ini" || \
+    fail "la barra Falkon non usa il layout touch Wasalight"
+grep -Fq 'min-height: 46px' "$falkon_profile_fixture/userChrome.css" || \
+    fail "il tema Falkon non crea controlli touch sufficientemente grandi"
+[[ -e $falkon_profile_fixture/.wasalight-profile-1 ]] || \
+    fail "il profilo Falkon non registra l'inizializzazione dei default"
+
+# After the first seed, updates preserve operator preferences while continuing
+# to enforce the deliberate AdBlock exclusion.
+sed -i.bak 's/showStatusBar=false/showStatusBar=true/' \
+    "$falkon_profile_fixture/settings.ini"
+rm -f "$falkon_profile_fixture/settings.ini.bak"
+sed -i.bak 's/AllowedPlugins=lib:KDEFrameworksIntegration.so/AllowedPlugins=internal:adblock, lib:KDEFrameworksIntegration.so/' \
+    "$falkon_profile_fixture/settings.ini"
+rm -f "$falkon_profile_fixture/settings.ini.bak"
+WASALIGHT_FALKON_PROFILE_ROOT="$falkon_profile_fixture" \
+    bash "$tmp_dir/falkon-profile"
+grep -Fq 'showStatusBar=true' "$falkon_profile_fixture/settings.ini" || \
+    fail "un update Wasalight sovrascrive le preferenze Falkon dell'operatore"
+if grep -Fq 'internal:adblock' "$falkon_profile_fixture/settings.ini"; then
+    fail "un update Wasalight riattiva AdBlock"
+fi
+
+empty_falkon_profile="$tmp_dir/falkon-profile-empty"
+WASALIGHT_FALKON_PROFILE_ROOT="$empty_falkon_profile" \
+    bash "$tmp_dir/falkon-profile"
+grep -Fq 'AllowedPlugins=@Invalid()' "$empty_falkon_profile/settings.ini" || \
+    fail "un nuovo profilo Falkon abilita ancora AdBlock per default"
+grep -Fq 'showStatusBar=false' "$empty_falkon_profile/settings.ini" || \
+    fail "un nuovo profilo Falkon non applica i default Wasalight"
+[[ -s $empty_falkon_profile/userChrome.css ]] || \
+    fail "un nuovo profilo Falkon non installa il tema Wasalight"
+
 [[ -s "$PROJECT_DIR/docs/touchscreen.md" ]] || fail "guida touchscreen mancante"
 grep -Fq 'magicq-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
     fail "configurazione touchscreen non documentata"
@@ -614,6 +693,8 @@ grep -Fq 'Opzione sconosciuta' "$PROJECT_DIR/docs/companion.md" || \
     fail "migrazione dal vecchio updater a Companion non documentata"
 grep -Fq '/data/companion/browser' "$PROJECT_DIR/docs/companion.md" || \
     fail "profilo persistente Falkon non documentato"
+grep -Fq 'internal:adblock' "$PROJECT_DIR/docs/companion.md" || \
+    fail "disattivazione AdBlock Falkon non documentata"
 grep -Fq '## Bitfocus Companion opzionale' "$PROJECT_DIR/docs/hardware-test-checklist.md" || \
     fail "collaudo hardware Companion non documentato"
 [[ -s "$PROJECT_DIR/LICENSE" ]] || fail "Apache License 2.0 mancante"

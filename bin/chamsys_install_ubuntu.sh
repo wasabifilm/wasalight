@@ -458,7 +458,7 @@ install_packages() {
         libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0
         libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0
         libasound2-data alsa-utils
-        openbox tint2 pcmanfm lxterminal lxrandr lxtask x11vnc procps wmctrl x11-utils
+        openbox tint2 picom pcmanfm lxterminal lxrandr lxtask x11vnc procps wmctrl x11-utils
         conky-all zenity libglib2.0-bin desktop-file-utils librsvg2-common
         python3 python3-gi gir1.2-gtk-3.0 arp-scan iproute2
         network-manager network-manager-gnome wpasupplicant policykit-1 policykit-1-gnome
@@ -1964,6 +1964,7 @@ export XDG_DATA_HOME=/data/companion/browser/data
 runtime_base=${XDG_RUNTIME_DIR:-/tmp}
 export XDG_CACHE_HOME="$runtime_base/wasalight-companion-browser-cache"
 install -d -m 0700 "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME"
+/usr/local/bin/wasalight-falkon-profile
 
 falkon --profile wasalight-companion "$url" &
 browser_pid=$!
@@ -1977,6 +1978,243 @@ for _ in {1..30}; do
     sleep 0.2
 done
 wait "$browser_pid"
+EOF
+
+    write_file /usr/local/bin/wasalight-falkon-profile 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+profile_root=${WASALIGHT_FALKON_PROFILE_ROOT:-/data/companion/browser/config/falkon/profiles/wasalight-companion}
+if [[ -z ${WASALIGHT_FALKON_PROFILE_ROOT:-} && $(id -un) != chamsys ]]; then
+    echo "Configure the Falkon profile as the chamsys desktop user." >&2
+    exit 1
+fi
+
+install -d -m 0700 "$profile_root"
+settings_file="$profile_root/settings.ini"
+if [[ ! -e $settings_file ]]; then
+    printf '%s\n' \
+        '[Plugin-Settings]' \
+        'AllowedPlugins=@Invalid()' >"$settings_file"
+    chmod 0600 "$settings_file"
+else
+    temporary="${settings_file}.tmp.$$"
+    if ! awk '
+    function write_empty_list() {
+        print "AllowedPlugins=@Invalid()"
+    }
+    BEGIN {
+        in_plugins = 0
+        saw_group = 0
+        saw_key = 0
+    }
+    /^\[Plugin-Settings\][[:space:]]*$/ {
+        in_plugins = 1
+        saw_group = 1
+        saw_key = 0
+        print
+        next
+    }
+    /^\[/ {
+        if (in_plugins && !saw_key) {
+            write_empty_list()
+        }
+        in_plugins = 0
+    }
+    in_plugins && /^[[:space:]]*AllowedPlugins[[:space:]]*=/ {
+        value = $0
+        sub(/^[^=]*=/, "", value)
+        count = split(value, plugins, /,[[:space:]]*/)
+        output = ""
+        for (i = 1; i <= count; i++) {
+            plugin = plugins[i]
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", plugin)
+            if (plugin == "" || plugin == "internal:adblock" || plugin == "@Invalid()") {
+                continue
+            }
+            output = output (output == "" ? "" : ", ") plugin
+        }
+        print "AllowedPlugins=" (output == "" ? "@Invalid()" : output)
+        saw_key = 1
+        next
+    }
+    { print }
+    END {
+        if (in_plugins && !saw_key) {
+            write_empty_list()
+        }
+        if (!saw_group) {
+            if (NR > 0) {
+                print ""
+            }
+            print "[Plugin-Settings]"
+            write_empty_list()
+        }
+    }
+' "$settings_file" >"$temporary"; then
+        rm -f -- "$temporary"
+        echo "Unable to configure the Falkon Companion profile." >&2
+        exit 1
+    fi
+    mv -- "$temporary" "$settings_file"
+fi
+chmod 0600 "$settings_file"
+
+set_ini_value() {
+    local section=$1 key=$2 value=$3 temporary
+    temporary="${settings_file}.tmp.$$"
+    if ! awk -v section="$section" -v key="$key" -v value="$value" '
+        BEGIN {
+            in_section = 0
+            saw_section = 0
+            wrote_key = 0
+        }
+        $0 == "[" section "]" {
+            in_section = 1
+            saw_section = 1
+            print
+            next
+        }
+        /^\[/ {
+            if (in_section && !wrote_key) {
+                print key "=" value
+                wrote_key = 1
+            }
+            in_section = 0
+        }
+        in_section {
+            line = $0
+            sub(/^[[:space:]]*/, "", line)
+            if (index(line, key "=") == 1 || line ~ ("^" key "[[:space:]]*=")) {
+                print key "=" value
+                wrote_key = 1
+                next
+            }
+        }
+        { print }
+        END {
+            if (in_section && !wrote_key) {
+                print key "=" value
+            } else if (!saw_section) {
+                if (NR > 0) {
+                    print ""
+                }
+                print "[" section "]"
+                print key "=" value
+            }
+        }
+    ' "$settings_file" >"$temporary"; then
+        rm -f -- "$temporary"
+        echo "Unable to initialise the Falkon Companion profile." >&2
+        exit 1
+    fi
+    mv -- "$temporary" "$settings_file"
+}
+
+# Apply the Wasalight browser defaults once. Subsequent updates preserve all
+# operator changes; AdBlock remains the only setting enforced on every launch.
+profile_schema=1
+profile_marker="$profile_root/.wasalight-profile-$profile_schema"
+if [[ ! -e $profile_marker ]]; then
+    set_ini_value Web-URL-Settings homepage http://127.0.0.1:8000
+    set_ini_value Web-URL-Settings newTabUrl http://127.0.0.1:8000
+    set_ini_value Web-URL-Settings afterLaunch 1
+    set_ini_value Browser-View-Settings showStatusBar false
+    set_ini_value Browser-View-Settings instantBookmarksToolbar false
+    set_ini_value Browser-View-Settings showBookmarksToolbar false
+    set_ini_value Browser-View-Settings showNavigationToolbar true
+    set_ini_value Browser-View-Settings showMenubar false
+    set_ini_value Browser-View-Settings showProfileName false
+    set_ini_value Browser-Tabs-Settings hideTabsWithOneTab true
+    set_ini_value Browser-Tabs-Settings AskOnClosing false
+    set_ini_value Web-Browser-Settings DefaultZoomLevel 8
+    set_ini_value Web-Browser-Settings CheckUpdates false
+    set_ini_value Web-Browser-Settings CheckDefaultBrowser false
+    set_ini_value NavigationBar ShowSearchBar false
+    set_ini_value NavigationBar Layout 'button-backforward, button-reloadstop, button-home, locationbar, button-tools'
+
+    if [[ ! -e $profile_root/userChrome.css ]]; then
+        cat >"$profile_root/userChrome.css" <<'WASALIGHT_QSS'
+QWidget {
+    background-color: #11151b;
+    color: #f0f3f6;
+}
+
+#navigationbar {
+    background-color: #11151b;
+    border-bottom: 1px solid #30363d;
+    min-height: 58px;
+    spacing: 5px;
+}
+
+#navigationbar QToolButton {
+    background-color: #1c222b;
+    border: 1px solid #303842;
+    border-radius: 7px;
+    margin: 3px;
+    min-height: 46px;
+    min-width: 46px;
+    padding: 2px;
+}
+
+#navigationbar QToolButton:hover,
+#navigationbar QToolButton:pressed {
+    background-color: #303842;
+    border-color: #76bd22;
+}
+
+#locationbar {
+    background-color: #20262e;
+    border: 1px solid #3a424d;
+    border-radius: 7px;
+    color: #ffffff;
+    font-size: 16px;
+    min-height: 42px;
+    selection-background-color: #76bd22;
+    selection-color: #080b10;
+}
+
+QMenu {
+    background-color: #161b22;
+    border: 1px solid #3a424d;
+    color: #f0f3f6;
+}
+
+QMenu::item {
+    min-height: 38px;
+    padding: 4px 24px 4px 12px;
+}
+
+QMenu::item:selected {
+    background-color: #303842;
+    color: #ffffff;
+}
+
+QTabBar::tab {
+    background-color: #1c222b;
+    border: 1px solid #303842;
+    color: #f0f3f6;
+    min-height: 38px;
+    min-width: 120px;
+    padding: 3px 10px;
+}
+
+QTabBar::tab:selected {
+    border-bottom: 2px solid #76bd22;
+}
+
+QToolTip {
+    background-color: #20262e;
+    border: 1px solid #76bd22;
+    color: #ffffff;
+    padding: 4px;
+}
+WASALIGHT_QSS
+        chmod 0600 "$profile_root/userChrome.css"
+    fi
+
+    touch "$profile_marker"
+    chmod 0600 "$settings_file" "$profile_marker"
+fi
 EOF
 
     install -d -m 0755 /etc/wasalight/apps.d
@@ -2076,14 +2314,26 @@ menu.title.text.color: #ffffff
 EOF
 
     write_file /usr/share/themes/Wasalight/openbox-3/close.xbm 0644 <<'EOF'
-#define close_width 16
-#define close_height 16
+#define close_width 24
+#define close_height 24
 static unsigned char close_bits[] = {
-  0x03,0xc0, 0x07,0xe0, 0x0e,0x70, 0x1c,0x38,
-  0x38,0x1c, 0x70,0x0e, 0xe0,0x07, 0xc0,0x03,
-  0xc0,0x03, 0xe0,0x07, 0x70,0x0e, 0x38,0x1c,
-  0x1c,0x38, 0x0e,0x70, 0x07,0xe0, 0x03,0xc0 };
+  0x03,0x00,0xc0,0x07,0x00,0xe0,0x0e,0x00,0x70,0x1c,0x00,0x38,
+  0x38,0x00,0x1c,0x70,0x00,0x0e,0xe0,0x00,0x07,0xc0,0x81,0x03,
+  0x80,0xc3,0x01,0x00,0xe7,0x00,0x00,0x7e,0x00,0x00,0x3c,0x00,
+  0x00,0x3c,0x00,0x00,0x7e,0x00,0x00,0xe7,0x00,0x80,0xc3,0x01,
+  0xc0,0x81,0x03,0xe0,0x00,0x07,0x70,0x00,0x0e,0x38,0x00,0x1c,
+  0x1c,0x00,0x38,0x0e,0x00,0x70,0x07,0x00,0xe0,0x03,0x00,0xc0 };
 EOF
+
+    # Keep the same clear X in all interaction states. Openbox recolours the
+    # monochrome mask using the active/inactive/hover values in themerc.
+    for close_variant in \
+        close_hover.xbm close_pressed.xbm \
+        close_unfocused.xbm close_unfocused_hover.xbm \
+        close_unfocused_pressed.xbm; do
+        install -m 0644 /usr/share/themes/Wasalight/openbox-3/close.xbm \
+            "/usr/share/themes/Wasalight/openbox-3/$close_variant"
+    done
 
     write_file /usr/local/bin/wasalight-desktop-wallpaper 0755 <<'EOF'
 #!/usr/bin/env bash
@@ -2604,6 +2854,23 @@ else
 fi
 EOF
 
+    install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/picom"
+    write_file "$TARGET_HOME/.config/picom/wasalight.conf" 0644 <<'EOF'
+# Minimal compositor for Conky transparency. Fullscreen applications such as
+# MagicQ are unredirected to avoid compositing latency during a show.
+backend = "xrender";
+vsync = false;
+shadow = false;
+fading = false;
+active-opacity = 1.0;
+inactive-opacity = 1.0;
+frame-opacity = 1.0;
+detect-client-opacity = true;
+unredir-if-possible = true;
+use-damage = true;
+log-level = "warn";
+EOF
+
     write_file "$TARGET_HOME/.config/conky/wasalight.conf" 0644 <<'EOF'
 conky.config = {
     alignment = 'top_right',
@@ -2620,9 +2887,11 @@ conky.config = {
     own_window = true,
     own_window_type = 'normal',
     own_window_hints = 'undecorated,below,sticky,skip_taskbar,skip_pager',
+    own_window_transparent = false,
     own_window_argb_visual = true,
-    own_window_argb_value = 215,
+    own_window_argb_value = 165,
     own_window_colour = '#161b22',
+    border_inner_margin = 16,
     draw_borders = false,
     draw_outline = false,
     draw_shades = false,
@@ -3665,6 +3934,7 @@ wmctrl -n 1
 /usr/local/bin/wasalight-desktop-wallpaper || \
     logger -t wasalight-desktop "desktop wallpaper generation failed"
 pcmanfm --desktop --profile=default &
+picom --config "$HOME/.config/picom/wasalight.conf" --daemon
 conky --config="$HOME/.config/conky/wasalight.conf" --daemonize --pause=2
 tint2 -c "$HOME/.config/tint2/tint2rc" &
 nm-applet --indicator &
@@ -4385,6 +4655,7 @@ final_checks() {
         bash -n /usr/local/bin/wasalight-companion-update-terminal
         bash -n /usr/local/bin/wasalight-companion-panel
         bash -n /usr/local/bin/wasalight-companion-browser
+        bash -n /usr/local/bin/wasalight-falkon-profile
         command -v falkon >/dev/null 2>&1 || \
             die "Falkon Companion browser is unavailable"
         mountpoint -q /home/companion || \

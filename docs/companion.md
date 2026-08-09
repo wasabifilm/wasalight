@@ -77,10 +77,32 @@ Se il servizio è fermo, propone di avviarlo per la sessione. La finestra viene
 massimizzata lasciando visibile Tint2, quindi resta possibile cambiare
 applicazione o chiuderla con il grande pulsante del tema Wasalight.
 
+Il profilo dedicato viene inizializzato con un'interfaccia scura e semplificata
+per il touch: barra di navigazione alta, pulsanti grandi per indietro/avanti,
+ricarica e home, campo indirizzo sempre visibile, barra dei preferiti e barra di
+stato nascoste. La barra delle schede scompare quando ne è aperta una sola. Home
+e nuova scheda puntano all'interfaccia Companion locale; all'avvio non viene
+ripristinata la sessione precedente. Lo zoom predefinito è 120%, il livello
+nativo Falkon più vicino al 125% inizialmente previsto.
+
+Questi valori e `userChrome.css` vengono applicati una sola volta, al primo
+avvio del profilo Wasalight. Gli aggiornamenti successivi conservano le scelte
+dell'operatore. Per distribuire intenzionalmente un nuovo schema del profilo è
+necessario incrementare `profile_schema` nello script di installazione; non si
+deve cancellare il profilo dell'utente. Falkon resta massimizzato, non in vero
+fullscreen, così Tint2 rimane sempre accessibile sul touchscreen.
+
 Il profilo, i cookie e le preferenze del browser restano in
 `/data/companion/browser`; la cache viene invece collocata nella directory
 runtime temporanea e viene persa al riavvio. Falkon viene installato soltanto
 quando Companion è richiesto oppure è già presente.
+
+Il profilo dedicato mantiene AdBlock disattivato. Wasalight rimuove soltanto il
+plugin interno `internal:adblock` dall'elenco Falkon e conserva eventuali altri
+plugin scelti dall'operatore. Non vengono cancellati file del pacchetto Ubuntu e
+gli altri profili Falkon non vengono modificati. Questa è l'unica preferenza
+riapplicata a ogni apertura del browser; tema, zoom e disposizione dei comandi
+restano invece modificabili dall'operatore dopo l'inizializzazione.
 
 Comandi disponibili:
 

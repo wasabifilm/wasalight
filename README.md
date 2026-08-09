@@ -404,7 +404,10 @@ Sul lato destro Conky mostra un pannello aggiornato ogni due secondi con:
 
 Verde significa operativo, giallo indica uno stato fermo o non collegato ma non
 necessariamente errato, rosso richiede attenzione. Il pannello esegue solo
-letture, non produce log e non scrive periodicamente su `/data`.
+letture, non produce log e non scrive periodicamente su `/data`. Il fondo scuro
+è semitrasparente grazie a una configurazione Picom minimale, senza ombre o
+animazioni; le applicazioni fullscreen vengono escluse automaticamente dal
+compositing per non aggiungere latenza a MagicQ.
 
 Il clic destro sullo sfondo continua ad aprire il menu Openbox. I pulsanti sono
 visibili quando MagicQ è chiuso, in particolare durante la modalità
@@ -465,7 +468,7 @@ preferenze Openbox e le impostazioni di sistema generiche non sono esposte.
 
 Le finestre Openbox usano il tema scuro **Wasalight** sia quando sono attive sia
 quando sono in secondo piano. La barra del titolo ha spaziatura maggiorata e un
-pulsante **X** da 16 px con una zona di tocco ampia; al passaggio o alla pressione
+pulsante **X** netto da 24 px con una zona di tocco ampia; al passaggio o alla pressione
 diventa rosso. I piccoli pulsanti minimizza/massimizza sono rimossi dalla barra:
 le finestre restano gestibili dalla barra inferiore, più adatta al touchscreen.
 

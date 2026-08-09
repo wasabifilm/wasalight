@@ -71,6 +71,11 @@ uno spettacolo.
 - [ ] MagicQ parte senza barra del titolo; Tint2 resta visibile e utilizzabile
       sul bordo inferiore anche dopo un riavvio di MagicQ.
 - [ ] Openbox espone un solo desktop virtuale (`wmctrl -d` mostra una riga).
+- [ ] Il pulsante di chiusura Openbox mostra una X netta e il bersaglio touch è
+      alto circa 42 px; gli stati normale, inattivo, hover e pressione non
+      sostituiscono o fanno scomparire l'icona.
+- [ ] Il pannello Conky ha un fondo scuro semitrasparente e testo leggibile;
+      avviando MagicQ fullscreen, Picom libera la finestra dal compositing.
 - [ ] Con MagicQ fermo, gli otto pulsanti desktop hanno icone grandi e leggibili
       al touch e si avviano con un solo tocco senza mostrare «Apri con…».
 - [ ] `chamsys` non può cancellare, rinominare o spostare i launcher desktop.
@@ -151,6 +156,14 @@ uno spettacolo.
       funzionano correttamente nel Falkon fornito da Ubuntu 24.04.
 - [ ] Preferenze e cookie Falkon sopravvivono in `/data/companion/browser`, ma
       la cache sotto la directory runtime scompare al riavvio.
+- [ ] Nel profilo Companion, Falkon mostra AdBlock disattivato; riavvio del
+      browser e update Wasalight non lo riattivano e non rimuovono altri plugin.
+- [ ] Falkon usa il tema scuro, pulsanti touch grandi e zoom 120%; campo indirizzo
+      e Tint2 restano visibili, mentre preferiti, stato e la barra con una sola
+      scheda sono nascosti.
+- [ ] Chiudendo e riaprendo Falkon compare la home Companion senza ripristinare
+      le vecchie schede. Dopo aver cambiato una preferenza, un update Wasalight
+      non la riporta al valore iniziale.
 - [ ] Start, stop e restart dal Hub funzionano in SHOW senza chiedere password;
       backup e update vengono invece rifiutati fino al riavvio in MAINTENANCE.
 - [ ] Un backup valido compare in `/data/companion/backups` e l'aggiornamento
