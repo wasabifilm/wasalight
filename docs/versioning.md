@@ -1,5 +1,8 @@
 # Versionamento Wasalight
 
+La prima base supportata del progetto è `2026.08.09.6`. Versioni e prototipi
+precedenti non fanno parte del percorso di aggiornamento supportato.
+
 ## Formato
 
 Wasalight usa un numero CalVer nel formato:
@@ -54,7 +57,7 @@ Il pannello mostra:
 continuamente GitHub. Eseguire `sudo wasalight-update` per aggiornare il checkout,
 verificare la versione disponibile e installarla.
 
-Anche `magicq-status` riporta la versione installata alla voce `MAGICQ VER`. Se
+Anche `wasalight-status` riporta la versione installata alla voce `MAGICQ VER`. Se
 il pacchetto non è installato, il pannello mostra `NOT INSTALLED` invece di
 dedurre una versione dal nome del file `.deb`.
 

@@ -70,7 +70,7 @@ required_patterns=(
     '$TARGET_HOME/Documents/MagicQ'
     '$TARGET_HOME/.local/share'
     '/etc/NetworkManager/system-connections'
-    'magicq-usb@%k.service'
+    'wasalight-usb@%k.service'
     'discover_magicq_from_usb'
     'ID_BUS=usb'
     '/run/wasalight-usb-scan'
@@ -81,9 +81,9 @@ required_patterns=(
     'mountpoint="$base/$dev_name"'
     'state="$state_dir/$dev_name.mount"'
     '[[ $(dpkg-deb -f "$DEB_PATH" Package) == magicq ]]'
-    'magicq-maintenance'
-    'magicq-protect'
-    'magicq-status'
+    'wasalight-maintenance'
+    'wasalight-protect'
+    'wasalight-status'
     'OS:         $os'
     'xinput libinput-tools'
     'libglu1-mesa libgl1-mesa-dri'
@@ -116,22 +116,22 @@ required_patterns=(
     'audio video plugdev sudo adm systemd-journal'
     'passwd "$TARGET_USER"'
     '/data/system/touchscreen/config'
-    'magicq-touch-status'
-    'magicq-touch-config'
-    'magicq-touch-watch'
-    'magicq-vnc-start'
-    'magicq-vnc-stop'
+    'wasalight-touch-status'
+    'wasalight-touch-config'
+    'wasalight-touch-watch'
+    'wasalight-vnc-start'
+    'wasalight-vnc-stop'
     'magicq-fullscreen-watch'
-    'magicq-audio-test'
+    'wasalight-audio-test'
     'wmctrl -n 1'
     '/usr/local/bin/wasalight-desktop-wallpaper'
     'wallpaper_mode=stretch'
     'wallpapers_configured=1'
     'desktop_bg=#080b10'
     'pcmanfm --desktop --profile=default'
-    '$TARGET_HOME/Desktop/Start-MagicQ.desktop'
-    '$TARGET_HOME/Desktop/Stop-MagicQ.desktop'
-    '$TARGET_HOME/Desktop/Wasalight-Hub.desktop'
+    '$TARGET_HOME/Desktop/MagicQ-Start.desktop'
+    '$TARGET_HOME/Desktop/MagicQ-Stop.desktop'
+    '$TARGET_HOME/Desktop/Wasalight-Control.desktop'
     '$TARGET_HOME/Desktop/Files.desktop'
     '$TARGET_HOME/Desktop/VNC.desktop'
     '$TARGET_HOME/Desktop/SSH.desktop'
@@ -161,7 +161,7 @@ required_patterns=(
     'taskbar_name = 0'
     'autohide = 0'
     'strut_policy = follow_size'
-    'launcher_item_app = $TARGET_HOME/Desktop/Wasalight-Hub.desktop'
+    'launcher_item_app = $TARGET_HOME/Desktop/Wasalight-Control.desktop'
     'launcher_item_app = $TARGET_HOME/Desktop/Files.desktop'
     'quick_exec=1'
     'chown -R root:root "$TARGET_HOME/Desktop"'
@@ -200,7 +200,7 @@ required_patterns=(
     'screen_height * 0.24'
     'wasalight-companion-launcher magichd'
     'wasalight-companion-launcher magicvis'
-    'magicq-vnc-password'
+    'wasalight-vnc-password'
     'cleanup_candidates=(pollinate os-prober)'
     'purge_safe_unused_packages'
     'apt-get autoremove --purge -y'
@@ -222,7 +222,7 @@ required_patterns=(
     '/data/log/wasalight-magicq-console.log /data/log/wasalight-magicq-session.log'
     'size 5M'
     'rotate 5'
-    'magicq-logrotate.timer'
+    'wasalight-logrotate.timer'
     'LOGS:       $logs'
     'unmanaged: $unmanaged_devices'
     'magicq-start'
@@ -363,23 +363,23 @@ autoremove_line=$(grep -n 'apt-get autoremove --purge -y' \
     fail "autoremove viene eseguito prima della pulizia storage-aware"
 
 helpers=(
-    /usr/local/libexec/magicq-usb-mount
-    /usr/local/libexec/magicq-usb-unmount
-    /usr/local/libexec/magicq-set-mode
-    /usr/local/sbin/magicq-maintenance
-    /usr/local/sbin/magicq-protect
-    /usr/local/bin/magicq-status
+    /usr/local/libexec/wasalight-usb-mount
+    /usr/local/libexec/wasalight-usb-unmount
+    /usr/local/libexec/wasalight-set-mode
+    /usr/local/sbin/wasalight-maintenance
+    /usr/local/sbin/wasalight-protect
+    /usr/local/bin/wasalight-status
     /usr/local/bin/magicq-session
     /usr/local/sbin/magicq-root-launcher
     /usr/local/sbin/magicq-root-stop
     /usr/local/bin/magicq-start
     /usr/local/bin/magicq-stop
-    /usr/local/bin/magicq-touch
-    /usr/local/bin/magicq-vnc-password
-    /usr/local/bin/magicq-vnc-start
-    /usr/local/bin/magicq-vnc-stop
+    /usr/local/bin/wasalight-touch
+    /usr/local/bin/wasalight-vnc-password
+    /usr/local/bin/wasalight-vnc-start
+    /usr/local/bin/wasalight-vnc-stop
     /usr/local/bin/magicq-fullscreen-watch
-    /usr/local/bin/magicq-audio-test
+    /usr/local/bin/wasalight-audio-test
     /usr/local/bin/wasalight-power
     /usr/local/sbin/wasalight-power-control
     /usr/local/bin/wasalight-desktop-status
@@ -390,7 +390,6 @@ helpers=(
     /usr/local/sbin/wasalight-update
     /usr/local/libexec/wasalight-update-session
     /usr/local/bin/wasalight-update-terminal
-    /usr/local/bin/wasalight-hub
     /usr/local/bin/wasalight-control
     /usr/local/bin/wasalight-terminal-tool
     /usr/local/sbin/wasalight-app-register
@@ -447,7 +446,7 @@ if grep -Fq 'setpriv' "$tmp_dir/magicq-root-launcher"; then
 fi
 grep -Fq 'chamsys ALL=(root) NOPASSWD:' "$INSTALLER" || \
     fail "il launcher MagicQ non dispone della regola sudo controllata"
-if grep -Fq '/run/magicq-usb.device' "$INSTALLER"; then
+if grep -Fq '/run/wasalight-usb.device' "$INSTALLER"; then
     fail "la vecchia gestione USB a dispositivo singolo è ancora presente"
 fi
 grep -Fq 'LD_LIBRARY_PATH=/opt/magicq/lib' "$INSTALLER" || \
@@ -456,7 +455,7 @@ grep -Fq 'wmctrl -ir "$window_id" -b add,fullscreen' \
     "$tmp_dir/magicq-fullscreen-watch" || \
     fail "MagicQ non viene portato automaticamente in fullscreen"
 grep -Fq 'speaker-test -D default -c 2 -t wav -l 1' \
-    "$tmp_dir/magicq-audio-test" || \
+    "$tmp_dir/wasalight-audio-test" || \
     fail "il test audio ALSA non verifica il dispositivo predefinito"
 grep -Fq 'desktop_icon_size=64' "$INSTALLER" || \
     fail "i pulsanti desktop non sono dimensionati per l'uso touch"
@@ -466,9 +465,9 @@ grep -Fq 'systemctl poweroff' "$tmp_dir/wasalight-power-control" || \
     fail "il controllo di alimentazione non gestisce lo spegnimento"
 grep -Fq 'systemctl reboot' "$tmp_dir/wasalight-power-control" || \
     fail "il controllo di alimentazione non gestisce il riavvio"
-grep -Fq 'magicq-vnc-start' "$tmp_dir/wasalight-vnc-toggle" || \
+grep -Fq 'wasalight-vnc-start' "$tmp_dir/wasalight-vnc-toggle" || \
     fail "il pulsante VNC non avvia la sessione condivisa"
-grep -Fq 'magicq-vnc-stop' "$tmp_dir/wasalight-vnc-toggle" || \
+grep -Fq 'wasalight-vnc-stop' "$tmp_dir/wasalight-vnc-toggle" || \
     fail "il pulsante VNC non ferma la sessione condivisa"
 grep -Fq 'wasalight-ssh-control start' "$tmp_dir/wasalight-ssh-toggle" || \
     fail "il pulsante SSH non avvia il servizio controllato"
@@ -481,7 +480,7 @@ grep -Fq 'systemctl stop ssh.service' "$tmp_dir/wasalight-ssh-control" || \
 grep -Fq 'merge --ff-only FETCH_HEAD' "$tmp_dir/wasalight-update" || \
     fail "l'aggiornamento Wasalight non impone un avanzamento Git sicuro"
 grep -Fq 'cmp -s -- "$source" "$destination"' "$tmp_dir/wasalight-update" || \
-    fail "la migrazione del pacchetto MagicQ non verifica la copia"
+    fail "la copia persistente del pacchetto MagicQ non viene verificata"
 grep -Fq 'findmnt -rn -o TARGET' "$tmp_dir/wasalight-update" || \
     fail "l'updater non controlla le USB attualmente montate"
 grep -Fq 'find "$usb_mount" -maxdepth 1' "$tmp_dir/wasalight-update" || \
@@ -554,28 +553,6 @@ fi
 grep -Fq 'write_file "$TARGET_HOME/Desktop/Files.desktop"' "$INSTALLER" || \
     fail "il File Manager non è disponibile sul desktop"
 
-hub_script="$tmp_dir/wasalight-hub.py"
-awk '/write_file \/usr\/local\/libexec\/wasalight-hub.py / { capture=1; next }
-     capture && /^PYEOF$/ { exit }
-     capture { print }' "$INSTALLER" >"$hub_script"
-[[ -s $hub_script ]] || fail "Wasalight Hub non è estraibile dall'installer"
-python3 -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' \
-    "$hub_script"
-grep -Fq '/data/system/apps.d/*.desktop' "$hub_script" || \
-    fail "Wasalight Hub non legge il registro applicazioni persistente"
-grep -Fq 'magicvis|magichd' "$hub_script" || \
-    fail "Wasalight Hub non rileva i companion ChamSys conosciuti"
-grep -Fq '"path": item.get("Path", "").strip() or None' "$hub_script" || \
-    fail "Wasalight Hub ignora la directory Path dei launcher"
-grep -Fq 'cwd=item["path"]' "$hub_script" || \
-    fail "Wasalight Hub non avvia i companion dalla directory richiesta"
-grep -Fq '/usr/local/sbin/wasalight-companion-launcher' "$hub_script" || \
-    fail "Wasalight Hub non usa il launcher root dedicato per MagicHD/MagicVis"
-grep -Fq 'except ValueError' "$hub_script" || \
-    fail "Wasalight Hub non gestisce i booleani desktop non validi"
-grep -Fq 'wasalight-hub.log' "$tmp_dir/wasalight-hub" || \
-    fail "Wasalight Hub non conserva gli errori di avvio"
-
 plugin_command="$PROJECT_DIR/libexec/wasalight-plugin"
 plugin_admin="$PROJECT_DIR/libexec/wasalight-plugin-admin"
 control_center="$PROJECT_DIR/ui/wasalight-control-center.py"
@@ -600,6 +577,15 @@ grep -Fq 'PLUGIN_COMMAND, "install"' "$control_center" || \
     fail "Wasalight Control non permette di installare plugin disponibili"
 grep -Fq 'mode != "MAINTENANCE"' "$control_center" || \
     fail "Wasalight Control consente modifiche plugin persistenti in SHOW"
+grep -Fq 'flock -n 9' "$tmp_dir/wasalight-control" || \
+    fail "Wasalight Control non impedisce istanze multiple"
+grep -Fq 'wmctrl -a "Wasalight Control Center"' "$tmp_dir/wasalight-control" || \
+    fail "un secondo avvio di Control non porta in primo piano la finestra esistente"
+grep -Fq 'wasalight-control.log' "$tmp_dir/wasalight-control" || \
+    fail "Wasalight Control non conserva gli errori di avvio"
+grep -Fq 'threading.Thread(target=self.refresh_worker, daemon=True).start()' \
+    "$control_center" || \
+    fail "Wasalight Control aggiorna ancora lo stato nel thread GTK"
 
 plugin_fixture="$tmp_dir/plugin-root"
 plugin_state_fixture="$tmp_dir/plugin-state"
@@ -755,9 +741,8 @@ grep -Fq 'showStatusBar=false' "$empty_falkon_profile/settings.ini" || \
     fail "un nuovo profilo Falkon non installa il tema Wasalight"
 
 [[ -s "$PROJECT_DIR/docs/touchscreen.md" ]] || fail "guida touchscreen mancante"
-grep -Fq 'magicq-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
+grep -Fq 'wasalight-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
     fail "configurazione touchscreen non documentata"
-[[ -s "$PROJECT_DIR/docs/migration-24.04.md" ]] || fail "guida migrazione 24.04 mancante"
 grep -Fq '/stick/<dispositivo>' "$PROJECT_DIR/packages/README.md" || \
     fail "aggiornamento MagicQ da USB non documentato in packages/README.md"
 [[ -s "$PROJECT_DIR/docs/vnc.md" ]] || fail "guida VNC mancante"
@@ -774,8 +759,6 @@ grep -Fq '127.0.0.1' "$PROJECT_DIR/docs/companion.md" || \
     fail "collegamento locale MagicQ/Companion non documentato"
 grep -Fq 'wasalight-update --with-companion' "$PROJECT_DIR/docs/companion.md" || \
     fail "installazione Companion tramite updater non documentata"
-grep -Fq 'Opzione sconosciuta' "$PROJECT_DIR/docs/companion.md" || \
-    fail "migrazione dal vecchio updater a Companion non documentata"
 grep -Fq '/data/companion/browser' "$PROJECT_DIR/docs/companion.md" || \
     fail "profilo persistente Falkon non documentato"
 grep -Fq 'internal:adblock' "$PROJECT_DIR/docs/companion.md" || \
@@ -803,8 +786,27 @@ if grep -Fq 'plymouth-set-default-theme' "$INSTALLER"; then
 fi
 grep -Fq 'readlink -f /usr/share/plymouth/themes/default.plymouth' "$INSTALLER" || \
     fail "il tema Plymouth attivo non viene verificato tramite alternatives"
-grep -Fq 'previous_default_sha256=1a063958609eb258b14679213e0739cdca87cf4a4f0669d5ddc41e19a208a5d1' "$INSTALLER" || \
-    fail "migrazione del precedente logo Plymouth mancante"
+if grep -Eq -- '--chamsys-admin|--purge-cloud-init|previous_default_sha256' "$INSTALLER" || \
+   grep -Fq '/home/*/wasalight/packages/*.deb' "$INSTALLER"; then
+    fail "l'installer contiene ancora compatibilità con versioni Wasalight precedenti"
+fi
+if grep -Fq 'wasalight-hub' "$INSTALLER" || \
+   [[ -e "$PROJECT_DIR/docs/migration-24.04.md" ]]; then
+    fail "la prima base contiene ancora componenti o guide delle versioni precedenti"
+fi
+for old_command in \
+    magicq-status magicq-maintenance magicq-protect magicq-touch \
+    magicq-vnc magicq-audio-test magicq-set-mode magicq-usb magicq-logrotate; do
+    if grep -Fq "$old_command" "$INSTALLER"; then
+        fail "nome comando non uniforme ancora presente: $old_command"
+    fi
+done
+for label in '"Dashboard": "Stato"' '"Services": "Servizi"' \
+    '"Applications": "Applicazioni"' '"Support": "Supporto"' \
+    'Gtk.Button(label="Aggiorna")' 'Gtk.Button(label="Chiudi")'; do
+    grep -Fq "$label" "$control_center" || \
+        fail "etichetta Control non uniformata: $label"
+done
 python3 - "$PROJECT_DIR/assets/branding/boot-logo.png" <<'PY' || fail "logo Plymouth predefinito non valido"
 import struct
 import sys
@@ -928,16 +930,16 @@ esac
 EOF
 
 chmod +x "$mock_bin"/*
-ln -s "$tmp_dir/magicq-touch" "$tmp_dir/magicq-touch-status"
-ln -s "$tmp_dir/magicq-touch" "$tmp_dir/magicq-touch-config"
+ln -s "$tmp_dir/wasalight-touch" "$tmp_dir/wasalight-touch-status"
+ln -s "$tmp_dir/wasalight-touch" "$tmp_dir/wasalight-touch-config"
 
 PATH="$mock_bin:$PATH" MAGICQ_TOUCH_CONFIG="$touch_config" \
-    TOUCH_TEST_LOG="$touch_log" bash "$tmp_dir/magicq-touch-status" --summary | \
+    TOUCH_TEST_LOG="$touch_log" bash "$tmp_dir/wasalight-touch-status" --summary | \
     grep -Fq '1 detected; mode: auto; target: ready' || \
     fail "diagnostica touchscreen simulata non riuscita"
 
 PATH="$mock_bin:$PATH" MAGICQ_TOUCH_CONFIG="$touch_config" \
-    TOUCH_TEST_LOG="$touch_log" bash "$tmp_dir/magicq-touch-config" \
+    TOUCH_TEST_LOG="$touch_log" bash "$tmp_dir/wasalight-touch-config" \
     set 'Test Touch' HDMI-1 right
 
 grep -Fq 'MODE=manual' "$touch_config" || fail "modalita touch non salvata"
@@ -982,13 +984,13 @@ EOF
 chmod +x "$vnc_mock_bin"/*
 vnc_env=(
     PATH="$vnc_mock_bin:$PATH"
-    MAGICQ_VNC_CONFIG_DIR="$vnc_config_dir"
+    WASALIGHT_VNC_CONFIG_DIR="$vnc_config_dir"
     MAGICQ_VNC_RUNTIME_DIR="$vnc_runtime_dir"
     DISPLAY=:0
     XAUTHORITY="$tmp_dir/test.Xauthority"
 )
 
-vnc_start_output=$(env "${vnc_env[@]}" bash "$tmp_dir/magicq-vnc-start" --lan) || \
+vnc_start_output=$(env "${vnc_env[@]}" bash "$tmp_dir/wasalight-vnc-start" --lan) || \
     fail "avvio VNC simulato non riuscito: $vnc_start_output"
 grep -Fq 'vnc://192.0.2.10:5900' <<<"$vnc_start_output" || \
     fail "indirizzo VNC inatteso: $vnc_start_output"
@@ -996,7 +998,7 @@ grep -Fq 'vnc://192.0.2.10:5900' <<<"$vnc_start_output" || \
 vnc_test_pid=$(<"$vnc_runtime_dir/wasalight-x11vnc.pid")
 kill -0 "$vnc_test_pid" 2>/dev/null || fail "processo VNC simulato non attivo"
 
-vnc_stop_output=$(env "${vnc_env[@]}" bash "$tmp_dir/magicq-vnc-stop") || \
+vnc_stop_output=$(env "${vnc_env[@]}" bash "$tmp_dir/wasalight-vnc-stop") || \
     fail "arresto VNC simulato non riuscito: $vnc_stop_output"
 grep -Fq 'VNC stopped.' <<<"$vnc_stop_output" || \
     fail "risposta arresto VNC inattesa: $vnc_stop_output"

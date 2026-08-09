@@ -34,10 +34,6 @@ La prima installazione può essere richiesta anche tramite l'updater Wasalight:
 sudo wasalight-update --with-companion
 ```
 
-Se l'updater già installato sulla console risponde `Opzione sconosciuta`, prima
-eseguire `sudo wasalight-update` senza opzioni e poi ripetere il comando sopra.
-Questo passaggio è necessario una sola volta per aggiornare l'updater stesso.
-
 L'opzione è necessaria soltanto per la prima installazione. I successivi update
 Wasalight riconoscono `/opt/companion`, mantengono il servizio e non aggiornano
 Companion automaticamente.
@@ -68,7 +64,7 @@ perdono. Il log viene ruotato insieme agli altri log Wasalight.
 
 ## Wasalight Control e comandi
 
-La scheda **Services** di Wasalight Control mostra indirizzo,
+La scheda **Servizi** di Wasalight Control mostra indirizzo,
 versione e stato, permette di aprire l'interfaccia locale e di avviare, fermare
 o riavviare il servizio.
 
@@ -114,7 +110,7 @@ sudo wasalight-companion-backup
 sudo wasalight-companion-update
 ```
 
-Start/stop/restart sono disponibili anche in SHOW. Backup e aggiornamento si
+Avvio, arresto e riavvio sono disponibili anche in SHOW. Backup e aggiornamento si
 rifiutano invece di funzionare quando `/` è un overlay: entrare prima in
 MAINTENANCE. Il backup arresta brevemente il servizio, archivia home e
 configurazione, poi ripristina lo stato precedente.
@@ -149,7 +145,7 @@ della versione target deve quindi passare da una nuova build Wasalight e dai
 relativi test.
 
 La web UI sulla porta `8000` deve essere esposta soltanto su una LAN show
-fidata. Le azioni amministrative del Hub passano attraverso wrapper con
+fidata. Le azioni amministrative di Wasalight Control passano attraverso wrapper con
 argomenti limitati; non viene concesso un `sudo systemctl` generico.
 
 Bitfocus raccomanda Chrome e indica che altri browser aggiornati dovrebbero

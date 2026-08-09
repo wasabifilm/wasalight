@@ -4,7 +4,7 @@ Wasalight usa `x11vnc` per condividere la sessione Xorg/Openbox esistente
 dell'utente `chamsys`. Non crea un secondo desktop e permette quindi di vedere
 esattamente ciò che appare sul monitor della postazione MagicQ.
 
-Dal desktop touch usare il pulsante **VNC** oppure **Wasalight Control → Services**.
+Dal desktop touch usare il pulsante **VNC** oppure **Wasalight Control → Servizi**.
 Lo stesso pulsante avvia la condivisione quando è spenta e
 propone di fermarla quando è già attiva. Al primo utilizzo apre un terminale
 dedicato per impostare la password senza inserirla negli argomenti dei processi
@@ -14,7 +14,7 @@ o nei log.
 
 - VNC è disabilitato per impostazione predefinita.
 - Non esiste un servizio systemd VNC e non viene eseguito alcun avvio automatico.
-- Il processo termina con `magicq-vnc-stop` o al riavvio della macchina.
+- Il processo termina con `wasalight-vnc-stop` o al riavvio della macchina.
 - L'accesso richiede una password VNC distinta dalla password Linux.
 - La password è salvata con permessi `0600` in `/data/system/vnc/passwd`.
 - PID e log sono conservati soltanto sotto `/run/user/...` oppure `/tmp`.
@@ -28,7 +28,7 @@ terminata l'assistenza.
 Aprire un terminale nella sessione grafica `chamsys` ed eseguire:
 
 ```bash
-magicq-vnc-start
+wasalight-vnc-start
 ```
 
 Al primo avvio viene chiesta la password VNC. Il comando stampa un indirizzo
@@ -47,7 +47,7 @@ Se Wasalight è stato installato con `--with-ssh`, avviare VNC in ascolto
 soltanto sull'interfaccia locale:
 
 ```bash
-magicq-vnc-start --localhost
+wasalight-vnc-start --localhost
 ```
 
 Sul computer remoto creare il tunnel, sostituendo utente e indirizzo:
@@ -69,13 +69,13 @@ In questa configurazione il traffico attraversa il tunnel SSH cifrato.
 Controllare lo stato generale:
 
 ```bash
-magicq-status
+wasalight-status
 ```
 
 Arrestare VNC:
 
 ```bash
-magicq-vnc-stop
+wasalight-vnc-stop
 ```
 
 Il comando termina soltanto il processo `x11vnc` avviato e registrato da
@@ -86,14 +86,14 @@ Wasalight; un PID obsoleto non viene usato per terminare processi estranei.
 Arrestare prima il server e impostare una nuova password:
 
 ```bash
-magicq-vnc-stop
-magicq-vnc-password
-magicq-vnc-start
+wasalight-vnc-stop
+wasalight-vnc-password
+wasalight-vnc-start
 ```
 
 ## Log diagnostico
 
-Il percorso del log viene stampato da `magicq-vnc-start`. Normalmente è:
+Il percorso del log viene stampato da `wasalight-vnc-start`. Normalmente è:
 
 ```text
 /run/user/UID/wasalight-x11vnc.log

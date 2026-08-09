@@ -10,10 +10,10 @@ nome commerciale del dispositivo. L'installer aggiunge `xinput` e
 La configurazione iniziale usa la modalità `auto`. All'avvio della sessione
 grafica il touchscreen viene associato al monitor soltanto quando sono presenti
 **esattamente un touchscreen e un'uscita video connessa**. Con due monitor o due
-touchscreen non viene fatta alcuna scelta implicita: `magicq-status` segnala
+touchscreen non viene fatta alcuna scelta implicita: `wasalight-status` segnala
 `target: attention` e occorre configurare l'associazione manualmente.
 
-Il processo `magicq-touch-watch` controlla ogni tre secondi i cambiamenti dei
+Il processo `wasalight-touch-watch` controlla ogni tre secondi i cambiamenti dei
 dispositivi di input e delle uscite video. La configurazione viene quindi
 riapplicata dopo un collegamento o scollegamento a caldo, senza riavviare Xorg.
 
@@ -23,7 +23,7 @@ Eseguire questi comandi dal terminale della sessione grafica dell'utente
 `chamsys`:
 
 ```bash
-magicq-touch-status
+wasalight-touch-status
 xrandr --query
 ```
 
@@ -53,7 +53,7 @@ Durante uno show è preferibile non lasciarlo in esecuzione.
 La modalità predefinita è sufficiente. Per ripristinarla esplicitamente:
 
 ```bash
-magicq-touch-config auto
+wasalight-touch-config auto
 ```
 
 Il comando salva la scelta e la applica subito.
@@ -63,14 +63,14 @@ Il comando salva la scelta e la applica subito.
 Prima elencare i nomi esatti:
 
 ```bash
-magicq-touch-config list
+wasalight-touch-config list
 ```
 
 Associare quindi il touchscreen all'uscita desiderata. I nomi contenenti spazi
 devono essere racchiusi tra virgolette:
 
 ```bash
-magicq-touch-config set "ILITEK ILITEK-TP" HDMI-1 normal
+wasalight-touch-config set "ILITEK ILITEK-TP" HDMI-1 normal
 ```
 
 `DEVICE` deve coincidere con un nome o con una `key` mostrata sotto
@@ -83,7 +83,7 @@ cambiare dopo un riavvio o una riconnessione.
 Esempio con due pannelli identici:
 
 ```bash
-magicq-touch-config set "pci-0000:00:14.0-usb-0:2:1.0" HDMI-1 normal
+wasalight-touch-config set "pci-0000:00:14.0-usb-0:2:1.0" HDMI-1 normal
 ```
 
 ## Rotazione
@@ -100,7 +100,7 @@ I valori ammessi sono:
 Esempio:
 
 ```bash
-magicq-touch-config set "ILITEK ILITEK-TP" HDMI-1 right
+wasalight-touch-config set "ILITEK ILITEK-TP" HDMI-1 right
 ```
 
 La rotazione modifica gli assi del touch, non l'immagine del monitor. Impostare
@@ -114,13 +114,13 @@ driver, anziché sostituirla.
 Per non applicare associazioni o rotazioni:
 
 ```bash
-magicq-touch-config disable
+wasalight-touch-config disable
 ```
 
 Per tornare alla scelta automatica:
 
 ```bash
-magicq-touch-config auto normal
+wasalight-touch-config auto normal
 ```
 
 ## Persistenza
@@ -133,7 +133,7 @@ Con `/data` montato, la configurazione viene salvata qui:
 
 Il file appartiene all'utente `chamsys` e sopravvive ai riavvii in SHOW mode.
 Se `/data` non è disponibile, viene usato il fallback
-`/home/chamsys/.config/magicq-touch/config`; tale fallback non offre la stessa
+`/home/chamsys/.config/wasalight-touch/config`; tale fallback non offre la stessa
 garanzia di persistenza con overlayroot attivo.
 
 ## Tastiera virtuale opzionale

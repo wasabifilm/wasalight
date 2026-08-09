@@ -66,7 +66,7 @@ dpkg -l qemu-guest-agent qemu-system-x86 qemu-utils qemu-block-extra
 Eseguire in MAINTENANCE mode:
 
 ```bash
-magicq-status
+wasalight-status
 systemctl --failed --no-pager
 findmnt / /data
 lsblk

@@ -27,7 +27,6 @@ magicq-ubuntu-appliance/
 │   ├── hardware-test-checklist.md
 │   ├── companion.md
 │   ├── licensing.md
-│   ├── migration-24.04.md
 │   ├── versioning.md
 │   ├── ssh.md
 │   ├── system-cleanup.md
@@ -68,7 +67,7 @@ installare nulla:
 ```
 
 Dopo un’installazione riuscita la stessa versione appare sul pannello desktop e
-in `magicq-status`. `UPDATE READY` indica che il codice già scaricato in `/data`
+in `wasalight-status`. `UPDATE READY` indica che il codice già scaricato in `/data`
 è più recente della configurazione installata. Dettagli e procedura di incremento
 sono nella [guida al versionamento](docs/versioning.md).
 
@@ -139,9 +138,10 @@ partizionamento manuale oppure usare una procedura specifica per quel layout.
 ./tests/verify-project.sh
 ```
 
-Il passaggio da una precedente appliance Ubuntu 22.04 va eseguito come nuova
-installazione, conservando o ripristinando separatamente `/data`. Consultare la
-[guida di migrazione a Ubuntu 24.04](docs/migration-24.04.md).
+Questa release è la prima base supportata di Wasalight. Non contiene procedure
+di aggiornamento o migrazione da prototipi precedenti: l'installazione parte da
+Ubuntu Server 24.04 LTS minimale e da una partizione `/data` preparata secondo
+questa guida.
 
 ## Installazione
 
@@ -195,9 +195,9 @@ Il comando funziona soltanto in MAINTENANCE, scarica il ramo `main` verificato
 in `/data/system/wasalight`, conserva i pacchetti MagicQ proprietari in
 `/data/system/packages` e rilancia l’installer lasciando la protezione
 disattivata per il collaudo. Quando tutto è corretto usare
-`sudo magicq-protect` oppure eseguire `sudo wasalight-update --protect`.
+`sudo wasalight-protect` oppure eseguire `sudo wasalight-update --protect`.
 Per aggiornare MagicQ basta inserire il `.deb` nella root o nella cartella
-`packages/` di una chiavetta: **Update Wasalight** verifica tutte le USB montate,
+`packages/` di una chiavetta: **Aggiorna Wasalight** verifica tutte le USB montate,
 conserva il file in `/data` senza cancellare l’originale e sceglie la versione
 più recente dai metadati Debian.
 L’installer prova a inizializzare automaticamente questa copia persistente;
@@ -207,7 +207,7 @@ L’aggiornamento non usa `git reset --hard`: se trova modifiche locali ai file
 tracciati si ferma senza cancellarle. La procedura completa è descritta nella
 [guida aggiornamenti](docs/update.md).
 
-La voce grafica **Update Wasalight** mostra chiaramente le quattro fasi e, solo
+La voce grafica **Aggiorna Wasalight** mostra chiaramente le quattro fasi e, solo
 dopo un aggiornamento riuscito, propone **Riavvia ora** oppure **Più tardi**. È
 interamente utilizzabile al touch. Da terminale si può ottenere lo stesso
 risultato senza domanda finale con `sudo wasalight-update --reboot`, combinabile
@@ -305,26 +305,30 @@ La configurazione normale è **SHOW / PROTECTED**:
 
 Comandi disponibili:
 
+I comandi pubblici seguono una regola unica: `magicq-*` controlla esclusivamente
+l'applicazione MagicQ, mentre `wasalight-*` gestisce appliance, modalità,
+diagnostica e strumenti di supporto.
+
 ```bash
-magicq-status
+wasalight-status
 magicq-start
 magicq-stop
-magicq-touch-status
-magicq-touch-config list
-magicq-audio-test
-magicq-vnc-start
-magicq-vnc-stop
+wasalight-touch-status
+wasalight-touch-config list
+wasalight-audio-test
+wasalight-vnc-start
+wasalight-vnc-stop
 wasalight-control
 wasalight-plugin list
 wasalight-ip-scanner
 wasalight-artnet-monitor
 wasalight-vnc-toggle
 sudo wasalight-app-register --list
-sudo magicq-maintenance
-sudo magicq-protect
+sudo wasalight-maintenance
+sudo wasalight-protect
 ```
 
-`magicq-maintenance` e `magicq-protect` preparano la modalità del boot
+`wasalight-maintenance` e `wasalight-protect` preparano la modalità del boot
 successivo. Dopo il comando occorre riavviare quando si è pronti.
 
 In modalità **SHOW / PROTECTED**, MagicQ parte automaticamente ed è sorvegliato:
@@ -333,7 +337,7 @@ provoca il riavvio dopo tre secondi.
 
 In modalità **MAINTENANCE**, Openbox parte normalmente ma MagicQ resta chiuso.
 Questo evita che l'applicazione interferisca con aggiornamenti, copie e diagnosi.
-Per aprirlo intenzionalmente durante la manutenzione usare **Start MagicQ** nel
+Per aprirlo intenzionalmente durante la manutenzione usare **Avvia MagicQ** nel
 menu oppure:
 
 ```bash
@@ -354,8 +358,8 @@ prossimo login o riavvio; in MAINTENANCE resterà invece fermo:
 magicq-start
 ```
 
-Le stesse azioni sono disponibili nel menu Openbox come **Start MagicQ** e
-**Stop MagicQ**. `magicq-status` distingue applicazione e supervisore con le
+Le stesse azioni sono disponibili nel menu Openbox come **Avvia MagicQ** e
+**Ferma MagicQ**. `wasalight-status` distingue applicazione e supervisore con le
 righe `MAGICQ` e `SUPERVISOR`.
 
 ### Fullscreen automatico
@@ -367,7 +371,7 @@ anche la barra del titolo.
 Wasalight avvia `magicq-fullscreen-watch` insieme a Openbox. Il controllo
 attende la finestra principale `MagicQ PC` e le applica lo stato EWMH
 fullscreen tramite `wmctrl`. Funziona sia con l'avvio automatico in SHOW sia
-con **Start MagicQ** in MAINTENANCE e viene riapplicato quando MagicQ crea una
+con **Avvia MagicQ** in MAINTENANCE e viene riapplicato quando MagicQ crea una
 nuova finestra dopo un riavvio. Non forza continuamente lo stato: dopo la prima
 applicazione, un operatore può disattivarlo temporaneamente durante una
 diagnosi senza che venga riattivato sulla stessa finestra.
@@ -389,13 +393,13 @@ Server. `chamsys` può avviare i launcher ma non cancellarli, rinominarli,
 spostarli o modificarli accidentalmente.
 Sono disponibili soltanto i comandi principali:
 
-- **Start MagicQ**;
-- **Stop MagicQ**;
+- **Avvia MagicQ**;
+- **Ferma MagicQ**;
 - **Wasalight Control**;
 - **VNC**;
 - **SSH**;
-- **Power off**;
-- **Reboot**.
+- **Spegni**;
+- **Riavvia**.
 
 Spegnimento e riavvio mostrano sempre una grande finestra di conferma. Soltanto
 dopo la conferma viene eseguito un comando amministrativo ristretto, senza
@@ -426,27 +430,29 @@ prima passare a MAINTENANCE oppure fermare MagicQ con `magicq-stop`.
 ### Wasalight Control, plugin e applicazioni future
 
 **Wasalight Control** è il centro di gestione GTK progettato per il touchscreen.
-Riunisce dashboard, MagicQ, servizi, applicazioni, supporto e plugin in una sola
-finestra massimizzata, lasciando sempre visibile Tint2. Il precedente comando
-`wasalight-hub` rimane un alias compatibile.
+Riunisce dashboard, MagicQ, servizi, applicazioni, supporto e plugin in una
+finestra massimizzata, lasciando sempre visibile Tint2. Rimane attiva una sola
+istanza per sessione: un nuovo tocco sull'icona porta in primo piano la finestra
+già aperta. Stato e plugin vengono letti in background, così il cambio scheda e
+i comandi touch restano reattivi anche quando `systemctl` o la rete sono lenti.
 
 I programmi continuano a essere organizzati tramite il registro `apps.d`:
 
 - **MagicQ**: applicazioni companion ChamSys rilevate quando realmente
   installate;
-- **Applications**: programmi registrati dall'amministratore;
-- **Support**: rete, monitor, touchscreen, audio, file, terminale, stato, VNC,
+- **Applicazioni**: programmi registrati dall'amministratore;
+- **Supporto**: rete, monitor, touchscreen, audio, file, terminale, stato, VNC,
   SSH e aggiornamento Wasalight.
 
 Il rilevamento automatico è intenzionalmente limitato ai companion riconoscibili
 come MagicVis, MagicHD e strumenti Remote/Viewer ChamSys. Il programma MagicQ
 principale continua a essere avviato soltanto dal launcher Wasalight controllato
 e non attraverso un generico file `.desktop` del pacchetto.
-Il Hub rispetta anche la chiave standard `Path`. Per MagicHD e MagicVis riconosce
+Control rispetta anche la chiave standard `Path`. Per MagicHD e MagicVis riconosce
 i launcher originali ChamSys e li inoltra a un wrapper root ristretto ai soli due
 comandi. In questo modo usano `/opt/magicq`, l’ambiente X11 e lo stesso runtime
-Qt/OpenGL con cui MagicQ funziona sul target, senza concedere al Hub un sudo
-generico. Gli errori rimangono nel log persistente del Hub.
+Qt/OpenGL con cui MagicQ funziona sul target, senza concedere a Control un sudo
+generico. Gli errori rimangono nel log persistente di Control.
 
 Per registrare un programma installato in futuro usare il relativo launcher
 standard presente normalmente sotto `/usr/share/applications`:
@@ -459,12 +465,12 @@ sudo wasalight-app-register --remove NOME.desktop
 
 Con `/data` montata, le registrazioni sono conservate in
 `/data/system/apps.d`; in assenza di `/data` vengono mantenute sotto
-`/etc/wasalight/apps.d`. Il Hub rispetta `TryExec` e non mostra un'applicazione
+`/etc/wasalight/apps.d`. Control rispetta `TryExec` e non mostra un'applicazione
 quando il suo eseguibile non è disponibile.
 
-Se un launcher di terze parti contiene un valore booleano non standard, il Hub
+Se un launcher di terze parti contiene un valore booleano non standard, Control
 lo ignora invece di terminare. Gli eventuali errori di avvio vengono mostrati
-a schermo e registrati in `/data/log/wasalight-hub.log` (oppure in `/tmp` se
+a schermo e registrati in `/data/log/wasalight-control.log` (oppure in `/tmp` se
 `/data` non è disponibile).
 
 Il registro plugin integrato gestisce inizialmente SSH, VNC e Bitfocus Companion.
@@ -474,14 +480,14 @@ sono ammesse soltanto in MAINTENANCE; dettagli e formato dei manifest sono in
 [`docs/plugins.md`](docs/plugins.md).
 
 Tint2 non mostra più la scritta **desktop 1** e resta sempre visibile in basso.
-Il pannello riserva lo spazio necessario e offre i pulsanti Hub e File Manager,
+Il pannello riserva lo spazio necessario e offre i pulsanti Control e File,
 le applicazioni aperte, le icone di stato e l’orologio. Questa scelta evita il
 gesto sul bordo, poco affidabile con molti touchscreen, e mantiene sempre
 raggiungibili i controlli. Il tema è quasi nero (`#080b10`), con selezioni
 antracite discrete e senza il precedente fondo blu acceso.
 
-Il clic destro apre soltanto un menu Wasalight minimale: Start/Stop MagicQ,
-Hub, File Manager, Terminale, Update, VNC, SSH, riavvio e spegnimento. Le
+Il clic destro apre soltanto un menu Wasalight minimale: Avvia/Ferma MagicQ,
+Control, File, Terminale, Aggiorna Wasalight, VNC, SSH, riavvio e spegnimento. Le
 preferenze Openbox e le impostazioni di sistema generiche non sono esposte.
 
 Le finestre Openbox usano il tema scuro **Wasalight** sia quando sono attive sia
@@ -491,14 +497,14 @@ passaggio o alla pressione diventa rosso. I piccoli pulsanti
 minimizza/massimizza sono rimossi dalla barra:
 le finestre restano gestibili dalla barra inferiore, più adatta al touchscreen.
 
-Nella scheda **Support** del Control Center sono disponibili anche:
+Nella scheda **Supporto** di Wasalight Control sono disponibili anche:
 
 - **IP Scanner**, che usa `arp-scan` sulle interfacce Ethernet/Wi-Fi connesse e
   mostra interfaccia, IP, MAC e produttore in una tabella aggiornabile;
 - **Art-Net Monitor**, che ascolta passivamente il traffico Art-Net su tutte le
   interfacce e raggruppa sorgente, destinazione, tipo di pacchetto, universo,
   numero di canali e contatore dei pacchetti.
-- **System Monitor**, un equivalente grafico e leggero di `htop` basato su
+- **Monitor sistema**, un equivalente grafico e leggero di `htop` basato su
   LXTask, con elenco dei processi e indicatori in tempo reale di CPU e memoria.
 
 ### Bitfocus Companion
@@ -508,8 +514,8 @@ e verificabile di Bitfocus Companion. Il servizio usa l'utente dedicato
 `companion`, parte automaticamente dopo la rete e mantiene home, configurazione,
 moduli, log e backup sotto `/data/companion`.
 
-Il pannello Conky e `magicq-status` mostrano lo stato Companion. La voce
-**Bitfocus Companion** nel Hub offre start, stop, restart, backup e update e
+Il pannello Conky e `wasalight-status` mostrano lo stato Companion. La voce
+**Bitfocus Companion** in Wasalight Control offre avvio, arresto, riavvio, backup e aggiornamento e
 indica l'interfaccia web `http://INDIRIZZO:8000`. Backup e aggiornamento sono
 consentiti solo in MAINTENANCE; in SHOW la configurazione rimane persistente ma
 il runtime protetto non viene modificato.
@@ -542,7 +548,7 @@ Il pulsante **VNC** condivide esclusivamente il display Xorg corrente `:0`:
 ### SSH temporaneo
 
 OpenSSH è installato ma, senza `--with-ssh`, resta disabilitato e fermo. Il
-pulsante **SSH** sul desktop o nel Hub chiede conferma e avvia il servizio per
+pulsante **SSH** sul desktop o in Wasalight Control chiede conferma e avvia il servizio per
 la sessione corrente; una seconda pressione consente di fermarlo. L’accesso usa
 `chamsys` e la sua password Linux. Con `--with-ssh` il servizio viene invece
 abilitato anche agli avvii successivi. Il pannello Conky distingue `SESSION` da
@@ -554,7 +560,7 @@ L'installer verifica che la configurazione ALSA e gli strumenti diagnostici
 siano presenti. Per provare realmente l'uscita predefinita eseguire:
 
 ```bash
-magicq-audio-test
+wasalight-audio-test
 ```
 
 Il comando elenca le schede disponibili e riproduce una volta i campioni
@@ -562,7 +568,7 @@ Il comando elenca le schede disponibili e riproduce una volta i campioni
 provano anche nomi PCM storici (`front`, `rear`, `surround`) o ingressi non
 offerti dalle uscite HDMI. I conseguenti messaggi `Unknown PCM` e le asserzioni
 di enumerazione nel log non indicano da soli un guasto. L'audio è considerato
-funzionante quando `magicq-audio-test` termina correttamente e MagicQ completa
+funzionante quando `wasalight-audio-test` termina correttamente e MagicQ completa
 l'inizializzazione. Errori come l'assenza di `alsa.conf`, nessuna scheda in
 `aplay -l` o l'impossibilità di aprire il dispositivo predefinito restano invece
 problemi reali e non vengono nascosti dai log.
@@ -584,7 +590,7 @@ controlla con:
 
 ```bash
 nmcli device status
-magicq-status
+wasalight-status
 ```
 
 Le interfacce Ethernet e Wi-Fi devono risultare gestite, anche quando sono
@@ -630,7 +636,7 @@ tail -n 100 /data/log/wasalight-magicq-session.log
 Un timer controlla i file ogni 10 minuti. Ogni log viene ruotato a 5 MiB,
 conservando cinque copie e comprimendo quelle meno recenti. In questo modo i
 log diagnostici non possono crescere indefinitamente sulla partizione dati.
-`magicq-status` mostra `LOGS: persistent in /data/log` quando il percorso è
+`wasalight-status` mostra `LOGS: persistent in /data/log` quando il percorso è
 disponibile. Se `/data` non è montata, l'output passa temporaneamente nella
 directory runtime volatile della sessione.
 
@@ -646,8 +652,8 @@ la configurazione si ferma in modo sicuro e richiede una scelta esplicita.
 Esempio per associare un touchscreen a `HDMI-1`:
 
 ```bash
-magicq-touch-config list
-magicq-touch-config set "NOME TOUCHSCREEN" HDMI-1 normal
+wasalight-touch-config list
+wasalight-touch-config set "NOME TOUCHSCREEN" HDMI-1 normal
 ```
 
 La configurazione viene riapplicata anche dopo una riconnessione a caldo. Per
@@ -662,14 +668,14 @@ non resta attivo dopo un riavvio. Usare il pulsante desktop **VNC**, la voce nel
 Wasalight Control oppure, dalla sessione `chamsys`, il comando:
 
 ```bash
-magicq-vnc-start
+wasalight-vnc-start
 ```
 
 Al primo utilizzo viene richiesta una password VNC separata dalla password
 Linux. Per arrestare immediatamente l'accesso remoto:
 
 ```bash
-magicq-vnc-stop
+wasalight-vnc-stop
 ```
 
 La modalità LAN usa la porta TCP 5900 e non offre cifratura completa. Per uso,
@@ -677,7 +683,7 @@ tunnel SSH, cambio password e rimozione consultare la [guida VNC](docs/vnc.md).
 
 ## Assistenza remota SSH
 
-Usare il pulsante desktop **SSH** o la scheda **Services** di Wasalight Control.
+Usare il pulsante desktop **SSH** o la scheda **Servizi** di Wasalight Control.
 Quando è attivo, collegarsi con:
 
 ```bash
@@ -714,7 +720,7 @@ rimozione fisica nel mezzo di una scrittura.
 Lo stato del supporto montato è visibile con:
 
 ```bash
-magicq-status
+wasalight-status
 findmnt | grep '/stick/'
 ```
 

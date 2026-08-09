@@ -9,9 +9,7 @@ magicq_ubuntu_v1_9_8_3.deb
 `install.sh` verifica che ogni `.deb` dichiari `Package: magicq` e architettura
 `amd64`, poi seleziona automaticamente la versione Debian più recente.
 Durante l’installazione il file viene copiato e verificato in
-`/data/system/packages`. Se proviene da una cartella
-`/home/.../wasalight/packages` o `/root/wasalight/packages`, la vecchia copia
-non persistente viene rimossa soltanto dopo che il confronto è riuscito.
+`/data/system/packages`.
 Per forzare una versione specifica, indicarla esplicitamente:
 
 ```bash
@@ -67,8 +65,3 @@ MagicQ richiede `libGLU.so.1`, fornita dal pacchetto Ubuntu `libglu1-mesa`.
 L'installer Wasalight installa esplicitamente questo pacchetto insieme a
 `libgl1-mesa-dri` e verifica sia la presenza di GLU sia le dipendenze dichiarate
 dal binario `/opt/magicq/bin/mqqt`.
-
-Se MagicQ era già stato installato con una versione precedente di Wasalight e
-mostra `libGLU.so.1: cannot open shared object file`, entrare prima in
-MAINTENANCE mode, riavviare e aggiornare il progetto. Non installare la libreria
-soltanto nell'overlay volatile di SHOW mode.

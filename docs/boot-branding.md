@@ -38,10 +38,6 @@ Su Ubuntu 24.04 il tema viene registrato e selezionato nel gruppo
 Ubuntu durante la rigenerazione dell’initramfs. Wasalight non usa il vecchio
 comando `plymouth-set-default-theme`, non più distribuito da Plymouth 24.x.
 
-Quando cambia il logo ufficiale incluso in Wasalight, l’aggiornamento sostituisce
-automaticamente solo una copia identica al precedente logo predefinito. Un file
-personalizzato in `/data` viene riconosciuto dal checksum e non viene modificato.
-
 ## Sostituire il logo
 
 Usare un PNG con trasparenza o con un fondo che renda leggibile il marchio. Sono

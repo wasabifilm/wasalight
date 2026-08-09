@@ -19,6 +19,14 @@ from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
 PLUGIN_COMMAND = "/usr/local/bin/wasalight-plugin"
 FIELD_CODE = re.compile(r"%[fFuUdDnNickvm]")
 COMPANION = re.compile(r"magicvis|magichd|magicq[ -]?remote|chamsys.*(?:remote|viewer|media)", re.I)
+PAGE_LABELS = {
+    "Dashboard": "Stato",
+    "MagicQ": "MagicQ",
+    "Services": "Servizi",
+    "Applications": "Applicazioni",
+    "Support": "Supporto",
+    "Plugins": "Plugin",
+}
 
 
 def desktop_bool(item, key, default=False):
@@ -118,7 +126,9 @@ class ControlCenter(Gtk.Window):
             self.set_icon_from_file("/usr/local/share/icons/wasalight/hub.svg")
         except Exception:
             pass
-        self.connect("destroy", Gtk.main_quit)
+        self.connect("destroy", self.on_destroy)
+        self.refresh_running = False
+        self.destroyed = False
         self.plugins = []
         self.plugin_cards = Gtk.FlowBox()
         self.service_cards = Gtk.FlowBox()
@@ -139,10 +149,10 @@ class ControlCenter(Gtk.Window):
         self.add_plugin_page("Plugins", self.plugin_cards)
 
         footer = Gtk.Box(spacing=10)
-        refresh = Gtk.Button(label="Refresh")
+        refresh = Gtk.Button(label="Aggiorna")
         refresh.set_size_request(160, 54)
         refresh.connect("clicked", lambda _button: self.refresh_all())
-        close = Gtk.Button(label="Close")
+        close = Gtk.Button(label="Chiudi")
         close.set_size_request(160, 54)
         close.connect("clicked", lambda _button: self.destroy())
         footer.pack_start(Gtk.Label(), True, True, 0)
@@ -153,6 +163,10 @@ class ControlCenter(Gtk.Window):
         self.refresh_all()
         GLib.timeout_add_seconds(3, self.periodic_refresh)
 
+    def on_destroy(self, _window):
+        self.destroyed = True
+        Gtk.main_quit()
+
     def header(self):
         mode, version = mode_and_version()
         box = Gtk.Box(spacing=14)
@@ -160,7 +174,7 @@ class ControlCenter(Gtk.Window):
         title = Gtk.Label()
         title.set_xalign(0)
         title.set_markup("<span size='23000' weight='bold'>Wasalight Control</span>\n"
-                         "<span size='10500'>MagicQ · services · applications · system</span>")
+                         "<span size='10500'>MagicQ · servizi · applicazioni · sistema</span>")
         box.pack_start(title, True, True, 0)
         state = Gtk.Label()
         colour = "#76bd22" if mode == "SHOW" else "#f2cc60"
@@ -174,10 +188,10 @@ class ControlCenter(Gtk.Window):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         controls = Gtk.Box(spacing=10)
         for label, command in (
-                ("Start MagicQ", ["/usr/local/bin/magicq-start"]),
-                ("Stop MagicQ", ["/usr/local/bin/magicq-stop"]),
-                ("Update", ["/usr/local/bin/wasalight-update-terminal"]),
-                ("Files", ["pcmanfm", "/data"])):
+                ("Avvia MagicQ", ["/usr/local/bin/magicq-start"]),
+                ("Ferma MagicQ", ["/usr/local/bin/magicq-stop"]),
+                ("Aggiorna", ["/usr/local/bin/wasalight-update-terminal"]),
+                ("File", ["pcmanfm", "/data"])):
             button = Gtk.Button(label=label)
             button.set_size_request(180, 64)
             button.connect("clicked", self.run_desktop_command, command)
@@ -190,7 +204,7 @@ class ControlCenter(Gtk.Window):
         scroll = Gtk.ScrolledWindow()
         scroll.add(self.status_view)
         box.pack_start(scroll, True, True, 0)
-        self.notebook.append_page(box, Gtk.Label(label="Dashboard"))
+        self.notebook.append_page(box, Gtk.Label(label=PAGE_LABELS["Dashboard"]))
 
     def add_launcher_page(self, section, launchers):
         flow = Gtk.FlowBox()
@@ -201,7 +215,7 @@ class ControlCenter(Gtk.Window):
         flow.set_min_children_per_line(2)
         items = [item for item in launchers if item["section"] == section]
         if not items:
-            empty = Gtk.Label(label="No applications registered")
+            empty = Gtk.Label(label="Nessuna applicazione registrata")
             empty.set_margin_top(40)
             flow.add(empty)
         for item in items:
@@ -220,7 +234,7 @@ class ControlCenter(Gtk.Window):
         scroll = Gtk.ScrolledWindow()
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroll.add(flow)
-        self.notebook.append_page(scroll, Gtk.Label(label=section))
+        self.notebook.append_page(scroll, Gtk.Label(label=PAGE_LABELS[section]))
 
     def add_plugin_page(self, title, flow):
         flow.set_selection_mode(Gtk.SelectionMode.NONE)
@@ -231,7 +245,7 @@ class ControlCenter(Gtk.Window):
         scroll = Gtk.ScrolledWindow()
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroll.add(flow)
-        self.notebook.append_page(scroll, Gtk.Label(label=title))
+        self.notebook.append_page(scroll, Gtk.Label(label=PAGE_LABELS[title]))
 
     def plugin_card(self, item, management=False):
         frame = Gtk.Frame()
@@ -246,9 +260,9 @@ class ControlCenter(Gtk.Window):
         colour = "#76bd22" if item["active"] else "#f2cc60"
         if not item["installed"] or not item["compatible"]:
             colour = "#f85149"
-        shown_state = item["state_label"] if item["installed"] else "Not installed"
+        shown_state = item["state_label"] if item["installed"] else "Non installato"
         if item["installed"] and not item["compatible"]:
-            shown_state = f"Requires Wasalight {item['minimum_wasalight']}"
+            shown_state = f"Richiede Wasalight {item['minimum_wasalight']}"
         text.set_markup(f"<span size='14500' weight='bold'>{GLib.markup_escape_text(item['name'])}</span>\n"
                         f"<span foreground='{colour}'>{GLib.markup_escape_text(shown_state)}</span>")
         heading.pack_start(text, True, True, 0)
@@ -259,8 +273,8 @@ class ControlCenter(Gtk.Window):
         box.pack_start(description, True, True, 0)
         actions = Gtk.Box(spacing=7)
         if management:
-            label = "Install with Update" if not item["installed"] else (
-                "Disable" if item["enabled"] else "Enable")
+            label = "Installa con Update" if not item["installed"] else (
+                "Disabilita" if item["enabled"] else "Abilita")
             button = Gtk.Button(label=label)
             if item["installed"]:
                 button.set_sensitive(item["compatible"] or item["enabled"])
@@ -275,7 +289,7 @@ class ControlCenter(Gtk.Window):
                 button.connect("clicked", self.plugin_action, item, action)
                 actions.pack_start(button, True, True, 0)
         if not item["enabled"] and not management:
-            actions.pack_start(Gtk.Label(label="Plugin disabled"), True, True, 0)
+            actions.pack_start(Gtk.Label(label="Plugin disabilitato"), True, True, 0)
         box.pack_start(actions, False, False, 0)
         frame.add(box)
         return frame
@@ -285,14 +299,31 @@ class ControlCenter(Gtk.Window):
         for child in flow.get_children():
             flow.remove(child)
 
-    def refresh_plugins(self):
-        try:
-            result = subprocess.run(
-                [PLUGIN_COMMAND, "list", "--json"], text=True,
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10, check=False)
-            if result.returncode:
-                raise RuntimeError(result.stderr.strip() or "Plugin registry unavailable")
-            self.plugins = json.loads(result.stdout)
+    @staticmethod
+    def read_plugins():
+        result = subprocess.run(
+            [PLUGIN_COMMAND, "list", "--json"], text=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10, check=False)
+        if result.returncode:
+            raise RuntimeError(result.stderr.strip() or "Registro plugin non disponibile")
+        return json.loads(result.stdout)
+
+    @staticmethod
+    def read_status():
+        result = subprocess.run(
+            ["/usr/local/bin/wasalight-status"], text=True,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=10, check=False)
+        return result.stdout.strip() or "Stato non disponibile"
+
+    def apply_refresh(self, status, plugins, error):
+        self.refresh_running = False
+        if self.destroyed:
+            return False
+        if error:
+            status = f"{status}\n\nCONTROL:    avviso aggiornamento: {error}"
+        self.status_view.get_buffer().set_text(status)
+        if plugins is not None and plugins != self.plugins:
+            self.plugins = plugins
             self.clear_flow(self.service_cards)
             self.clear_flow(self.plugin_cards)
             for item in self.plugins:
@@ -301,29 +332,39 @@ class ControlCenter(Gtk.Window):
                 self.plugin_cards.add(self.plugin_card(item, management=True))
             self.service_cards.show_all()
             self.plugin_cards.show_all()
-        except Exception as error:
-            self.show_error("Plugin refresh failed", str(error))
+        return False
 
-    def refresh_status(self):
-        result = subprocess.run(
-            ["/usr/local/bin/magicq-status"], text=True,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=10, check=False)
-        self.status_view.get_buffer().set_text(result.stdout.strip() or "Status unavailable")
+    def refresh_worker(self):
+        status = "Stato non disponibile"
+        plugins = None
+        errors = []
+        try:
+            status = self.read_status()
+        except Exception as error:
+            errors.append(f"stato: {error}")
+        try:
+            plugins = self.read_plugins()
+        except Exception as error:
+            errors.append(f"plugins: {error}")
+        GLib.idle_add(self.apply_refresh, status, plugins, "; ".join(errors))
 
     def refresh_all(self):
-        self.refresh_status()
-        self.refresh_plugins()
+        if self.refresh_running or self.destroyed:
+            return
+        self.refresh_running = True
+        threading.Thread(target=self.refresh_worker, daemon=True).start()
 
     def periodic_refresh(self):
-        self.refresh_status()
-        self.refresh_plugins()
+        if self.destroyed:
+            return False
+        self.refresh_all()
         return True
 
     def run_desktop_command(self, _button, command):
         try:
             subprocess.Popen(command, start_new_session=True)
         except OSError as error:
-            self.show_error("Cannot start command", str(error))
+            self.show_error("Impossibile avviare il comando", str(error))
 
     def launch_application(self, _button, item):
         command = FIELD_CODE.sub("", item["exec"])
@@ -338,7 +379,7 @@ class ControlCenter(Gtk.Window):
                 arguments = ["lxterminal", "-e"] + arguments
             subprocess.Popen(arguments, cwd=item["path"], start_new_session=True)
         except (OSError, ValueError) as error:
-            self.show_error("Cannot start application", str(error))
+            self.show_error("Impossibile avviare l'applicazione", str(error))
 
     def plugin_action(self, _button, item, action):
         if action["confirm"]:
@@ -356,23 +397,24 @@ class ControlCenter(Gtk.Window):
     def change_plugin_state(self, _button, item, enable):
         mode, _version = mode_and_version()
         if mode != "MAINTENANCE":
-            self.show_error("Maintenance required",
-                            "Restart in MAINTENANCE mode to enable or disable persistent plugins.")
+            self.show_error("Modalità MAINTENANCE richiesta",
+                            "Riavvia in MAINTENANCE per abilitare o disabilitare plugin persistenti.")
             return
         operation = "enable" if enable else "disable"
+        operation_title = "Abilita" if enable else "Disabilita"
         self.background_command([PLUGIN_COMMAND, operation, item["id"]],
-                                f"{operation.title()} {item['name']}")
+                                f"{operation_title} {item['name']}")
 
     def install_plugin(self, _button, item):
         mode, _version = mode_and_version()
         if mode != "MAINTENANCE":
-            self.show_error("Maintenance required",
-                            "Restart in MAINTENANCE mode to install a plugin.")
+            self.show_error("Modalità MAINTENANCE richiesta",
+                            "Riavvia in MAINTENANCE per installare un plugin.")
             return
         try:
             subprocess.Popen([PLUGIN_COMMAND, "install", item["id"]], start_new_session=True)
         except OSError as error:
-            self.show_error("Cannot start plugin installation", str(error))
+            self.show_error("Impossibile avviare l'installazione del plugin", str(error))
 
     def background_command(self, command, title):
         def worker():
@@ -387,7 +429,7 @@ class ControlCenter(Gtk.Window):
 
     def command_finished(self, returncode, title, output):
         if returncode:
-            self.show_error(title, output.strip() or "Operation failed")
+            self.show_error(title, output.strip() or "Operazione non riuscita")
         self.refresh_all()
         return False
 

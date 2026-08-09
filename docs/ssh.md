@@ -6,7 +6,7 @@ sulla rete.
 
 ## Uso dal touchscreen
 
-Premere **SSH** sul desktop oppure usare **Wasalight Control → Services → SSH**.
+Premere **SSH** sul desktop oppure usare **Wasalight Control → Servizi → SSH**.
 Dopo la conferma, il servizio viene avviato e la finestra mostra
 l’indirizzo di collegamento. Premendo nuovamente il pulsante è possibile
 fermarlo.

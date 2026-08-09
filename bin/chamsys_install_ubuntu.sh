@@ -59,7 +59,7 @@ cleanup_bootstrap_mounts() {
         rmdir "$mount_dir" 2>/dev/null || true
     done
     case $BOOTSTRAP_MAGICQ_PATH in
-        "$PACKAGE_STORE"/.magicq-usb-candidate.*)
+        "$PACKAGE_STORE"/.wasalight-usb-candidate.*)
             rm -f -- "$BOOTSTRAP_MAGICQ_PATH"
             ;;
     esac
@@ -92,10 +92,6 @@ Options:
   --version            Show the Wasalight installer version and exit.
   -h, -help, --help    Show this complete help.
 
-Compatibility options:
-  --chamsys-admin      Alias for --reset-chamsys-password.
-  --purge-cloud-init   Explicitly select the current default cloud-init purge.
-
 For protected SHOW mode, /data must be a separate mounted ext4 filesystem.
 Create and format that partition beforehand; this script deliberately never
 formats disks. If it is already mounted at /data, --data-device is unnecessary.
@@ -125,12 +121,7 @@ parse_args() {
                 shift 2
                 ;;
             --reset-chamsys-password) RESET_CHAMSYS_PASSWORD=1; shift ;;
-            # Earlier releases used this option to enable administrator access.
-            # Administrator access is now mandatory; retain the password prompt.
-            --chamsys-admin) RESET_CHAMSYS_PASSWORD=1; shift ;;
             --keep-cloud-init) PURGE_CLOUD_INIT=0; shift ;;
-            # Accepted for compatibility with earlier Wasalight releases.
-            --purge-cloud-init) PURGE_CLOUD_INIT=1; shift ;;
             --no-protection) ENABLE_PROTECTION=0; shift ;;
             --allow-missing-magicq) ALLOW_MISSING_MAGICQ=1; shift ;;
             --version) printf '%s\n' "$PROJECT_VERSION"; exit 0 ;;
@@ -269,7 +260,7 @@ consider_bootstrap_magicq_package() {
         return 0
     }
 
-    staging="$PACKAGE_STORE/.magicq-usb-candidate.$$"
+    staging="$PACKAGE_STORE/.wasalight-usb-candidate.$$"
     if [[ -z $BOOTSTRAP_MAGICQ_PATH ]] || \
        dpkg --compare-versions "$version" gt "$BOOTSTRAP_MAGICQ_VERSION"; then
         install -o root -g root -m 0640 "$source" "$staging"
@@ -408,14 +399,6 @@ persist_magicq_package() {
             log "MagicQ package persisted in $destination"
         fi
 
-        # Remove only installer packages from known Wasalight working copies.
-        # A package supplied from USB or another arbitrary path is never removed.
-        case "$source" in
-            /home/*/wasalight/packages/*.deb|/root/wasalight/packages/*.deb)
-                rm -f -- "$source"
-                log "removed migrated package from the non-persistent checkout: $source"
-                ;;
-        esac
     fi
     DEB_PATH=$destination
 }
@@ -551,7 +534,7 @@ configure_user() {
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/conky"
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/libfm"
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/tint2"
-    install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/magicq-touch"
+    install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/wasalight-touch"
 
     if mountpoint -q "$DATA_MOUNT"; then
         chown -R "$TARGET_USER:$TARGET_USER" "$DATA_MOUNT/magicq"
@@ -651,8 +634,8 @@ exit 0
 EOF
     fi
 
-    if [[ ! -e "$TARGET_HOME/.config/magicq-touch/config" ]]; then
-        write_file "$TARGET_HOME/.config/magicq-touch/config" 0600 <<'EOF'
+    if [[ ! -e "$TARGET_HOME/.config/wasalight-touch/config" ]]; then
+        write_file "$TARGET_HOME/.config/wasalight-touch/config" 0600 <<'EOF'
 # Fallback used only when /data/system/touchscreen is unavailable.
 MODE=auto
 DEVICE=
@@ -692,17 +675,17 @@ EOF
 
     chown "$TARGET_USER:$TARGET_USER" \
         "$TARGET_HOME/.magicq_init.sh" "$TARGET_HOME/.bash_profile" \
-        "$TARGET_HOME/.config/magicq-touch/config"
+        "$TARGET_HOME/.config/wasalight-touch/config"
 }
 
 configure_touchscreen() {
-    write_file /usr/local/bin/magicq-touch 0755 <<'EOF'
+    write_file /usr/local/bin/wasalight-touch 0755 <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 IFS=$'\n\t'
 
 readonly DATA_CONFIG=/data/system/touchscreen/config
-readonly FALLBACK_CONFIG=/home/chamsys/.config/magicq-touch/config
+readonly FALLBACK_CONFIG=/home/chamsys/.config/wasalight-touch/config
 CONFIG=$FALLBACK_CONFIG
 [[ -e $DATA_CONFIG || -d ${DATA_CONFIG%/*} ]] && CONFIG=$DATA_CONFIG
 [[ -n ${MAGICQ_TOUCH_CONFIG:-} ]] && CONFIG=$MAGICQ_TOUCH_CONFIG
@@ -725,13 +708,13 @@ warn() { printf 'Touchscreen: %s\n' "$*" >&2; }
 usage() {
     cat <<'EOT'
 Usage:
-  magicq-touch-status
-  magicq-touch-config list
-  magicq-touch-config auto [normal|right|inverted|left]
-  magicq-touch-config set DEVICE OUTPUT [normal|right|inverted|left]
-  magicq-touch-config disable
-  magicq-touch-apply
-  magicq-touch-watch
+  wasalight-touch-status
+  wasalight-touch-config list
+  wasalight-touch-config auto [normal|right|inverted|left]
+  wasalight-touch-config set DEVICE OUTPUT [normal|right|inverted|left]
+  wasalight-touch-config disable
+  wasalight-touch-apply
+  wasalight-touch-watch
 
 Names containing spaces must be quoted. Configuration is persistent under
 /data when that filesystem is available. "auto" acts only when exactly one
@@ -916,7 +899,7 @@ apply_config() {
     elif [[ $ROTATION != normal ]]; then
         warn "rotation skipped: $RESOLVED_DEVICE has no libinput calibration matrix"
     fi
-    logger -t magicq-touch \
+    logger -t wasalight-touch \
         "Mapped $RESOLVED_DEVICE to $RESOLVED_OUTPUT with rotation $ROTATION"
 }
 
@@ -1009,10 +992,10 @@ configure() {
 }
 
 case "${0##*/}" in
-    magicq-touch-status) show_status "${1:-}" ;;
-    magicq-touch-apply) apply_config ;;
-    magicq-touch-watch) watch_hardware ;;
-    magicq-touch-config) configure "$@" ;;
+    wasalight-touch-status) show_status "${1:-}" ;;
+    wasalight-touch-apply) apply_config ;;
+    wasalight-touch-watch) watch_hardware ;;
+    wasalight-touch-config) configure "$@" ;;
     *)
         case "${1:-}" in
             status) shift; show_status "${1:-}" ;;
@@ -1025,10 +1008,10 @@ case "${0##*/}" in
 esac
 EOF
 
-    ln -sfn magicq-touch /usr/local/bin/magicq-touch-status
-    ln -sfn magicq-touch /usr/local/bin/magicq-touch-apply
-    ln -sfn magicq-touch /usr/local/bin/magicq-touch-watch
-    ln -sfn magicq-touch /usr/local/bin/magicq-touch-config
+    ln -sfn wasalight-touch /usr/local/bin/wasalight-touch-status
+    ln -sfn wasalight-touch /usr/local/bin/wasalight-touch-apply
+    ln -sfn wasalight-touch /usr/local/bin/wasalight-touch-watch
+    ln -sfn wasalight-touch /usr/local/bin/wasalight-touch-config
 }
 
 configure_vnc() {
@@ -1039,7 +1022,7 @@ configure_vnc() {
             "$DATA_MOUNT/system/vnc"
     fi
 
-    write_file /usr/local/bin/magicq-vnc-password 0755 <<'EOF'
+    write_file /usr/local/bin/wasalight-vnc-password 0755 <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 [[ $(id -un) == chamsys ]] || {
@@ -1047,8 +1030,8 @@ set -Eeuo pipefail
     exit 1
 }
 
-config_dir=${MAGICQ_VNC_CONFIG_DIR:-/home/chamsys/.config/wasalight-vnc}
-if [[ -z ${MAGICQ_VNC_CONFIG_DIR:-} && -d /data/system/vnc && -w /data/system/vnc ]]; then
+config_dir=${WASALIGHT_VNC_CONFIG_DIR:-/home/chamsys/.config/wasalight-vnc}
+if [[ -z ${WASALIGHT_VNC_CONFIG_DIR:-} && -d /data/system/vnc && -w /data/system/vnc ]]; then
     config_dir=/data/system/vnc
 fi
 install -d -m 0700 "$config_dir"
@@ -1060,7 +1043,7 @@ chmod 0600 "$password_file"
 echo "VNC password stored in $password_file"
 EOF
 
-    write_file /usr/local/bin/magicq-vnc-start 0755 <<'EOF'
+    write_file /usr/local/bin/wasalight-vnc-start 0755 <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 [[ $(id -un) == chamsys ]] || {
@@ -1073,7 +1056,7 @@ case "${1:---lan}" in
     --localhost) local_only=1 ;;
     -h|--help)
         cat <<'EOT'
-Usage: magicq-vnc-start [--lan|--localhost]
+Usage: wasalight-vnc-start [--lan|--localhost]
 
   --lan        Listen on the local network (default; VNC traffic is not encrypted).
   --localhost  Accept only local connections, normally through an SSH tunnel.
@@ -1090,13 +1073,13 @@ xset q >/dev/null 2>&1 || {
     exit 1
 }
 
-config_dir=${MAGICQ_VNC_CONFIG_DIR:-/home/chamsys/.config/wasalight-vnc}
-if [[ -z ${MAGICQ_VNC_CONFIG_DIR:-} && -d /data/system/vnc && -w /data/system/vnc ]]; then
+config_dir=${WASALIGHT_VNC_CONFIG_DIR:-/home/chamsys/.config/wasalight-vnc}
+if [[ -z ${WASALIGHT_VNC_CONFIG_DIR:-} && -d /data/system/vnc && -w /data/system/vnc ]]; then
     config_dir=/data/system/vnc
 fi
 password_file="$config_dir/passwd"
 if [[ ! -r $password_file ]]; then
-    /usr/local/bin/magicq-vnc-password
+    /usr/local/bin/wasalight-vnc-password
 fi
 
 runtime_dir=${MAGICQ_VNC_RUNTIME_DIR:-${XDG_RUNTIME_DIR:-/run/user/$(id -u)}}
@@ -1146,10 +1129,10 @@ else
     echo "WARNING: classic VNC traffic is not encrypted; use only on a trusted LAN."
 fi
 echo "Log: $log_file"
-echo "Stop with: magicq-vnc-stop"
+echo "Stop with: wasalight-vnc-stop"
 EOF
 
-    write_file /usr/local/bin/magicq-vnc-stop 0755 <<'EOF'
+    write_file /usr/local/bin/wasalight-vnc-stop 0755 <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 [[ $(id -un) == chamsys ]] || {
@@ -1189,7 +1172,7 @@ if pgrep -u chamsys -x x11vnc >/dev/null 2>&1; then
     zenity --question --width=460 --title="VNC · Wasalight" \
         --text="<big><b>VNC è attivo.</b></big>\n\nFermare la condivisione della sessione corrente?" \
         --ok-label="Stop VNC" --cancel-label="Cancel" || exit 0
-    output=$(/usr/local/bin/magicq-vnc-stop 2>&1) || {
+    output=$(/usr/local/bin/wasalight-vnc-stop 2>&1) || {
         zenity --error --width=460 --title="VNC · Wasalight" --text="$output"
         exit 1
     }
@@ -1203,11 +1186,11 @@ if [[ ! -r $password_file ]]; then
     # x11vnc deliberately reads the new password from a terminal so it never
     # appears in a process argument, temporary file or Wasalight log.
     lxterminal --title="VNC password · Wasalight" -e bash -lc \
-        '/usr/local/bin/magicq-vnc-start; rc=$?; echo; echo "Premere Invio per chiudere."; read -r _; exit "$rc"'
+        '/usr/local/bin/wasalight-vnc-start; rc=$?; echo; echo "Premere Invio per chiudere."; read -r _; exit "$rc"'
     exit 0
 fi
 
-output=$(/usr/local/bin/magicq-vnc-start 2>&1) || {
+output=$(/usr/local/bin/wasalight-vnc-start 2>&1) || {
     zenity --error --width=520 --title="VNC · Wasalight" --text="$output"
     exit 1
 }
@@ -1355,7 +1338,7 @@ fi
 
 [[ $EUID -eq 0 ]] || { echo "Esegui con: sudo wasalight-update" >&2; exit 1; }
 [[ $(findmnt -n -o FSTYPE / 2>/dev/null) != overlay ]] || {
-    echo "Serve la modalità MAINTENANCE. Esegui sudo magicq-maintenance e riavvia." >&2
+    echo "Serve la modalità MAINTENANCE. Esegui sudo wasalight-maintenance e riavvia." >&2
     exit 1
 }
 mountpoint -q /data || { echo "/data non è montata: aggiornamento interrotto." >&2; exit 1; }
@@ -1480,11 +1463,6 @@ select_newest_magicq_package() {
 }
 
 step "1/4 · Controllo dei pacchetti MagicQ"
-while IFS= read -r -d '' legacy_package; do
-    import_magicq_package "$legacy_package" 1
-done < <(find /home /root -maxdepth 4 -type f \
-    -path '*/wasalight/packages/*.deb' -print0 2>/dev/null)
-
 while IFS= read -r usb_mount; do
     echo "Controllo USB montata: $usb_mount"
     while IFS= read -r -d '' usb_package; do
@@ -2573,26 +2551,26 @@ EOF
     # Remove launchers and the short-lived system-link experiment from earlier
     # runs before recreating protected regular desktop files.
     rm -f -- \
-        "$TARGET_HOME/Desktop/Start-MagicQ.desktop" \
-        "$TARGET_HOME/Desktop/Stop-MagicQ.desktop" \
-        "$TARGET_HOME/Desktop/Wasalight-Hub.desktop" \
+        "$TARGET_HOME/Desktop/MagicQ-Start.desktop" \
+        "$TARGET_HOME/Desktop/MagicQ-Stop.desktop" \
+        "$TARGET_HOME/Desktop/Wasalight-Control.desktop" \
         "$TARGET_HOME/Desktop/Files.desktop" \
         "$TARGET_HOME/Desktop/VNC.desktop" \
         "$TARGET_HOME/Desktop/SSH.desktop" \
         "$TARGET_HOME/Desktop/Power-Off.desktop" \
         "$TARGET_HOME/Desktop/Reboot.desktop" \
-        /usr/local/share/applications/wasalight-Start-MagicQ.desktop \
-        /usr/local/share/applications/wasalight-Stop-MagicQ.desktop \
-        /usr/local/share/applications/wasalight-Wasalight-Hub.desktop \
+        /usr/local/share/applications/wasalight-MagicQ-Start.desktop \
+        /usr/local/share/applications/wasalight-MagicQ-Stop.desktop \
+        /usr/local/share/applications/wasalight-Wasalight-Control.desktop \
         /usr/local/share/applications/wasalight-VNC.desktop \
         /usr/local/share/applications/wasalight-SSH.desktop \
         /usr/local/share/applications/wasalight-Power-Off.desktop \
         /usr/local/share/applications/wasalight-Reboot.desktop
 
-    write_file "$TARGET_HOME/Desktop/Start-MagicQ.desktop" 0755 <<'EOF'
+    write_file "$TARGET_HOME/Desktop/MagicQ-Start.desktop" 0755 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Start MagicQ
+Name=Avvia MagicQ
 Comment=Avvia MagicQ e il supervisore Wasalight
 Exec=/usr/local/bin/magicq-start
 Icon=/usr/local/share/icons/wasalight/start.svg
@@ -2600,10 +2578,10 @@ Terminal=false
 StartupNotify=false
 EOF
 
-    write_file "$TARGET_HOME/Desktop/Stop-MagicQ.desktop" 0755 <<'EOF'
+    write_file "$TARGET_HOME/Desktop/MagicQ-Stop.desktop" 0755 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Stop MagicQ
+Name=Ferma MagicQ
 Comment=Ferma MagicQ e lo mantiene chiuso
 Exec=/usr/local/bin/magicq-stop
 Icon=/usr/local/share/icons/wasalight/stop.svg
@@ -2611,12 +2589,12 @@ Terminal=false
 StartupNotify=false
 EOF
 
-    # The Hub replaces the less frequently used support launchers. Keep the
-    # File Manager as a first-class touch target on both desktop and panel.
+    # Control replaces the less frequently used support launchers. Keep the
+    # file manager as a first-class touch target on both desktop and panel.
     rm -f "$TARGET_HOME/Desktop/Network.desktop" \
         "$TARGET_HOME/Desktop/Terminal.desktop"
 
-    write_file "$TARGET_HOME/Desktop/Wasalight-Hub.desktop" 0755 <<'EOF'
+    write_file "$TARGET_HOME/Desktop/Wasalight-Control.desktop" 0755 <<'EOF'
 [Desktop Entry]
 Type=Application
 Name=Wasalight Control
@@ -2624,13 +2602,13 @@ Comment=Gestione unificata di MagicQ, servizi, plugin e strumenti
 Exec=/usr/local/bin/wasalight-control
 Icon=/usr/local/share/icons/wasalight/hub.svg
 Terminal=false
-StartupNotify=true
+StartupNotify=false
 EOF
 
     write_file "$TARGET_HOME/Desktop/Files.desktop" 0755 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=File Manager
+Name=File
 Comment=Apre dati persistenti e chiavette USB
 Exec=pcmanfm /data
 Icon=/usr/local/share/icons/wasalight/files.svg
@@ -2663,7 +2641,7 @@ EOF
     write_file "$TARGET_HOME/Desktop/Power-Off.desktop" 0755 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Power off
+Name=Spegni
 Comment=Spegne la postazione dopo una conferma
 Exec=/usr/local/bin/wasalight-power poweroff
 Icon=/usr/local/share/icons/wasalight/power.svg
@@ -2674,7 +2652,7 @@ EOF
     write_file "$TARGET_HOME/Desktop/Reboot.desktop" 0755 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Reboot
+Name=Riavvia
 Comment=Riavvia la postazione dopo una conferma
 Exec=/usr/local/bin/wasalight-power reboot
 Icon=/usr/local/share/icons/wasalight/reboot.svg
@@ -2708,7 +2686,7 @@ while :; do
 done
 EOF
 
-    write_file /usr/local/bin/magicq-audio-test 0755 <<'EOF'
+    write_file /usr/local/bin/wasalight-audio-test 0755 <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
@@ -2731,14 +2709,14 @@ set -Eeuo pipefail
 action=${1:-}
 case "$action" in
     poweroff)
-        title="Power off Wasalight"
+        title="Spegni Wasalight"
         question="Spegnere completamente la postazione?"
-        confirm="Power off"
+        confirm="Spegni"
         ;;
     reboot)
-        title="Reboot Wasalight"
+        title="Riavvia Wasalight"
         question="Riavviare adesso la postazione?"
-        confirm="Reboot"
+        confirm="Riavvia"
         ;;
     *)
         echo "Usage: wasalight-power poweroff|reboot" >&2
@@ -2748,7 +2726,7 @@ esac
 
 zenity --question --width=460 --title="$title" \
     --text="<big><b>$question</b></big>\n\nGli show salvati in /data resteranno persistenti." \
-    --ok-label="$confirm" --cancel-label="Cancel" || exit 0
+    --ok-label="$confirm" --cancel-label="Annulla" || exit 0
 sudo -n /usr/local/sbin/wasalight-power-control "$action"
 EOF
 
@@ -2870,7 +2848,7 @@ else
     status_line "$yellow" 'NETWORK' 'DISCONNECTED'
 fi
 
-touch_state=$(/usr/local/bin/magicq-touch-status --summary 2>/dev/null || true)
+touch_state=$(/usr/local/bin/wasalight-touch-status --summary 2>/dev/null || true)
 if [[ $touch_state == *ready* ]]; then
     status_line "$green" 'TOUCH' 'READY'
 elif [[ -n $touch_state ]]; then
@@ -2963,9 +2941,9 @@ EOF
 #!/usr/bin/env bash
 set -Eeuo pipefail
 case ${1:-} in
-    status) command_to_run=/usr/local/bin/magicq-status ;;
-    touch) command_to_run=/usr/local/bin/magicq-touch-status ;;
-    audio) command_to_run=/usr/local/bin/magicq-audio-test ;;
+    status) command_to_run=/usr/local/bin/wasalight-status ;;
+    touch) command_to_run=/usr/local/bin/wasalight-touch-status ;;
+    audio) command_to_run=/usr/local/bin/wasalight-audio-test ;;
     *) echo "Usage: wasalight-terminal-tool status|touch|audio" >&2; exit 2 ;;
 esac
 exec lxterminal --title="Wasalight support" -e bash -lc \
@@ -3272,7 +3250,7 @@ EOF
     write_file /etc/wasalight/apps.d/network.desktop 0644 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Network
+Name=Rete
 Comment=Configura Ethernet e Wi-Fi
 Exec=nm-connection-editor
 Icon=/usr/local/share/icons/wasalight/network.svg
@@ -3283,7 +3261,7 @@ EOF
     write_file /etc/wasalight/apps.d/display.desktop 0644 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Display
+Name=Schermo
 Comment=Configura monitor e risoluzione
 Exec=lxrandr
 Icon=video-display
@@ -3298,25 +3276,25 @@ Name=Touchscreen
 Comment=Mostra dispositivi e associazione touch
 Exec=/usr/local/bin/wasalight-terminal-tool touch
 Icon=input-touchpad
-TryExec=/usr/local/bin/magicq-touch-status
+TryExec=/usr/local/bin/wasalight-touch-status
 X-Wasalight-Section=Support
 X-Wasalight-Order=30
 EOF
     write_file /etc/wasalight/apps.d/audio.desktop 0644 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Audio test
+Name=Test audio
 Comment=Prova il dispositivo ALSA predefinito
 Exec=/usr/local/bin/wasalight-terminal-tool audio
 Icon=audio-card
-TryExec=/usr/local/bin/magicq-audio-test
+TryExec=/usr/local/bin/wasalight-audio-test
 X-Wasalight-Section=Support
 X-Wasalight-Order=40
 EOF
     write_file /etc/wasalight/apps.d/files.desktop 0644 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Files
+Name=File
 Comment=Apre dati persistenti e chiavette USB
 Exec=pcmanfm /data
 Icon=/usr/local/share/icons/wasalight/files.svg
@@ -3327,7 +3305,7 @@ EOF
     write_file /etc/wasalight/apps.d/ip-scanner.desktop 0644 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=IP Scanner
+Name=Scanner IP
 Comment=Trova dispositivi, indirizzi IP e produttori nella rete locale
 Exec=/usr/local/bin/wasalight-ip-scanner
 Icon=/usr/local/share/icons/wasalight/ip-scanner.svg
@@ -3349,7 +3327,7 @@ EOF
     write_file /etc/wasalight/apps.d/system-monitor.desktop 0644 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=System Monitor
+Name=Monitor sistema
 Comment=Mostra processi e utilizzo di CPU e memoria
 Exec=lxtask
 Icon=utilities-system-monitor
@@ -3371,18 +3349,18 @@ EOF
     write_file /etc/wasalight/apps.d/status.desktop 0644 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=System status
+Name=Stato sistema
 Comment=Mostra lo stato completo Wasalight
 Exec=/usr/local/bin/wasalight-terminal-tool status
 Icon=utilities-system-monitor
-TryExec=/usr/local/bin/magicq-status
+TryExec=/usr/local/bin/wasalight-status
 X-Wasalight-Section=Support
 X-Wasalight-Order=70
 EOF
     write_file /etc/wasalight/apps.d/vnc.desktop 0644 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=VNC session
+Name=Sessione VNC
 Comment=Avvia o ferma la condivisione corrente
 Exec=/usr/local/bin/wasalight-vnc-toggle
 Icon=/usr/local/share/icons/wasalight/vnc.svg
@@ -3393,7 +3371,7 @@ EOF
     write_file /etc/wasalight/apps.d/ssh.desktop 0644 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=SSH access
+Name=Accesso SSH
 Comment=Avvia o ferma il server SSH
 Exec=/usr/local/bin/wasalight-ssh-toggle
 Icon=/usr/local/share/icons/wasalight/ssh.svg
@@ -3404,7 +3382,7 @@ EOF
     write_file /etc/wasalight/apps.d/update.desktop 0644 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Update Wasalight
+Name=Aggiorna Wasalight
 Comment=Scarica e installa l’ultima versione in MAINTENANCE
 Exec=/usr/local/bin/wasalight-update-terminal
 Icon=system-software-update
@@ -3452,224 +3430,6 @@ install -m 0644 "$source_file" "$destination/$name"
 echo "Registered in Wasalight Control: $destination/$name"
 EOF
 
-    write_file /usr/local/libexec/wasalight-hub.py 0755 <<'PYEOF'
-#!/usr/bin/env python3
-import configparser
-import glob
-import os
-import re
-import shlex
-import shutil
-import subprocess
-
-import gi
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gdk, GdkPixbuf, Gtk
-
-SECTIONS = ("MagicQ", "Applications", "Support")
-COMPANION = re.compile(r"magicvis|magichd|magicq[ -]?remote|chamsys.*(?:remote|viewer|media)", re.I)
-FIELD_CODE = re.compile(r"%[fFuUdDnNickvm]")
-
-
-def desktop_bool(item, key, default=False):
-    try:
-        return item.getboolean(key, fallback=default)
-    except ValueError:
-        return default
-
-
-def read_launcher(path, forced_section=None):
-    parser = configparser.RawConfigParser(interpolation=None, strict=False)
-    try:
-        parser.read(path, encoding="utf-8")
-        item = parser["Desktop Entry"]
-    except (OSError, KeyError, configparser.Error):
-        return None
-    if item.get("Type", "Application") != "Application":
-        return None
-    if desktop_bool(item, "Hidden") or desktop_bool(item, "NoDisplay"):
-        return None
-    name = item.get("Name", "").strip()
-    command = item.get("Exec", "").strip()
-    try_exec = item.get("TryExec", "").strip()
-    if not name or not command:
-        return None
-    if try_exec and not (os.path.exists(try_exec) if os.path.isabs(try_exec) else shutil.which(try_exec)):
-        return None
-    section = forced_section or item.get("X-Wasalight-Section", "Applications")
-    if section not in SECTIONS:
-        section = "Applications"
-    try:
-        order = int(item.get("X-Wasalight-Order", "500"))
-    except ValueError:
-        order = 500
-    return {
-        "name": name,
-        "comment": item.get("Comment", ""),
-        "exec": command,
-        "icon": item.get("Icon", "application-x-executable"),
-        "terminal": desktop_bool(item, "Terminal"),
-        "path": item.get("Path", "").strip() or None,
-        "section": section,
-        "order": order,
-    }
-
-
-def installed_launchers():
-    result, seen = [], set()
-    for pattern in ("/etc/wasalight/apps.d/*.desktop", "/data/system/apps.d/*.desktop"):
-        for path in sorted(glob.glob(pattern)):
-            launcher = read_launcher(path)
-            if launcher and (launcher["name"], launcher["exec"]) not in seen:
-                result.append(launcher)
-                seen.add((launcher["name"], launcher["exec"]))
-    for path in sorted(glob.glob("/usr/share/applications/*.desktop")):
-        launcher = read_launcher(path, "MagicQ")
-        if not launcher:
-            continue
-        searchable = " ".join((launcher["name"], launcher["exec"], launcher["comment"]))
-        if COMPANION.search(searchable) and (launcher["name"], launcher["exec"]) not in seen:
-            result.append(launcher)
-            seen.add((launcher["name"], launcher["exec"]))
-    return sorted(result, key=lambda value: (SECTIONS.index(value["section"]), value["order"], value["name"].lower()))
-
-
-def launcher_image(icon):
-    if os.path.isabs(icon) and os.path.isfile(icon):
-        try:
-            pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(icon, 72, 72, True)
-            return Gtk.Image.new_from_pixbuf(pixbuf)
-        except Exception:
-            pass
-    image = Gtk.Image.new_from_icon_name(icon or "application-x-executable", Gtk.IconSize.DIALOG)
-    image.set_pixel_size(72)
-    return image
-
-
-def companion_kind(command):
-    """Return the supported ChamSys companion selected by a desktop Exec."""
-    try:
-        executable = os.path.basename(shlex.split(command)[0])
-    except (ValueError, IndexError):
-        return None
-    return {
-        "runmagichd.sh": "magichd",
-        "mqhd": "magichd",
-        "runmagicvis.sh": "magicvis",
-        "mqvis": "magicvis",
-    }.get(executable)
-
-
-class Hub(Gtk.Window):
-    def __init__(self):
-        super().__init__(title="Wasalight Hub")
-        self.set_default_size(900, 650)
-        self.set_position(Gtk.WindowPosition.CENTER)
-        try:
-            self.set_icon_from_file("/usr/local/share/icons/wasalight/hub.svg")
-        except Exception:
-            pass
-        self.connect("destroy", Gtk.main_quit)
-
-        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        outer.set_border_width(18)
-        header = Gtk.Label()
-        header.set_markup("<span size='22000' weight='bold'>Wasalight Hub</span>\n"
-                          "<span size='11000'>MagicQ · applicazioni · supporto</span>")
-        header.set_xalign(0)
-        outer.pack_start(header, False, False, 0)
-
-        notebook = Gtk.Notebook()
-        launchers = installed_launchers()
-        for section in SECTIONS:
-            flow = Gtk.FlowBox()
-            flow.set_selection_mode(Gtk.SelectionMode.NONE)
-            flow.set_row_spacing(14)
-            flow.set_column_spacing(14)
-            flow.set_max_children_per_line(4)
-            flow.set_min_children_per_line(2)
-            section_items = [item for item in launchers if item["section"] == section]
-            if not section_items:
-                empty = Gtk.Label(label="Nessuna applicazione registrata")
-                empty.set_margin_top(40)
-                flow.add(empty)
-            for item in section_items:
-                button = Gtk.Button()
-                button.set_size_request(190, 145)
-                button.set_tooltip_text(item["comment"])
-                content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-                content.pack_start(launcher_image(item["icon"]), True, True, 0)
-                label = Gtk.Label(label=item["name"])
-                label.set_line_wrap(True)
-                label.set_justify(Gtk.Justification.CENTER)
-                content.pack_start(label, False, False, 0)
-                button.add(content)
-                button.connect("clicked", self.launch, item)
-                flow.add(button)
-            scroll = Gtk.ScrolledWindow()
-            scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-            scroll.add(flow)
-            notebook.append_page(scroll, Gtk.Label(label=section))
-        outer.pack_start(notebook, True, True, 0)
-
-        close = Gtk.Button(label="Close")
-        close.set_size_request(-1, 56)
-        close.connect("clicked", lambda _button: self.destroy())
-        outer.pack_start(close, False, False, 0)
-        self.add(outer)
-
-    def launch(self, _button, item):
-        command = FIELD_CODE.sub("", item["exec"])
-        try:
-            companion = companion_kind(command)
-            if companion:
-                # The target's proprietary Qt/OpenGL bundle works with the
-                # same root X11 environment required by MagicQ itself.
-                arguments = ["sudo", "-n", "/usr/local/sbin/wasalight-companion-launcher", companion]
-            else:
-                arguments = shlex.split(command)
-            if item["terminal"]:
-                arguments = ["lxterminal", "-e"] + arguments
-            subprocess.Popen(arguments, cwd=item["path"], start_new_session=True)
-            self.destroy()
-        except (OSError, ValueError) as error:
-            dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.ERROR, Gtk.ButtonsType.CLOSE,
-                                       "Impossibile avviare l'applicazione")
-            dialog.format_secondary_text(str(error))
-            dialog.run()
-            dialog.destroy()
-
-
-css = Gtk.CssProvider()
-css.load_from_data(b"button { font-size: 18px; padding: 12px; } notebook tab { padding: 14px 28px; font-size: 17px; }")
-Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-window = Hub()
-window.show_all()
-Gtk.main()
-PYEOF
-
-    write_file /usr/local/bin/wasalight-hub 0755 <<'EOF'
-#!/usr/bin/env bash
-set -u
-
-log_dir=/tmp
-if [[ -d /data/log && -w /data/log ]]; then
-    log_dir=/data/log
-fi
-log_file="$log_dir/wasalight-hub.log"
-
-if /usr/local/libexec/wasalight-hub.py >>"$log_file" 2>&1; then
-    exit 0
-else
-    rc=$?
-fi
-details=$(tail -n 16 "$log_file" 2>/dev/null || true)
-zenity --error --width=620 --title="Wasalight Hub" \
-    --text="<big><b>Wasalight Hub non è riuscito ad avviarsi.</b></big>\n\n$details\n\nLog: $log_file" \
-    2>/dev/null || true
-exit "$rc"
-EOF
-
     write_file "$TARGET_HOME/.config/tint2/tint2rc" 0644 <<EOF
 # Wasalight touch panel: always visible, with a discreet near-black theme.
 rounded = 0
@@ -3699,7 +3459,7 @@ launcher_padding = 8 4 8
 launcher_background_id = 2
 launcher_icon_background_id = 0
 launcher_icon_size = 46
-launcher_item_app = $TARGET_HOME/Desktop/Wasalight-Hub.desktop
+launcher_item_app = $TARGET_HOME/Desktop/Wasalight-Control.desktop
 launcher_item_app = $TARGET_HOME/Desktop/Files.desktop
 
 taskbar_mode = single_desktop
@@ -3993,7 +3753,7 @@ conky --config="$HOME/.config/conky/wasalight.conf" --daemonize --pause=2
 tint2 -c "$HOME/.config/tint2/tint2rc" &
 nm-applet --indicator &
 /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
-/usr/local/bin/magicq-touch-watch &
+/usr/local/bin/wasalight-touch-watch &
 /usr/local/bin/magicq-fullscreen-watch &
 if findmnt -n -o FSTYPE / 2>/dev/null | grep -qx overlay; then
     /usr/local/bin/magicq-session &
@@ -4021,18 +3781,18 @@ EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <openbox_menu xmlns="http://openbox.org/3.4/menu">
   <menu id="root-menu" label="Wasalight">
-    <item label="Start MagicQ"><action name="Execute"><command>/usr/local/bin/magicq-start</command></action></item>
-    <item label="Stop MagicQ"><action name="Execute"><command>/usr/local/bin/magicq-stop</command></action></item>
+    <item label="Avvia MagicQ"><action name="Execute"><command>/usr/local/bin/magicq-start</command></action></item>
+    <item label="Ferma MagicQ"><action name="Execute"><command>/usr/local/bin/magicq-stop</command></action></item>
     <separator />
     <item label="Wasalight Control"><action name="Execute"><command>/usr/local/bin/wasalight-control</command></action></item>
-    <item label="File Manager"><action name="Execute"><command>pcmanfm /data</command></action></item>
+    <item label="File"><action name="Execute"><command>pcmanfm /data</command></action></item>
     <item label="Terminal"><action name="Execute"><command>lxterminal</command></action></item>
-    <item label="Update Wasalight"><action name="Execute"><command>/usr/local/bin/wasalight-update-terminal</command></action></item>
+    <item label="Aggiorna Wasalight"><action name="Execute"><command>/usr/local/bin/wasalight-update-terminal</command></action></item>
     <item label="VNC"><action name="Execute"><command>/usr/local/bin/wasalight-vnc-toggle</command></action></item>
     <item label="SSH"><action name="Execute"><command>/usr/local/bin/wasalight-ssh-toggle</command></action></item>
     <separator />
-    <item label="Reboot"><action name="Execute"><command>/usr/local/bin/wasalight-power reboot</command></action></item>
-    <item label="Power off"><action name="Execute"><command>/usr/local/bin/wasalight-power poweroff</command></action></item>
+    <item label="Riavvia"><action name="Execute"><command>/usr/local/bin/wasalight-power reboot</command></action></item>
+    <item label="Spegni"><action name="Execute"><command>/usr/local/bin/wasalight-power poweroff</command></action></item>
   </menu>
 </openbox_menu>
 EOF
@@ -4096,8 +3856,8 @@ configure_plugins() {
         /usr/local/libexec/wasalight-control-center.py
 
     # Built-in management integrations are visible by default. Companion is
-    # enabled on its first installation/migration, while an explicit disabled
-    # state from an operator is always preserved by later updates.
+    # enabled on its first installation, while an explicit disabled state from
+    # an operator is always preserved by later updates.
     for plugin in ssh vnc; do
         state_file="$DATA_MOUNT/system/plugins-state/$plugin"
         [[ -e $state_file ]] || printf 'enabled\n' >"$state_file"
@@ -4122,11 +3882,22 @@ configure_plugins() {
 
     write_file /usr/local/bin/wasalight-control 0755 <<'EOF'
 #!/usr/bin/env bash
-set -u
+set -Eeuo pipefail
 log_dir=/tmp
 [[ -d /data/log && -w /data/log ]] && log_dir=/data/log
-log_file="$log_dir/wasalight-hub.log"
-if /usr/local/libexec/wasalight-control-center.py >>"$log_file" 2>&1; then
+log_file="$log_dir/wasalight-control.log"
+runtime_dir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+install -d -m 0700 "$runtime_dir"
+
+# Keep one Control Center per desktop session. A repeated touch focuses the
+# existing window instead of starting another GTK process.
+exec 9>"$runtime_dir/wasalight-control.lock"
+if ! flock -n 9; then
+    wmctrl -a "Wasalight Control Center" 2>/dev/null || true
+    exit 0
+fi
+
+if /usr/local/libexec/wasalight-control-center.py "$@" >>"$log_file" 2>&1; then
     exit 0
 else
     rc=$?
@@ -4138,12 +3909,6 @@ zenity --error --width=640 --title="Wasalight Control" \
 exit "$rc"
 EOF
 
-    # Backwards-compatible command used by older desktop files and habits.
-    write_file /usr/local/bin/wasalight-hub 0755 <<'EOF'
-#!/usr/bin/env bash
-exec /usr/local/bin/wasalight-control "$@"
-EOF
-
     write_file /etc/sudoers.d/wasalight-plugins 0440 <<'EOF'
 chamsys ALL=(root) NOPASSWD: /usr/local/sbin/wasalight-plugin-admin enable ssh, /usr/local/sbin/wasalight-plugin-admin disable ssh, /usr/local/sbin/wasalight-plugin-admin enable vnc, /usr/local/sbin/wasalight-plugin-admin disable vnc, /usr/local/sbin/wasalight-plugin-admin enable companion, /usr/local/sbin/wasalight-plugin-admin disable companion
 EOF
@@ -4151,18 +3916,10 @@ EOF
 }
 
 configure_persistent_logs() {
-    local log_file old_log new_log
+    local log_file
     if mountpoint -q "$DATA_MOUNT"; then
         install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$DATA_MOUNT/log"
-        for old_log in magicq-console.log magicq-session.log; do
-            new_log="wasalight-$old_log"
-            if [[ -e "$DATA_MOUNT/log/$old_log" && ! -e "$DATA_MOUNT/log/$new_log" ]]; then
-                mv "$DATA_MOUNT/log/$old_log" "$DATA_MOUNT/log/$new_log"
-            elif [[ -e "$DATA_MOUNT/log/$old_log" ]]; then
-                warn "legacy log retained because the new file already exists: $DATA_MOUNT/log/$old_log"
-            fi
-        done
-        for log_file in wasalight-magicq-console.log wasalight-magicq-session.log wasalight-hub.log wasalight-network-tools.log wasalight-xorg-startup.log; do
+        for log_file in wasalight-magicq-console.log wasalight-magicq-session.log wasalight-control.log wasalight-network-tools.log wasalight-xorg-startup.log; do
             if [[ ! -e "$DATA_MOUNT/log/$log_file" ]]; then
                 install -o "$TARGET_USER" -g "$TARGET_USER" -m 0640 \
                     /dev/null "$DATA_MOUNT/log/$log_file"
@@ -4177,10 +3934,10 @@ configure_persistent_logs() {
 
     install -d -m 0755 /etc/wasalight
     install -d -m 0755 /etc/wasalight/logrotate.d
-    write_file /etc/wasalight/magicq-logrotate.conf 0644 <<'EOF'
+    write_file /etc/wasalight/wasalight-logrotate.conf 0644 <<'EOF'
 include /etc/wasalight/logrotate.d
 
-/data/log/wasalight-magicq-console.log /data/log/wasalight-magicq-session.log /data/log/wasalight-hub.log /data/log/wasalight-network-tools.log /data/log/wasalight-xorg-startup.log {
+/data/log/wasalight-magicq-console.log /data/log/wasalight-magicq-session.log /data/log/wasalight-control.log /data/log/wasalight-network-tools.log /data/log/wasalight-xorg-startup.log {
     size 5M
     rotate 5
     compress
@@ -4193,7 +3950,7 @@ include /etc/wasalight/logrotate.d
 }
 EOF
 
-    write_file /etc/systemd/system/magicq-logrotate.service 0644 <<'EOF'
+    write_file /etc/systemd/system/wasalight-logrotate.service 0644 <<'EOF'
 [Unit]
 Description=Rotate persistent Wasalight MagicQ logs
 RequiresMountsFor=/data/log
@@ -4201,10 +3958,10 @@ ConditionPathIsMountPoint=/data
 
 [Service]
 Type=oneshot
-ExecStart=/usr/sbin/logrotate --state /run/magicq-logrotate.status /etc/wasalight/magicq-logrotate.conf
+ExecStart=/usr/sbin/logrotate --state /run/wasalight-logrotate.status /etc/wasalight/wasalight-logrotate.conf
 EOF
 
-    write_file /etc/systemd/system/magicq-logrotate.timer 0644 <<'EOF'
+    write_file /etc/systemd/system/wasalight-logrotate.timer 0644 <<'EOF'
 [Unit]
 Description=Periodically limit persistent Wasalight MagicQ logs
 
@@ -4212,31 +3969,31 @@ Description=Periodically limit persistent Wasalight MagicQ logs
 OnBootSec=5min
 OnUnitActiveSec=10min
 AccuracySec=1min
-Unit=magicq-logrotate.service
+Unit=wasalight-logrotate.service
 
 [Install]
 WantedBy=timers.target
 EOF
 
-    systemctl enable magicq-logrotate.timer
+    systemctl enable wasalight-logrotate.timer
 }
 
 configure_usb() {
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0755 "$USB_MOUNT"
 
-    write_file /usr/local/libexec/magicq-usb-mount 0755 <<'EOF'
+    write_file /usr/local/libexec/wasalight-usb-mount 0755 <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 dev_name=${1:?missing block device name}
 dev="/dev/$dev_name"
 base=/stick
-state_dir=/run/magicq-usb
+state_dir=/run/wasalight-usb
 
 [[ $dev_name =~ ^[a-zA-Z0-9._-]+$ ]] || exit 1
 mountpoint="$base/$dev_name"
 state="$state_dir/$dev_name.mount"
 
-exec 9>/run/magicq-usb.lock
+exec 9>/run/wasalight-usb.lock
 flock 9
 
 [[ -b "$dev" ]] || exit 0
@@ -4249,7 +4006,7 @@ case "$fs" in
     exfat)  type=exfat;   opts='rw,nosuid,nodev,noexec,sync,uid=chamsys,gid=chamsys,umask=0022' ;;
     ntfs)   type=ntfs-3g; opts='rw,nosuid,nodev,noexec,sync,uid=chamsys,gid=chamsys,umask=0022' ;;
     apfs)   type=apfs;    opts=read-only ;;
-    *) logger -t magicq-usb "Ignoring $dev: unsupported filesystem '$fs'"; exit 0 ;;
+    *) logger -t wasalight-usb "Ignoring $dev: unsupported filesystem '$fs'"; exit 0 ;;
 esac
 
 install -d -m 0755 "$state_dir"
@@ -4270,27 +4027,27 @@ fi
 if ((mounted)); then
     printf '%s\n' "$mountpoint" >"$state"
     if [[ $type == apfs ]]; then
-        logger -t magicq-usb "Mounted $dev (APFS) read-only at $mountpoint"
+        logger -t wasalight-usb "Mounted $dev (APFS) read-only at $mountpoint"
     else
-        logger -t magicq-usb "Mounted $dev ($fs) at $mountpoint with synchronous writes"
+        logger -t wasalight-usb "Mounted $dev ($fs) at $mountpoint with synchronous writes"
     fi
 else
-    logger -t magicq-usb "Failed to mount $dev ($fs)"
+    logger -t wasalight-usb "Failed to mount $dev ($fs)"
     exit 1
 fi
 EOF
 
-    write_file /usr/local/libexec/magicq-usb-unmount 0755 <<'EOF'
+    write_file /usr/local/libexec/wasalight-usb-unmount 0755 <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 dev_name=${1:?missing block device name}
 base=/stick
-state_dir=/run/magicq-usb
+state_dir=/run/wasalight-usb
 
 [[ $dev_name =~ ^[a-zA-Z0-9._-]+$ ]] || exit 1
 state="$state_dir/$dev_name.mount"
 
-exec 9>/run/magicq-usb.lock
+exec 9>/run/wasalight-usb.lock
 flock 9
 
 [[ -r "$state" ]] || exit 0
@@ -4303,10 +4060,10 @@ sync -f "$mountpoint" 2>/dev/null || true
 umount "$mountpoint" 2>/dev/null || umount -l "$mountpoint" 2>/dev/null || true
 rm -f "$state"
 rmdir "$mountpoint" 2>/dev/null || true
-logger -t magicq-usb "Cleaned up $dev_name from $mountpoint"
+logger -t wasalight-usb "Cleaned up $dev_name from $mountpoint"
 EOF
 
-    write_file /etc/systemd/system/magicq-usb@.service 0644 <<'EOF'
+    write_file /etc/systemd/system/wasalight-usb@.service 0644 <<'EOF'
 [Unit]
 Description=MagicQ USB mount for /dev/%I
 BindsTo=dev-%i.device
@@ -4315,15 +4072,15 @@ After=dev-%i.device
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/local/libexec/magicq-usb-mount %I
-ExecStop=/usr/local/libexec/magicq-usb-unmount %I
+ExecStart=/usr/local/libexec/wasalight-usb-mount %I
+ExecStop=/usr/local/libexec/wasalight-usb-unmount %I
 TimeoutStopSec=10
 EOF
 
-    write_file /etc/udev/rules.d/90-magicq-usb.rules 0644 <<'EOF'
+    write_file /etc/udev/rules.d/90-wasalight-usb.rules 0644 <<'EOF'
 # Start a systemd unit for supported USB filesystem partitions. Mounting is
 # intentionally not performed inside udev.
-ACTION=="add", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition|disk", ENV{ID_BUS}=="usb", ENV{ID_FS_TYPE}=="vfat|exfat|ntfs|apfs", TAG+="systemd", ENV{SYSTEMD_WANTS}+="magicq-usb@%k.service"
+ACTION=="add", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition|disk", ENV{ID_BUS}=="usb", ENV{ID_FS_TYPE}=="vfat|exfat|ntfs|apfs", TAG+="systemd", ENV{SYSTEMD_WANTS}+="wasalight-usb@%k.service"
 EOF
 
     udevadm control --reload-rules
@@ -4370,7 +4127,7 @@ repair_magicq_persistent_permissions() {
 
 configure_volatile_runtime() {
     install -d -m 0755 /etc/systemd/journald.conf.d
-    write_file /etc/systemd/journald.conf.d/10-magicq-volatile.conf 0644 <<'EOF'
+    write_file /etc/systemd/journald.conf.d/10-wasalight-volatile.conf 0644 <<'EOF'
 [Journal]
 Storage=volatile
 RuntimeMaxUse=128M
@@ -4385,7 +4142,7 @@ EOF
         "tmpfs /var/tmp tmpfs rw,nosuid,nodev,noatime,mode=1777,size=512M 0 0"
 
     install -d -m 0755 /etc/systemd/logind.conf.d
-    write_file /etc/systemd/logind.conf.d/10-magicq-no-sleep.conf 0644 <<'EOF'
+    write_file /etc/systemd/logind.conf.d/10-wasalight-no-sleep.conf 0644 <<'EOF'
 [Login]
 HandlePowerKey=poweroff
 HandleSuspendKey=ignore
@@ -4484,10 +4241,10 @@ EOF
 }
 
 install_mode_commands() {
-    write_file /usr/local/libexec/magicq-set-mode 0755 <<'EOF'
+    write_file /usr/local/libexec/wasalight-set-mode 0755 <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
-mode=${1:?usage: magicq-set-mode show|maintenance}
+mode=${1:?usage: wasalight-set-mode show|maintenance}
 [[ $EUID -eq 0 ]] || { echo "Must run as root" >&2; exit 1; }
 
 case "$mode" in
@@ -4503,19 +4260,19 @@ update-initramfs -u
 echo "Next boot mode: ${mode^^}. Reboot when ready."
 EOF
 
-    write_file /usr/local/sbin/magicq-maintenance 0755 <<'EOF'
+    write_file /usr/local/sbin/wasalight-maintenance 0755 <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 [[ $EUID -eq 0 ]] || exec sudo "$0" "$@"
 if findmnt -n -o FSTYPE / | grep -qx overlay; then
     command -v overlayroot-chroot >/dev/null || { echo "overlayroot-chroot is missing" >&2; exit 1; }
-    overlayroot-chroot /usr/local/libexec/magicq-set-mode maintenance
+    overlayroot-chroot /usr/local/libexec/wasalight-set-mode maintenance
 else
-    /usr/local/libexec/magicq-set-mode maintenance
+    /usr/local/libexec/wasalight-set-mode maintenance
 fi
 EOF
 
-    write_file /usr/local/sbin/magicq-protect 0755 <<'EOF'
+    write_file /usr/local/sbin/wasalight-protect 0755 <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 [[ $EUID -eq 0 ]] || exec sudo "$0" "$@"
@@ -4524,13 +4281,13 @@ if ! mountpoint -q /data || [[ $(findmnt -n -o FSTYPE -M /data) != ext4 ]]; then
     exit 1
 fi
 if findmnt -n -o FSTYPE / | grep -qx overlay; then
-    overlayroot-chroot /usr/local/libexec/magicq-set-mode show
+    overlayroot-chroot /usr/local/libexec/wasalight-set-mode show
 else
-    /usr/local/libexec/magicq-set-mode show
+    /usr/local/libexec/wasalight-set-mode show
 fi
 EOF
 
-    write_file /usr/local/bin/magicq-status 0755 <<'EOF'
+    write_file /usr/local/bin/wasalight-status 0755 <<'EOF'
 #!/usr/bin/env bash
 set -u
 version=$(cat /etc/wasalight/version 2>/dev/null || echo unknown)
@@ -4573,8 +4330,8 @@ else
     network="$network; managed"
 fi
 touch="unavailable"
-[[ -x /usr/local/bin/magicq-touch-status ]] && \
-    touch=$(/usr/local/bin/magicq-touch-status --summary 2>/dev/null || echo unavailable)
+[[ -x /usr/local/bin/wasalight-touch-status ]] && \
+    touch=$(/usr/local/bin/wasalight-touch-status --summary 2>/dev/null || echo unavailable)
 vnc="stopped"
 pgrep -u chamsys -x x11vnc >/dev/null 2>&1 && vnc="running on TCP 5900"
 ssh="stopped"
@@ -4615,7 +4372,7 @@ EOT
 EOF
 
     write_file /etc/sudoers.d/chamsys-magicq 0440 <<'EOF'
-chamsys ALL=(root) NOPASSWD: /usr/local/sbin/magicq-maintenance, /usr/local/sbin/magicq-protect, /usr/local/sbin/magicq-root-launcher, /usr/local/sbin/magicq-root-stop, /usr/local/sbin/wasalight-companion-launcher magichd, /usr/local/sbin/wasalight-companion-launcher magicvis, /usr/local/sbin/wasalight-ip-scan, /usr/local/sbin/wasalight-artnet-capture, /usr/local/sbin/wasalight-power-control poweroff, /usr/local/sbin/wasalight-power-control reboot, /usr/local/sbin/wasalight-ssh-control start, /usr/local/sbin/wasalight-ssh-control stop, /usr/local/sbin/wasalight-companion-control start, /usr/local/sbin/wasalight-companion-control stop, /usr/local/sbin/wasalight-companion-control restart, /usr/local/sbin/wasalight-companion-backup
+chamsys ALL=(root) NOPASSWD: /usr/local/sbin/wasalight-maintenance, /usr/local/sbin/wasalight-protect, /usr/local/sbin/magicq-root-launcher, /usr/local/sbin/magicq-root-stop, /usr/local/sbin/wasalight-companion-launcher magichd, /usr/local/sbin/wasalight-companion-launcher magicvis, /usr/local/sbin/wasalight-ip-scan, /usr/local/sbin/wasalight-artnet-capture, /usr/local/sbin/wasalight-power-control poweroff, /usr/local/sbin/wasalight-power-control reboot, /usr/local/sbin/wasalight-ssh-control start, /usr/local/sbin/wasalight-ssh-control stop, /usr/local/sbin/wasalight-companion-control start, /usr/local/sbin/wasalight-companion-control stop, /usr/local/sbin/wasalight-companion-control restart, /usr/local/sbin/wasalight-companion-backup
 EOF
     visudo -cf /etc/sudoers.d/chamsys-magicq >/dev/null
 }
@@ -4624,8 +4381,6 @@ configure_boot_branding() {
     local default_logo="$PROJECT_DIR/assets/branding/boot-logo.png"
     local persistent_dir="$DATA_MOUNT/system/branding"
     local persistent_logo="$persistent_dir/boot-logo.png"
-    local previous_default_sha256=1a063958609eb258b14679213e0739cdca87cf4a4f0669d5ddc41e19a208a5d1
-    local persistent_sha256
     local selected_logo="$default_logo"
     local theme_dir=/usr/share/plymouth/themes/wasalight
 
@@ -4635,13 +4390,6 @@ configure_boot_branding() {
         if [[ ! -e $persistent_logo ]]; then
             install -o root -g root -m 0644 "$default_logo" "$persistent_logo"
             log "installed the default persistent boot logo: $persistent_logo"
-        else
-            persistent_sha256=$(sha256sum "$persistent_logo")
-            persistent_sha256=${persistent_sha256%% *}
-            if [[ $persistent_sha256 == "$previous_default_sha256" ]]; then
-                install -o root -g root -m 0644 "$default_logo" "$persistent_logo"
-                log "updated the previous default persistent boot logo"
-            fi
         fi
         selected_logo=$persistent_logo
     fi
@@ -4745,22 +4493,22 @@ EOF
 
 final_checks() {
     local writable_path
-    bash -n /usr/local/libexec/magicq-usb-mount
-    bash -n /usr/local/libexec/magicq-usb-unmount
-    bash -n /usr/local/libexec/magicq-set-mode
-    bash -n /usr/local/sbin/magicq-maintenance
-    bash -n /usr/local/sbin/magicq-protect
-    bash -n /usr/local/bin/magicq-status
+    bash -n /usr/local/libexec/wasalight-usb-mount
+    bash -n /usr/local/libexec/wasalight-usb-unmount
+    bash -n /usr/local/libexec/wasalight-set-mode
+    bash -n /usr/local/sbin/wasalight-maintenance
+    bash -n /usr/local/sbin/wasalight-protect
+    bash -n /usr/local/bin/wasalight-status
     bash -n /usr/local/bin/magicq-session
     bash -n /usr/local/sbin/magicq-root-launcher
     bash -n /usr/local/sbin/wasalight-companion-launcher
     bash -n /usr/local/sbin/magicq-root-stop
     bash -n /usr/local/bin/magicq-start
     bash -n /usr/local/bin/magicq-stop
-    bash -n /usr/local/bin/magicq-touch
-    bash -n /usr/local/bin/magicq-vnc-password
-    bash -n /usr/local/bin/magicq-vnc-start
-    bash -n /usr/local/bin/magicq-vnc-stop
+    bash -n /usr/local/bin/wasalight-touch
+    bash -n /usr/local/bin/wasalight-vnc-password
+    bash -n /usr/local/bin/wasalight-vnc-start
+    bash -n /usr/local/bin/wasalight-vnc-stop
     bash -n /usr/local/bin/wasalight-power
     bash -n /usr/local/sbin/wasalight-power-control
     bash -n /usr/local/bin/wasalight-desktop-status
@@ -4775,7 +4523,6 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-ip-scanner
     bash -n /usr/local/bin/wasalight-artnet-monitor
     bash -n /usr/local/sbin/wasalight-app-register
-    bash -n /usr/local/bin/wasalight-hub
     bash -n /usr/local/bin/wasalight-control
     python3 -m py_compile \
         /usr/local/bin/wasalight-plugin \
@@ -4806,7 +4553,6 @@ final_checks() {
             die "Companion browser profile is not writable by $TARGET_USER"
         systemd-analyze verify /etc/systemd/system/companion.service
     fi
-    python3 -c 'compile(open("/usr/local/libexec/wasalight-hub.py", encoding="utf-8").read(), "/usr/local/libexec/wasalight-hub.py", "exec")'
     python3 -c 'compile(open("/usr/local/libexec/wasalight-ip-scanner.py", encoding="utf-8").read(), "/usr/local/libexec/wasalight-ip-scanner.py", "exec")'
     python3 -c 'compile(open("/usr/local/sbin/wasalight-artnet-capture", encoding="utf-8").read(), "/usr/local/sbin/wasalight-artnet-capture", "exec")'
     python3 -c 'compile(open("/usr/local/libexec/wasalight-artnet-monitor.py", encoding="utf-8").read(), "/usr/local/libexec/wasalight-artnet-monitor.py", "exec")'
@@ -4817,7 +4563,7 @@ final_checks() {
         die "Wasalight is not the active Plymouth theme"
     [[ -r /etc/default/grub.d/99-wasalight.cfg ]] || \
         die "Wasalight quiet GRUB configuration is unavailable"
-    logrotate --debug /etc/wasalight/magicq-logrotate.conf >/dev/null 2>&1
+    logrotate --debug /etc/wasalight/wasalight-logrotate.conf >/dev/null 2>&1
     ldconfig -p | grep -F 'libGLU.so.1' >/dev/null || \
         die "OpenGL runtime check failed: libGLU.so.1 is unavailable"
     [[ -r /usr/share/alsa/alsa.conf ]] || \
@@ -4846,9 +4592,9 @@ final_checks() {
         done
     fi
     systemd-analyze verify \
-        /etc/systemd/system/magicq-usb@.service \
-        /etc/systemd/system/magicq-logrotate.service \
-        /etc/systemd/system/magicq-logrotate.timer
+        /etc/systemd/system/wasalight-usb@.service \
+        /etc/systemd/system/wasalight-logrotate.service \
+        /etc/systemd/system/wasalight-logrotate.timer
     systemctl daemon-reload
     netplan generate
     [[ -r /etc/netplan/99-wasalight-networkmanager.yaml ]] || \
@@ -4899,16 +4645,16 @@ main() {
         cat <<'EOF'
 
 Next boot: PROTECTED SHOW mode.
-  Status:       magicq-status
-  Maintenance: sudo magicq-maintenance  (then reboot)
-  Protect:     sudo magicq-protect      (then reboot)
+  Status:       wasalight-status
+  Maintenance: sudo wasalight-maintenance  (then reboot)
+  Protect:     sudo wasalight-protect      (then reboot)
 
 Every supported USB medium is mounted in its own /stick/<device> directory.
 Synchronous writes reduce, but cannot eliminate, corruption if a stick is
 removed during an active write.
 EOF
     else
-        warn "overlay protection is disabled; run sudo magicq-protect when /data is ready"
+        warn "overlay protection is disabled; run sudo wasalight-protect when /data is ready"
     fi
 }
 

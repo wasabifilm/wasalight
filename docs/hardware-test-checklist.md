@@ -5,7 +5,7 @@ uno spettacolo.
 
 ## Avvio e protezione
 
-- [ ] `magicq-status`, il pannello desktop e `/etc/wasalight/version` mostrano
+- [ ] `wasalight-status`, il pannello desktop e `/etc/wasalight/version` mostrano
       lo stesso numero `AAAA.MM.GG.BUILD` pubblicato nel file `VERSION`.
 - [ ] Dopo GRUB appare lo sfondo quasi nero con il logo Wasabi centrato e
       discreto, senza testo Ubuntu sovrapposto durante un avvio normale.
@@ -21,12 +21,12 @@ uno spettacolo.
       valida sopravvive a un aggiornamento.
 - [ ] Tra Plymouth e Openbox lo schermo resta nero, senza banner di login o
       messaggi Xorg; `/data/log/wasalight-xorg-startup.log` contiene l’output.
-- [ ] `magicq-status` mostra `PROTECTED` dopo il riavvio in SHOW mode.
+- [ ] `wasalight-status` mostra `PROTECTED` dopo il riavvio in SHOW mode.
 - [ ] `/data` risulta ext4 e in lettura/scrittura.
 - [ ] Le modifiche di prova sotto `/etc` scompaiono dopo un riavvio protetto.
 - [ ] Show e impostazioni MagicQ restano presenti dopo il riavvio.
-- [ ] `magicq-maintenance`, riavvio e aggiornamento APT funzionano.
-- [ ] `magicq-protect` ripristina SHOW mode al riavvio seguente.
+- [ ] `wasalight-maintenance`, riavvio e aggiornamento APT funzionano.
+- [ ] `wasalight-protect` ripristina SHOW mode al riavvio seguente.
 - [ ] In MAINTENANCE Openbox parte ma MagicQ e supervisore restano fermi.
 - [ ] In MAINTENANCE `magicq-start` consente comunque l'avvio manuale.
 - [ ] In SHOW / PROTECTED MagicQ e supervisore partono automaticamente.
@@ -37,7 +37,7 @@ uno spettacolo.
 - [ ] Senza MagicQ installato e senza `.deb`, l’installer si ferma mostrando
       `--allow-missing-magicq`; ripetendo con l’opzione prosegue consapevolmente.
 - [ ] `./install.sh -help` e `wasalight-update -help` mostrano tutte le opzioni.
-- [ ] La riga `MAGICQ VER` del pannello e di `magicq-status` coincide con
+- [ ] La riga `MAGICQ VER` del pannello e di `wasalight-status` coincide con
       `dpkg-query -W -f='${Version}\n' magicq` (per esempio `1.9.8.3`).
 - [ ] Autologin dell’utente `chamsys` e avvio automatico di X/Openbox.
 - [ ] Avvio automatico e riavvio di MagicQ dopo una chiusura inattesa.
@@ -55,15 +55,15 @@ uno spettacolo.
 - [ ] `/data/log/wasalight-magicq-session.log` registra avvio, uscita e riavvio.
 - [ ] I log nativi datati di MagicQ restano separati sotto
       `/data/magicq/Documents/MagicQ/log/`.
-- [ ] `magicq-status` mostra `LOGS: persistent in /data/log`.
-- [ ] `systemctl status magicq-logrotate.timer` mostra il timer abilitato.
+- [ ] `wasalight-status` mostra `LOGS: persistent in /data/log`.
+- [ ] `systemctl status wasalight-logrotate.timer` mostra il timer abilitato.
 - [ ] Un log di prova oltre 5 MiB viene ruotato senza interrompere MagicQ e
       restano al massimo cinque copie.
 - [ ] Il log `wasalight-update.log` mostra la pulizia dei pacchetti estranei
       prima dell’installazione Wasalight e un solo `autoremove --purge` finale.
 - [ ] Il controllo di `libqxcb.so`, eseguito con le librerie incluse da MagicQ,
       non mostra dipendenze `not found`.
-- [ ] `/usr/share/alsa/alsa.conf` esiste e `magicq-audio-test` riproduce una
+- [ ] `/usr/share/alsa/alsa.conf` esiste e `wasalight-audio-test` riproduce una
       volta i campioni Front Left e Front Right sul dispositivo predefinito.
 - [ ] Gli eventuali avvisi `Unknown PCM` prodotti dall'enumerazione PortAudio
       sono distinti da errori reali: il test audio termina con successo e
@@ -86,7 +86,7 @@ uno spettacolo.
       e propone l'arresto quando viene premuto mentre VNC è già attivo.
 - [ ] Il pulsante SSH avvia e ferma OpenSSH dopo conferma e mostra indirizzo,
       utente e tipo di attivazione (`SESSION` oppure `AUTO`).
-- [ ] **Power off** e **Reboot** mostrano sempre la conferma; **Cancel** non
+- [ ] **Spegni** e **Riavvia** mostrano sempre la conferma; **Annulla** non
       esegue azioni e la conferma completa correttamente l'operazione scelta.
 - [ ] Il pannello destro mostra CURRENT, NEXT BOOT, versione e stato MagicQ,
       supervisore, data, log, rete/IP, touch, USB, VNC, SSH e audio con colori
@@ -95,8 +95,8 @@ uno spettacolo.
       con un tocco di aprire Wasalight Control o selezionare un’applicazione.
 - [ ] Le finestre attive e inattive mantengono colori scuri; il pulsante X è
       grande, facilmente premibile al touch e diventa rosso quando evidenziato.
-- [ ] Wasalight Control mostra Dashboard, MagicQ, Services, Applications,
-      Support e Plugins con pulsanti grandi e lascia Tint2 visibile.
+- [ ] Wasalight Control mostra Stato, MagicQ, Servizi, Applicazioni,
+      Supporto e Plugin con pulsanti grandi e lascia Tint2 visibile.
 - [ ] `wasalight-plugin list` mostra SSH, VNC e Companion; lo stato attivo
       coincide con processi/servizi reali e sopravvive al riavvio.
 - [ ] In SHOW enable/disable di un plugin viene rifiutato chiaramente. In
@@ -106,18 +106,18 @@ uno spettacolo.
       usano `/opt/magicq` come directory di lavoro e rimangono aperti.
 - [ ] Un launcher registrato con `wasalight-app-register` compare nel Control Center e
       sopravvive al riavvio protetto; dopo `--remove` non compare più.
-- [ ] **IP Scanner** elenca IP e MAC almeno del gateway o di un secondo host
+- [ ] **Scanner IP** elenca IP e MAC almeno del gateway o di un secondo host
       collegato alla stessa rete; una nuova scansione aggiorna la tabella.
 - [ ] **Art-Net Monitor** mostra sorgente, universo e contatore quando un nodo o
       MagicQ trasmette ArtDMX; **Azzera** svuota correttamente l’elenco.
-- [ ] **System Monitor** apre LXTask e aggiorna processi, CPU e memoria senza
+- [ ] **Monitor sistema** apre LXTask e aggiorna processi, CPU e memoria senza
       richiedere password o privilegi amministrativi.
 - [ ] Il clic destro mostra soltanto il menu Wasalight minimale, senza
       preferenze Openbox generiche.
 - [ ] Il clic destro sullo sfondo continua ad aprire il menu Openbox.
 - [ ] `chamsys` può creare, modificare e cancellare un file di prova nelle
       directory MagicQ persistenti e in `/data/log` senza usare `sudo`.
-- [ ] `magicq-touch-status` rileva tutti e soli i touchscreen collegati.
+- [ ] `wasalight-touch-status` rileva tutti e soli i touchscreen collegati.
 - [ ] Con un monitor, la modalità `auto` mostra `target: ready`.
 - [ ] Con più monitor, ogni touchscreen è associato all'uscita corretta.
 - [ ] Pressione nei quattro angoli e al centro coincide con l'immagine.
@@ -154,7 +154,7 @@ uno spettacolo.
 - [ ] `/home/companion` e `/etc/companion` risultano bind mount provenienti da
       `/data/companion`; una configurazione di prova resta presente dopo un
       riavvio in SHOW.
-- [ ] Il pannello Conky, `magicq-status` e la voce **Bitfocus Companion** nel Hub
+- [ ] Il pannello Conky, `wasalight-status` e la voce **Bitfocus Companion** in Control
       mostrano versione e stato coerenti.
 - [ ] **Companion Web UI** avvia Falkon su `http://127.0.0.1:8000`; se il servizio
       è fermo ne propone l'avvio e la finestra massimizzata lascia Tint2 visibile.
@@ -170,7 +170,7 @@ uno spettacolo.
 - [ ] Chiudendo e riaprendo Falkon compare la home Companion senza ripristinare
       le vecchie schede. Dopo aver cambiato una preferenza, un update Wasalight
       non la riporta al valore iniziale.
-- [ ] Start, stop e restart dal Hub funzionano in SHOW senza chiedere password;
+- [ ] Avvio, arresto e riavvio da Control funzionano in SHOW senza chiedere password;
       backup e update vengono invece rifiutati fino al riavvio in MAINTENANCE.
 - [ ] Un backup valido compare in `/data/companion/backups` e l'aggiornamento
       conserva lo stato precedente del servizio.
@@ -198,7 +198,7 @@ uno spettacolo.
 - [ ] Un container APFS non cifrato viene montato tramite `fsapfsmount`; i
       volumi `fsapfs1`, `fsapfs2`, ecc. sono leggibili da `chamsys` ma non
       consentono creazione, modifica o cancellazione di file.
-- [ ] **Update Wasalight** trova un `.deb` nella radice o in `packages/` di un
+- [ ] **Aggiorna Wasalight** trova un `.deb` nella radice o in `packages/` di un
       volume APFS; un container cifrato fallisce senza chiedere password sullo
       schermo dello show.
 - [ ] Due o più chiavette collegate insieme restano tutte visibili nella vista
@@ -211,8 +211,8 @@ uno spettacolo.
 
 ## VNC temporaneo
 
-- [ ] `magicq-vnc-start` richiede una password al primo utilizzo.
+- [ ] `wasalight-vnc-start` richiede una password al primo utilizzo.
 - [ ] Il client remoto mostra la stessa sessione Openbox/MagicQ del monitor.
-- [ ] `magicq-status` mostra VNC attivo soltanto durante la condivisione.
-- [ ] `magicq-vnc-stop` chiude la porta 5900 e termina `x11vnc`.
+- [ ] `wasalight-status` mostra VNC attivo soltanto durante la condivisione.
+- [ ] `wasalight-vnc-stop` chiude la porta 5900 e termina `x11vnc`.
 - [ ] Dopo un riavvio VNC non parte automaticamente.

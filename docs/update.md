@@ -32,7 +32,7 @@ MAGICQ_USB/packages/*.deb
 ```
 
 Dopo il montaggio automatico in `/stick/<dispositivo>`, entrare in MAINTENANCE
-e avviare normalmente **Update Wasalight**. L’updater controlla tutte le USB
+e avviare normalmente **Aggiorna Wasalight**. L’updater controlla tutte le USB
 attualmente montate, non le directory residue, e accetta soltanto un archivio
 Debian integro con `Package: magicq`, `Architecture: amd64` e una versione
 Debian valida.
@@ -78,7 +78,7 @@ rimuovere i dati già presenti; ripetere in seguito
 Entrare in MAINTENANCE:
 
 ```bash
-sudo magicq-maintenance
+sudo wasalight-maintenance
 sudo reboot
 ```
 
@@ -89,7 +89,7 @@ sudo wasalight-update
 ```
 
 Dal desktop non serve aprire manualmente il terminale: clic destro →
-**Update Wasalight**, oppure **Wasalight Control → Dashboard → Update**.
+**Aggiorna Wasalight**, oppure **Wasalight Control → Stato → Aggiorna**.
 Si apre una finestra con quattro fasi leggibili: controllo del pacchetto MagicQ,
 download, verifica e installazione. Al termine compare un grande pulsante
 **Riavvia ora**; scegliendo **Più tardi** l’aggiornamento resta installato e viene
@@ -101,21 +101,19 @@ messaggio breve e i dettagli restano in `/data/log/wasalight-update.log`.
 
 Ad ogni utilizzo il comando:
 
-1. cerca eventuali `.deb` nelle vecchie cartelle
-   `/home/*/wasalight/packages` e `/root/wasalight/packages`;
-2. cerca MagicQ nella root e in `packages/` di ogni USB montata;
-3. valida nome del pacchetto, formato, versione e architettura `amd64`;
-4. conserva in `/data/system/packages` soltanto candidati non precedenti;
-5. scarica `https://github.com/wasabifilm/wasalight.git` in
+1. cerca MagicQ nella root e in `packages/` di ogni USB montata;
+2. valida nome del pacchetto, formato, versione e architettura `amd64`;
+3. conserva in `/data/system/packages` soltanto candidati non precedenti;
+4. scarica `https://github.com/wasabifilm/wasalight.git` in
    `/data/system/wasalight`;
-6. esegue `tests/verify-project.sh` sul codice scaricato;
-7. seleziona la versione MagicQ più recente tramite `dpkg` e rilancia
+5. esegue `tests/verify-project.sh` sul codice scaricato;
+6. seleziona la versione MagicQ più recente tramite `dpkg` e rilancia
    l’installer.
 
 Per sicurezza l’installer lascia la macchina in MAINTENANCE. Dopo il collaudo:
 
 ```bash
-sudo magicq-protect
+sudo wasalight-protect
 sudo reboot
 ```
 
@@ -164,16 +162,6 @@ aggiornamenti normali lo riconoscono e ne conservano servizio e dati persistenti
 anche senza ripetere `--with-companion`. L'opzione non aggiorna automaticamente
 una versione Companion già installata: per quello usare il comando dedicato in
 MAINTENANCE descritto in `docs/companion.md`.
-
-Una console che possiede un updater precedente all'introduzione di questa
-opzione deve eseguire una sola volta i due passaggi seguenti:
-
-```bash
-sudo wasalight-update
-sudo wasalight-update --with-companion
-```
-
-Il primo comando installa il nuovo updater; il secondo abilita Companion.
 
 Se MagicQ non è installato e non viene trovato alcun `.deb` valido, il comando
 si ferma invece di creare silenziosamente una postazione incompleta. Per

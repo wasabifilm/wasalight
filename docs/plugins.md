@@ -1,8 +1,7 @@
 # Plugin Wasalight e Control Center
 
-Wasalight `2026.08.09.3` introduce un registro dichiarativo per le funzioni
-opzionali e una sola interfaccia touch, **Wasalight Control**. Il precedente
-comando `wasalight-hub` resta disponibile come alias e apre la nuova interfaccia.
+Wasalight integra un registro dichiarativo per le funzioni opzionali e una sola
+interfaccia touch, **Wasalight Control**.
 
 ## Obiettivi e confini
 
@@ -131,17 +130,19 @@ privilegio e se deve essere avviata come processo separato.
 La nuova applicazione GTK3 resta massimizzata, non fullscreen, per mantenere
 Tint2 accessibile. Le schede sono:
 
-- **Dashboard**: stato completo e azioni principali MagicQ/Update/Files;
+- **Stato**: stato completo e azioni principali MagicQ/Aggiorna/File;
 - **MagicQ**: programmi ChamSys rilevati;
-- **Services**: stato e azioni dei plugin abilitati;
-- **Applications**: programmi registrati;
-- **Support**: rete, display, touch, audio e diagnostica;
-- **Plugins**: disponibilità ed enable/disable persistente.
+- **Servizi**: stato e azioni dei plugin abilitati;
+- **Applicazioni**: programmi registrati;
+- **Supporto**: rete, schermo, touch, audio e diagnostica;
+- **Plugin**: disponibilità e abilitazione persistente.
 
-Il Control Center continua a leggere i launcher `.desktop` da `apps.d`, quindi
-il vecchio sistema di registrazione applicazioni rimane compatibile. Le azioni
-plugin vengono aggiornate periodicamente senza nascondere Tint2 o chiudere il
-centro di controllo.
+Il Control Center legge i launcher `.desktop` da `apps.d`. Le azioni plugin
+vengono aggiornate periodicamente senza nascondere Tint2 o chiudere il centro di
+controllo. Control mantiene una sola istanza per sessione grafica; una nuova
+attivazione porta in primo piano la finestra esistente. L'aggiornamento periodico
+di stato e plugin viene eseguito fuori dal thread GTK e ricostruisce le schede
+soltanto quando i dati cambiano.
 
 ## Aggiunta futura di plugin esterni
 
