@@ -45,6 +45,10 @@ def main():
             raise ValueError("manifest id mismatch")
     except (OSError, KeyError, configparser.Error, ValueError) as error:
         fail(f"Cannot manage plugin {plugin_id}: {error}")
+    optional = parser["Plugin"].get("Optional", "true").lower() in \
+        ("1", "true", "yes", "on")
+    if not optional:
+        fail(f"{plugin_id} is a core Wasalight service; use its actions instead", 2)
     minimum = parser["Plugin"].get("MinimumWasalight", "0.0.0.0")
     try:
         with open("/etc/wasalight/version", encoding="utf-8") as source:

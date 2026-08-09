@@ -26,7 +26,7 @@ readonly COMPANION_VERSION="5.0.3"
 
 DEB_PATH=""
 DATA_DEVICE=""
-ENABLE_SSH=0
+SSH_AUTOSTART_MODE=preserve
 PURGE_CLOUD_INIT=1
 ENABLE_PROTECTION=1
 ENABLE_ONSCREEN_KEYBOARD=0
@@ -74,7 +74,8 @@ Usage:
 Options:
   --data-device SPEC   Existing ext4 filesystem for /data. SPEC may be a
                        device path, UUID=..., or LABEL=.... It is never formatted.
-  --with-ssh           Enable OpenSSH at boot (otherwise use the SSH button).
+  --with-ssh           Persistently enable OpenSSH after every reboot.
+  --without-ssh        Persistently disable automatic OpenSSH startup.
   --with-onscreen-keyboard
                        Install Onboard and add it to the Openbox menu.
   --with-companion     Install the pinned Bitfocus Companion headless build,
@@ -106,7 +107,8 @@ parse_args() {
                 DATA_DEVICE=$2
                 shift 2
                 ;;
-            --with-ssh) ENABLE_SSH=1; shift ;;
+            --with-ssh) SSH_AUTOSTART_MODE=enabled; shift ;;
+            --without-ssh) SSH_AUTOSTART_MODE=disabled; shift ;;
             --with-onscreen-keyboard) ENABLE_ONSCREEN_KEYBOARD=1; shift ;;
             --with-companion) ENABLE_COMPANION=1; shift ;;
             --plugin)
@@ -473,11 +475,9 @@ install_packages() {
     apt_install "${packages[@]}"
 
     systemctl enable NetworkManager.service chrony.service
-    if ((ENABLE_SSH)); then
-        systemctl enable ssh.service
-    else
-        systemctl disable --now ssh.service 2>/dev/null || true
-    fi
+    # SSH reboot persistence is deliberately stored on /data instead of in
+    # systemd's root-filesystem state, which is volatile in protected mode.
+    systemctl disable ssh.service 2>/dev/null || true
 }
 
 configure_networkmanager() {
@@ -1169,14 +1169,14 @@ set -Eeuo pipefail
 }
 
 if pgrep -u chamsys -x x11vnc >/dev/null 2>&1; then
-    zenity --question --width=460 --title="VNC · Wasalight" \
+    /usr/local/bin/wasalight-dialog --question --width=460 --title="VNC · Wasalight" \
         --text="<big><b>VNC è attivo.</b></big>\n\nFermare la condivisione della sessione corrente?" \
         --ok-label="Stop VNC" --cancel-label="Cancel" || exit 0
     output=$(/usr/local/bin/wasalight-vnc-stop 2>&1) || {
-        zenity --error --width=460 --title="VNC · Wasalight" --text="$output"
+        /usr/local/bin/wasalight-dialog --error --width=460 --title="VNC · Wasalight" --text="$output"
         exit 1
     }
-    zenity --info --width=420 --title="VNC · Wasalight" --text="$output"
+    /usr/local/bin/wasalight-dialog --info --width=420 --title="VNC · Wasalight" --text="$output"
     exit 0
 fi
 
@@ -1191,11 +1191,11 @@ if [[ ! -r $password_file ]]; then
 fi
 
 output=$(/usr/local/bin/wasalight-vnc-start 2>&1) || {
-    zenity --error --width=520 --title="VNC · Wasalight" --text="$output"
+    /usr/local/bin/wasalight-dialog --error --width=520 --title="VNC · Wasalight" --text="$output"
     exit 1
 }
 ip_address=$(hostname -I 2>/dev/null | awk '{print $1}')
-zenity --info --width=500 --title="VNC · Wasalight" \
+/usr/local/bin/wasalight-dialog --info --width=500 --title="VNC · Wasalight" \
     --text="<big><b>VNC attivo nella sessione corrente</b></big>\n\nIndirizzo: vnc://${ip_address:-SERVER_IP}:5900\n\nUsare soltanto su una rete locale fidata."
 EOF
 }
@@ -1234,30 +1234,135 @@ set -Eeuo pipefail
 ip_address=$(hostname -I 2>/dev/null | awk '{print $1}')
 if systemctl is-active --quiet ssh.service; then
     next_boot=""
-    if systemctl is-enabled --quiet ssh.service; then
+    if [[ -r /data/system/service-flags/ssh-autostart && \
+         $(</data/system/service-flags/ssh-autostart) == enabled ]]; then
         next_boot="\n\nNota: SSH è configurato per riattivarsi al prossimo avvio."
     fi
-    zenity --question --width=500 --title="SSH · Wasalight" \
+    /usr/local/bin/wasalight-dialog --question --width=500 --title="SSH · Wasalight" \
         --text="<big><b>SSH è attivo.</b></big>\n\nIndirizzo: ssh://chamsys@${ip_address:-SERVER_IP}:22${next_boot}\n\nFermare ora l’accesso SSH?" \
         --ok-label="Stop SSH" --cancel-label="Cancel" || exit 0
     output=$(sudo -n /usr/local/sbin/wasalight-ssh-control stop 2>&1) || {
-        zenity --error --width=500 --title="SSH · Wasalight" --text="$output"
+        /usr/local/bin/wasalight-dialog --error --width=500 --title="SSH · Wasalight" --text="$output"
         exit 1
     }
-    zenity --info --width=420 --title="SSH · Wasalight" --text="$output"
+    /usr/local/bin/wasalight-dialog --info --width=420 --title="SSH · Wasalight" --text="$output"
     exit 0
 fi
 
-zenity --question --width=520 --title="SSH · Wasalight" \
+/usr/local/bin/wasalight-dialog --question --width=520 --title="SSH · Wasalight" \
     --text="<big><b>Attivare SSH?</b></big>\n\nL’accesso userà l’utente chamsys e la sua password Linux. Attivarlo soltanto su una rete fidata." \
     --ok-label="Start SSH" --cancel-label="Cancel" || exit 0
 output=$(sudo -n /usr/local/sbin/wasalight-ssh-control start 2>&1) || {
-    zenity --error --width=500 --title="SSH · Wasalight" --text="$output"
+    /usr/local/bin/wasalight-dialog --error --width=500 --title="SSH · Wasalight" --text="$output"
     exit 1
 }
 ip_address=$(hostname -I 2>/dev/null | awk '{print $1}')
-zenity --info --width=500 --title="SSH · Wasalight" \
+/usr/local/bin/wasalight-dialog --info --width=500 --title="SSH · Wasalight" \
     --text="<big><b>SSH attivo</b></big>\n\nIndirizzo: ssh://chamsys@${ip_address:-SERVER_IP}:22\nUtente: chamsys\nPassword: la password Linux di chamsys"
+EOF
+}
+
+configure_remote_persistence() {
+    local flag_dir="$DATA_MOUNT/system/service-flags"
+    install -d -o root -g root -m 0755 "$flag_dir"
+
+    case $SSH_AUTOSTART_MODE in
+        enabled|disabled)
+            printf '%s\n' "$SSH_AUTOSTART_MODE" >"$flag_dir/ssh-autostart"
+            chmod 0644 "$flag_dir/ssh-autostart"
+            ;;
+        preserve)
+            if [[ ! -e $flag_dir/ssh-autostart ]]; then
+                printf '%s\n' disabled >"$flag_dir/ssh-autostart"
+                chmod 0644 "$flag_dir/ssh-autostart"
+            fi
+            ;;
+    esac
+    if [[ ! -e $flag_dir/vnc-autostart ]]; then
+        printf '%s\n' disabled >"$flag_dir/vnc-autostart"
+        chmod 0644 "$flag_dir/vnc-autostart"
+    fi
+
+    write_file /usr/local/sbin/wasalight-remote-persistence 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $EUID -eq 0 ]] || { echo "Run through sudo." >&2; exit 1; }
+
+service=${1:-}
+state=${2:-}
+case $service in ssh|vnc) ;; *) echo "Usage: wasalight-remote-persistence ssh|vnc enable|disable" >&2; exit 2 ;; esac
+case $state in enable) value=enabled ;; disable) value=disabled ;; *) echo "Usage: wasalight-remote-persistence ssh|vnc enable|disable" >&2; exit 2 ;; esac
+
+flag_root=${WASALIGHT_SERVICE_FLAG_ROOT:-/data/system/service-flags}
+if [[ -z ${WASALIGHT_SERVICE_FLAG_ROOT:-} ]]; then
+    mountpoint -q /data || { echo "/data is not mounted; persistence cannot be changed." >&2; exit 1; }
+fi
+if [[ $service == vnc && $value == enabled ]]; then
+    [[ -s /data/system/vnc/passwd ]] || {
+        echo "Set the VNC password and start VNC once before enabling automatic startup." >&2
+        exit 1
+    }
+fi
+install -d -o root -g root -m 0755 "$flag_root"
+temporary=$(mktemp "$flag_root/.${service}-autostart.XXXXXX")
+trap 'rm -f -- "$temporary"' EXIT
+printf '%s\n' "$value" >"$temporary"
+chmod 0644 "$temporary"
+chown root:root "$temporary"
+mv -f -- "$temporary" "$flag_root/${service}-autostart"
+trap - EXIT
+echo "$service automatic startup: $value"
+EOF
+
+    write_file /usr/local/bin/wasalight-remote-auto-toggle 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || { echo "Run as the chamsys desktop user." >&2; exit 1; }
+service=${1:-}
+case $service in
+    ssh) title=SSH ;;
+    vnc) title=VNC ;;
+    *) echo "Usage: wasalight-remote-auto-toggle ssh|vnc" >&2; exit 2 ;;
+esac
+flag="/data/system/service-flags/${service}-autostart"
+current=disabled
+[[ -r $flag ]] && current=$(<"$flag")
+if [[ $current == enabled ]]; then
+    next=disable
+    question="Disabilitare l'avvio automatico di $title?\n\nIl servizio corrente non verrà fermato."
+    button="Disabilita automatico"
+else
+    next=enable
+    question="Abilitare l'avvio automatico di $title dopo ogni riavvio?"
+    button="Abilita automatico"
+fi
+/usr/local/bin/wasalight-dialog --question --width=520 --title="$title · Wasalight" \
+    --text="<big><b>$question</b></big>" --ok-label="$button" --cancel-label="Annulla" || exit 0
+output=$(sudo -n /usr/local/sbin/wasalight-remote-persistence "$service" "$next" 2>&1) || {
+    /usr/local/bin/wasalight-dialog --error --width=540 --title="$title · Wasalight" --text="$output"
+    exit 1
+}
+/usr/local/bin/wasalight-dialog --info --width=460 --title="$title · Wasalight" --text="$output"
+EOF
+
+    write_file /usr/local/bin/wasalight-remote-autostart 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || exit 1
+flag_root=${WASALIGHT_SERVICE_FLAG_ROOT:-/data/system/service-flags}
+
+if [[ -r $flag_root/ssh-autostart && $(<"$flag_root/ssh-autostart") == enabled ]]; then
+    sudo -n /usr/local/sbin/wasalight-ssh-control start >/dev/null 2>&1 || \
+        logger -t wasalight-remote "automatic SSH startup failed"
+fi
+if [[ -r $flag_root/vnc-autostart && $(<"$flag_root/vnc-autostart") == enabled ]]; then
+    if [[ -s /data/system/vnc/passwd ]]; then
+        /usr/local/bin/wasalight-vnc-start --lan >/dev/null 2>&1 || \
+            logger -t wasalight-remote "automatic VNC startup failed"
+    else
+        logger -t wasalight-remote "automatic VNC startup skipped: password missing"
+    fi
+fi
 EOF
 }
 
@@ -1522,9 +1627,15 @@ fi
 
 installer_args=()
 ((protect)) || installer_args+=(--no-protection)
-if [[ $ssh_mode == enabled ]] || \
-   [[ $ssh_mode == preserve ]] && systemctl is-enabled --quiet ssh.service; then
+if [[ $ssh_mode == preserve ]]; then
+    ssh_mode=disabled
+    [[ -r /data/system/service-flags/ssh-autostart ]] && \
+        [[ $(</data/system/service-flags/ssh-autostart) == enabled ]] && ssh_mode=enabled
+fi
+if [[ $ssh_mode == enabled ]]; then
     installer_args+=(--with-ssh)
+else
+    installer_args+=(--without-ssh)
 fi
 command -v onboard >/dev/null 2>&1 && installer_args+=(--with-onscreen-keyboard)
 ((with_companion)) && installer_args+=(--with-companion)
@@ -1605,14 +1716,14 @@ rc=$?
 if ((rc == 0)); then
     echo
     echo "Aggiornamento completato correttamente."
-    if zenity --question --width=520 --title="Wasalight aggiornato" \
+    if /usr/local/bin/wasalight-dialog --question --width=520 --title="Wasalight aggiornato" \
         --text="<big><b>Aggiornamento completato.</b></big>\n\nRiavviare ora per applicare la nuova configurazione?" \
         --ok-label="Riavvia ora" --cancel-label="Più tardi"; then
         echo "Riavvio in corso…"
         sudo -n /usr/local/sbin/wasalight-power-control reboot
         exit $?
     fi
-    zenity --info --width=500 --title="Wasalight aggiornato" \
+    /usr/local/bin/wasalight-dialog --info --width=500 --title="Wasalight aggiornato" \
         --text="Aggiornamento installato.\n\nRicordati di riavviare prima del prossimo utilizzo." \
         --ok-label="Chiudi"
     exit 0
@@ -1620,7 +1731,7 @@ fi
 
 echo
 echo "Aggiornamento non completato. La macchina non verrà riavviata."
-zenity --error --width=560 --title="Aggiornamento non riuscito" \
+/usr/local/bin/wasalight-dialog --error --width=560 --title="Aggiornamento non riuscito" \
     --text="<big><b>Wasalight non è stato aggiornato.</b></big>\n\nLa macchina non verrà riavviata.\nControlla: /data/log/wasalight-update.log" \
     --ok-label="Chiudi" 2>/dev/null || true
 exit "$rc"
@@ -1921,7 +2032,7 @@ systemctl is-active --quiet companion.service && state=RUNNING
 installed=$(/usr/local/bin/wasalight-companion-version 2>/dev/null | head -n1)
 ip_address=$(hostname -I 2>/dev/null | awk '{print $1}')
 url="http://${ip_address:-SERVER_IP}:8000"
-action=$(zenity --list --width=720 --height=470 \
+action=$(/usr/local/bin/wasalight-dialog --list --width=720 --height=470 \
     --title="Bitfocus Companion" \
     --text="<big><b>Bitfocus Companion $installed · $state</b></big>\n\nWeb UI: $url\nMagicQ locale: 127.0.0.1" \
     --column="Action" --column="Description" \
@@ -1936,14 +2047,14 @@ action=$(zenity --list --width=720 --height=470 \
 case $action in
     web) exec /usr/local/bin/wasalight-companion-browser ;;
     info)
-        zenity --info --width=560 --title="Bitfocus Companion" \
+        /usr/local/bin/wasalight-dialog --info --width=560 --title="Bitfocus Companion" \
             --text="Web interface:\n<b>$url</b>\n\nOpen this address from a Mac, tablet or another computer.\nFor MagicQ on this console use 127.0.0.1." ;;
     start|stop|restart)
         sudo -n /usr/local/sbin/wasalight-companion-control "$action" || \
-            zenity --error --text="Companion action failed: $action" ;;
+            /usr/local/bin/wasalight-dialog --error --text="Companion action failed: $action" ;;
     backup)
         sudo -n /usr/local/sbin/wasalight-companion-backup 2>&1 | \
-            zenity --text-info --width=720 --height=320 --title="Companion Backup" ;;
+            /usr/local/bin/wasalight-dialog --text-info --width=720 --height=320 --title="Companion Backup" ;;
     update) exec /usr/local/bin/wasalight-companion-update-terminal ;;
 esac
 EOF
@@ -1956,22 +2067,22 @@ set -Eeuo pipefail
     exit 1
 }
 command -v falkon >/dev/null 2>&1 || {
-    zenity --error --title="Companion Web UI" \
+    /usr/local/bin/wasalight-dialog --error --title="Companion Web UI" \
         --text="Falkon is not installed. Run Wasalight update again." 2>/dev/null
     exit 1
 }
 [[ -d /opt/companion ]] || {
-    zenity --error --title="Companion Web UI" \
+    /usr/local/bin/wasalight-dialog --error --title="Companion Web UI" \
         --text="Bitfocus Companion is not installed." 2>/dev/null
     exit 1
 }
 
 if ! systemctl is-active --quiet companion.service; then
-    zenity --question --width=520 --title="Companion Web UI" \
+    /usr/local/bin/wasalight-dialog --question --width=520 --title="Companion Web UI" \
         --text="Bitfocus Companion is stopped. Start it for this session?" \
         2>/dev/null || exit 0
     sudo -n /usr/local/sbin/wasalight-companion-control start || {
-        zenity --error --title="Companion Web UI" \
+        /usr/local/bin/wasalight-dialog --error --title="Companion Web UI" \
             --text="Unable to start Bitfocus Companion." 2>/dev/null
         exit 1
     }
@@ -1987,7 +2098,7 @@ for _ in {1..30}; do
     sleep 0.3
 done
 ((ready)) || {
-    zenity --error --width=560 --title="Companion Web UI" \
+    /usr/local/bin/wasalight-dialog --error --width=560 --title="Companion Web UI" \
         --text="Companion is running but its web interface did not respond on $url." \
         2>/dev/null
     exit 1
@@ -2285,6 +2396,12 @@ EOF
 }
 
 configure_graphical_session() {
+    write_file /usr/local/bin/wasalight-dialog 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+exec /usr/bin/zenity --class=WasalightConfirm "$@"
+EOF
+
     write_file /etc/X11/Xwrapper.config 0644 <<'EOF'
 allowed_users=console
 needs_root_rights=yes
@@ -2303,6 +2420,18 @@ EOF
         -e '0,/<name>.*<\/name>/s//<name>Wasalight<\/name>/' \
         -e 's#<titleLayout>.*</titleLayout>#<titleLayout>NLC</titleLayout>#' \
         "$TARGET_HOME/.config/openbox/rc.xml"
+    grep -q '</applications>' "$TARGET_HOME/.config/openbox/rc.xml" || \
+        die "Openbox applications section is unavailable"
+    sed -i '/<\/applications>/i\
+    <application class="WasalightConfirm">\
+      <position force="yes">\
+        <x>center</x>\
+        <y>center</y>\
+      </position>\
+      <focus>yes</focus>\
+      <layer>above</layer>\
+      <decor>yes</decor>\
+    </application>' "$TARGET_HOME/.config/openbox/rc.xml"
 
     install -d -m 0755 /usr/share/themes/Wasalight/openbox-3
     write_file /usr/share/themes/Wasalight/openbox-3/themerc 0644 <<'EOF'
@@ -2354,18 +2483,8 @@ menu.title.bg.color: #080b10
 menu.title.text.color: #ffffff
 EOF
 
-    # Use Openbox's internal close mask. It is known to match the decoration
-    # renderer, while custom oversized XBM masks can be clipped into a slash.
-    # Remove every file created by earlier Wasalight releases so the internal
-    # default is selected consistently for normal, hover and pressed states.
-    rm -f \
-        /usr/share/themes/Wasalight/openbox-3/close.xbm \
-        /usr/share/themes/Wasalight/openbox-3/close_hover.xbm \
-        /usr/share/themes/Wasalight/openbox-3/close_pressed.xbm \
-        /usr/share/themes/Wasalight/openbox-3/close_disabled.xbm \
-        /usr/share/themes/Wasalight/openbox-3/close_unfocused.xbm \
-        /usr/share/themes/Wasalight/openbox-3/close_unfocused_hover.xbm \
-        /usr/share/themes/Wasalight/openbox-3/close_unfocused_pressed.xbm
+    # No custom close bitmap is installed: Openbox uses its native X symbol,
+    # with the larger touch target supplied by the decoration padding above.
 
     write_file /usr/local/bin/wasalight-desktop-wallpaper 0755 <<'EOF'
 #!/usr/bin/env bash
@@ -2472,16 +2591,6 @@ thumbnail_local=1
 EOF
 
     install -d -m 0755 /usr/local/share/icons/wasalight
-    write_file /usr/local/share/icons/wasalight/start.svg 0644 <<'EOF'
-<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
- <circle cx="48" cy="48" r="44" fill="#238636"/><path d="M39 29 70 48 39 67Z" fill="#fff"/>
-</svg>
-EOF
-    write_file /usr/local/share/icons/wasalight/stop.svg 0644 <<'EOF'
-<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
- <circle cx="48" cy="48" r="44" fill="#da3633"/><rect x="31" y="31" width="34" height="34" rx="3" fill="#fff"/>
-</svg>
-EOF
     write_file /usr/local/share/icons/wasalight/network.svg 0644 <<'EOF'
 <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
  <circle cx="48" cy="48" r="44" fill="#1f6feb"/><g fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"><path d="M22 38c15-14 37-14 52 0"/><path d="M32 50c9-8 23-8 32 0"/></g><circle cx="48" cy="65" r="6" fill="#fff"/>
@@ -2534,7 +2643,7 @@ EOF
 EOF
     write_file /usr/local/share/icons/wasalight/hub.svg 0644 <<'EOF'
 <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
- <rect x="6" y="6" width="84" height="84" rx="20" fill="#8957e5"/><g fill="#fff"><rect x="23" y="23" width="20" height="20" rx="5"/><rect x="53" y="23" width="20" height="20" rx="5"/><rect x="23" y="53" width="20" height="20" rx="5"/><rect x="53" y="53" width="20" height="20" rx="5"/></g>
+ <rect x="6" y="6" width="84" height="84" rx="20" fill="#76bd22"/><g fill="#080b10"><rect x="23" y="23" width="20" height="20" rx="5"/><rect x="53" y="23" width="20" height="20" rx="5"/><rect x="23" y="53" width="20" height="20" rx="5"/><rect x="53" y="53" width="20" height="20" rx="5"/></g>
 </svg>
 EOF
     write_file /usr/local/share/icons/wasalight/vnc.svg 0644 <<'EOF'
@@ -2547,52 +2656,6 @@ EOF
  <rect x="7" y="14" width="82" height="68" rx="14" fill="#238636"/><path d="m25 34 14 14-14 14M48 63h24" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><path d="M68 20v17m-7-9h14" stroke="#9be9a8" stroke-width="5" stroke-linecap="round"/>
 </svg>
 EOF
-
-    # Remove launchers and the short-lived system-link experiment from earlier
-    # runs before recreating protected regular desktop files.
-    rm -f -- \
-        "$TARGET_HOME/Desktop/MagicQ-Start.desktop" \
-        "$TARGET_HOME/Desktop/MagicQ-Stop.desktop" \
-        "$TARGET_HOME/Desktop/Wasalight-Control.desktop" \
-        "$TARGET_HOME/Desktop/Files.desktop" \
-        "$TARGET_HOME/Desktop/VNC.desktop" \
-        "$TARGET_HOME/Desktop/SSH.desktop" \
-        "$TARGET_HOME/Desktop/Power-Off.desktop" \
-        "$TARGET_HOME/Desktop/Reboot.desktop" \
-        /usr/local/share/applications/wasalight-MagicQ-Start.desktop \
-        /usr/local/share/applications/wasalight-MagicQ-Stop.desktop \
-        /usr/local/share/applications/wasalight-Wasalight-Control.desktop \
-        /usr/local/share/applications/wasalight-VNC.desktop \
-        /usr/local/share/applications/wasalight-SSH.desktop \
-        /usr/local/share/applications/wasalight-Power-Off.desktop \
-        /usr/local/share/applications/wasalight-Reboot.desktop
-
-    write_file "$TARGET_HOME/Desktop/MagicQ-Start.desktop" 0755 <<'EOF'
-[Desktop Entry]
-Type=Application
-Name=Avvia MagicQ
-Comment=Avvia MagicQ e il supervisore Wasalight
-Exec=/usr/local/bin/magicq-start
-Icon=/usr/local/share/icons/wasalight/start.svg
-Terminal=false
-StartupNotify=false
-EOF
-
-    write_file "$TARGET_HOME/Desktop/MagicQ-Stop.desktop" 0755 <<'EOF'
-[Desktop Entry]
-Type=Application
-Name=Ferma MagicQ
-Comment=Ferma MagicQ e lo mantiene chiuso
-Exec=/usr/local/bin/magicq-stop
-Icon=/usr/local/share/icons/wasalight/stop.svg
-Terminal=false
-StartupNotify=false
-EOF
-
-    # Control replaces the less frequently used support launchers. Keep the
-    # file manager as a first-class touch target on both desktop and panel.
-    rm -f "$TARGET_HOME/Desktop/Network.desktop" \
-        "$TARGET_HOME/Desktop/Terminal.desktop"
 
     write_file "$TARGET_HOME/Desktop/Wasalight-Control.desktop" 0755 <<'EOF'
 [Desktop Entry]
@@ -2612,28 +2675,6 @@ Name=File
 Comment=Apre dati persistenti e chiavette USB
 Exec=pcmanfm /data
 Icon=/usr/local/share/icons/wasalight/files.svg
-Terminal=false
-StartupNotify=true
-EOF
-
-    write_file "$TARGET_HOME/Desktop/VNC.desktop" 0755 <<'EOF'
-[Desktop Entry]
-Type=Application
-Name=VNC
-Comment=Avvia o ferma VNC nella sessione grafica corrente
-Exec=/usr/local/bin/wasalight-vnc-toggle
-Icon=/usr/local/share/icons/wasalight/vnc.svg
-Terminal=false
-StartupNotify=true
-EOF
-
-    write_file "$TARGET_HOME/Desktop/SSH.desktop" 0755 <<'EOF'
-[Desktop Entry]
-Type=Application
-Name=SSH
-Comment=Avvia o ferma l’accesso remoto SSH
-Exec=/usr/local/bin/wasalight-ssh-toggle
-Icon=/usr/local/share/icons/wasalight/ssh.svg
 Terminal=false
 StartupNotify=true
 EOF
@@ -2724,7 +2765,7 @@ case "$action" in
         ;;
 esac
 
-zenity --question --width=460 --title="$title" \
+/usr/local/bin/wasalight-dialog --question --width=460 --title="$title" \
     --text="<big><b>$question</b></big>\n\nGli show salvati in /data resteranno persistenti." \
     --ok-label="$confirm" --cancel-label="Annulla" || exit 0
 sudo -n /usr/local/sbin/wasalight-power-control "$action"
@@ -2811,9 +2852,9 @@ else
     status_line "$yellow" 'MAGICQ' 'STOPPED'
 fi
 if pgrep -u chamsys -f '/usr/local/bin/magicq-session' >/dev/null 2>&1; then
-    status_line "$green" 'SUPERVISOR' 'RUNNING'
+    status_line "$green" 'SESSION' 'RUNNING'
 else
-    status_line "$yellow" 'SUPERVISOR' 'STOPPED'
+    status_line "$yellow" 'SESSION' 'STOPPED'
 fi
 if [[ -d /opt/companion ]]; then
     companion_version=$(cat /data/companion/installed-version 2>/dev/null || echo UNKNOWN)
@@ -2865,19 +2906,21 @@ else
     status_line "$yellow" 'USB' 'EMPTY'
 fi
 
+vnc_auto=MANUAL
+[[ -r /data/system/service-flags/vnc-autostart && \
+   $(</data/system/service-flags/vnc-autostart) == enabled ]] && vnc_auto=AUTO
 if pgrep -u chamsys -x x11vnc >/dev/null 2>&1; then
-    status_line "$blue" 'VNC' 'ACTIVE'
+    status_line "$blue" 'VNC' "ACTIVE · $vnc_auto"
 else
-    status_line "$yellow" 'VNC' 'OFF'
+    status_line "$yellow" 'VNC' "OFF · $vnc_auto"
 fi
+ssh_auto=MANUAL
+[[ -r /data/system/service-flags/ssh-autostart && \
+   $(</data/system/service-flags/ssh-autostart) == enabled ]] && ssh_auto=AUTO
 if systemctl is-active --quiet ssh.service; then
-    if systemctl is-enabled --quiet ssh.service; then
-        status_line "$blue" 'SSH' 'ACTIVE · AUTO'
-    else
-        status_line "$blue" 'SSH' 'ACTIVE · SESSION'
-    fi
+    status_line "$blue" 'SSH' "ACTIVE · $ssh_auto"
 else
-    status_line "$yellow" 'SSH' 'OFF'
+    status_line "$yellow" 'SSH' "OFF · $ssh_auto"
 fi
 if aplay -l 2>/dev/null | grep -q '^card '; then
     status_line "$green" 'AUDIO' 'READY'
@@ -3631,7 +3674,7 @@ session_log="$log_dir/wasalight-magicq-session.log"
 touch "$console_log" "$session_log"
 chmod 0640 "$console_log" "$session_log" 2>/dev/null || true
 
-# Openbox menu actions and autostart may overlap. Keep one supervisor only.
+# Openbox menu actions and autostart may overlap. Keep one launch session only.
 exec 9>"$runtime_dir/wasalight-magicq-session.lock"
 flock -n 9 || exit 0
 pid_file="$runtime_dir/wasalight-magicq-session.pid"
@@ -3649,7 +3692,7 @@ cleanup_session() {
 }
 
 stop_session() {
-    session_event "MagicQ supervisor stopped by operator"
+    session_event "MagicQ session stopped by operator"
     exit 0
 }
 
@@ -3657,25 +3700,19 @@ printf '%s\n' "$$" >"$pid_file"
 trap stop_session HUP INT TERM
 trap cleanup_session EXIT
 
-session_event "MagicQ supervisor started"
-while :; do
-    if [ -x /usr/local/sbin/magicq-root-launcher ]; then
-        # The fixed sudo command grants only the dedicated launcher. That
-        # launcher keeps root's working environment while its MagicQ paths are
-        # persistent bind mounts backed by /data.
-        session_event "Starting MagicQ"
-        printf '\n===== %s MagicQ launch =====\n' "$(date -Is)" >>"$console_log"
-        sudo -n /usr/local/sbin/magicq-root-launcher \
-            >>"$console_log" 2>&1
-    else
-        session_event "MagicQ root launcher not found; retrying in 30 seconds"
-        sleep 30
-        continue
-    fi
-    rc=$?
-    session_event "MagicQ exited with status $rc; restarting in 3 seconds"
-    sleep 3
-done
+session_event "MagicQ session started"
+if [ ! -x /usr/local/sbin/magicq-root-launcher ]; then
+    session_event "MagicQ root launcher not found"
+    exit 127
+fi
+# Start MagicQ exactly once. If the operator closes it, it remains closed until
+# magicq-start or the next SHOW login/reboot.
+session_event "Starting MagicQ"
+printf '\n===== %s MagicQ launch =====\n' "$(date -Is)" >>"$console_log"
+sudo -n /usr/local/sbin/magicq-root-launcher >>"$console_log" 2>&1
+rc=$?
+session_event "MagicQ exited with status $rc; automatic restart disabled"
+exit "$rc"
 EOF
 
     write_file /usr/local/bin/magicq-start 0755 <<'EOF'
@@ -3688,12 +3725,12 @@ set -Eeuo pipefail
 runtime_dir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
 exec 9>"$runtime_dir/wasalight-magicq-session.lock"
 if ! flock -n 9; then
-    echo "MagicQ supervisor is already running."
+    echo "MagicQ is already running."
     exit 0
 fi
 flock -u 9
 nohup /usr/local/bin/magicq-session >/dev/null 2>&1 &
-echo "MagicQ supervisor started."
+echo "MagicQ started."
 EOF
 
     write_file /usr/local/bin/magicq-stop 0755 <<'EOF'
@@ -3705,9 +3742,9 @@ set -Eeuo pipefail
 }
 runtime_dir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
 pid_file="$runtime_dir/wasalight-magicq-session.pid"
-supervisor_pid=
+session_pid=
 
-valid_supervisor() {
+valid_session() {
     local candidate=${1:-}
     [[ $candidate =~ ^[0-9]+$ ]] && \
     [[ $(ps -o uid= -p "$candidate" 2>/dev/null | tr -d ' ') == $(id -u) ]] && \
@@ -3715,21 +3752,20 @@ valid_supervisor() {
 }
 
 if [[ -r $pid_file ]]; then
-    supervisor_pid=$(<"$pid_file")
+    session_pid=$(<"$pid_file")
 fi
-if ! valid_supervisor "$supervisor_pid"; then
-    supervisor_pid=
+if ! valid_session "$session_pid"; then
+    session_pid=
     while read -r candidate; do
-        if valid_supervisor "$candidate"; then
-            supervisor_pid=$candidate
+        if valid_session "$candidate"; then
+            session_pid=$candidate
             break
         fi
     done < <(pgrep -u "$(id -u)" -f '/usr/local/bin/magicq-session' 2>/dev/null || true)
 fi
-[[ -z $supervisor_pid ]] || kill -TERM "$supervisor_pid" 2>/dev/null || true
+[[ -z $session_pid ]] || kill -TERM "$session_pid" 2>/dev/null || true
 
-# Stop the root-owned application only after disabling its supervisor, so it
-# cannot be interpreted as a crash and immediately restarted.
+# Stop the root-owned application after ending its tracked launch session.
 sudo -n /usr/local/sbin/magicq-root-stop
 for _ in 1 2 3 4 5; do
     [[ ! -r $pid_file ]] && break
@@ -3755,6 +3791,7 @@ nm-applet --indicator &
 /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
 /usr/local/bin/wasalight-touch-watch &
 /usr/local/bin/magicq-fullscreen-watch &
+/usr/local/bin/wasalight-remote-autostart &
 if findmnt -n -o FSTYPE / 2>/dev/null | grep -qx overlay; then
     /usr/local/bin/magicq-session &
 else
@@ -3860,7 +3897,7 @@ configure_plugins() {
     # an operator is always preserved by later updates.
     for plugin in ssh vnc; do
         state_file="$DATA_MOUNT/system/plugins-state/$plugin"
-        [[ -e $state_file ]] || printf 'enabled\n' >"$state_file"
+        printf 'enabled\n' >"$state_file"
     done
     state_file="$DATA_MOUNT/system/plugins-state/companion"
     if [[ -d /opt/companion && ! -e $state_file ]]; then
@@ -3903,7 +3940,7 @@ else
     rc=$?
 fi
 details=$(tail -n 18 "$log_file" 2>/dev/null || true)
-zenity --error --width=640 --title="Wasalight Control" \
+/usr/local/bin/wasalight-dialog --error --width=640 --title="Wasalight Control" \
     --text="<big><b>Wasalight Control non è riuscito ad avviarsi.</b></big>\n\n$details\n\nLog: $log_file" \
     2>/dev/null || true
 exit "$rc"
@@ -4287,6 +4324,43 @@ else
 fi
 EOF
 
+    write_file /usr/local/bin/wasalight-mode-toggle 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || {
+    echo "Run this command as the chamsys desktop user." >&2
+    exit 1
+}
+
+if [[ $(findmnt -n -o FSTYPE / 2>/dev/null) == overlay ]]; then
+    target=MAINTENANCE
+    command=/usr/local/sbin/wasalight-maintenance
+    explanation="Il prossimo avvio userà il filesystem scrivibile per aggiornamenti e manutenzione."
+else
+    target=SHOW
+    command=/usr/local/sbin/wasalight-protect
+    explanation="Il prossimo avvio userà la protezione overlayroot per lo show."
+fi
+
+/usr/local/bin/wasalight-dialog --question --width=560 \
+    --title="Modalità $target · Wasalight" \
+    --text="<big><b>Preparare la modalità $target?</b></big>\n\n$explanation\n\nLa modalità cambierà soltanto dopo il riavvio." \
+    --ok-label="Prepara $target" --cancel-label="Annulla" || exit 0
+
+output=$(sudo -n "$command" 2>&1) || {
+    /usr/local/bin/wasalight-dialog --error --width=540 \
+        --title="Modalità Wasalight" --text="$output"
+    exit 1
+}
+
+if /usr/local/bin/wasalight-dialog --question --width=520 \
+    --title="$target pronto · Wasalight" \
+    --text="<big><b>Modalità $target preparata.</b></big>\n\nRiavviare adesso per applicarla?" \
+    --ok-label="Riavvia ora" --cancel-label="Più tardi"; then
+    exec sudo -n /usr/local/sbin/wasalight-power-control reboot
+fi
+EOF
+
     write_file /usr/local/bin/wasalight-status 0755 <<'EOF'
 #!/usr/bin/env bash
 set -u
@@ -4312,12 +4386,12 @@ if [[ $magicq_pid =~ ^[0-9]+$ ]]; then
 elif [[ -x /opt/magicq/runmagicq.sh || -x /opt/magicq/bin/mqqt ]]; then
     magicq="installed, stopped"
 fi
-supervisor="stopped"
-supervisor_pid_file="/run/user/$(id -u chamsys)/wasalight-magicq-session.pid"
-if [[ -r $supervisor_pid_file ]]; then
-    supervisor_pid=$(<"$supervisor_pid_file")
-    [[ $supervisor_pid =~ ^[0-9]+$ ]] && kill -0 "$supervisor_pid" 2>/dev/null && \
-        supervisor="running"
+session="stopped"
+session_pid_file="/run/user/$(id -u chamsys)/wasalight-magicq-session.pid"
+if [[ -r $session_pid_file ]]; then
+    session_pid=$(<"$session_pid_file")
+    [[ $session_pid =~ ^[0-9]+$ ]] && kill -0 "$session_pid" 2>/dev/null && \
+        session="running"
 fi
 network="volatile"
 mountpoint -q /etc/NetworkManager/system-connections && network="persistent bind"
@@ -4332,12 +4406,19 @@ fi
 touch="unavailable"
 [[ -x /usr/local/bin/wasalight-touch-status ]] && \
     touch=$(/usr/local/bin/wasalight-touch-status --summary 2>/dev/null || echo unavailable)
-vnc="stopped"
-pgrep -u chamsys -x x11vnc >/dev/null 2>&1 && vnc="running on TCP 5900"
+vnc_mode="manual"
+[[ -r /data/system/service-flags/vnc-autostart && \
+   $(</data/system/service-flags/vnc-autostart) == enabled ]] && vnc_mode="automatic"
+vnc="stopped ($vnc_mode)"
+pgrep -u chamsys -x x11vnc >/dev/null 2>&1 && vnc="running on TCP 5900 ($vnc_mode)"
+ssh_mode="manual"
+[[ -r /data/system/service-flags/ssh-autostart && \
+   $(</data/system/service-flags/ssh-autostart) == enabled ]] && ssh_mode="automatic"
 ssh="stopped"
 if systemctl is-active --quiet ssh.service; then
-    ssh="running on TCP 22 (session)"
-    systemctl is-enabled --quiet ssh.service && ssh="running on TCP 22 (automatic)"
+    ssh="running on TCP 22 ($ssh_mode)"
+else
+    ssh="stopped ($ssh_mode)"
 fi
 companion="not installed"
 if [[ -d /opt/companion ]]; then
@@ -4360,7 +4441,7 @@ ROOT:       $root_fs
 DATA:       $data
 MAGICQ VER: $magicq_version
 MAGICQ:     $magicq
-SUPERVISOR: $supervisor
+SESSION:    $session
 NETWORK:    $network
 TOUCH:      $touch
 VNC:        $vnc
@@ -4372,7 +4453,7 @@ EOT
 EOF
 
     write_file /etc/sudoers.d/chamsys-magicq 0440 <<'EOF'
-chamsys ALL=(root) NOPASSWD: /usr/local/sbin/wasalight-maintenance, /usr/local/sbin/wasalight-protect, /usr/local/sbin/magicq-root-launcher, /usr/local/sbin/magicq-root-stop, /usr/local/sbin/wasalight-companion-launcher magichd, /usr/local/sbin/wasalight-companion-launcher magicvis, /usr/local/sbin/wasalight-ip-scan, /usr/local/sbin/wasalight-artnet-capture, /usr/local/sbin/wasalight-power-control poweroff, /usr/local/sbin/wasalight-power-control reboot, /usr/local/sbin/wasalight-ssh-control start, /usr/local/sbin/wasalight-ssh-control stop, /usr/local/sbin/wasalight-companion-control start, /usr/local/sbin/wasalight-companion-control stop, /usr/local/sbin/wasalight-companion-control restart, /usr/local/sbin/wasalight-companion-backup
+chamsys ALL=(root) NOPASSWD: /usr/local/sbin/wasalight-maintenance, /usr/local/sbin/wasalight-protect, /usr/local/sbin/magicq-root-launcher, /usr/local/sbin/magicq-root-stop, /usr/local/sbin/wasalight-companion-launcher magichd, /usr/local/sbin/wasalight-companion-launcher magicvis, /usr/local/sbin/wasalight-ip-scan, /usr/local/sbin/wasalight-artnet-capture, /usr/local/sbin/wasalight-power-control poweroff, /usr/local/sbin/wasalight-power-control reboot, /usr/local/sbin/wasalight-ssh-control start, /usr/local/sbin/wasalight-ssh-control stop, /usr/local/sbin/wasalight-remote-persistence ssh enable, /usr/local/sbin/wasalight-remote-persistence ssh disable, /usr/local/sbin/wasalight-remote-persistence vnc enable, /usr/local/sbin/wasalight-remote-persistence vnc disable, /usr/local/sbin/wasalight-companion-control start, /usr/local/sbin/wasalight-companion-control stop, /usr/local/sbin/wasalight-companion-control restart, /usr/local/sbin/wasalight-companion-backup
 EOF
     visudo -cf /etc/sudoers.d/chamsys-magicq >/dev/null
 }
@@ -4498,6 +4579,7 @@ final_checks() {
     bash -n /usr/local/libexec/wasalight-set-mode
     bash -n /usr/local/sbin/wasalight-maintenance
     bash -n /usr/local/sbin/wasalight-protect
+    bash -n /usr/local/bin/wasalight-mode-toggle
     bash -n /usr/local/bin/wasalight-status
     bash -n /usr/local/bin/magicq-session
     bash -n /usr/local/sbin/magicq-root-launcher
@@ -4510,6 +4592,7 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-vnc-start
     bash -n /usr/local/bin/wasalight-vnc-stop
     bash -n /usr/local/bin/wasalight-power
+    bash -n /usr/local/bin/wasalight-dialog
     bash -n /usr/local/sbin/wasalight-power-control
     bash -n /usr/local/bin/wasalight-desktop-status
     bash -n /usr/local/bin/wasalight-vnc-toggle
@@ -4568,7 +4651,7 @@ final_checks() {
         die "OpenGL runtime check failed: libGLU.so.1 is unavailable"
     [[ -r /usr/share/alsa/alsa.conf ]] || \
         die "MagicQ audio runtime check failed: /usr/share/alsa/alsa.conf is unavailable"
-    python3 -c 'import gi; gi.require_version("GdkPixbuf", "2.0"); from gi.repository import GdkPixbuf; GdkPixbuf.Pixbuf.new_from_file("/usr/local/share/icons/wasalight/start.svg")' || \
+    python3 -c 'import gi; gi.require_version("GdkPixbuf", "2.0"); from gi.repository import GdkPixbuf; GdkPixbuf.Pixbuf.new_from_file("/usr/local/share/icons/wasalight/hub.svg")' || \
         die "desktop SVG icon loader is unavailable"
     if [[ -d /opt/companion ]]; then
         python3 -c 'import gi; gi.require_version("GdkPixbuf", "2.0"); from gi.repository import GdkPixbuf; GdkPixbuf.Pixbuf.new_from_file("/usr/local/share/icons/wasalight/companion.svg")' || \
@@ -4625,6 +4708,7 @@ main() {
     configure_touchscreen
     configure_vnc
     configure_ssh
+    configure_remote_persistence
     configure_update
     configure_companion
     configure_graphical_session

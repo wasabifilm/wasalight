@@ -36,6 +36,8 @@ grep -Fq -- '--data-device SPEC' <<<"$help_output" || \
     fail "-help non mostra tutte le opzioni dell'installer"
 grep -Fq -- '--with-companion' <<<"$help_output" || \
     fail "-help non mostra l'installazione opzionale di Bitfocus Companion"
+grep -Fq -- '--without-ssh' <<<"$help_output" || \
+    fail "-help non mostra la disattivazione persistente di SSH"
 grep -Fq -- '--plugin ID' <<<"$help_output" || \
     fail "-help non mostra il sistema plugin Wasalight"
 grep -Fq '/data/system/packages/*.deb' "$ENTRYPOINT" || \
@@ -83,6 +85,7 @@ required_patterns=(
     '[[ $(dpkg-deb -f "$DEB_PATH" Package) == magicq ]]'
     'wasalight-maintenance'
     'wasalight-protect'
+    'wasalight-mode-toggle'
     'wasalight-status'
     'OS:         $os'
     'xinput libinput-tools'
@@ -121,6 +124,9 @@ required_patterns=(
     'wasalight-touch-watch'
     'wasalight-vnc-start'
     'wasalight-vnc-stop'
+    'wasalight-remote-auto-toggle'
+    'wasalight-remote-autostart'
+    'wasalight-remote-persistence'
     'magicq-fullscreen-watch'
     'wasalight-audio-test'
     'wmctrl -n 1'
@@ -129,16 +135,10 @@ required_patterns=(
     'wallpapers_configured=1'
     'desktop_bg=#080b10'
     'pcmanfm --desktop --profile=default'
-    '$TARGET_HOME/Desktop/MagicQ-Start.desktop'
-    '$TARGET_HOME/Desktop/MagicQ-Stop.desktop'
     '$TARGET_HOME/Desktop/Wasalight-Control.desktop'
     '$TARGET_HOME/Desktop/Files.desktop'
-    '$TARGET_HOME/Desktop/VNC.desktop'
-    '$TARGET_HOME/Desktop/SSH.desktop'
     '$TARGET_HOME/Desktop/Power-Off.desktop'
     '$TARGET_HOME/Desktop/Reboot.desktop'
-    'Icon=/usr/local/share/icons/wasalight/start.svg'
-    'Icon=/usr/local/share/icons/wasalight/stop.svg'
     'Icon=/usr/local/share/icons/wasalight/hub.svg'
     'Icon=/usr/local/share/icons/wasalight/files.svg'
     'Icon=/usr/local/share/icons/wasalight/vnc.svg'
@@ -172,7 +172,6 @@ required_patterns=(
     '<titleLayout>NLC</titleLayout>'
     'padding.width: 16'
     'padding.height: 16'
-    '/usr/share/themes/Wasalight/openbox-3/close.xbm'
     '$TARGET_HOME/.config/picom/wasalight.conf'
     'unredir-if-possible = true'
     'picom --config "$HOME/.config/picom/wasalight.conf" --daemon'
@@ -228,7 +227,7 @@ required_patterns=(
     'magicq-start'
     'magicq-stop'
     'magicq-root-stop'
-    'SUPERVISOR: $supervisor'
+    'SESSION:    $session'
     '--with-companion'
     'readonly COMPANION_VERSION="5.0.3"'
     'readonly COMPANION_PI_COMMIT="07024263dbb54512f3acdc705eca70cd74dbae43"'
@@ -282,7 +281,6 @@ done
 if grep -Fq 'write_file /usr/share/themes/Wasalight/openbox-3/close.xbm' "$INSTALLER"; then
     fail "l'installer crea ancora una bitmap close.xbm personalizzata"
 fi
-grep -Fq 'rm -f \' "$INSTALLER" || fail "pulizia delle vecchie bitmap Openbox mancante"
 
 main_body=$(awk '/^main\(\) \{/,/^}/' "$INSTALLER")
 final_checks_line=$(grep -n '^    final_checks$' <<<"$main_body" | cut -d: -f1)
@@ -325,7 +323,7 @@ if grep -Eq 'cp[[:space:]]+-[^[:space:]]*n([^[:alnum:]_]|$)' "$INSTALLER"; then
     fail "cp -n è deprecato/non portabile: usare --update=none"
 fi
 grep -Fq 'cp -a --update=none /root/.config/.' "$INSTALLER" || \
-    fail "la migrazione persistente non preserva i file esistenti senza cp -n"
+    fail "l'inizializzazione persistente non preserva i file esistenti senza cp -n"
 if grep -Fq 'apfs-dkms' "$INSTALLER"; then
     fail "il driver APFS kernel sperimentale non deve essere installato"
 fi
@@ -368,6 +366,7 @@ helpers=(
     /usr/local/libexec/wasalight-set-mode
     /usr/local/sbin/wasalight-maintenance
     /usr/local/sbin/wasalight-protect
+    /usr/local/bin/wasalight-mode-toggle
     /usr/local/bin/wasalight-status
     /usr/local/bin/magicq-session
     /usr/local/sbin/magicq-root-launcher
@@ -381,12 +380,16 @@ helpers=(
     /usr/local/bin/magicq-fullscreen-watch
     /usr/local/bin/wasalight-audio-test
     /usr/local/bin/wasalight-power
+    /usr/local/bin/wasalight-dialog
     /usr/local/sbin/wasalight-power-control
     /usr/local/bin/wasalight-desktop-status
     /usr/local/bin/wasalight-desktop-wallpaper
     /usr/local/bin/wasalight-vnc-toggle
     /usr/local/bin/wasalight-ssh-toggle
     /usr/local/sbin/wasalight-ssh-control
+    /usr/local/sbin/wasalight-remote-persistence
+    /usr/local/bin/wasalight-remote-auto-toggle
+    /usr/local/bin/wasalight-remote-autostart
     /usr/local/sbin/wasalight-update
     /usr/local/libexec/wasalight-update-session
     /usr/local/bin/wasalight-update-terminal
@@ -426,15 +429,20 @@ grep -Fq 'sudo -n /usr/local/sbin/magicq-root-launcher' "$tmp_dir/magicq-session
 grep -Fq '>>"$console_log" 2>&1' "$tmp_dir/magicq-session" || \
     fail "stdout e stderr di MagicQ non sono salvati nel log persistente"
 grep -Fq 'flock -n 9' "$tmp_dir/magicq-session" || \
-    fail "il supervisore MagicQ consente ancora istanze duplicate"
+    fail "la sessione MagicQ consente ancora istanze duplicate"
 grep -Fq 'wasalight-magicq-console.log' "$tmp_dir/magicq-session" || \
     fail "il log di console non è distinto dai log nativi MagicQ"
 grep -Fq 'wasalight-magicq-session.pid' "$tmp_dir/magicq-session" || \
-    fail "il supervisore MagicQ non registra il proprio PID"
+    fail "la sessione MagicQ non registra il proprio PID"
+grep -Fq 'automatic restart disabled' "$tmp_dir/magicq-session" || \
+    fail "la sessione MagicQ non documenta la chiusura senza riavvio"
+if grep -Eq 'while :|restarting in|retrying in' "$tmp_dir/magicq-session"; then
+    fail "MagicQ viene ancora riavviato automaticamente dopo la chiusura"
+fi
 grep -Fq 'sudo -n /usr/local/sbin/magicq-root-stop' "$tmp_dir/magicq-stop" || \
     fail "magicq-stop non arresta il processo root tramite il comando ristretto"
 grep -Fq 'flock -n 9' "$tmp_dir/magicq-start" || \
-    fail "magicq-start non impedisce supervisori duplicati"
+    fail "magicq-start non impedisce sessioni duplicate"
 grep -Fq 'findmnt -n -o FSTYPE /' "$INSTALLER" || \
     fail "l'autostart MagicQ non distingue SHOW da MAINTENANCE"
 grep -Fq 'cd /opt/magicq' "$tmp_dir/magicq-root-launcher" || \
@@ -459,12 +467,29 @@ grep -Fq 'speaker-test -D default -c 2 -t wav -l 1' \
     fail "il test audio ALSA non verifica il dispositivo predefinito"
 grep -Fq 'desktop_icon_size=64' "$INSTALLER" || \
     fail "i pulsanti desktop non sono dimensionati per l'uso touch"
-grep -Fq 'zenity --question' "$tmp_dir/wasalight-power" || \
+grep -Fq '/usr/local/bin/wasalight-dialog --question' "$tmp_dir/wasalight-power" || \
     fail "spegnimento e riavvio non richiedono una conferma touch"
+grep -Fq 'exec /usr/bin/zenity --class=WasalightConfirm "$@"' \
+    "$tmp_dir/wasalight-dialog" || \
+    fail "i dialoghi Wasalight non usano una classe Openbox comune"
+grep -Fq '<application class="WasalightConfirm">' "$INSTALLER" || \
+    fail "Openbox non riconosce i dialoghi Wasalight"
+grep -Fq '<x>center</x>' "$INSTALLER" || \
+    fail "Openbox non centra i dialoghi Wasalight"
+grep -Fq '<layer>above</layer>' "$INSTALLER" || \
+    fail "Openbox non mantiene i dialoghi Wasalight in primo piano"
 grep -Fq 'systemctl poweroff' "$tmp_dir/wasalight-power-control" || \
     fail "il controllo di alimentazione non gestisce lo spegnimento"
 grep -Fq 'systemctl reboot' "$tmp_dir/wasalight-power-control" || \
     fail "il controllo di alimentazione non gestisce il riavvio"
+grep -Fq 'command=/usr/local/sbin/wasalight-maintenance' \
+    "$tmp_dir/wasalight-mode-toggle" || \
+    fail "il selettore modalità non prepara MAINTENANCE"
+grep -Fq 'command=/usr/local/sbin/wasalight-protect' \
+    "$tmp_dir/wasalight-mode-toggle" || \
+    fail "il selettore modalità non prepara SHOW"
+grep -Fq 'wasalight-power-control reboot' "$tmp_dir/wasalight-mode-toggle" || \
+    fail "il selettore modalità non propone il riavvio"
 grep -Fq 'wasalight-vnc-start' "$tmp_dir/wasalight-vnc-toggle" || \
     fail "il pulsante VNC non avvia la sessione condivisa"
 grep -Fq 'wasalight-vnc-stop' "$tmp_dir/wasalight-vnc-toggle" || \
@@ -477,6 +502,18 @@ grep -Fq 'systemctl start ssh.service' "$tmp_dir/wasalight-ssh-control" || \
     fail "il controllo SSH non avvia OpenSSH"
 grep -Fq 'systemctl stop ssh.service' "$tmp_dir/wasalight-ssh-control" || \
     fail "il controllo SSH non ferma OpenSSH"
+grep -Fq 'mktemp "$flag_root/.${service}-autostart.XXXXXX"' \
+    "$tmp_dir/wasalight-remote-persistence" || \
+    fail "i flag remoti persistenti non sono scritti atomicamente"
+grep -Fq '[[ -s /data/system/vnc/passwd ]]' \
+    "$tmp_dir/wasalight-remote-persistence" || \
+    fail "l'autostart VNC può essere abilitato senza una password"
+grep -Fq 'wasalight-ssh-control start' "$tmp_dir/wasalight-remote-autostart" || \
+    fail "l'autostart remoto non riattiva SSH"
+grep -Fq 'wasalight-vnc-start --lan' "$tmp_dir/wasalight-remote-autostart" || \
+    fail "l'autostart remoto non riattiva VNC"
+grep -Fq '/usr/local/bin/wasalight-remote-autostart &' "$INSTALLER" || \
+    fail "l'autostart remoto non è collegato alla sessione Openbox"
 grep -Fq 'merge --ff-only FETCH_HEAD' "$tmp_dir/wasalight-update" || \
     fail "l'aggiornamento Wasalight non impone un avanzamento Git sicuro"
 grep -Fq 'cmp -s -- "$source" "$destination"' "$tmp_dir/wasalight-update" || \
@@ -552,6 +589,14 @@ if grep -Fq 'write_file "$TARGET_HOME/Desktop/Network.desktop"' "$INSTALLER" || 
 fi
 grep -Fq 'write_file "$TARGET_HOME/Desktop/Files.desktop"' "$INSTALLER" || \
     fail "il File Manager non è disponibile sul desktop"
+if grep -Fq 'write_file "$TARGET_HOME/Desktop/VNC.desktop"' "$INSTALLER" || \
+   grep -Fq 'write_file "$TARGET_HOME/Desktop/SSH.desktop"' "$INSTALLER"; then
+    fail "SSH o VNC sono ancora duplicati sul desktop"
+fi
+if grep -Fq 'write_file "$TARGET_HOME/Desktop/MagicQ-Start.desktop"' "$INSTALLER" || \
+   grep -Fq 'write_file "$TARGET_HOME/Desktop/MagicQ-Stop.desktop"' "$INSTALLER"; then
+    fail "i controlli MagicQ sono ancora duplicati sul desktop"
+fi
 
 plugin_command="$PROJECT_DIR/libexec/wasalight-plugin"
 plugin_admin="$PROJECT_DIR/libexec/wasalight-plugin-admin"
@@ -571,6 +616,24 @@ grep -Fq 'PLUGIN_COMMAND = "/usr/local/bin/wasalight-plugin"' "$control_center" 
     fail "Wasalight Control non usa il registro plugin"
 grep -Fq 'self.add_dashboard()' "$control_center" || \
     fail "Wasalight Control non espone la dashboard unificata"
+grep -Fq "foreground='#76bd22'" "$control_center" || \
+    fail "il titolo di Wasalight Control non usa il verde Wasabi"
+grep -Fq 'notebook tab:checked { background: #76bd22; color: #080b10; }' \
+    "$control_center" || fail "la scheda attiva di Control non usa il verde Wasabi"
+grep -Fq 'fill="#76bd22"' "$INSTALLER" || \
+    fail "l'icona Wasalight Control non usa il verde Wasabi"
+if grep -Fq '#8957e5' "$INSTALLER"; then
+    fail "l'icona Wasalight Control usa ancora l'accento viola"
+fi
+grep -Fq 'mode_label = "Passa a MAINTENANCE" if mode == "SHOW" else "Passa a SHOW"' \
+    "$control_center" || fail "la home Control non mostra il cambio modalità contestuale"
+if grep -Fq '("File", ["pcmanfm", "/data"])' "$control_center"; then
+    fail "la home Control contiene ancora il pulsante File"
+fi
+grep -Fq 'self.add_magicq_page(launchers)' "$control_center" || \
+    fail "Wasalight Control non espone il pannello MagicQ dedicato"
+grep -Fq 'image_for("/usr/share/pixmaps/magicq.png", 72)' "$control_center" || \
+    fail "Wasalight Control non usa l'icona originale MagicQ"
 grep -Fq 'self.add_plugin_page("Services"' "$control_center" || \
     fail "Wasalight Control non espone la gestione servizi"
 grep -Fq 'PLUGIN_COMMAND, "install"' "$control_center" || \
@@ -586,14 +649,26 @@ grep -Fq 'wasalight-control.log' "$tmp_dir/wasalight-control" || \
 grep -Fq 'threading.Thread(target=self.refresh_worker, daemon=True).start()' \
     "$control_center" || \
     fail "Wasalight Control aggiorna ancora lo stato nel thread GTK"
+grep -Fq 'dialog.set_keep_above(True)' "$control_center" || \
+    fail "i dialoghi GTK di Control non restano in primo piano"
+grep -Fq 'if item["optional"]:' "$control_center" || \
+    fail "la scheda Plugin mostra ancora i servizi fondamentali"
+grep -Fq 'if action["management"]:' "$control_center" || \
+    fail "Control non separa le azioni operative da quelle di gestione"
+grep -Fq 'if not optional:' "$plugin_admin" || \
+    fail "il gestore permette di disabilitare servizi fondamentali"
 
 plugin_fixture="$tmp_dir/plugin-root"
 plugin_state_fixture="$tmp_dir/plugin-state"
-mkdir -p "$plugin_fixture" "$plugin_state_fixture"
+service_flag_fixture="$tmp_dir/service-flags"
+mkdir -p "$plugin_fixture" "$plugin_state_fixture" "$service_flag_fixture"
 cp -R "$PROJECT_DIR/plugins/." "$plugin_fixture/"
 printf 'disabled\n' >"$plugin_state_fixture/ssh"
+printf 'enabled\n' >"$service_flag_fixture/ssh-autostart"
+printf 'disabled\n' >"$service_flag_fixture/vnc-autostart"
 plugin_json=$(WASALIGHT_PLUGIN_ROOT="$plugin_fixture" \
     WASALIGHT_PLUGIN_STATE_ROOT="$plugin_state_fixture" \
+    WASALIGHT_SERVICE_FLAG_ROOT="$service_flag_fixture" \
     WASALIGHT_PLUGIN_TEST_MODE=maintenance \
     WASALIGHT_VERSION_OVERRIDE="$project_version" \
     python3 "$plugin_command" list --json)
@@ -602,11 +677,22 @@ import json
 import sys
 plugins = {item["id"]: item for item in json.loads(sys.argv[1])}
 assert set(plugins) == {"companion", "ssh", "vnc"}
-assert plugins["ssh"]["enabled"] is False
+assert plugins["ssh"]["enabled"] is True
 assert plugins["vnc"]["enabled"] is True
+assert plugins["ssh"]["optional"] is False
+assert plugins["vnc"]["optional"] is False
+assert plugins["companion"]["optional"] is True
 assert plugins["companion"]["category"] == "Services"
 assert plugins["companion"]["compatible"] is True
+assert plugins["ssh"]["persistent"] is True
+assert plugins["vnc"]["persistent"] is False
+assert plugins["ssh"]["state_label"].endswith("AUTO")
+assert plugins["vnc"]["state_label"].endswith("MANUALE")
+assert any(action["id"] == "automatic" for action in plugins["ssh"]["actions"])
+assert any(action["id"] == "automatic" for action in plugins["vnc"]["actions"])
 assert any(action["id"] == "open" for action in plugins["companion"]["actions"])
+assert any(action["id"] == "update" and action["management"]
+           for action in plugins["companion"]["actions"])
 PY
 if WASALIGHT_PLUGIN_ROOT="$plugin_fixture" \
    WASALIGHT_PLUGIN_STATE_ROOT="$plugin_state_fixture" \
@@ -618,6 +704,17 @@ for plugin in ssh vnc companion; do
     [[ -s $manifest ]] || fail "manifest plugin mancante: $plugin"
     grep -Fq "Id=$plugin" "$manifest" || fail "ID manifest plugin errato: $plugin"
 done
+grep -Fq 'Optional=false' "$PROJECT_DIR/plugins/ssh/manifest.ini" || \
+    fail "SSH non è dichiarato come servizio fondamentale"
+grep -Fq 'Optional=false' "$PROJECT_DIR/plugins/vnc/manifest.ini" || \
+    fail "VNC non è dichiarato come servizio fondamentale"
+grep -Fq 'Key=ssh-autostart' "$PROJECT_DIR/plugins/ssh/manifest.ini" || \
+    fail "il manifest SSH non dichiara il flag persistente"
+grep -Fq 'Key=vnc-autostart' "$PROJECT_DIR/plugins/vnc/manifest.ini" || \
+    fail "il manifest VNC non dichiara il flag persistente"
+grep -Fq 'Command=/usr/local/bin/wasalight-companion-update-terminal' \
+    "$PROJECT_DIR/plugins/companion/manifest.ini" || \
+    fail "Companion non espone l'aggiornamento dal Control Center"
 
 for embedded in \
     'wasalight-ip-scanner.py:/usr/local/libexec/wasalight-ip-scanner.py' \

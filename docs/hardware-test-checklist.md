@@ -27,9 +27,9 @@ uno spettacolo.
 - [ ] Show e impostazioni MagicQ restano presenti dopo il riavvio.
 - [ ] `wasalight-maintenance`, riavvio e aggiornamento APT funzionano.
 - [ ] `wasalight-protect` ripristina SHOW mode al riavvio seguente.
-- [ ] In MAINTENANCE Openbox parte ma MagicQ e supervisore restano fermi.
+- [ ] In MAINTENANCE Openbox parte ma MagicQ e la sessione di lancio restano fermi.
 - [ ] In MAINTENANCE `magicq-start` consente comunque l'avvio manuale.
-- [ ] In SHOW / PROTECTED MagicQ e supervisore partono automaticamente.
+- [ ] In SHOW / PROTECTED MagicQ parte automaticamente una volta.
 - [ ] Il sistema riparte correttamente dopo più interruzioni di alimentazione.
 
 ## MagicQ e grafica
@@ -40,10 +40,9 @@ uno spettacolo.
 - [ ] La riga `MAGICQ VER` del pannello e di `wasalight-status` coincide con
       `dpkg-query -W -f='${Version}\n' magicq` (per esempio `1.9.8.3`).
 - [ ] Autologin dell’utente `chamsys` e avvio automatico di X/Openbox.
-- [ ] Avvio automatico e riavvio di MagicQ dopo una chiusura inattesa.
-- [ ] La chiusura della sola finestra riavvia MagicQ entro pochi secondi.
-- [ ] `magicq-stop` ferma applicazione e supervisore e MagicQ resta chiuso.
-- [ ] `magicq-start` riattiva applicazione e supervisione senza creare duplicati.
+- [ ] Chiudendo MagicQ, l'applicazione resta chiusa e non viene riavviata.
+- [ ] `magicq-stop` ferma applicazione e sessione di lancio; MagicQ resta chiuso.
+- [ ] `magicq-start` riattiva MagicQ senza creare istanze duplicate.
 - [ ] `ps -o user,args -C mqqt` mostra MagicQ eseguito come `root` tramite il
       launcher dedicato.
 - [ ] Uno show di prova viene creato in `/home/chamsys/Documents/MagicQ` e in
@@ -52,7 +51,7 @@ uno spettacolo.
 - [ ] Dopo aver chiuso MagicQ, lo show resta modificabile da `chamsys` senza
       usare `sudo`.
 - [ ] `/data/log/wasalight-magicq-console.log` contiene l'output di avvio.
-- [ ] `/data/log/wasalight-magicq-session.log` registra avvio, uscita e riavvio.
+- [ ] `/data/log/wasalight-magicq-session.log` registra avvio e uscita senza retry.
 - [ ] I log nativi datati di MagicQ restano separati sotto
       `/data/magicq/Documents/MagicQ/log/`.
 - [ ] `wasalight-status` mostra `LOGS: persistent in /data/log`.
@@ -69,7 +68,7 @@ uno spettacolo.
       sono distinti da errori reali: il test audio termina con successo e
       MagicQ completa l'inizializzazione.
 - [ ] MagicQ parte senza barra del titolo; Tint2 resta visibile e utilizzabile
-      sul bordo inferiore anche dopo un riavvio di MagicQ.
+      sul bordo inferiore anche dopo una chiusura e un successivo avvio manuale.
 - [ ] Openbox espone un solo desktop virtuale (`wmctrl -d` mostra una riga).
 - [ ] Il pulsante di chiusura Openbox mostra una X netta e il bersaglio touch è
       circa 44×44 px; viene usato il simbolo interno Openbox e gli stati
@@ -77,19 +76,23 @@ uno spettacolo.
       sostituiscono o fanno scomparire l'icona.
 - [ ] Il pannello Conky ha un fondo scuro semitrasparente e testo leggibile;
       avviando MagicQ fullscreen, Picom libera la finestra dal compositing.
-- [ ] Con MagicQ fermo, gli otto pulsanti desktop hanno icone grandi e leggibili
+- [ ] Con MagicQ fermo, i quattro pulsanti desktop hanno icone grandi e leggibili
       al touch e si avviano con un solo tocco senza mostrare «Apri con…».
 - [ ] `chamsys` non può cancellare, rinominare o spostare i launcher desktop.
 - [ ] `stat -c '%U:%G %a %n' /home/chamsys/Desktop /home/chamsys/Desktop/*.desktop`
-      mostra la directory `root:root 755` e otto launcher `root:root 444`.
-- [ ] Il pulsante VNC avvia la condivisione del display `:0`, mostra l'indirizzo
+      mostra la directory `root:root 755` e quattro launcher `root:root 444`.
+- [ ] La scheda **MagicQ** di Wasalight Control usa l'icona ufficiale
+      `/usr/share/pixmaps/magicq.png` e offre Avvia/Ferma senza duplicati sul desktop.
+- [ ] Il controllo VNC in **Servizi** avvia la condivisione del display `:0`, mostra l'indirizzo
       e propone l'arresto quando viene premuto mentre VNC è già attivo.
-- [ ] Il pulsante SSH avvia e ferma OpenSSH dopo conferma e mostra indirizzo,
+- [ ] Il controllo SSH in **Servizi** avvia e ferma OpenSSH dopo conferma e mostra indirizzo,
       utente e tipo di attivazione (`SESSION` oppure `AUTO`).
 - [ ] **Spegni** e **Riavvia** mostrano sempre la conferma; **Annulla** non
       esegue azioni e la conferma completa correttamente l'operazione scelta.
+- [ ] Le conferme Wasalight sono centrate, ricevono subito il focus e restano in
+      primo piano anche sopra MagicQ, browser e altre finestre massimizzate.
 - [ ] Il pannello destro mostra CURRENT, NEXT BOOT, versione e stato MagicQ,
-      supervisore, data, log, rete/IP, touch, USB, VNC, SSH e audio con colori
+      sessione, data, log, rete/IP, touch, USB, VNC, SSH e audio con colori
       coerenti, senza mostrare letteralmente sequenze `${color ...}`.
 - [ ] Il pannello Tint2 resta sempre visibile, non mostra `desktop 1` e consente
       con un tocco di aprire Wasalight Control o selezionare un’applicazione.
@@ -97,8 +100,22 @@ uno spettacolo.
       grande, facilmente premibile al touch e diventa rosso quando evidenziato.
 - [ ] Wasalight Control mostra Stato, MagicQ, Servizi, Applicazioni,
       Supporto e Plugin con pulsanti grandi e lascia Tint2 visibile.
+- [ ] Icona, titolo, scheda selezionata e focus di Wasalight Control usano il
+      verde Wasabi `#76bd22`, senza il precedente accento viola.
+- [ ] Nella home Stato non compare File: il pulsante mostra **Passa a
+      MAINTENANCE** in SHOW e **Passa a SHOW** in MAINTENANCE, prepara il boot
+      selezionato e propone il riavvio.
+- [ ] SSH e VNC compaiono soltanto in **Servizi**, non nella scheda **Plugin** e
+      non come icone desktop; restano disponibili nel menu Openbox.
+- [ ] Companion in **Plugin** offre Abilita/Disabilita e, quando installato,
+      **Aggiorna**; quest'ultimo è attivo solo in MAINTENANCE.
 - [ ] `wasalight-plugin list` mostra SSH, VNC e Companion; lo stato attivo
       coincide con processi/servizi reali e sopravvive al riavvio.
+- [ ] **Automatico** per SSH e VNC scrive i rispettivi flag sotto
+      `/data/system/service-flags`; Conky mostra `AUTO` o `MANUAL` anche quando
+      il servizio è fermo.
+- [ ] Dopo un riavvio, SSH riparte soltanto con `ssh-autostart=enabled`; VNC
+      riparte soltanto con `vnc-autostart=enabled` e una password VNC valida.
 - [ ] In SHOW enable/disable di un plugin viene rifiutato chiaramente. In
       MAINTENANCE la modifica persiste sotto `/data/system/plugins-state` e un
       update ordinario non riabilita un plugin disabilitato.
@@ -215,4 +232,4 @@ uno spettacolo.
 - [ ] Il client remoto mostra la stessa sessione Openbox/MagicQ del monitor.
 - [ ] `wasalight-status` mostra VNC attivo soltanto durante la condivisione.
 - [ ] `wasalight-vnc-stop` chiude la porta 5900 e termina `x11vnc`.
-- [ ] Dopo un riavvio VNC non parte automaticamente.
+- [ ] Senza il flag automatico, dopo un riavvio VNC resta fermo.

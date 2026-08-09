@@ -130,12 +130,22 @@ privilegio e se deve essere avviata come processo separato.
 La nuova applicazione GTK3 resta massimizzata, non fullscreen, per mantenere
 Tint2 accessibile. Le schede sono:
 
-- **Stato**: stato completo e azioni principali MagicQ/Aggiorna/File;
+- **Stato**: stato completo, aggiornamento e cambio tra SHOW e MAINTENANCE;
 - **MagicQ**: programmi ChamSys rilevati;
 - **Servizi**: stato e azioni dei plugin abilitati;
 - **Applicazioni**: programmi registrati;
 - **Supporto**: rete, schermo, touch, audio e diagnostica;
 - **Plugin**: disponibilità e abilitazione persistente.
+
+SSH e VNC sono servizi fondamentali e compaiono soltanto in **Servizi**.
+`Optional=false` impedisce di disabilitarli come plugin. Companion è invece un
+componente opzionale: dalla scheda **Plugin** può essere installato,
+abilitato/disabilitato e aggiornato in MAINTENANCE.
+
+Per SSH e VNC l'azione **Automatico** gestisce un flag separato sotto
+`/data/system/service-flags`. Il registro espone il campo JSON `persistent` e
+aggiunge `AUTO` o `MANUALE` allo stato. L'autostart VNC può essere abilitato
+soltanto dopo aver creato la password VNC persistente.
 
 Il Control Center legge i launcher `.desktop` da `apps.d`. Le azioni plugin
 vengono aggiornate periodicamente senza nascondere Tint2 o chiudere il centro di
