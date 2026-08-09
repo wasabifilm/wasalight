@@ -68,6 +68,12 @@ La scheda **Servizi** di Wasalight Control mostra indirizzo,
 versione e stato, permette di aprire l'interfaccia locale e di avviare, fermare
 o riavviare il servizio.
 
+Nella scheda **Plugin**, Companion può essere installato, disabilitato o
+riabilitato persistentemente. Quando è installato e abilitato compare anche il
+pulsante **Aggiorna**: è utilizzabile in MAINTENANCE, crea prima un backup e
+installa esclusivamente la versione Companion approvata dalla release
+Wasalight corrente. In SHOW il pulsante resta visibile ma disabilitato.
+
 La voce separata **Companion Web UI** apre `http://127.0.0.1:8000` in Falkon.
 Se il servizio è fermo, propone di avviarlo per la sessione. La finestra viene
 massimizzata lasciando visibile Tint2, quindi resta possibile cambiare

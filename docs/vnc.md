@@ -1,20 +1,27 @@
-# Assistenza remota temporanea con VNC
+# Assistenza remota VNC
 
 Wasalight usa `x11vnc` per condividere la sessione Xorg/Openbox esistente
 dell'utente `chamsys`. Non crea un secondo desktop e permette quindi di vedere
 esattamente ciò che appare sul monitor della postazione MagicQ.
 
-Dal desktop touch usare il pulsante **VNC** oppure **Wasalight Control → Servizi**.
+Usare **Wasalight Control → Servizi → VNC**. La voce VNC resta disponibile
+anche nel menu Openbox di emergenza, ma non occupa un'icona sul desktop.
 Lo stesso pulsante avvia la condivisione quando è spenta e
 propone di fermarla quando è già attiva. Al primo utilizzo apre un terminale
 dedicato per impostare la password senza inserirla negli argomenti dei processi
 o nei log.
 
+Il pulsante **Automatico** gestisce separatamente l'avvio dopo ogni riavvio.
+La prima abilitazione viene accettata soltanto dopo aver creato la password VNC.
+La scelta è il flag persistente `/data/system/service-flags/vnc-autostart`.
+
 ## Proprietà di sicurezza
 
 - VNC è disabilitato per impostazione predefinita.
-- Non esiste un servizio systemd VNC e non viene eseguito alcun avvio automatico.
-- Il processo termina con `wasalight-vnc-stop` o al riavvio della macchina.
+- Non esiste un servizio systemd VNC: l'avvio automatico opzionale avviene
+  soltanto dopo che la sessione Xorg `chamsys` è pronta.
+- Il processo termina con `wasalight-vnc-stop` o al riavvio; se il flag è
+  `enabled`, viene riavviato al login grafico successivo.
 - L'accesso richiede una password VNC distinta dalla password Linux.
 - La password è salvata con permessi `0600` in `/data/system/vnc/passwd`.
 - PID e log sono conservati soltanto sotto `/run/user/...` oppure `/tmp`.

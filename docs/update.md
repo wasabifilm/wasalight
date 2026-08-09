@@ -59,8 +59,8 @@ restrittivo usato dal resto dell’installer.
 
 Quando crea i bind persistenti, l’installer ricarica le unità generate da
 `/etc/fstab` prima del primo mount. I file root già persistenti non vengono
-sovrascritti: la copia iniziale usa `cp --update=none`, evitando anche il vecchio
-avviso di portabilità prodotto da `cp -n`.
+sovrascritti: la copia iniziale usa la forma portabile `cp --update=none`
+prevista da Ubuntu 24.04.
 
 Dopo la prima installazione Wasalight dispone anche della lettura APFS tramite
 `libfsapfs-utils`. I volumi APFS non cifrati vengono esposti in sola lettura
@@ -148,7 +148,9 @@ sudo wasalight-update --with-ssh
 sudo wasalight-update --without-ssh
 ```
 
-Senza queste opzioni viene conservato lo stato di abilitazione SSH esistente.
+Senza queste opzioni viene conservato il flag persistente
+`/data/system/service-flags/ssh-autostart`, lo stesso gestito dal pulsante
+**Automatico** in Wasalight Control.
 La tastiera Onboard viene conservata automaticamente quando è già installata.
 
 Per installare Bitfocus Companion durante un aggiornamento Wasalight:

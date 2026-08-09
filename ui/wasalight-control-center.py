@@ -97,6 +97,8 @@ def image_for(icon, size=64):
             return Gtk.Image.new_from_pixbuf(pixbuf)
         except Exception:
             pass
+    if os.path.isabs(icon):
+        icon = "application-x-executable"
     image = Gtk.Image.new_from_icon_name(icon or "application-x-executable", Gtk.IconSize.DIALOG)
     image.set_pixel_size(size)
     return image
@@ -142,7 +144,7 @@ class ControlCenter(Gtk.Window):
         outer.pack_start(self.notebook, True, True, 0)
         self.add_dashboard()
         launchers = installed_launchers()
-        self.add_launcher_page("MagicQ", launchers)
+        self.add_magicq_page(launchers)
         self.add_plugin_page("Services", self.service_cards)
         self.add_launcher_page("Applications", launchers)
         self.add_launcher_page("Support", launchers)
@@ -173,7 +175,7 @@ class ControlCenter(Gtk.Window):
         box.pack_start(image_for("/usr/local/share/icons/wasalight/hub.svg", 58), False, False, 0)
         title = Gtk.Label()
         title.set_xalign(0)
-        title.set_markup("<span size='23000' weight='bold'>Wasalight Control</span>\n"
+        title.set_markup("<span foreground='#76bd22' size='23000' weight='bold'>Wasalight Control</span>\n"
                          "<span size='10500'>MagicQ · servizi · applicazioni · sistema</span>")
         box.pack_start(title, True, True, 0)
         state = Gtk.Label()
@@ -187,11 +189,11 @@ class ControlCenter(Gtk.Window):
     def add_dashboard(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         controls = Gtk.Box(spacing=10)
+        mode, _version = mode_and_version()
+        mode_label = "Passa a MAINTENANCE" if mode == "SHOW" else "Passa a SHOW"
         for label, command in (
-                ("Avvia MagicQ", ["/usr/local/bin/magicq-start"]),
-                ("Ferma MagicQ", ["/usr/local/bin/magicq-stop"]),
                 ("Aggiorna", ["/usr/local/bin/wasalight-update-terminal"]),
-                ("File", ["pcmanfm", "/data"])):
+                (mode_label, ["/usr/local/bin/wasalight-mode-toggle"])):
             button = Gtk.Button(label=label)
             button.set_size_request(180, 64)
             button.connect("clicked", self.run_desktop_command, command)
@@ -205,6 +207,62 @@ class ControlCenter(Gtk.Window):
         scroll.add(self.status_view)
         box.pack_start(scroll, True, True, 0)
         self.notebook.append_page(box, Gtk.Label(label=PAGE_LABELS["Dashboard"]))
+
+    def add_magicq_page(self, launchers):
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        page.set_border_width(12)
+
+        card = Gtk.Frame()
+        card_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        card_box.set_border_width(16)
+        heading = Gtk.Box(spacing=14)
+        heading.pack_start(image_for("/usr/share/pixmaps/magicq.png", 72), False, False, 0)
+        title = Gtk.Label()
+        title.set_xalign(0)
+        title.set_markup("<span size='18000' weight='bold'>ChamSys MagicQ</span>\n"
+                         "<span size='10500'>Console luci principale</span>")
+        heading.pack_start(title, True, True, 0)
+        card_box.pack_start(heading, False, False, 0)
+
+        controls = Gtk.Box(spacing=10)
+        for label, command in (
+                ("Avvia MagicQ", ["/usr/local/bin/magicq-start"]),
+                ("Ferma MagicQ", ["/usr/local/bin/magicq-stop"])):
+            button = Gtk.Button(label=label)
+            button.set_size_request(190, 58)
+            button.set_sensitive(os.path.exists("/opt/magicq"))
+            button.connect("clicked", self.run_desktop_command, command)
+            controls.pack_start(button, False, False, 0)
+        card_box.pack_start(controls, False, False, 0)
+        card.add(card_box)
+        page.pack_start(card, False, False, 0)
+
+        companions = [item for item in launchers if item["section"] == "MagicQ"]
+        if companions:
+            label = Gtk.Label(label="Programmi ChamSys aggiuntivi")
+            label.set_xalign(0)
+            page.pack_start(label, False, False, 0)
+            flow = Gtk.FlowBox()
+            flow.set_selection_mode(Gtk.SelectionMode.NONE)
+            flow.set_row_spacing(12)
+            flow.set_column_spacing(12)
+            flow.set_max_children_per_line(5)
+            for item in companions:
+                button = Gtk.Button()
+                button.set_size_request(180, 132)
+                button.set_tooltip_text(item["comment"])
+                content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7)
+                content.pack_start(image_for(item["icon"], 58), True, True, 0)
+                content.pack_start(Gtk.Label(label=item["name"]), False, False, 0)
+                button.add(content)
+                button.connect("clicked", self.launch_application, item)
+                flow.add(button)
+            page.pack_start(flow, False, False, 0)
+
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroll.add_with_viewport(page)
+        self.notebook.append_page(scroll, Gtk.Label(label=PAGE_LABELS["MagicQ"]))
 
     def add_launcher_page(self, section, launchers):
         flow = Gtk.FlowBox()
@@ -282,8 +340,18 @@ class ControlCenter(Gtk.Window):
             else:
                 button.connect("clicked", self.install_plugin, item)
             actions.pack_start(button, True, True, 0)
+            if item["installed"] and item["enabled"]:
+                for action in item["actions"]:
+                    if not action["management"]:
+                        continue
+                    button = Gtk.Button(label=action["label"])
+                    button.set_sensitive(action["available"])
+                    button.connect("clicked", self.plugin_action, item, action)
+                    actions.pack_start(button, True, True, 0)
         elif item["enabled"] and item["installed"] and item["compatible"]:
             for action in item["actions"]:
+                if action["management"]:
+                    continue
                 button = Gtk.Button(label=action["label"])
                 button.set_sensitive(action["available"])
                 button.connect("clicked", self.plugin_action, item, action)
@@ -329,7 +397,8 @@ class ControlCenter(Gtk.Window):
             for item in self.plugins:
                 if item["category"] == "Services" and item["enabled"]:
                     self.service_cards.add(self.plugin_card(item))
-                self.plugin_cards.add(self.plugin_card(item, management=True))
+                if item["optional"]:
+                    self.plugin_cards.add(self.plugin_card(item, management=True))
             self.service_cards.show_all()
             self.plugin_cards.show_all()
         return False
@@ -384,8 +453,10 @@ class ControlCenter(Gtk.Window):
     def plugin_action(self, _button, item, action):
         if action["confirm"]:
             dialog = Gtk.MessageDialog(
-                self, 0, Gtk.MessageType.QUESTION, Gtk.ButtonsType.OK_CANCEL,
+                self, Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
+                Gtk.MessageType.QUESTION, Gtk.ButtonsType.OK_CANCEL,
                 action["confirm"])
+            self.prepare_dialog(dialog)
             accepted = dialog.run() == Gtk.ResponseType.OK
             dialog.destroy()
             if not accepted:
@@ -435,17 +506,28 @@ class ControlCenter(Gtk.Window):
 
     def show_error(self, title, details):
         dialog = Gtk.MessageDialog(
-            self, 0, Gtk.MessageType.ERROR, Gtk.ButtonsType.CLOSE, title)
+            self, Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
+            Gtk.MessageType.ERROR, Gtk.ButtonsType.CLOSE, title)
         dialog.format_secondary_text(details)
+        self.prepare_dialog(dialog)
         dialog.run()
         dialog.destroy()
+
+    def prepare_dialog(self, dialog):
+        dialog.set_transient_for(self)
+        dialog.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+        dialog.set_keep_above(True)
+        dialog.present()
 
 
 CSS = b"""
 window { background-color: #080b10; color: #f0f3f6; }
 button { min-height: 44px; font-size: 17px; padding: 8px; background: #1c222b; color: #f0f3f6; }
 button:hover { background: #303842; border-color: #76bd22; }
+button:focus { border-color: #76bd22; box-shadow: inset 0 0 0 1px #76bd22; }
+button:active { background: #5a901a; color: #080b10; }
 notebook tab { min-height: 38px; padding: 8px 20px; font-size: 17px; }
+notebook tab:checked { background: #76bd22; color: #080b10; }
 frame { background: #11151b; border: 1px solid #303842; border-radius: 7px; }
 textview, textview text { background: #11151b; color: #f0f3f6; font-size: 16px; }
 """
