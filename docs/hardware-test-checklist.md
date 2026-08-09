@@ -91,14 +91,19 @@ uno spettacolo.
       supervisore, data, log, rete/IP, touch, USB, VNC, SSH e audio con colori
       coerenti, senza mostrare letteralmente sequenze `${color ...}`.
 - [ ] Il pannello Tint2 resta sempre visibile, non mostra `desktop 1` e consente
-      con un tocco di aprire il Hub o selezionare un’applicazione già aperta.
+      con un tocco di aprire Wasalight Control o selezionare un’applicazione.
 - [ ] Le finestre attive e inattive mantengono colori scuri; il pulsante X è
       grande, facilmente premibile al touch e diventa rosso quando evidenziato.
-- [ ] Wasalight Hub mostra le schede MagicQ, Applications e Support con pulsanti
-      grandi; gli strumenti di supporto si avviano correttamente.
-- [ ] MagicHD e MagicVis avviati dal Hub passano dal wrapper root ristretto,
+- [ ] Wasalight Control mostra Dashboard, MagicQ, Services, Applications,
+      Support e Plugins con pulsanti grandi e lascia Tint2 visibile.
+- [ ] `wasalight-plugin list` mostra SSH, VNC e Companion; lo stato attivo
+      coincide con processi/servizi reali e sopravvive al riavvio.
+- [ ] In SHOW enable/disable di un plugin viene rifiutato chiaramente. In
+      MAINTENANCE la modifica persiste sotto `/data/system/plugins-state` e un
+      update ordinario non riabilita un plugin disabilitato.
+- [ ] MagicHD e MagicVis avviati dal Control Center passano dal wrapper root ristretto,
       usano `/opt/magicq` come directory di lavoro e rimangono aperti.
-- [ ] Un launcher registrato con `wasalight-app-register` compare nel Hub e
+- [ ] Un launcher registrato con `wasalight-app-register` compare nel Control Center e
       sopravvive al riavvio protetto; dopo `--remove` non compare più.
 - [ ] **IP Scanner** elenca IP e MAC almeno del gateway o di un secondo host
       collegato alla stessa rete; una nuova scansione aggiorna la tabella.

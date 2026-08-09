@@ -89,7 +89,7 @@ sudo wasalight-update
 ```
 
 Dal desktop non serve aprire manualmente il terminale: clic destro →
-**Update Wasalight**, oppure **Wasalight Hub → Support → Update Wasalight**.
+**Update Wasalight**, oppure **Wasalight Control → Dashboard → Update**.
 Si apre una finestra con quattro fasi leggibili: controllo del pacchetto MagicQ,
 download, verifica e installazione. Al termine compare un grande pulsante
 **Riavvia ora**; scegliendo **Più tardi** l’aggiornamento resta installato e viene

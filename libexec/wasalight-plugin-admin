@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+"""Restricted persistent enable/disable operation for Wasalight plugins."""
+
+import configparser
+import os
+import re
+import subprocess
+import sys
+import tempfile
+
+
+PLUGIN_ROOT = "/usr/lib/wasalight/plugins"
+STATE_ROOT = "/data/system/plugins-state"
+ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]{0,47}$")
+VERSION_PATTERN = re.compile(r"^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$")
+
+
+def fail(message, code=1):
+    print(message, file=sys.stderr)
+    raise SystemExit(code)
+
+
+def main():
+    if os.geteuid() != 0:
+        fail("wasalight-plugin-admin must run through sudo")
+    if len(sys.argv) != 3 or sys.argv[1] not in ("enable", "disable"):
+        fail("Usage: wasalight-plugin-admin enable|disable PLUGIN", 2)
+    operation, plugin_id = sys.argv[1:]
+    if not ID_PATTERN.fullmatch(plugin_id):
+        fail(f"Invalid plugin id: {plugin_id}", 2)
+    root_type = subprocess.run(
+        ["findmnt", "-n", "-o", "FSTYPE", "/"], text=True,
+        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False).stdout.strip()
+    if root_type == "overlay":
+        fail("Plugin changes require MAINTENANCE mode")
+    if not os.path.ismount("/data"):
+        fail("/data is not mounted")
+    manifest = os.path.join(PLUGIN_ROOT, plugin_id, "manifest.ini")
+    parser = configparser.ConfigParser(interpolation=None)
+    parser.optionxform = str
+    try:
+        with open(manifest, encoding="utf-8") as source:
+            parser.read_file(source)
+        if parser["Plugin"].get("Id") != plugin_id:
+            raise ValueError("manifest id mismatch")
+    except (OSError, KeyError, configparser.Error, ValueError) as error:
+        fail(f"Cannot manage plugin {plugin_id}: {error}")
+    minimum = parser["Plugin"].get("MinimumWasalight", "0.0.0.0")
+    try:
+        with open("/etc/wasalight/version", encoding="utf-8") as source:
+            current = source.read().strip()
+    except OSError:
+        current = "0.0.0.0"
+    version_key = lambda value: tuple(int(part) for part in value.split(".")) \
+        if VERSION_PATTERN.fullmatch(value) else (0, 0, 0, 0)
+    if operation == "enable" and version_key(current) < version_key(minimum):
+        fail(f"Plugin requires Wasalight {minimum} or newer")
+    runtime = parser["Runtime"] if "Runtime" in parser else {}
+    auto_enable = str(runtime.get("AutoEnable", "false")).lower() in ("1", "true", "yes", "on")
+    unit = runtime.get("Unit", "")
+    runtime_type = runtime.get("Type", "none")
+    if unit and operation == "disable":
+        subprocess.run(["systemctl", "disable", "--now", unit], check=True)
+    elif unit and operation == "enable" and auto_enable:
+        subprocess.run(["systemctl", "enable", "--now", unit], check=True)
+    if runtime_type == "process" and operation == "disable":
+        process = runtime.get("Process", "")
+        user = runtime.get("User", "")
+        if process and user:
+            subprocess.run(["pkill", "-u", user, "-x", process], check=False)
+    os.makedirs(STATE_ROOT, mode=0o755, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=f".{plugin_id}.", dir=STATE_ROOT, text=True)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as target:
+            target.write("enabled\n" if operation == "enable" else "disabled\n")
+        os.chmod(temporary, 0o644)
+        os.replace(temporary, os.path.join(STATE_ROOT, plugin_id))
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+    result = "enabled" if operation == "enable" else "disabled"
+    print(f"Plugin {plugin_id}: {result}")
+
+
+if __name__ == "__main__":
+    main()

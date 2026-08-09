@@ -31,6 +31,7 @@ PURGE_CLOUD_INIT=1
 ENABLE_PROTECTION=1
 ENABLE_ONSCREEN_KEYBOARD=0
 ENABLE_COMPANION=0
+REQUESTED_PLUGINS=()
 RESET_CHAMSYS_PASSWORD=0
 ALLOW_MISSING_MAGICQ=0
 BOOTSTRAP_MAGICQ_PATH=""
@@ -78,6 +79,8 @@ Options:
                        Install Onboard and add it to the Openbox menu.
   --with-companion     Install the pinned Bitfocus Companion headless build,
                        persist its configuration in /data and enable its service.
+  --plugin ID          Enable a Wasalight plugin. May be repeated. Built-in IDs:
+                       companion, ssh, vnc. --with-companion remains supported.
   --reset-chamsys-password
                        Interactively replace the chamsys password. The account
                        is always an administrator; its password is never stored.
@@ -110,6 +113,17 @@ parse_args() {
             --with-ssh) ENABLE_SSH=1; shift ;;
             --with-onscreen-keyboard) ENABLE_ONSCREEN_KEYBOARD=1; shift ;;
             --with-companion) ENABLE_COMPANION=1; shift ;;
+            --plugin)
+                (($# >= 2)) || die "--plugin requires an id"
+                case $2 in
+                    companion) ENABLE_COMPANION=1 ;;
+                    ssh) ;;
+                    vnc) ;;
+                    *) die "unknown Wasalight plugin: $2" ;;
+                esac
+                REQUESTED_PLUGINS+=("$2")
+                shift 2
+                ;;
             --reset-chamsys-password) RESET_CHAMSYS_PASSWORD=1; shift ;;
             # Earlier releases used this option to enable administrator access.
             # Administrator access is now mandatory; retain the password prompt.
@@ -1281,6 +1295,7 @@ reboot_after=0
 ssh_mode=preserve
 allow_missing_magicq=0
 with_companion=0
+plugins=()
 
 usage() {
     cat <<'EOT'
@@ -1298,6 +1313,8 @@ Opzioni:
   --with-companion
                   Installa Bitfocus Companion se non è ancora presente; le
                   installazioni esistenti vengono sempre conservate.
+  --plugin ID     Abilita un plugin Wasalight. Ripetibile; ID disponibili:
+                  companion, ssh, vnc.
   --allow-missing-magicq
                   Continua esplicitamente se MagicQ non è installato e non è
                   disponibile alcun .deb valido nel sistema o sulle USB.
@@ -1313,7 +1330,17 @@ while (($#)); do
         --reboot) reboot_after=1 ;;
         --with-ssh) ssh_mode=enabled ;;
         --without-ssh) ssh_mode=disabled ;;
-        --with-companion) with_companion=1 ;;
+        --with-companion) with_companion=1; plugins+=(companion) ;;
+        --plugin)
+            shift
+            (($#)) || { echo "--plugin richiede un ID" >&2; exit 2; }
+            case $1 in
+                companion) with_companion=1 ;;
+                ssh|vnc) ;;
+                *) echo "Plugin Wasalight sconosciuto: $1" >&2; exit 2 ;;
+            esac
+            plugins+=("$1")
+            ;;
         --allow-missing-magicq) allow_missing_magicq=1 ;;
         -h|-help|--help) usage; exit 0 ;;
         *) echo "Opzione sconosciuta: $1" >&2; usage >&2; exit 2 ;;
@@ -1523,6 +1550,19 @@ if [[ $ssh_mode == enabled ]] || \
 fi
 command -v onboard >/dev/null 2>&1 && installer_args+=(--with-onscreen-keyboard)
 ((with_companion)) && installer_args+=(--with-companion)
+# Preserve the plugin selection recorded on /data. Disabled plugins remain
+# installed but are not silently re-enabled by an ordinary Wasalight update.
+for plugin_state in /data/system/plugins-state/*; do
+    [[ -f $plugin_state ]] || continue
+    [[ $(<"$plugin_state") == enabled ]] || continue
+    plugin_id=${plugin_state##*/}
+    case $plugin_id in
+        companion|ssh|vnc) plugins+=("$plugin_id") ;;
+    esac
+done
+for plugin in "${plugins[@]-}"; do
+    [[ -n $plugin ]] && installer_args+=(--plugin "$plugin")
+done
 
 select_newest_magicq_package
 if [[ -n $selected_package ]]; then
@@ -1572,12 +1612,17 @@ set -u
 # print a harmless GDBus warning after a successful installation.
 export GTK_A11Y=none
 
+update_args=()
+if [[ -n ${WASALIGHT_UPDATE_PLUGIN:-} ]]; then
+    update_args+=(--plugin "$WASALIGHT_UPDATE_PLUGIN")
+fi
+
 clear
 printf '\n  WASALIGHT UPDATE\n'
 printf '  Scarico, verifico e installo l’ultima versione.\n'
 printf '  La password richiesta è quella Linux di chamsys.\n\n'
 
-sudo /usr/local/sbin/wasalight-update
+sudo /usr/local/sbin/wasalight-update "${update_args[@]}"
 rc=$?
 if ((rc == 0)); then
     echo
@@ -1606,6 +1651,17 @@ EOF
     write_file /usr/local/bin/wasalight-update-terminal 0755 <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
+case ${1:-} in
+    '') ;;
+    --plugin)
+        (($# == 2)) || { echo "Usage: wasalight-update-terminal [--plugin ID]" >&2; exit 2; }
+        case $2 in
+            companion|ssh|vnc) export WASALIGHT_UPDATE_PLUGIN=$2 ;;
+            *) echo "Unknown plugin: $2" >&2; exit 2 ;;
+        esac
+        ;;
+    *) echo "Usage: wasalight-update-terminal [--plugin ID]" >&2; exit 2 ;;
+esac
 exec lxterminal --title="Wasalight Update" -e /usr/local/libexec/wasalight-update-session
 EOF
 
@@ -2242,7 +2298,12 @@ X-Wasalight-Order=31
 EOF
 
     systemctl daemon-reload
-    systemctl enable --now companion.service
+    if [[ -r $DATA_MOUNT/system/plugins-state/companion ]] && \
+       [[ $(<"$DATA_MOUNT/system/plugins-state/companion") == disabled ]]; then
+        systemctl disable --now companion.service
+    else
+        systemctl enable --now companion.service
+    fi
 }
 
 configure_graphical_session() {
@@ -2565,9 +2626,9 @@ EOF
     write_file "$TARGET_HOME/Desktop/Wasalight-Hub.desktop" 0755 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Wasalight Hub
-Comment=Applicazioni MagicQ, programmi e strumenti di supporto
-Exec=/usr/local/bin/wasalight-hub
+Name=Wasalight Control
+Comment=Gestione unificata di MagicQ, servizi, plugin e strumenti
+Exec=/usr/local/bin/wasalight-control
 Icon=/usr/local/share/icons/wasalight/hub.svg
 Terminal=false
 StartupNotify=true
@@ -3395,7 +3456,7 @@ source_file=${1:?usage: wasalight-app-register FILE.desktop | --list | --remove 
 desktop-file-validate "$source_file"
 name=${source_file##*/}
 install -m 0644 "$source_file" "$destination/$name"
-echo "Registered in Wasalight Hub: $destination/$name"
+echo "Registered in Wasalight Control: $destination/$name"
 EOF
 
     write_file /usr/local/libexec/wasalight-hub.py 0755 <<'PYEOF'
@@ -3970,7 +4031,7 @@ EOF
     <item label="Start MagicQ"><action name="Execute"><command>/usr/local/bin/magicq-start</command></action></item>
     <item label="Stop MagicQ"><action name="Execute"><command>/usr/local/bin/magicq-stop</command></action></item>
     <separator />
-    <item label="Wasalight Hub"><action name="Execute"><command>/usr/local/bin/wasalight-hub</command></action></item>
+    <item label="Wasalight Control"><action name="Execute"><command>/usr/local/bin/wasalight-control</command></action></item>
     <item label="File Manager"><action name="Execute"><command>pcmanfm /data</command></action></item>
     <item label="Terminal"><action name="Execute"><command>lxterminal</command></action></item>
     <item label="Update Wasalight"><action name="Execute"><command>/usr/local/bin/wasalight-update-terminal</command></action></item>
@@ -4018,6 +4079,82 @@ ExecStart=-/sbin/agetty --autologin $TARGET_USER --noclear --noissue %I \$TERM
 Type=idle
 EOF
     systemctl set-default multi-user.target
+}
+
+configure_plugins() {
+    local plugin source manifest state_file requested
+    install -d -m 0755 /usr/lib/wasalight/plugins
+    install -d -m 0755 /usr/local/libexec
+    install -d -o root -g root -m 0755 "$DATA_MOUNT/system/plugins-state"
+    install -d -o root -g root -m 0755 "$DATA_MOUNT/plugins"
+    install -d -o root -g adm -m 0755 "$DATA_MOUNT/log/plugins"
+
+    for plugin in ssh vnc companion; do
+        source="$PROJECT_DIR/plugins/$plugin/manifest.ini"
+        [[ -s $source ]] || die "Wasalight plugin manifest is missing: $source"
+        install -D -o root -g root -m 0644 "$source" \
+            "/usr/lib/wasalight/plugins/$plugin/manifest.ini"
+    done
+    install -o root -g root -m 0755 "$PROJECT_DIR/libexec/wasalight-plugin" \
+        /usr/local/bin/wasalight-plugin
+    install -o root -g root -m 0755 "$PROJECT_DIR/libexec/wasalight-plugin-admin" \
+        /usr/local/sbin/wasalight-plugin-admin
+    install -o root -g root -m 0755 "$PROJECT_DIR/ui/wasalight-control-center.py" \
+        /usr/local/libexec/wasalight-control-center.py
+
+    # Built-in management integrations are visible by default. Companion is
+    # enabled on its first installation/migration, while an explicit disabled
+    # state from an operator is always preserved by later updates.
+    for plugin in ssh vnc; do
+        state_file="$DATA_MOUNT/system/plugins-state/$plugin"
+        [[ -e $state_file ]] || printf 'enabled\n' >"$state_file"
+    done
+    state_file="$DATA_MOUNT/system/plugins-state/companion"
+    if [[ -d /opt/companion && ! -e $state_file ]]; then
+        printf 'enabled\n' >"$state_file"
+    fi
+    ((ENABLE_COMPANION)) && printf 'enabled\n' >"$state_file"
+    for requested in "${REQUESTED_PLUGINS[@]-}"; do
+        [[ -n $requested ]] || continue
+        printf 'enabled\n' >"$DATA_MOUNT/system/plugins-state/$requested"
+    done
+    chmod 0644 "$DATA_MOUNT/system/plugins-state"/* 2>/dev/null || true
+    if [[ -d /opt/companion ]]; then
+        if [[ $(<"$DATA_MOUNT/system/plugins-state/companion") == enabled ]]; then
+            systemctl enable --now companion.service
+        else
+            systemctl disable --now companion.service
+        fi
+    fi
+
+    write_file /usr/local/bin/wasalight-control 0755 <<'EOF'
+#!/usr/bin/env bash
+set -u
+log_dir=/tmp
+[[ -d /data/log && -w /data/log ]] && log_dir=/data/log
+log_file="$log_dir/wasalight-hub.log"
+if /usr/local/libexec/wasalight-control-center.py >>"$log_file" 2>&1; then
+    exit 0
+else
+    rc=$?
+fi
+details=$(tail -n 18 "$log_file" 2>/dev/null || true)
+zenity --error --width=640 --title="Wasalight Control" \
+    --text="<big><b>Wasalight Control non è riuscito ad avviarsi.</b></big>\n\n$details\n\nLog: $log_file" \
+    2>/dev/null || true
+exit "$rc"
+EOF
+
+    # Backwards-compatible command used by older desktop files and habits.
+    write_file /usr/local/bin/wasalight-hub 0755 <<'EOF'
+#!/usr/bin/env bash
+exec /usr/local/bin/wasalight-control "$@"
+EOF
+
+    write_file /etc/sudoers.d/wasalight-plugins 0440 <<'EOF'
+chamsys ALL=(root) NOPASSWD: /usr/local/sbin/wasalight-plugin-admin enable ssh, /usr/local/sbin/wasalight-plugin-admin disable ssh, /usr/local/sbin/wasalight-plugin-admin enable vnc, /usr/local/sbin/wasalight-plugin-admin disable vnc, /usr/local/sbin/wasalight-plugin-admin enable companion, /usr/local/sbin/wasalight-plugin-admin disable companion
+EOF
+    visudo -cf /etc/sudoers.d/wasalight-plugins >/dev/null
 }
 
 configure_persistent_logs() {
@@ -4646,6 +4783,12 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-artnet-monitor
     bash -n /usr/local/sbin/wasalight-app-register
     bash -n /usr/local/bin/wasalight-hub
+    bash -n /usr/local/bin/wasalight-control
+    python3 -m py_compile \
+        /usr/local/bin/wasalight-plugin \
+        /usr/local/sbin/wasalight-plugin-admin \
+        /usr/local/libexec/wasalight-control-center.py
+    WASALIGHT_VERSION_OVERRIDE="$PROJECT_VERSION" /usr/local/bin/wasalight-plugin doctor
     if [[ -d /opt/companion ]]; then
         bash -n /usr/local/bin/wasalight-companion-version
         bash -n /usr/local/sbin/wasalight-companion-control
@@ -4746,6 +4889,7 @@ main() {
     configure_update
     configure_companion
     configure_graphical_session
+    configure_plugins
     configure_usb
     install_magicq
     repair_magicq_persistent_permissions

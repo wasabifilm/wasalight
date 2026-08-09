@@ -169,6 +169,13 @@ sudo ./install.sh \
   --with-companion
 ```
 
+La stessa funzione è disponibile tramite il nuovo sistema plugin; `--plugin`
+può essere ripetuto per le estensioni desiderate:
+
+```bash
+sudo ./install.sh --data-device LABEL=DATA --plugin companion --plugin vnc
+```
+
 Su una console Wasalight già configurata è possibile abilitarlo direttamente
 durante l'aggiornamento:
 
@@ -307,7 +314,8 @@ magicq-touch-config list
 magicq-audio-test
 magicq-vnc-start
 magicq-vnc-stop
-wasalight-hub
+wasalight-control
+wasalight-plugin list
 wasalight-ip-scanner
 wasalight-artnet-monitor
 wasalight-vnc-toggle
@@ -383,7 +391,7 @@ Sono disponibili soltanto i comandi principali:
 
 - **Start MagicQ**;
 - **Stop MagicQ**;
-- **Wasalight Hub**;
+- **Wasalight Control**;
 - **VNC**;
 - **SSH**;
 - **Power off**;
@@ -415,10 +423,14 @@ MAINTENANCE. In SHOW la finestra fullscreen di MagicQ copre intenzionalmente il
 desktop e il pannello di stato; per intervenire sulla configurazione si deve
 prima passare a MAINTENANCE oppure fermare MagicQ con `magicq-stop`.
 
-### Wasalight Hub e applicazioni future
+### Wasalight Control, plugin e applicazioni future
 
-**Wasalight Hub** è un launcher GTK progettato per il touchscreen. Organizza i
-programmi in tre schede:
+**Wasalight Control** è il centro di gestione GTK progettato per il touchscreen.
+Riunisce dashboard, MagicQ, servizi, applicazioni, supporto e plugin in una sola
+finestra massimizzata, lasciando sempre visibile Tint2. Il precedente comando
+`wasalight-hub` rimane un alias compatibile.
+
+I programmi continuano a essere organizzati tramite il registro `apps.d`:
 
 - **MagicQ**: applicazioni companion ChamSys rilevate quando realmente
   installate;
@@ -454,6 +466,12 @@ Se un launcher di terze parti contiene un valore booleano non standard, il Hub
 lo ignora invece di terminare. Gli eventuali errori di avvio vengono mostrati
 a schermo e registrati in `/data/log/wasalight-hub.log` (oppure in `/tmp` se
 `/data` non è disponibile).
+
+Il registro plugin integrato gestisce inizialmente SSH, VNC e Bitfocus Companion.
+Manifest e programmi sono protetti sotto `/usr/lib/wasalight/plugins`, mentre
+enable/disable persiste in `/data/system/plugins-state`. Le modifiche persistenti
+sono ammesse soltanto in MAINTENANCE; dettagli e formato dei manifest sono in
+[`docs/plugins.md`](docs/plugins.md).
 
 Tint2 non mostra più la scritta **desktop 1** e resta sempre visibile in basso.
 Il pannello riserva lo spazio necessario e offre i pulsanti Hub e File Manager,
@@ -558,7 +576,7 @@ vuota. Wasalight installa quindi il file
 `NetworkManager` come renderer conservando le definizioni DHCP, statiche, DNS e
 route già presenti negli altri file Netplan.
 
-Le nuove connessioni salvate dalla voce **Network** nel Wasalight Hub sono
+Le nuove connessioni salvate dalla voce **Network** in Wasalight Control sono
 conservate nel bind persistente
 `/etc/NetworkManager/system-connections` → `/data/system/network`. Lo stato si
 controlla con:
@@ -640,7 +658,7 @@ diagnosi, rotazioni, configurazioni multimonitor e tastiera virtuale consultare
 Wasalight installa `x11vnc` per condividere temporaneamente la sessione
 Openbox/MagicQ già visibile sul monitor. Il server non parte automaticamente e
 non resta attivo dopo un riavvio. Usare il pulsante desktop **VNC**, la voce nel
-Wasalight Hub oppure, dalla sessione `chamsys`, il comando:
+Wasalight Control oppure, dalla sessione `chamsys`, il comando:
 
 ```bash
 magicq-vnc-start
@@ -658,7 +676,7 @@ tunnel SSH, cambio password e rimozione consultare la [guida VNC](docs/vnc.md).
 
 ## Assistenza remota SSH
 
-Usare il pulsante desktop **SSH** o la voce **SSH access** nel Wasalight Hub.
+Usare il pulsante desktop **SSH** o la scheda **Services** di Wasalight Control.
 Quando è attivo, collegarsi con:
 
 ```bash

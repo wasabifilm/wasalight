@@ -1,0 +1,269 @@
+#!/usr/bin/env python3
+"""Read and operate root-owned Wasalight plugin manifests."""
+
+import configparser
+import glob
+import json
+import os
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+
+
+PLUGIN_ROOT = os.environ.get("WASALIGHT_PLUGIN_ROOT", "/usr/lib/wasalight/plugins")
+STATE_ROOT = os.environ.get("WASALIGHT_PLUGIN_STATE_ROOT", "/data/system/plugins-state")
+ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]{0,47}$")
+VERSION_PATTERN = re.compile(r"^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$")
+
+
+def fail(message, code=1):
+    print(message, file=sys.stderr)
+    raise SystemExit(code)
+
+
+def system_mode():
+    override = os.environ.get("WASALIGHT_PLUGIN_TEST_MODE")
+    if override in ("show", "maintenance"):
+        return override
+    result = subprocess.run(
+        ["findmnt", "-n", "-o", "FSTYPE", "/"], text=True,
+        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
+    return "show" if result.stdout.strip() == "overlay" else "maintenance"
+
+
+def read_manifest(path):
+    parser = configparser.ConfigParser(interpolation=None)
+    parser.optionxform = str
+    try:
+        with open(path, encoding="utf-8") as source:
+            parser.read_file(source)
+        plugin = parser["Plugin"]
+        plugin_id = plugin.get("Id", "")
+    except (OSError, KeyError, configparser.Error) as error:
+        fail(f"Invalid plugin manifest {path}: {error}")
+    if not ID_PATTERN.fullmatch(plugin_id):
+        fail(f"Invalid plugin id in {path}: {plugin_id}")
+    expected = os.path.basename(os.path.dirname(path))
+    if plugin_id != expected:
+        fail(f"Plugin id {plugin_id} does not match directory {expected}")
+    return parser
+
+
+def manifests():
+    result = {}
+    for path in sorted(glob.glob(os.path.join(PLUGIN_ROOT, "*", "manifest.ini"))):
+        parser = read_manifest(path)
+        result[parser["Plugin"]["Id"]] = parser
+    return result
+
+
+def boolean(section, key, default=False):
+    try:
+        return section.getboolean(key, fallback=default)
+    except ValueError:
+        return default
+
+
+def wasalight_version():
+    override = os.environ.get("WASALIGHT_VERSION_OVERRIDE")
+    if override:
+        return override
+    try:
+        with open("/etc/wasalight/version", encoding="utf-8") as source:
+            return source.read().strip()
+    except OSError:
+        return "0.0.0.0"
+
+
+def version_key(value):
+    if not VERSION_PATTERN.fullmatch(value):
+        return (0, 0, 0, 0)
+    return tuple(int(part) for part in value.split("."))
+
+
+def enabled_state(plugin_id, plugin):
+    try:
+        with open(os.path.join(STATE_ROOT, plugin_id), encoding="utf-8") as source:
+            state = source.read().strip()
+        if state in ("enabled", "disabled"):
+            return state == "enabled"
+    except OSError:
+        pass
+    return boolean(plugin, "DefaultEnabled")
+
+
+def runtime_state(parser, installed):
+    if not installed or "Runtime" not in parser:
+        return False
+    runtime = parser["Runtime"]
+    runtime_type = runtime.get("Type", "none")
+    if runtime_type == "systemd":
+        unit = runtime.get("Unit", "")
+        if not unit or not shutil.which("systemctl"):
+            return False
+        return subprocess.run(
+            ["systemctl", "is-active", "--quiet", unit],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            check=False).returncode == 0
+    if runtime_type == "process":
+        if not shutil.which("pgrep"):
+            return False
+        command = ["pgrep"]
+        user = runtime.get("User", "")
+        if user:
+            command.extend(["-u", user])
+        command.extend(["-x", runtime.get("Process", "")])
+        return subprocess.run(
+            command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            check=False).returncode == 0
+    return False
+
+
+def action_records(parser, mode):
+    records = []
+    for section_name in parser.sections():
+        if not section_name.startswith("Action "):
+            continue
+        action_id = section_name.split(" ", 1)[1]
+        if not ID_PATTERN.fullmatch(action_id):
+            continue
+        action = parser[section_name]
+        modes = [value.strip() for value in action.get("Modes", "show,maintenance").split(",")]
+        records.append({
+            "id": action_id,
+            "label": action.get("Label", action_id.title()),
+            "confirm": action.get("Confirm", ""),
+            "available": mode in modes,
+        })
+    return records
+
+
+def plugin_record(parser):
+    plugin = parser["Plugin"]
+    plugin_id = plugin["Id"]
+    installed_check = plugin.get("InstalledCheck", "")
+    installed = bool(installed_check and os.path.exists(installed_check))
+    minimum = plugin.get("MinimumWasalight", "0.0.0.0")
+    compatible = version_key(wasalight_version()) >= version_key(minimum)
+    active = runtime_state(parser, installed)
+    runtime = parser["Runtime"] if "Runtime" in parser else {}
+    return {
+        "id": plugin_id,
+        "name": plugin.get("Name", plugin_id),
+        "description": plugin.get("Description", ""),
+        "version": plugin.get("Version", "1"),
+        "minimum_wasalight": minimum,
+        "compatible": compatible,
+        "category": plugin.get("Category", "Applications"),
+        "icon": plugin.get("Icon", "application-x-executable"),
+        "installed": installed,
+        "enabled": enabled_state(plugin_id, plugin),
+        "active": active,
+        "state_label": runtime.get(
+            "ActiveLabel" if active else "InactiveLabel",
+            "Active" if active else "Stopped"),
+        "actions": action_records(parser, system_mode()),
+    }
+
+
+def select_plugin(plugin_id):
+    if not ID_PATTERN.fullmatch(plugin_id):
+        fail(f"Invalid plugin id: {plugin_id}", 2)
+    parser = manifests().get(plugin_id)
+    if not parser:
+        fail(f"Unknown plugin: {plugin_id}", 2)
+    return parser
+
+
+def run_action(plugin_id, action_id):
+    parser = select_plugin(plugin_id)
+    record = plugin_record(parser)
+    if not record["installed"]:
+        fail(f"Plugin is not installed: {plugin_id}")
+    if not record["compatible"]:
+        fail(f"Plugin requires Wasalight {record['minimum_wasalight']} or newer")
+    if not record["enabled"]:
+        fail(f"Plugin is disabled: {plugin_id}")
+    section_name = f"Action {action_id}"
+    if section_name not in parser:
+        fail(f"Unknown action for {plugin_id}: {action_id}", 2)
+    action = parser[section_name]
+    modes = [value.strip() for value in action.get("Modes", "show,maintenance").split(",")]
+    if system_mode() not in modes:
+        fail(f"Action {action_id} is unavailable in the current mode")
+    try:
+        command = shlex.split(action.get("Command", ""))
+    except ValueError as error:
+        fail(f"Invalid action command: {error}")
+    if not command or not os.path.isabs(command[0]):
+        fail(f"Plugin action must use an absolute executable: {plugin_id}/{action_id}")
+    if not os.path.exists(command[0]):
+        fail(f"Plugin action executable is unavailable: {command[0]}")
+    if action.get("Privilege", "user") == "root":
+        command = ["sudo", "-n"] + command
+    if boolean(action, "Detached"):
+        subprocess.Popen(command, start_new_session=True)
+        return
+    result = subprocess.run(command, text=True, check=False)
+    raise SystemExit(result.returncode)
+
+
+def main():
+    args = sys.argv[1:]
+    if not args or args[0] in ("-h", "--help", "-help"):
+        print("Usage: wasalight-plugin list|status ID|action ID ACTION|install ID|enable ID|disable ID|doctor [ID] [--json]")
+        return
+    json_output = "--json" in args
+    args = [value for value in args if value != "--json"]
+    command = args.pop(0)
+    registry = manifests()
+    if command == "list" and not args:
+        records = [plugin_record(registry[key]) for key in sorted(registry)]
+        if json_output:
+            print(json.dumps(records, ensure_ascii=False))
+        else:
+            for item in records:
+                print(f"{item['id']:<12} installed={str(item['installed']).lower():<5} "
+                      f"enabled={str(item['enabled']).lower():<5} {item['state_label']}")
+        return
+    if command == "status" and len(args) == 1:
+        item = plugin_record(select_plugin(args[0]))
+        print(json.dumps(item, ensure_ascii=False) if json_output else
+              f"{item['name']}: {item['state_label']} (enabled={str(item['enabled']).lower()})")
+        return
+    if command == "action" and len(args) == 2:
+        run_action(args[0], args[1])
+        return
+    if command == "install" and len(args) == 1:
+        item = plugin_record(select_plugin(args[0]))
+        if item["installed"]:
+            fail(f"Plugin is already installed: {args[0]}", 2)
+        if system_mode() != "maintenance":
+            fail("Plugin installation requires MAINTENANCE mode")
+        os.execv("/usr/local/bin/wasalight-update-terminal",
+                 ["/usr/local/bin/wasalight-update-terminal", "--plugin", args[0]])
+    if command in ("enable", "disable") and len(args) == 1:
+        item = plugin_record(select_plugin(args[0]))
+        if command == "enable" and not item["compatible"]:
+            fail(f"Plugin requires Wasalight {item['minimum_wasalight']} or newer")
+        os.execvp("sudo", ["sudo", "-n", "/usr/local/sbin/wasalight-plugin-admin", command, args[0]])
+    if command == "doctor" and len(args) <= 1:
+        selected = [select_plugin(args[0])] if args else list(registry.values())
+        broken = False
+        for parser in selected:
+            item = plugin_record(parser)
+            state = "OK"
+            if not item["installed"]:
+                state = "NOT INSTALLED"
+            elif not item["compatible"]:
+                state = f"REQUIRES WASALIGHT {item['minimum_wasalight']}"
+            print(f"{item['id']}: {state}; enabled={str(item['enabled']).lower()}; {item['state_label']}")
+            broken = broken or (item["enabled"] and (not item["installed"] or not item["compatible"]))
+        raise SystemExit(1 if broken else 0)
+    fail("Invalid plugin command. Use wasalight-plugin --help.", 2)
+
+
+if __name__ == "__main__":
+    main()

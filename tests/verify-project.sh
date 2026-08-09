@@ -36,6 +36,8 @@ grep -Fq -- '--data-device SPEC' <<<"$help_output" || \
     fail "-help non mostra tutte le opzioni dell'installer"
 grep -Fq -- '--with-companion' <<<"$help_output" || \
     fail "-help non mostra l'installazione opzionale di Bitfocus Companion"
+grep -Fq -- '--plugin ID' <<<"$help_output" || \
+    fail "-help non mostra il sistema plugin Wasalight"
 grep -Fq '/data/system/packages/*.deb' "$ENTRYPOINT" || \
     fail "install.sh non riutilizza il pacchetto MagicQ persistente"
 grep -Fq '^/stick/[^/]+$' "$ENTRYPOINT" || \
@@ -246,6 +248,14 @@ required_patterns=(
     '/etc/wasalight/apps.d/companion.desktop'
     'Icon=/usr/local/share/icons/wasalight/companion.svg'
     '/etc/wasalight/apps.d/companion-web.desktop'
+    'configure_plugins'
+    '/usr/lib/wasalight/plugins'
+    '/data/system/plugins-state'
+    '/usr/local/bin/wasalight-plugin'
+    '/usr/local/sbin/wasalight-plugin-admin'
+    '/usr/local/libexec/wasalight-control-center.py'
+    'Name=Wasalight Control'
+    'Exec=/usr/local/bin/wasalight-control'
     'Icon=/usr/local/share/icons/wasalight/companion-web.svg'
     '/data/companion/browser/config'
     'XDG_CACHE_HOME="$runtime_base/wasalight-companion-browser-cache"'
@@ -375,6 +385,7 @@ helpers=(
     /usr/local/libexec/wasalight-update-session
     /usr/local/bin/wasalight-update-terminal
     /usr/local/bin/wasalight-hub
+    /usr/local/bin/wasalight-control
     /usr/local/bin/wasalight-terminal-tool
     /usr/local/sbin/wasalight-app-register
 )
@@ -491,6 +502,11 @@ if grep -Fq 'git reset --hard' "$tmp_dir/wasalight-update"; then
 fi
 grep -Fq '/usr/local/libexec/wasalight-update-session' "$tmp_dir/wasalight-update-terminal" || \
     fail "il menu Update non apre la sessione guidata"
+grep -Fq 'WASALIGHT_UPDATE_PLUGIN' "$tmp_dir/wasalight-update-terminal" || \
+    fail "l'interfaccia Update non inoltra l'installazione plugin"
+grep -Fq 'update_args+=(--plugin "$WASALIGHT_UPDATE_PLUGIN")' \
+    "$tmp_dir/wasalight-update-session" || \
+    fail "la sessione Update non inoltra il plugin selezionato"
 grep -Fq 'sudo /usr/local/sbin/wasalight-update' "$tmp_dir/wasalight-update-session" || \
     fail "la sessione guidata non esegue l'aggiornamento"
 grep -Fq 'wasalight-power-control reboot' "$tmp_dir/wasalight-update-session" || \
@@ -499,6 +515,12 @@ grep -Fq -- '--reboot' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non espone l'opzione di riavvio"
 grep -Fq -- '--with-companion' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non espone --with-companion"
+grep -Fq -- '--plugin ID' "$tmp_dir/wasalight-update" || \
+    fail "wasalight-update non espone la selezione plugin"
+grep -Fq '/data/system/plugins-state/*' "$tmp_dir/wasalight-update" || \
+    fail "wasalight-update non conserva i plugin abilitati"
+grep -Fq 'plugins-state/companion' "$INSTALLER" || \
+    fail "l'installer non conserva Companion disabilitato durante un update"
 grep -Fq 'installer_args+=(--with-companion)' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non inoltra --with-companion all'installer"
 grep -Fq -- '-h, -help, --help' "$tmp_dir/wasalight-update" || \
@@ -547,6 +569,63 @@ grep -Fq 'except ValueError' "$hub_script" || \
     fail "Wasalight Hub non gestisce i booleani desktop non validi"
 grep -Fq 'wasalight-hub.log' "$tmp_dir/wasalight-hub" || \
     fail "Wasalight Hub non conserva gli errori di avvio"
+
+plugin_command="$PROJECT_DIR/libexec/wasalight-plugin"
+plugin_admin="$PROJECT_DIR/libexec/wasalight-plugin-admin"
+control_center="$PROJECT_DIR/ui/wasalight-control-center.py"
+for python_tool in "$plugin_command" "$plugin_admin" "$control_center"; do
+    [[ -s $python_tool ]] || fail "componente plugin mancante: $python_tool"
+    python3 -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' \
+        "$python_tool"
+done
+grep -Fq '["systemctl", "disable", "--now", unit]' "$plugin_admin" || \
+    fail "disabilitare un plugin non ferma il servizio systemd"
+grep -Fq '["pkill", "-u", user, "-x", process]' "$plugin_admin" || \
+    fail "disabilitare un plugin di sessione non ferma il processo"
+grep -Fq 'os.replace(temporary, os.path.join(STATE_ROOT, plugin_id))' "$plugin_admin" || \
+    fail "lo stato plugin persistente non viene scritto atomicamente"
+grep -Fq 'PLUGIN_COMMAND = "/usr/local/bin/wasalight-plugin"' "$control_center" || \
+    fail "Wasalight Control non usa il registro plugin"
+grep -Fq 'self.add_dashboard()' "$control_center" || \
+    fail "Wasalight Control non espone la dashboard unificata"
+grep -Fq 'self.add_plugin_page("Services"' "$control_center" || \
+    fail "Wasalight Control non espone la gestione servizi"
+grep -Fq 'PLUGIN_COMMAND, "install"' "$control_center" || \
+    fail "Wasalight Control non permette di installare plugin disponibili"
+grep -Fq 'mode != "MAINTENANCE"' "$control_center" || \
+    fail "Wasalight Control consente modifiche plugin persistenti in SHOW"
+
+plugin_fixture="$tmp_dir/plugin-root"
+plugin_state_fixture="$tmp_dir/plugin-state"
+mkdir -p "$plugin_fixture" "$plugin_state_fixture"
+cp -R "$PROJECT_DIR/plugins/." "$plugin_fixture/"
+printf 'disabled\n' >"$plugin_state_fixture/ssh"
+plugin_json=$(WASALIGHT_PLUGIN_ROOT="$plugin_fixture" \
+    WASALIGHT_PLUGIN_STATE_ROOT="$plugin_state_fixture" \
+    WASALIGHT_PLUGIN_TEST_MODE=maintenance \
+    WASALIGHT_VERSION_OVERRIDE="$project_version" \
+    python3 "$plugin_command" list --json)
+python3 - "$plugin_json" <<'PY' || fail "registro plugin Wasalight non valido"
+import json
+import sys
+plugins = {item["id"]: item for item in json.loads(sys.argv[1])}
+assert set(plugins) == {"companion", "ssh", "vnc"}
+assert plugins["ssh"]["enabled"] is False
+assert plugins["vnc"]["enabled"] is True
+assert plugins["companion"]["category"] == "Services"
+assert plugins["companion"]["compatible"] is True
+assert any(action["id"] == "open" for action in plugins["companion"]["actions"])
+PY
+if WASALIGHT_PLUGIN_ROOT="$plugin_fixture" \
+   WASALIGHT_PLUGIN_STATE_ROOT="$plugin_state_fixture" \
+   python3 "$plugin_command" action ssh not-an-action >/dev/null 2>&1; then
+    fail "il manager plugin accetta azioni non dichiarate"
+fi
+for plugin in ssh vnc companion; do
+    manifest="$PROJECT_DIR/plugins/$plugin/manifest.ini"
+    [[ -s $manifest ]] || fail "manifest plugin mancante: $plugin"
+    grep -Fq "Id=$plugin" "$manifest" || fail "ID manifest plugin errato: $plugin"
+done
 
 for embedded in \
     'wasalight-ip-scanner.py:/usr/local/libexec/wasalight-ip-scanner.py' \

@@ -66,9 +66,9 @@ Sono montati rispettivamente su `/home/companion` e `/etc/companion`. I file
 restano scrivibili anche in SHOW, così pulsanti, connessioni e moduli non si
 perdono. Il log viene ruotato insieme agli altri log Wasalight.
 
-## Wasalight Hub e comandi
+## Wasalight Control e comandi
 
-La voce **Bitfocus Companion** nella scheda Applications mostra indirizzo,
+La scheda **Services** di Wasalight Control mostra indirizzo,
 versione e stato, permette di aprire l'interfaccia locale e di avviare, fermare
 o riavviare il servizio.
 
