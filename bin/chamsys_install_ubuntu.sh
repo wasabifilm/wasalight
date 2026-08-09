@@ -2364,8 +2364,8 @@ window.inactive.client.color: #0b0e12
 window.label.text.justify: left
 # Openbox keeps title-button masks relatively small. Enlarge the click target
 # with decoration padding instead of using an oversized bitmap that is clipped.
-padding.width: 14
-padding.height: 14
+padding.width: 16
+padding.height: 16
 border.width: 1
 menu.items.active.bg: flat
 menu.items.active.bg.color: #30363d
@@ -2376,26 +2376,18 @@ menu.title.bg.color: #080b10
 menu.title.text.color: #ffffff
 EOF
 
-    write_file /usr/share/themes/Wasalight/openbox-3/close.xbm 0644 <<'EOF'
-#define close_width 16
-#define close_height 16
-static unsigned char close_bits[] = {
-  0x03,0xc0, 0x06,0x60, 0x0c,0x30, 0x18,0x18,
-  0x30,0x0c, 0x60,0x06, 0xc0,0x03, 0x80,0x01,
-  0xc0,0x03, 0x60,0x06, 0x30,0x0c, 0x18,0x18,
-  0x0c,0x30, 0x06,0x60, 0x03,0xc0, 0x01,0x80 };
-EOF
-
-    # Keep the same clear X in all interaction states. Openbox recolours the
-    # monochrome mask using the active/inactive/hover values in themerc.
+    # Use Openbox's internal close mask. It is known to match the decoration
+    # renderer, while custom oversized XBM masks can be clipped into a slash.
+    # Remove every file created by earlier Wasalight releases so the internal
+    # default is selected consistently for normal, hover and pressed states.
     rm -f \
+        /usr/share/themes/Wasalight/openbox-3/close.xbm \
+        /usr/share/themes/Wasalight/openbox-3/close_hover.xbm \
+        /usr/share/themes/Wasalight/openbox-3/close_pressed.xbm \
+        /usr/share/themes/Wasalight/openbox-3/close_disabled.xbm \
         /usr/share/themes/Wasalight/openbox-3/close_unfocused.xbm \
         /usr/share/themes/Wasalight/openbox-3/close_unfocused_hover.xbm \
         /usr/share/themes/Wasalight/openbox-3/close_unfocused_pressed.xbm
-    for close_variant in close_hover.xbm close_pressed.xbm close_disabled.xbm; do
-        install -m 0644 /usr/share/themes/Wasalight/openbox-3/close.xbm \
-            "/usr/share/themes/Wasalight/openbox-3/$close_variant"
-    done
 
     write_file /usr/local/bin/wasalight-desktop-wallpaper 0755 <<'EOF'
 #!/usr/bin/env bash

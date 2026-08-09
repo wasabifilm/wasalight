@@ -486,7 +486,7 @@ preferenze Openbox e le impostazioni di sistema generiche non sono esposte.
 
 Le finestre Openbox usano il tema scuro **Wasalight** sia quando sono attive sia
 quando sono in secondo piano. La barra del titolo ha spaziatura maggiorata e un
-pulsante **X** netto da 16 px dentro una zona di tocco di circa 44×44 px; al
+pulsante **X** interno di Openbox dentro una zona di tocco di circa 44×44 px; al
 passaggio o alla pressione diventa rosso. I piccoli pulsanti
 minimizza/massimizza sono rimossi dalla barra:
 le finestre restano gestibili dalla barra inferiore, più adatta al touchscreen.

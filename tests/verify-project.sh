@@ -170,11 +170,9 @@ required_patterns=(
     'background_color = #080b10 98'
     '/usr/share/themes/Wasalight/openbox-3/themerc'
     '<titleLayout>NLC</titleLayout>'
-    '#define close_width 16'
-    'padding.width: 14'
-    'padding.height: 14'
-    'close_disabled.xbm'
-    '0x03,0xc0, 0x06,0x60, 0x0c,0x30, 0x18,0x18'
+    'padding.width: 16'
+    'padding.height: 16'
+    '/usr/share/themes/Wasalight/openbox-3/close.xbm'
     '$TARGET_HOME/.config/picom/wasalight.conf'
     'unredir-if-possible = true'
     'picom --config "$HOME/.config/picom/wasalight.conf" --daemon'
@@ -281,26 +279,10 @@ for pattern in "${required_patterns[@]}"; do
     grep -Fq -- "$pattern" "$INSTALLER" || fail "funzione richiesta non trovata: $pattern"
 done
 
-# Decode the Openbox XBM exactly as X11 does (LSB-first, two bytes per row)
-# and require two complete diagonals. This catches oversized/clipped masks and
-# malformed byte layouts that can look like a single slash on the target.
-python3 - "$INSTALLER" <<'PY' || fail "bitmap X Openbox non valida"
-import re
-import sys
-
-source = open(sys.argv[1], encoding="utf-8").read()
-match = re.search(
-    r"#define close_width 16\n#define close_height 16\n"
-    r"static unsigned char close_bits\[\] = \{(.*?)\};",
-    source, re.S)
-assert match, "close.xbm 16x16 missing"
-data = [int(value, 16) for value in re.findall(r"0x([0-9a-fA-F]{2})", match.group(1))]
-assert len(data) == 32, f"expected 32 XBM bytes, found {len(data)}"
-for y in range(16):
-    pixels = {x for x in range(16) if data[y * 2 + x // 8] & (1 << (x % 8))}
-    expected = {x for x in (y, y + 1, 15 - y, 14 - y) if 0 <= x < 16}
-    assert pixels == expected, f"row {y}: {sorted(pixels)} != {sorted(expected)}"
-PY
+if grep -Fq 'write_file /usr/share/themes/Wasalight/openbox-3/close.xbm' "$INSTALLER"; then
+    fail "l'installer crea ancora una bitmap close.xbm personalizzata"
+fi
+grep -Fq 'rm -f \' "$INSTALLER" || fail "pulizia delle vecchie bitmap Openbox mancante"
 
 main_body=$(awk '/^main\(\) \{/,/^}/' "$INSTALLER")
 final_checks_line=$(grep -n '^    final_checks$' <<<"$main_body" | cut -d: -f1)
