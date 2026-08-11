@@ -14,6 +14,8 @@ partizione persistente `/data`, fuori dall’overlay del sistema.
                          registro cumulativo compatibile
 /data/system/update-check
                          ultima versione rilevata e data del controllo
+/data/system/update-backups
+                         ultimi cinque snapshot pre-aggiornamento
 ```
 
 Il repository pubblico non contiene il pacchetto MagicQ. Il `.deb` viene
@@ -104,6 +106,11 @@ In caso di errore non viene mai eseguito il riavvio automatico: il terminale
 mostra fase, comando, linea e codice di uscita. Il log completo della singola
 esecuzione resta in `/data/log/wasalight/updates/`, mentre
 `/data/log/wasalight-update.log` conserva la cronologia cumulativa.
+Prima di modificare il sistema viene creato uno snapshot verificato della
+configurazione Wasalight, dei manifest e dei comandi installati. Se l’installer
+fallisce, l’updater tenta automaticamente di ripristinarlo e indica il percorso
+dello snapshot. I pacchetti Ubuntu già aggiornati da APT non vengono
+downgradati: il rollback riguarda la configurazione dell’appliance.
 
 Ad ogni avvio grafico un controllo asincrono confronta la versione installata
 con `VERSION` pubblicato su GitHub. Non rallenta Openbox o MagicQ, non installa
@@ -116,10 +123,12 @@ Ad ogni utilizzo il comando:
 1. cerca MagicQ nella root e in `packages/` di ogni USB montata;
 2. valida nome del pacchetto, formato, versione e architettura `amd64`;
 3. conserva in `/data/system/packages` soltanto candidati non precedenti;
-4. scarica `https://github.com/wasabifilm/wasalight.git` in
+4. legge il commit remoto `main` e scarica il repository in
    `/data/system/wasalight`;
-5. esegue `tests/verify-project.sh` sul codice scaricato;
-6. seleziona la versione MagicQ più recente tramite `dpkg` e rilancia
+5. verifica che `HEAD` coincida con il commit remoto dichiarato;
+6. esegue `tests/verify-project.sh` sul codice scaricato;
+7. crea lo snapshot pre-aggiornamento;
+8. seleziona la versione MagicQ più recente tramite `dpkg` e rilancia
    l’installer.
 
 Per sicurezza l’installer lascia la macchina in MAINTENANCE. Dopo il collaudo:
@@ -155,6 +164,14 @@ eseguito; il log rimane comunque completo anche senza questa opzione:
 ```bash
 sudo wasalight-update --verbose
 ```
+
+Ripristinare manualmente l’ultimo snapshot disponibile:
+
+```bash
+sudo wasalight-update --rollback
+```
+
+Il comando è ammesso soltanto in MAINTENANCE e richiede un riavvio successivo.
 
 Le opzioni possono essere combinate, ad esempio
 `sudo wasalight-update --protect --reboot`. `--code-only --reboot` viene invece
@@ -211,6 +228,8 @@ sudo wasalight-update --help
   l’aggiornamento, anche quando hanno nomi differenti.
 - I file trovati sulle USB sono soltanto letti e copiati, mai rimossi.
 - Il codice scaricato viene verificato prima di eseguire l’installer.
+- Il commit installato deve coincidere con `refs/heads/main` letto dal remoto.
+- Lo snapshot precedente viene verificato con SHA-256 prima del ripristino.
 - Il log completo resta in `/data/log/wasalight-update.log`.
 
 L’interfaccia grafica dell’aggiornamento disabilita AT-SPI soltanto per i propri

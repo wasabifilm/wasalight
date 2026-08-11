@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+[[ $EUID -eq 0 ]] || { echo "Run through sudo." >&2; exit 1; }
+destination=${1:-/data/log}
+case $destination in /data/log|/stick/*) ;; *) echo "Destination must be /data/log or a mounted /stick volume." >&2; exit 2 ;; esac
+if [[ $destination == /stick/* ]]; then
+    destination=$(readlink -f -- "$destination")
+    [[ $destination =~ ^/stick/[^/]+$ ]] || {
+        echo "USB destination must be the root of one mounted volume." >&2; exit 2;
+    }
+fi
+[[ -d $destination && -w $destination ]] || { echo "Destination unavailable: $destination" >&2; exit 1; }
+if [[ $destination == /stick/* ]]; then
+    mountpoint -q "$destination" || { echo "USB destination is not mounted: $destination" >&2; exit 1; }
+fi
+
+stamp=$(date +%Y%m%d-%H%M%S)
+work=$(mktemp -d /run/wasalight-support.XXXXXX)
+archive="$destination/wasalight-support-$stamp.tar.gz"
+trap 'rm -rf -- "$work"' EXIT
+install -d -m 0700 "$work/report"
+
+/usr/local/bin/wasalight-status >"$work/report/status.txt" 2>&1 || true
+/usr/local/bin/wasalight-health >"$work/report/health.txt" 2>&1 || true
+uname -a >"$work/report/uname.txt"
+lsblk -e7 -o NAME,PATH,SIZE,TYPE,FSTYPE,LABEL,UUID,MOUNTPOINTS >"$work/report/storage.txt" 2>&1 || true
+findmnt -R / >"$work/report/mounts.txt" 2>&1 || true
+lsusb >"$work/report/usb.txt" 2>&1 || true
+ip -brief address >"$work/report/network-addresses.txt" 2>&1 || true
+ip route >"$work/report/network-routes.txt" 2>&1 || true
+nmcli -f DEVICE,TYPE,STATE,CONNECTION device status >"$work/report/networkmanager.txt" 2>&1 || true
+systemctl --failed --no-pager >"$work/report/failed-units.txt" 2>&1 || true
+journalctl -b --no-pager -p warning..alert -n 800 >"$work/report/journal-warnings.txt" 2>&1 || true
+dpkg-query -W -f='${Package}\t${Version}\n' >"$work/report/packages.txt" 2>&1 || true
+
+# Configuration names are useful; secrets and connection contents are not.
+find /data/system -maxdepth 3 -type f -printf '%P\n' 2>/dev/null | sort >"$work/report/data-system-files.txt" || true
+find /data/log -maxdepth 2 -type f -printf '%P\t%s bytes\n' 2>/dev/null | sort >"$work/report/log-index.txt" || true
+printf 'Created: %s\nWasalight: %s\n' "$(date -Is)" "$(cat /etc/wasalight/version 2>/dev/null || echo unknown)" \
+    >"$work/report/manifest.txt"
+
+tar -C "$work" -czf "$archive.tmp" report
+mv -f -- "$archive.tmp" "$archive"
+chmod 0640 "$archive"
+sha256sum "$archive" >"$archive.sha256"
+echo "Support bundle created: $archive"

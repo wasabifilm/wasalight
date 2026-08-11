@@ -20,12 +20,19 @@ magicq-ubuntu-appliance/
 ├── VERSION                            versione CalVer dell’installer
 ├── bin/
 │   └── chamsys_install_ubuntu.sh      installer completo
+├── Minimal-ISO-Builder/               builder ISO Ubuntu 24.04.4
+│   ├── README.txt
+│   ├── make-wasalight-minimal.sh
+│   └── autoinstall.yaml
 ├── packages/
 │   ├── README.md
 │   └── magicq_ubuntu_v1_9_8_3.deb    da aggiungere
 ├── docs/
 │   ├── hardware-test-checklist.md
 │   ├── companion.md
+│   ├── maintenance-tools.md
+│   ├── plugins.md
+│   ├── boot-branding.md
 │   ├── licensing.md
 │   ├── versioning.md
 │   ├── ssh.md
@@ -132,6 +139,26 @@ La nuova partizione può essere passata all’installer con
 questa procedura: preparare la partizione durante una nuova installazione con
 partizionamento manuale oppure usare una procedura specifica per quel layout.
 
+## Builder ISO minimale
+
+[`Minimal-ISO-Builder`](Minimal-ISO-Builder/README.txt) crea due installer
+Wasalight basati sulle immagini ufficiali Ubuntu Server 24.04.4 amd64:
+
+- **OFFLINE**, basato sulla Live Server completa;
+- **NETBOOT**, circa 100 MB, che scarica e verifica la Live Server durante
+  l’installazione e richiede Ethernet, Internet stabile e almeno 8 GiB di RAM.
+
+Per creare entrambe le varianti, dopo aver installato `xorriso`:
+
+```bash
+bash Minimal-ISO-Builder/make-wasalight-minimal.sh
+```
+
+Il builder verifica i checksum Canonical, non incorpora MagicQ e configura
+Ubuntu affinché Wasalight venga scaricato e installato al primo avvio. Immagini
+ISO sorgenti e generate, pacchetti `.deb`, cache e directory di lavoro sono
+esclusi dal repository Git.
+
 ## Verifica del progetto
 
 ```bash
@@ -200,6 +227,9 @@ Per aggiornare MagicQ basta inserire il `.deb` nella root o nella cartella
 `packages/` di una chiavetta: **Aggiorna Wasalight** verifica tutte le USB montate,
 conserva il file in `/data` senza cancellare l’originale e sceglie la versione
 più recente dai metadati Debian.
+Prima dell’installazione crea uno snapshot della configurazione; in caso di
+errore tenta il rollback automatico. L’ultimo snapshot può essere ripristinato
+manualmente con `sudo wasalight-update --rollback`.
 L’installer prova a inizializzare automaticamente questa copia persistente;
 un problema temporaneo di rete produce un avviso e può essere recuperato con
 `sudo wasalight-update --code-only`.
@@ -215,9 +245,9 @@ con `--protect` quando il prossimo avvio deve tornare direttamente in SHOW mode.
 
 ### Logo e avvio silenzioso
 
-Il progetto include il logo Wasabi Lightbulbfarm come immagine Plymouth
-predefinita. Il marchio appare centrato e discreto su fondo quasi nero, mentre
-GRUB e i normali messaggi Ubuntu restano nascosti. Alla prima installazione il
+Il progetto include il logo Wasabi Lightbulbfarm per GRUB, Plymouth e desktop.
+Il marchio appare centrato e discreto su fondo quasi nero; sul target Intel il
+driver `i915` entra nell’initramfs per anticipare lo splash. Alla prima installazione il
 file viene copiato in `/data/system/branding/boot-logo.png`: sostituendo questa
 immagine è possibile personalizzare insieme i boot successivi e lo sfondo
 Openbox, senza perdere la modifica con gli aggiornamenti. Logo, dimensione,
@@ -453,8 +483,8 @@ I programmi continuano a essere organizzati tramite il registro `apps.d`:
   `APERTO/CHIUSO · AUTO/MANUALE` e toggle dell'avvio automatico; non esiste un
   pulsante Ferma, perché l'applicazione si chiude normalmente dalla propria X;
 - **Applicazioni**: programmi registrati dall'amministratore;
-- **Supporto**: rete, monitor, touchscreen, audio, file, terminale, stato e
-  aggiornamento Wasalight.
+- **Supporto**: rete, monitor, touchscreen, audio, file, terminale, stato,
+  diagnostica, salute, backup/ripristino e aggiornamento Wasalight.
 
 Nella home **Stato**, il pulsante File è sostituito dal cambio modalità:
 **Passa a MAINTENANCE** quando la console è in SHOW oppure **Passa a SHOW** in
@@ -496,6 +526,12 @@ Manifest e programmi sono protetti sotto `/usr/lib/wasalight/plugins`, mentre
 enable/disable persiste in `/data/system/plugins-state`. Le modifiche persistenti
 sono ammesse soltanto in MAINTENANCE; dettagli e formato dei manifest sono in
 [`docs/plugins.md`](docs/plugins.md).
+
+I plugin esterni sono accettati soltanto da bundle USB firmati verificati con
+un keyring root-owned. I metadati dichiarano licenza, homepage, dipendenze,
+percorsi di backup e canale update. La procedura operativa per diagnostica e
+backup completo di `/data` è in
+[`docs/maintenance-tools.md`](docs/maintenance-tools.md).
 
 Tint2 non mostra più la scritta **desktop 1** e resta sempre visibile in basso.
 Il pannello riserva lo spazio necessario e offre i pulsanti Control e File,

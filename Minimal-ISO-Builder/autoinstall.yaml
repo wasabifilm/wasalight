@@ -1,0 +1,162 @@
+#cloud-config
+autoinstall:
+  version: 1
+  locale: en_US.UTF-8
+  keyboard:
+    layout: "__WASALIGHT_KEYBOARD_LAYOUT__"
+    variant: "__WASALIGHT_KEYBOARD_VARIANT__"
+  identity:
+    hostname: wasalight
+    realname: Wasalight Operator
+    username: chamsys
+    password: "__WASALIGHT_PASSWORD_HASH__"
+  source:
+    id: ubuntu-server-minimal
+    search_drivers: false
+  ssh:
+    install-server: false
+    allow-pw: false
+    authorized-keys: []
+  packages: __WASALIGHT_PACKAGES__
+  storage:
+    config:
+    - type: disk
+      id: disk0
+      ptable: gpt
+      wipe: superblock-recursive
+      preserve: false
+      grub_device: false
+      path: __WASALIGHT_TARGET_DISK__
+    - type: partition
+      id: partition-efi
+      device: disk0
+      size: 1127219200
+      flag: boot
+      number: 1
+      wipe: superblock
+      preserve: false
+      grub_device: true
+    - type: format
+      id: format-efi
+      volume: partition-efi
+      fstype: fat32
+      preserve: false
+    - type: partition
+      id: partition-boot
+      device: disk0
+      size: 2147483648
+      number: 2
+      wipe: superblock
+      preserve: false
+      grub_device: false
+    - type: format
+      id: format-boot
+      volume: partition-boot
+      fstype: ext4
+      preserve: false
+    - type: partition
+      id: partition-lvm
+      device: disk0
+      size: -1
+      number: 3
+      wipe: superblock
+      preserve: false
+      grub_device: false
+    - type: lvm_volgroup
+      id: vg0
+      name: ubuntu-vg
+      devices:
+      - partition-lvm
+      preserve: false
+    - type: lvm_partition
+      id: lv-root
+      name: ubuntu-lv
+      volgroup: vg0
+      size: 50%
+      wipe: superblock
+      preserve: false
+    - type: format
+      id: format-root
+      volume: lv-root
+      fstype: ext4
+      preserve: false
+    - type: mount
+      id: mount-root
+      device: format-root
+      path: /
+    - type: lvm_partition
+      id: lv-data
+      name: data
+      volgroup: vg0
+      wipe: superblock
+      preserve: false
+    - type: format
+      id: format-data
+      volume: lv-data
+      fstype: ext4
+      preserve: false
+    - type: mount
+      id: mount-data
+      device: format-data
+      path: /data
+    - type: mount
+      id: mount-boot
+      device: format-boot
+      path: /boot
+    - type: mount
+      id: mount-efi
+      device: format-efi
+      path: /boot/efi
+  updates: security
+  reporting:
+    wasalight:
+      type: webhook
+      endpoint: http://127.0.0.1:8765/
+      level: INFO
+  early-commands:
+  - nohup sh /cdrom/wasalight/apply-theme.sh /dev/tty1 >/run/wasalight-theme.log 2>&1 &
+  - printf '%s\n' '__WASALIGHT_INSTALL_VARIANT__' >/run/wasalight-install-variant
+  - nohup python3 /cdrom/wasalight/install-ui.sh /dev/tty2 >/run/wasalight-ui.log 2>&1 &
+  - >-
+    sh -c 'i=0;
+      while [ ! -e /run/wasalight-ui-ready ] && [ "$i" -lt 60 ]; do
+        i=$((i + 1)); sleep 1;
+      done;
+      if [ ! -e /run/wasalight-ui-ready ]; then
+        echo "UI non pronta dopo 60 secondi; installazione testuale attiva" >>/run/wasalight-ui.log;
+      fi;
+      true'
+  - sh /cdrom/wasalight/select-disk.sh
+  - sh /cdrom/wasalight/select-keyboard.sh
+  - chvt 2 || true
+  late-commands:
+  - install -D -m 0755 /cdrom/wasalight/wasalight-first-boot.sh /target/usr/local/sbin/wasalight-first-boot
+  - install -D -m 0644 /cdrom/wasalight/wasalight-first-boot.service /target/etc/systemd/system/wasalight-first-boot.service
+  - __WASALIGHT_NETWORK_PRELOAD__
+  - curtin in-target --target=/target -- systemctl enable wasalight-first-boot.service
+  - touch /run/wasalight-install-success
+  error-commands:
+  - >-
+    sh -c '{
+      echo "Installazione non riuscita" >/run/wasalight-install-failed;
+      echo;
+      echo "==============================================================";
+      echo "          WASALIGHT v24 - ERRORE INSTALLAZIONE";
+      echo "==============================================================";
+      echo;
+      echo "--- AUTOINSTALL FINALE ---";
+      cat /autoinstall.yaml 2>/dev/null || true;
+      echo;
+      echo "--- WASALIGHT UI LOG ---";
+      cat /run/wasalight-ui.log 2>/dev/null || true;
+      echo;
+      echo "--- SUBIQUITY SERVER DEBUG (ultime 120 righe) ---";
+      tail -n 120 /var/log/installer/subiquity-server-debug.log 2>/dev/null || true;
+      echo;
+      echo "--- CURTIN LOG (ultime 80 righe) ---";
+      tail -n 80 /var/log/installer/curtin-install.log 2>/dev/null || true;
+      echo;
+      echo "==============================================================";
+      echo "Fai una foto di questa schermata.";
+      echo "Premi INVIO per aprire una shell.";
+    } >/dev/tty1; read _x </dev/tty1; exec sh </dev/tty1 >/dev/tty1 2>&1'

@@ -1,0 +1,38 @@
+name: Verify Wasalight
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-verification:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reject distributable binary artifacts
+        run: |
+          if git ls-files -z '*.iso' '*.deb' | grep -qz .; then
+            echo 'ISO and proprietary DEB files must not be committed.' >&2
+            exit 1
+          fi
+
+      - name: Verify installer and management tools
+        run: tests/verify-project.sh
+
+      - name: Verify Minimal ISO Builder sources
+        run: |
+          find Minimal-ISO-Builder -maxdepth 1 -type f -name '*.sh' \
+            ! -name 'install-ui.sh' -print0 |
+            xargs -0 -r -n1 bash -n
+          python3 -c 'import pathlib; p=pathlib.Path("Minimal-ISO-Builder/install-ui.sh"); compile(p.read_text(), str(p), "exec")'
+
+      - name: Check whitespace
+        run: git diff --check HEAD

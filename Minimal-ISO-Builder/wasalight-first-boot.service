@@ -1,0 +1,18 @@
+[Unit]
+Description=Complete the automatic Wasalight installation
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=!/var/lib/wasalight/first-boot-complete
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/wasalight-first-boot
+Restart=on-failure
+RestartSec=60s
+TimeoutStartSec=infinity
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target

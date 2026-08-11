@@ -50,3 +50,10 @@ Anche Bitfocus Companion e il tooling CompanionPi sono componenti esterni:
 l'opzione `--with-companion` li scarica dai repository ufficiali, ma non li
 incorpora nel repository Wasalight. Restano soggetti alle licenze e alle note di
 terze parti pubblicate da Bitfocus.
+
+Quando Companion è installato, Wasalight prova inoltre a scaricare l’icona Linux
+ufficiale dal repository `bitfocus/companion` a un commit fissato e ne verifica
+lo SHA-256 prima dell’uso. Il core Companion è pubblicato da Bitfocus AS con
+licenza MIT; l’icona resta un asset del progetto Bitfocus. Se il download o il
+checksum non corrispondono viene mantenuta l’icona locale generica, senza usare
+un file non verificato.

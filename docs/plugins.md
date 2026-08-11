@@ -6,11 +6,10 @@ interfaccia touch, **Wasalight Control**.
 ## Obiettivi e confini
 
 Il registro plugin descrive nome, versione, disponibilità, stato runtime e
-azioni esposte all'operatore. Non sostituisce APT e non esegue script di
-installazione scaricati da Internet. In questa prima versione i manifest sono
-forniti dal repository Wasalight e installati sotto un percorso protetto da
-root. Questo evita che un file modificabile dall'utente possa trasformarsi in
-un comando amministrativo.
+azioni esposte all'operatore. I plugin integrati arrivano dal repository
+Wasalight. I plugin esterni possono essere importati solo come bundle USB
+firmati contenenti `manifest.ini` e `package.deb`; non vengono eseguiti script
+arbitrari scaricati da Internet.
 
 MagicQ, `/data`, overlayroot, USB, rete e aggiornamento del sistema restano nel
 core: sono necessari per l'appliance e non possono essere disabilitati come
@@ -27,6 +26,7 @@ plugin. I primi plugin integrati sono:
 /data/system/plugins-state/<id>               enabled oppure disabled
 /data/plugins/<id>/                           dati futuri specifici del plugin
 /data/log/plugins/                             log futuri specifici del plugin
+/etc/wasalight/trusted-plugin-keys.gpg         chiavi pubbliche autorizzate
 ```
 
 I dati Companion esistenti restano sotto `/data/companion`; non vengono spostati
@@ -89,6 +89,29 @@ Enable/disable persistente passa da `wasalight-plugin-admin`, che:
 La regola sudo elenca separatamente `ssh`, `vnc` e `companion`. Aggiungere un
 nuovo plugin richiede quindi anche un aggiornamento intenzionale della policy.
 
+### Bundle firmati da USB
+
+Un bundle esterno deve avere accanto una firma detached con suffisso `.asc` e
+trovarsi su un volume realmente montato sotto `/stick`. `gpgv` verifica la
+firma contro il keyring root-owned, l’estrazione rifiuta percorsi assoluti o
+`..`, e il manifest deve dichiarare lo stesso `Package` del Debian `amd64`.
+L’importazione è fail-closed: senza keyring o firma valida non installa nulla.
+
+La chiave deve essere verificata fuori banda e installata dall’amministratore in
+MAINTENANCE; non va accettata dalla stessa USB del bundle senza averne prima
+controllato impronta e provenienza. Per una chiave ASCII già verificata:
+
+```bash
+gpg --dearmor < PRODUTTORE-PLUGIN.asc | sudo tee \
+  /etc/wasalight/trusted-plugin-keys.gpg >/dev/null
+sudo chown root:root /etc/wasalight/trusted-plugin-keys.gpg
+sudo chmod 0644 /etc/wasalight/trusted-plugin-keys.gpg
+```
+
+```bash
+sudo wasalight-plugin-bundle /stick/NOME/plugin-example.tar.gz
+```
+
 ## Manifest
 
 Esempio minimo:
@@ -102,6 +125,12 @@ Version=1
 MinimumWasalight=2026.08.09.3
 Category=Services
 Icon=applications-system
+Homepage=https://example.org
+License=MIT
+Package=example
+Dependencies=network,systemd
+BackupPaths=/data/plugins/example
+UpdateChannel=pinned
 InstalledCheck=/usr/bin/example
 DefaultEnabled=false
 
@@ -134,7 +163,10 @@ privilegio e se deve essere avviata come processo separato. Una sezione
 `[Control ID]` trasforma due azioni esplicite in un toggle: `State` seleziona
 lo stato `active` oppure `persistent`, mentre `OnAction` e `OffAction` indicano
 le operazioni. Le azioni collegate non vengono duplicate come pulsanti. Lo
-schema è generico e riutilizzabile dai servizi futuri.
+schema è generico e riutilizzabile dai servizi futuri. I metadati `Homepage`,
+`License`, `Package`, `Dependencies`, `BackupPaths` e `UpdateChannel` sono
+esposti anche nell’output JSON e preparano catalogo, backup e aggiornamenti
+futuri senza concedere privilegi aggiuntivi.
 
 ## Wasalight Control
 
@@ -166,9 +198,9 @@ attivazione porta in primo piano la finestra esistente. L'aggiornamento periodic
 di stato e plugin viene eseguito fuori dal thread GTK e ricostruisce le schede
 soltanto quando i dati cambiano.
 
-## Aggiunta futura di plugin esterni
+## Limiti dei plugin esterni
 
-Prima di supportare download o bundle USB bisognerà definire pacchetti `.deb`
-firmati, verifica dell'origine, dipendenze dichiarate, migrazioni e rollback.
-Fino ad allora copiare manualmente manifest modificabili sotto `/data` non è
-supportato intenzionalmente.
+Il bundle deve essere costruito e firmato fuori dalla console. Wasalight non
+importa automaticamente nuove chiavi e non accetta manifest modificabili sotto
+`/data`. Migrazioni complesse e downgrade di pacchetti restano responsabilità
+del produttore del plugin.

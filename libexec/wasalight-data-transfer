@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+[[ $EUID -eq 0 ]] || { echo "Run through sudo." >&2; exit 1; }
+[[ $(findmnt -n -o FSTYPE / 2>/dev/null) != overlay ]] || {
+    echo "Backup and restore require MAINTENANCE mode." >&2; exit 1;
+}
+mountpoint -q /data || { echo "/data is not mounted." >&2; exit 1; }
+
+mounted_usb() {
+    findmnt -rn -o TARGET | awk '$0 ~ "^/stick/[^/]+$"'
+}
+
+require_usb_path() {
+    local path=$1 target
+    target=$(findmnt -n -o TARGET -T "$path" 2>/dev/null || true)
+    [[ $target =~ ^/stick/[^/]+$ ]] || {
+        echo "Path is not on a mounted Wasalight USB volume: $path" >&2
+        return 1
+    }
+}
+
+choose_usb() {
+    mapfile -t volumes < <(mounted_usb)
+    ((${#volumes[@]})) || { echo "No USB volume is mounted below /stick." >&2; exit 1; }
+    echo "USB volumes:" >&2
+    select selected in "${volumes[@]}"; do
+        [[ -n ${selected:-} ]] && { printf '%s\n' "$selected"; return; }
+    done
+}
+
+verify_archive() {
+    local archive=$1 checksum="$archive.sha256"
+    [[ -f $archive && -f $checksum ]] || { echo "Archive or checksum missing." >&2; return 1; }
+    (cd "$(dirname "$archive")" && sha256sum -c "$(basename "$checksum")")
+}
+
+backup_data() (
+    local usb=$1 encrypted=$2 stamp archive temporary manifest_dir bytes
+    stamp=$(date +%Y%m%d-%H%M%S)
+    archive="$usb/wasalight-data-$stamp.tar.zst"
+    temporary="$archive.tmp"
+    manifest_dir=$(mktemp -d /run/wasalight-backup.XXXXXX)
+    trap 'rm -rf -- "$manifest_dir" "$temporary"' EXIT
+    bytes=$(du -sb /data | awk '{print $1}')
+    printf '{"format":1,"created":"%s","wasalight":"%s","hostname":"%s","bytes":%s}\n' \
+        "$(date -Is)" "$(cat /etc/wasalight/version 2>/dev/null || echo unknown)" \
+        "$(hostname)" "$bytes" >"$manifest_dir/manifest.json"
+    echo "Creating verified backup on $usb ..."
+    tar --acls --xattrs --numeric-owner \
+        --exclude='./lost+found' --exclude='./.wasalight-restore-stage' \
+        -C "$manifest_dir" -cf - manifest.json -C /data . | zstd -T0 -10 -o "$temporary"
+    mv -f -- "$temporary" "$archive"
+    if [[ $encrypted == yes ]]; then
+        gpg --symmetric --cipher-algo AES256 --output "$archive.gpg" "$archive"
+        rm -f -- "$archive"
+        archive="$archive.gpg"
+    fi
+    chmod 0600 "$archive"
+    (cd "$usb" && sha256sum "$(basename "$archive")" >"$(basename "$archive").sha256")
+    sync -f "$usb"
+    echo "Backup completed: $archive"
+)
+
+restore_data() (
+    local archive=$1 mode=$2 stage=/data/.wasalight-restore-stage listing stream=(cat "$archive")
+    listing=$(mktemp /run/wasalight-restore-list.XXXXXX)
+    trap 'rm -rf -- "$stage" "$listing"' EXIT
+    verify_archive "$archive"
+    [[ $archive != *.gpg ]] || stream=(gpg --decrypt "$archive")
+    echo "Archive contents are being verified..."
+    if ! "${stream[@]}" | zstd -dc | tar -tf - >"$listing"; then
+        echo "Backup archive is damaged or unreadable." >&2
+        return 1
+    fi
+    while IFS= read -r member; do
+        case $member in
+            /*|../*|*/../*|*/..) echo "Unsafe path in backup: $member" >&2; return 1 ;;
+        esac
+    done <"$listing"
+    echo
+    echo "WARNING: restore will replace persistent data in /data."
+    echo "Type exactly RESTORE-DATA to continue:"
+    read -r confirmation
+    [[ $confirmation == RESTORE-DATA ]] || { echo "Restore cancelled."; return 0; }
+    rm -rf -- "$stage"
+    install -d -m 0700 "$stage"
+    "${stream[@]}" | zstd -dc | tar --acls --xattrs --numeric-owner -C "$stage" -xf -
+    [[ -f $stage/manifest.json ]] || { echo "Invalid Wasalight backup: manifest missing." >&2; exit 1; }
+    rm -f "$stage/manifest.json"
+    /usr/local/bin/magicq-stop >/dev/null 2>&1 || true
+    systemctl stop companion.service 2>/dev/null || true
+    if [[ $mode == complete ]]; then
+        rsync -aHAX --numeric-ids --delete \
+            --exclude lost+found --exclude .wasalight-restore-stage \
+            "$stage/" /data/
+    else
+        for item in magicq companion system/plugins-state system/apps.d system/packages; do
+            [[ -e $stage/$item ]] || continue
+            install -d "$(dirname "/data/$item")"
+            rsync -aHAX --numeric-ids --delete "$stage/$item/" "/data/$item/"
+        done
+    fi
+    rm -rf -- "$stage"
+    sync
+    echo "Restore completed. Reboot before using Wasalight."
+)
+
+case ${1:-} in
+    --help|-h)
+        echo "Usage: sudo wasalight-data-transfer [backup USB [--encrypt] | restore ARCHIVE complete|applications]"
+        exit 0 ;;
+    backup)
+        usb=${2:?USB mount required}; mountpoint -q "$usb" || exit 1
+        require_usb_path "$usb"
+        backup_data "$usb" "$([[ ${3:-} == --encrypt ]] && echo yes || echo no)"; exit ;;
+    restore)
+        require_usb_path "${2:?archive required}"
+        restore_data "${2:?archive required}" "${3:-complete}"; exit ;;
+    '') ;;
+    *) echo "Invalid operation. Use --help." >&2; exit 2 ;;
+esac
+
+echo "Wasalight persistent data"
+echo "1) Complete backup to USB"
+echo "2) Complete encrypted backup to USB"
+echo "3) Complete restore from USB"
+echo "4) Restore applications only (MagicQ, Companion, plugins)"
+echo "5) Cancel"
+read -r -p "Choice: " choice
+case $choice in
+    1|2) usb=$(choose_usb); backup_data "$usb" "$([[ $choice == 2 ]] && echo yes || echo no)" ;;
+    3|4)
+        usb=$(choose_usb)
+        mapfile -t archives < <(find "$usb" -maxdepth 1 -type f \( -name 'wasalight-data-*.tar.zst' -o -name 'wasalight-data-*.tar.zst.gpg' \) | sort -r)
+        ((${#archives[@]})) || { echo "No Wasalight backup found on $usb." >&2; exit 1; }
+        select archive in "${archives[@]}"; do [[ -n ${archive:-} ]] && break; done
+        restore_data "$archive" "$([[ $choice == 3 ]] && echo complete || echo applications)"
+        ;;
+    5) exit 0 ;;
+    *) echo "Invalid choice." >&2; exit 2 ;;
+esac

@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -u
+
+[[ $(id -un) == chamsys ]] || exit 1
+state_dir=/data/system/magicq-updates
+install -d -m 0755 "$state_dir" 2>/dev/null || exit 0
+last=
+
+while :; do
+    candidate=
+    candidate_version=
+    while IFS= read -r -d '' package; do
+        version=$(dpkg-deb -f "$package" Version 2>/dev/null || true)
+        name=$(dpkg-deb -f "$package" Package 2>/dev/null || true)
+        architecture=$(dpkg-deb -f "$package" Architecture 2>/dev/null || true)
+        [[ $name == magicq && $architecture == amd64 && -n $version ]] || continue
+        if [[ -z $candidate_version ]] || dpkg --compare-versions "$version" gt "$candidate_version"; then
+            candidate=$package
+            candidate_version=$version
+        fi
+    done < <(find /stick -mindepth 2 -maxdepth 3 -type f -iname '*.deb' -print0 2>/dev/null)
+
+    installed=$(dpkg-query -W -f='${Version}' magicq 2>/dev/null || true)
+    notice=
+    if [[ -n $candidate ]] && { [[ -z $installed ]] || dpkg --compare-versions "$candidate_version" gt "$installed"; }; then
+        notice="$candidate_version|$candidate"
+        printf '%s\t%s\t%s\n' \
+            "$candidate_version" "$candidate" "${installed:-none}" >"$state_dir/available.tmp"
+        mv -f "$state_dir/available.tmp" "$state_dir/available"
+        if [[ $notice != "$last" ]]; then
+            notify-send --app-name=Wasalight --icon=/usr/share/pixmaps/magicq.png \
+                "Aggiornamento MagicQ su USB" \
+                "Versione $candidate_version disponibile. Installa da Wasalight Control in MAINTENANCE." 2>/dev/null || true
+        fi
+    else
+        rm -f "$state_dir/available"
+    fi
+    last=$notice
+    sleep 5
+done
