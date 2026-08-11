@@ -1,7 +1,8 @@
 # Logo e schermata di avvio
 
-Wasalight usa Plymouth per mostrare una schermata pulita tra GRUB e l’avvio di
-Openbox. Il tema ha sfondo quasi nero `#080b10` e un logo centrale discreto.
+Wasalight usa la stessa composizione in GRUB, Plymouth e sul desktop. Il tema ha
+sfondo quasi nero `#080b10` e un logo centrale discreto, riducendo il tratto
+nero fra firmware e splash che è controllabile dal sistema operativo.
 
 ## Immagine predefinita
 
@@ -38,6 +39,12 @@ Su Ubuntu 24.04 il tema viene registrato e selezionato nel gruppo
 Ubuntu durante la rigenerazione dell’initramfs. Wasalight non usa il vecchio
 comando `plymouth-set-default-theme`, non più distribuito da Plymouth 24.x.
 
+L’installer genera inoltre `/boot/grub/wasalight-background.png` a 1920×1080 e
+imposta GRUB in modalità grafica con payload Linux mantenuto. Sull’HP EliteDesk
+con grafica Intel aggiunge `i915` all’initramfs: il kernel modesetting e
+Plymouth possono così prendere lo schermo prima. UTM resta un ambiente di test;
+questa ottimizzazione hardware è pensata per il target fisico Intel.
+
 ## Sostituire il logo
 
 Usare un PNG con trasparenza o con un fondo che renda leggibile il marchio. Sono
@@ -73,8 +80,9 @@ desktop; non serve mantenere una seconda immagine.
 
 ## Avvio silenzioso e recupero
 
-La configurazione normale usa `quiet splash`, nasconde il menu GRUB per un
-secondo e riduce i messaggi di sistema. Tenere premuto **Esc** durante il
+La configurazione normale usa `quiet splash`, mostra il fondo Wasalight già in
+GRUB, nasconde il menu per un secondo e riduce i messaggi di sistema. Tenere
+premuto **Esc** durante il
 passaggio firmware/GRUB permette di richiamare il menu quando serve una modalità
 di recupero. Messaggi del firmware o del BIOS/UEFI precedenti a GRUB non possono
 essere sostituiti da Plymouth.

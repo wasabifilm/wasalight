@@ -223,6 +223,14 @@ def plugin_record(parser):
         "minimum_wasalight": minimum,
         "compatible": compatible,
         "category": plugin.get("Category", "Applications"),
+        "homepage": plugin.get("Homepage", ""),
+        "license": plugin.get("License", ""),
+        "package": plugin.get("Package", ""),
+        "dependencies": [value.strip() for value in
+                         plugin.get("Dependencies", "").split(",") if value.strip()],
+        "backup_paths": [value.strip() for value in
+                         plugin.get("BackupPaths", "").split(",") if value.strip()],
+        "update_channel": plugin.get("UpdateChannel", ""),
         "optional": boolean(plugin, "Optional", True),
         "icon": plugin.get("Icon", "application-x-executable"),
         "installed": installed,

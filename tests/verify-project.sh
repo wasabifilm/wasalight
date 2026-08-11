@@ -54,6 +54,23 @@ grep -Fq "dpkg-query -W -f='\${db:Status-Abbrev}' magicq" "$ENTRYPOINT" || \
 bash -n "$INSTALLER"
 bash -n "$ENTRYPOINT"
 
+management_helpers=(
+    wasalight-health wasalight-health-monitor wasalight-support-bundle wasalight-data-transfer
+    wasalight-first-run wasalight-magicq-usb-watch wasalight-plugin-bundle
+    wasalight-update-snapshot
+)
+for helper in "${management_helpers[@]}"; do
+    [[ -x "$PROJECT_DIR/libexec/$helper" ]] || fail "helper non eseguibile: $helper"
+    bash -n "$PROJECT_DIR/libexec/$helper"
+done
+for helper in \
+    "$PROJECT_DIR/libexec/wasalight-plugin" \
+    "$PROJECT_DIR/libexec/wasalight-plugin-admin" \
+    "$PROJECT_DIR/ui/wasalight-control-center.py"; do
+    python3 -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' \
+        "$helper"
+done
+
 required_patterns=(
     'VERSION_ID:-} == 24.04'
     'PROJECT_VERSION="$(<"$PROJECT_DIR/VERSION")"'
@@ -245,7 +262,8 @@ required_patterns=(
     'COMPANION:  $companion'
     "status_line \"\$green\" 'COMPANION'"
     '/etc/wasalight/apps.d/companion.desktop'
-    'Icon=/usr/local/share/icons/wasalight/companion.svg'
+    'Icon=/usr/local/share/icons/wasalight/companion-official.png'
+    'readonly COMPANION_ICON_SHA256='
     '/etc/wasalight/apps.d/companion-web.desktop'
     'configure_plugins'
     '/usr/lib/wasalight/plugins'
@@ -269,6 +287,19 @@ required_patterns=(
     'add,maximized_vert,maximized_horz'
     'web) exec /usr/local/bin/wasalight-companion-browser'
     'http://${ip_address:-SERVER_IP}:8000'
+    'configure_management_tools'
+    'wasalight-support-bundle'
+    'wasalight-health-monitor'
+    'wasalight-health.timer'
+    'wasalight-data-transfer'
+    'wasalight-update-snapshot'
+    'wasalight-magicq-usb-watch'
+    'wasalight-first-run'
+    'wasalight-plugin-bundle'
+    'GRUB_BACKGROUND="/boot/grub/wasalight-background.png"'
+    'grep -qxF i915 /etc/initramfs-tools/modules'
+    'remote_commit=$(git ls-remote'
+    'snapshot=$("$snapshot_tool" create)'
     'SSH:        $ssh'
     'MAINTENANCE mode: automatic MagicQ start skipped'
 )
@@ -968,7 +999,7 @@ fi
 for old_command in \
     magicq-status magicq-maintenance magicq-protect magicq-touch \
     magicq-vnc magicq-audio-test magicq-set-mode magicq-usb magicq-logrotate; do
-    if grep -Fq "$old_command" "$INSTALLER"; then
+    if grep -Eq "(^|[/[:space:]\"'])${old_command}([[:space:]\"']|$)" "$INSTALLER"; then
         fail "nome comando non uniforme ancora presente: $old_command"
     fi
 done

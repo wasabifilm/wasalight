@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -u
+
+root_fs=$(findmnt -n -o FSTYPE / 2>/dev/null || echo unknown)
+data_state="NOT MOUNTED"
+data_percent="-"
+if mountpoint -q /data; then
+    data_percent=$(df -P /data | awk 'NR==2 {print $5}')
+    data_free=$(df -hP /data | awk 'NR==2 {print $4}')
+    data_state="OK · ${data_free} free · ${data_percent} used"
+fi
+
+memory=$(free -m | awk '/^Mem:/ {printf "%d%% used", ($3 * 100) / $2}')
+temperature="unavailable"
+for source in /sys/class/thermal/thermal_zone*/temp; do
+    [[ -r $source ]] || continue
+    value=$(<"$source")
+    [[ $value =~ ^[0-9]+$ ]] || continue
+    temperature=$(awk -v value="$value" 'BEGIN {printf "%.1f°C", value / 1000}')
+    break
+done
+
+disk="unavailable"
+root_source=$(findmnt -n -o SOURCE / 2>/dev/null || true)
+parent=$(lsblk -ndo PKNAME "$root_source" 2>/dev/null | head -n1)
+[[ -n $parent ]] || parent=$(lsblk -ndo NAME,TYPE 2>/dev/null | awk '$2 == "disk" {print $1; exit}')
+if [[ -n $parent ]] && command -v smartctl >/dev/null 2>&1; then
+    smart_output=$(smartctl -H "/dev/$parent" 2>/dev/null || true)
+    if grep -Eq 'PASSED|OK' <<<"$smart_output"; then
+        disk="SMART OK · /dev/$parent"
+    elif grep -Eqi 'FAILED|BAD|UNKNOWN' <<<"$smart_output"; then
+        disk="SMART CHECK · /dev/$parent"
+    fi
+fi
+
+warnings=0
+if [[ $data_percent =~ ^([0-9]+)%$ ]] && ((${BASH_REMATCH[1]} >= 85)); then
+    ((warnings++))
+fi
+[[ $disk != SMART\ CHECK* ]] || ((warnings++))
+
+printf 'ROOT:        %s\n' "$root_fs"
+printf 'DATA:        %s\n' "$data_state"
+printf 'MEMORY:      %s\n' "${memory:-unavailable}"
+printf 'TEMPERATURE: %s\n' "$temperature"
+printf 'DISK:        %s\n' "$disk"
+printf 'HEALTH:      %s\n' "$([[ $warnings == 0 ]] && echo OK || echo "$warnings WARNING(S)")"
+exit "$([[ $warnings == 0 ]] && echo 0 || echo 1)"

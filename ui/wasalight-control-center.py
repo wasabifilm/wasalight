@@ -99,6 +99,15 @@ def image_for(icon, size=64):
             return Gtk.Image.new_from_pixbuf(pixbuf)
         except Exception:
             pass
+    if os.path.basename(icon) == "companion-official.png":
+        fallback = "/usr/local/share/icons/wasalight/companion.svg"
+        if os.path.isfile(fallback):
+            try:
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+                    fallback, size, size, True)
+                return Gtk.Image.new_from_pixbuf(pixbuf)
+            except Exception:
+                pass
     if os.path.isabs(icon):
         icon = "application-x-executable"
     image = Gtk.Image.new_from_icon_name(icon or "application-x-executable", Gtk.IconSize.DIALOG)

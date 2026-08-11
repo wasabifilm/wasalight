@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+[[ $EUID -eq 0 ]] || { echo "Run through sudo." >&2; exit 1; }
+[[ $(findmnt -n -o FSTYPE / 2>/dev/null) != overlay ]] || {
+    echo "Plugin import requires MAINTENANCE mode." >&2; exit 1;
+}
+bundle=${1:-}
+[[ -f $bundle && -f $bundle.asc ]] || {
+    echo "Usage: sudo wasalight-plugin-bundle BUNDLE.tar.gz (with BUNDLE.tar.gz.asc)" >&2; exit 2;
+}
+case $bundle in /stick/*) ;; *) echo "Plugin bundles are accepted only from a mounted USB volume." >&2; exit 2 ;; esac
+[[ ! -L $bundle && ! -L $bundle.asc ]] || {
+    echo "Plugin bundle and signature must not be symbolic links." >&2; exit 2;
+}
+bundle=$(readlink -f -- "$bundle")
+[[ $bundle == /stick/* ]] || { echo "Bundle path escapes /stick." >&2; exit 2; }
+mount_target=$(findmnt -n -o TARGET -T "$bundle" 2>/dev/null || true)
+[[ $mount_target == /stick/* ]] || { echo "Bundle is not on a mounted Wasalight USB volume." >&2; exit 1; }
+keyring=/etc/wasalight/trusted-plugin-keys.gpg
+[[ -s $keyring ]] || { echo "No Wasalight plugin signing key is trusted. Import refused." >&2; exit 1; }
+gpgv --keyring "$keyring" "$bundle.asc" "$bundle"
+
+temporary=$(mktemp -d /run/wasalight-plugin.XXXXXX)
+trap 'rm -rf -- "$temporary"' EXIT
+while IFS= read -r member; do
+    case $member in
+        /*|../*|*/../*|*/..) echo "Unsafe path in signed bundle: $member" >&2; exit 1 ;;
+    esac
+done < <(tar -tzf "$bundle")
+tar -C "$temporary" --no-same-owner --no-same-permissions -xzf "$bundle"
+[[ -f $temporary/manifest.ini && -f $temporary/package.deb ]] || {
+    echo "Signed bundle must contain manifest.ini and package.deb." >&2; exit 1;
+}
+plugin_id=$(sed -n 's/^Id=//p' "$temporary/manifest.ini" | head -n1)
+[[ $plugin_id =~ ^[a-z0-9][a-z0-9-]{0,47}$ ]] || { echo "Invalid plugin ID." >&2; exit 1; }
+[[ $(dpkg-deb -f "$temporary/package.deb" Architecture) == amd64 ]] || {
+    echo "Plugin package is not amd64." >&2; exit 1;
+}
+declared_package=$(sed -n 's/^Package=//p' "$temporary/manifest.ini" | head -n1)
+actual_package=$(dpkg-deb -f "$temporary/package.deb" Package)
+[[ -n $declared_package && $declared_package == "$actual_package" ]] || {
+    echo "Manifest package does not match signed Debian package." >&2; exit 1;
+}
+apt-get install -y "$temporary/package.deb"
+install -d -o root -g root -m 0755 /usr/lib/wasalight/plugins \
+    /data/system/plugins-state
+install -D -o root -g root -m 0644 "$temporary/manifest.ini" \
+    "/usr/lib/wasalight/plugins/$plugin_id/manifest.ini"
+printf 'enabled\n' >"/data/system/plugins-state/$plugin_id"
+chmod 0644 "/data/system/plugins-state/$plugin_id"
+echo "Signed plugin installed: $plugin_id ($actual_package)"

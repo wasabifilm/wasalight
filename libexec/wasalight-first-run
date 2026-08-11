@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+[[ $(id -un) == chamsys ]] || exit 1
+readonly marker=/data/system/first-run/complete
+[[ -e $marker ]] && exit 0
+mountpoint -q /data || exit 0
+
+sleep 4
+/usr/local/bin/wasalight-dialog --info --width=620 --title="Benvenuto in Wasalight" \
+    --text="<big><b>Configurazione iniziale</b></big>\n\nLa procedura controlla rete, dati, touchscreen, audio, MagicQ e servizi remoti. Puoi interromperla e riprenderla al prossimo avvio." || exit 0
+
+if /usr/local/bin/wasalight-dialog --question --width=560 --title="Rete" \
+    --text="Aprire ora la configurazione Ethernet e Wi-Fi?" \
+    --ok-label="Configura rete" --cancel-label="Continua"; then
+    nm-connection-editor
+fi
+
+touch_summary=$(/usr/local/bin/wasalight-touch-status --summary 2>/dev/null || echo "non disponibile")
+audio_summary="non verificato"
+if /usr/local/bin/wasalight-dialog --question --width=560 --title="Audio e touchscreen" \
+    --text="Touchscreen: $touch_summary\n\nEseguire il test audio adesso?" \
+    --ok-label="Test audio" --cancel-label="Salta"; then
+    lxterminal --title="Wasalight · Test audio" -e bash -lc \
+        '/usr/local/bin/wasalight-audio-test; rc=$?; echo; read -r -p "Premere Invio per chiudere"; exit "$rc"'
+    audio_summary="test eseguito"
+fi
+
+magicq=$(dpkg-query -W -f='${db:Status-Abbrev} ${Version}' magicq 2>/dev/null || echo "non installato")
+/usr/local/bin/wasalight-dialog --info --width=620 --title="Riepilogo iniziale" \
+    --text="<big><b>Controlli completati</b></big>\n\nMagicQ: $magicq\nTouchscreen: $touch_summary\nAudio: $audio_summary\n\nSSH e VNC possono essere attivati dalla scheda Servizi. Backup, diagnostica e salute sistema sono nella scheda Supporto."
+
+install -d -m 0750 /data/system/first-run
+printf '%s\n' "$(date -Is)" >"$marker.tmp"
+mv -f -- "$marker.tmp" "$marker"
+/usr/local/bin/wasalight-control >/dev/null 2>&1 &

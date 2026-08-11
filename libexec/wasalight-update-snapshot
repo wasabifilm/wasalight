@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+[[ $EUID -eq 0 ]] || { echo "Run through sudo." >&2; exit 1; }
+root=/data/system/update-backups
+install -d -o root -g root -m 0700 "$root"
+
+case ${1:-} in
+    create)
+        stamp=$(date +%Y%m%d-%H%M%S)
+        version=$(cat /etc/wasalight/version 2>/dev/null || echo unknown)
+        archive="$root/wasalight-$version-$stamp.tar.gz"
+        paths=()
+        for path in \
+            etc/wasalight etc/sudoers.d/chamsys-magicq etc/sudoers.d/wasalight-plugins \
+            etc/sudoers.d/wasalight-management etc/initramfs-tools/modules \
+            etc/default/grub.d/99-wasalight.cfg etc/overlayroot.local.conf \
+            etc/systemd/system/companion.service.d usr/lib/wasalight/plugins \
+            boot/grub/wasalight-background.png \
+            usr/local/share/icons/wasalight \
+            usr/share/plymouth/themes/wasalight usr/share/themes/Wasalight \
+            home/chamsys/.config/openbox home/chamsys/.config/tint2 \
+            home/chamsys/.config/conky; do
+            [[ -e /$path ]] && paths+=("$path")
+        done
+        for directory in usr/local/bin usr/local/sbin usr/local/libexec; do
+            while IFS= read -r -d '' path; do
+                paths+=("${path#/}")
+            done < <(find "/$directory" -maxdepth 1 -type f \
+                \( -name 'wasalight-*' -o -name 'magicq-*' \) -print0)
+        done
+        while IFS= read -r -d '' path; do
+            paths+=("${path#/}")
+        done < <(find /etc/systemd/system -maxdepth 1 \
+            \( -type f -o -type l \) -name 'wasalight-*' -print0)
+        tar -C / --acls --xattrs --numeric-owner -czf "$archive.tmp" "${paths[@]}"
+        mv -f "$archive.tmp" "$archive"
+        chmod 0600 "$archive"
+        sha256sum "$archive" >"$archive.sha256"
+        printf '%s\n' "$archive"
+        mapfile -t old < <(find "$root" -maxdepth 1 -type f -name 'wasalight-*.tar.gz' | sort -r | tail -n +6)
+        for item in "${old[@]}"; do rm -f -- "$item" "$item.sha256"; done
+        ;;
+    restore)
+        archive=${2:?snapshot required}
+        case $archive in "$root"/wasalight-*.tar.gz) ;; *) echo "Invalid snapshot path." >&2; exit 2 ;; esac
+        [[ -f $archive && -f $archive.sha256 ]] || { echo "Snapshot is incomplete." >&2; exit 1; }
+        (cd "$root" && sha256sum -c "$(basename "$archive").sha256")
+        tar -C / --acls --xattrs --numeric-owner -xzf "$archive"
+        systemctl daemon-reload
+        update-grub >/dev/null
+        update-initramfs -u
+        echo "Wasalight configuration restored from $archive"
+        ;;
+    list)
+        find "$root" -maxdepth 1 -type f -name 'wasalight-*.tar.gz' -print | sort -r
+        ;;
+    *) echo "Usage: wasalight-update-snapshot create|restore ARCHIVE|list" >&2; exit 2 ;;
+esac

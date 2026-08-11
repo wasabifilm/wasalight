@@ -23,6 +23,8 @@ readonly UPDATE_REPOSITORY="https://github.com/wasabifilm/wasalight.git"
 readonly COMPANION_REPOSITORY="https://github.com/bitfocus/companion-pi.git"
 readonly COMPANION_PI_COMMIT="07024263dbb54512f3acdc705eca70cd74dbae43"
 readonly COMPANION_VERSION="5.0.3"
+readonly COMPANION_ICON_COMMIT="612a30b94173f93936cf1bf7e571bb9db6199401"
+readonly COMPANION_ICON_SHA256="7f0ace4dceadc24ae30c8215b59b6d3380da486e4dcaf8a1d4964d75e05dc012"
 
 DEB_PATH=""
 DATA_DEVICE=""
@@ -463,6 +465,7 @@ install_packages() {
         network-manager network-manager-gnome wpasupplicant policykit-1 policykit-1-gnome
         overlayroot initramfs-tools plymouth plymouth-themes file chrony
         exfatprogs ntfs-3g dosfstools libfsapfs-utils util-linux udev logrotate
+        smartmontools rsync zstd acl gnupg pciutils
         openssh-server git curl
     )
     ((ENABLE_ONSCREEN_KEYBOARD)) && packages+=(onboard)
@@ -1414,7 +1417,10 @@ ssh_mode=preserve
 allow_missing_magicq=0
 with_companion=0
 verbose=0
+rollback=0
 plugins=()
+snapshot=
+snapshot_tool=/run/wasalight-update-snapshot
 
 usage() {
     cat <<'EOT'
@@ -1429,6 +1435,8 @@ Opzioni:
   --reboot        Riavvia automaticamente dopo un aggiornamento riuscito.
   --verbose       Mostra anche ogni comando eseguito; il log resta completo
                   anche senza questa opzione.
+  --rollback      Ripristina l'ultimo snapshot della configurazione Wasalight
+                  e termina senza scaricare o installare codice.
   --with-ssh      Mantiene SSH attivo automaticamente dopo il riavvio.
   --without-ssh   Mantiene SSH spento all'avvio; il pulsante resta disponibile.
   --with-companion
@@ -1450,6 +1458,7 @@ while (($#)); do
         --code-only) code_only=1 ;;
         --reboot) reboot_after=1 ;;
         --verbose) verbose=1 ;;
+        --rollback) rollback=1 ;;
         --with-ssh) ssh_mode=enabled ;;
         --without-ssh) ssh_mode=disabled ;;
         --with-companion) with_companion=1; plugins+=(companion) ;;
@@ -1470,8 +1479,8 @@ while (($#)); do
     shift
 done
 
-if ((code_only && reboot_after)); then
-    echo "--code-only e --reboot non possono essere usati insieme." >&2
+if ((code_only && reboot_after)) || ((rollback && (code_only || reboot_after))); then
+    echo "--rollback, --code-only e --reboot non possono essere combinati." >&2
     exit 2
 fi
 
@@ -1481,6 +1490,17 @@ fi
     exit 1
 }
 mountpoint -q /data || { echo "/data non è montata: aggiornamento interrotto." >&2; exit 1; }
+if ((rollback)); then
+    [[ -x /usr/local/sbin/wasalight-update-snapshot ]] || {
+        echo "Nessun gestore rollback installato." >&2; exit 1;
+    }
+    latest_snapshot=$(/usr/local/sbin/wasalight-update-snapshot list | head -n 1)
+    [[ -n $latest_snapshot ]] || { echo "Nessuno snapshot disponibile." >&2; exit 1; }
+    echo "Ripristino dell'ultimo snapshot: $latest_snapshot"
+    /usr/local/sbin/wasalight-update-snapshot restore "$latest_snapshot"
+    echo "Rollback completato. Riavviare la macchina."
+    exit 0
+fi
 install -d -o root -g root -m 0755 /data/system
 install -d -o chamsys -g chamsys -m 0750 /data/log
 install -d -o root -g adm -m 0750 /data/log/wasalight "$log_root"
@@ -1508,6 +1528,14 @@ update_failed() {
         "$red" "$reset" "$phase" >&2
     printf 'Comando: %s\nLinea: %s · codice: %s\n' "$command" "$line" "$rc" >&2
     echo "La macchina non verrà riavviata." >&2
+    if [[ -n ${snapshot:-} && -x ${snapshot_tool:-} ]]; then
+        echo "Ripristino automatico della configurazione precedente…" >&2
+        if "$snapshot_tool" restore "$snapshot"; then
+            echo "Configurazione precedente ripristinata. Riavviare prima dell'uso." >&2
+        else
+            echo "ATTENZIONE: rollback automatico non riuscito; snapshot: $snapshot" >&2
+        fi
+    fi
     echo "Log completo: $log_file" >&2
     echo "Log cumulativo: $legacy_log" >&2
     exit "$rc"
@@ -1646,6 +1674,10 @@ if [[ -e $checkout && ! -d $checkout/.git ]]; then
 fi
 
 step "2/4 · Download dell'ultima versione"
+remote_commit=$(git ls-remote "$repository" refs/heads/main | awk 'NR == 1 {print $1}')
+[[ $remote_commit =~ ^[0-9a-f]{40}$ ]] || {
+    echo "Impossibile determinare il commit remoto main." >&2; exit 1;
+}
 if [[ -d $checkout/.git ]]; then
     if ! git -C "$checkout" diff --quiet || ! git -C "$checkout" diff --cached --quiet; then
         echo "Il repository persistente contiene modifiche locali: aggiornamento interrotto." >&2
@@ -1662,6 +1694,11 @@ else
     mv "$temporary_checkout" "$checkout"
     trap - EXIT
 fi
+downloaded_commit=$(git -C "$checkout" rev-parse HEAD)
+[[ $downloaded_commit == "$remote_commit" ]] || {
+    echo "Il checkout non corrisponde al commit remoto verificato: $remote_commit" >&2
+    exit 1
+}
 
 step "3/4 · Verifica del progetto scaricato"
 "$checkout/tests/verify-project.sh"
@@ -1674,6 +1711,14 @@ if ((code_only)); then
         "$green" "$reset"
     exit 0
 fi
+
+# The helper is taken from the checkout just verified, so even the first
+# upgrade to this release can create and automatically restore a snapshot.
+install -o root -g root -m 0755 "$checkout/libexec/wasalight-update-snapshot" \
+    "$snapshot_tool"
+bash -n "$snapshot_tool"
+snapshot=$("$snapshot_tool" create)
+echo "Snapshot pre-aggiornamento: $snapshot"
 
 installer_args=()
 ((protect)) || installer_args+=(--no-protection)
@@ -1858,6 +1903,7 @@ configure_companion() {
     local companion_present=0
     local companion_build
     local installed_companion_version
+    local companion_icon_tmp
 
     [[ -d /opt/companion && -x $companion_source/launch.sh ]] && companion_present=1
 
@@ -1911,6 +1957,21 @@ configure_companion() {
     companion_build=$(tr -d '\r\n' </opt/companion/BUILD)
     installed_companion_version=${companion_build#[vV]}
     installed_companion_version=${installed_companion_version%%+*}
+
+    # Use Bitfocus' official Linux icon when the pinned, checksummed asset is
+    # reachable. The local Wasalight SVG remains a safe offline fallback.
+    install -d -m 0755 /usr/local/share/icons/wasalight
+    companion_icon_tmp=$(mktemp /run/wasalight-companion-icon.XXXXXX)
+    if curl --fail --silent --show-error --location \
+        "https://raw.githubusercontent.com/bitfocus/companion/$COMPANION_ICON_COMMIT/assets/linux/icon.png" \
+        -o "$companion_icon_tmp" && \
+       printf '%s  %s\n' "$COMPANION_ICON_SHA256" "$companion_icon_tmp" | sha256sum -c -; then
+        install -m 0644 "$companion_icon_tmp" \
+            /usr/local/share/icons/wasalight/companion-official.png
+    else
+        warn "official Companion icon unavailable or checksum mismatch; using the local fallback"
+    fi
+    rm -f -- "$companion_icon_tmp"
 
     # The execute-only permission for other users lets the chamsys desktop
     # reach its dedicated browser profile without exposing Companion data.
@@ -2460,11 +2521,15 @@ Type=Application
 Name=Bitfocus Companion
 Comment=Stato, controllo, backup e aggiornamento Companion
 Exec=/usr/local/bin/wasalight-companion-panel
-Icon=/usr/local/share/icons/wasalight/companion.svg
+Icon=/usr/local/share/icons/wasalight/companion-official.png
 TryExec=/usr/local/bin/wasalight-companion-panel
 X-Wasalight-Section=Applications
 X-Wasalight-Order=30
 EOF
+    if [[ ! -s /usr/local/share/icons/wasalight/companion-official.png ]]; then
+        sed -i 's|companion-official.png|companion.svg|' \
+            /etc/wasalight/apps.d/companion.desktop
+    fi
     write_file /etc/wasalight/apps.d/companion-web.desktop 0644 <<'EOF'
 [Desktop Entry]
 Type=Application
@@ -2977,6 +3042,17 @@ if [[ -d /opt/companion ]]; then
     fi
 fi
 
+if [[ -r /data/system/health/status ]]; then
+    IFS=$'\t' read -r health_state health_time </data/system/health/status || true
+    if [[ ${health_state:-} == OK ]]; then
+        status_line "$green" 'HEALTH' "OK · ${health_time:-unknown}"
+    else
+        status_line "$red" 'HEALTH' "WARNING · ${health_time:-unknown}"
+    fi
+else
+    status_line "$yellow" 'HEALTH' 'NOT CHECKED'
+fi
+
 if mountpoint -q /data; then
     data_free=$(df -h --output=avail /data 2>/dev/null | tail -n 1 | xargs)
     status_line "$green" 'DATA' "MOUNTED · ${data_free:-?} free"
@@ -3016,6 +3092,12 @@ if ((usb_count > 0)); then
     status_line "$green" 'USB' "$usb_count MOUNTED"
 else
     status_line "$yellow" 'USB' 'EMPTY'
+fi
+if [[ -r /data/system/magicq-updates/available ]]; then
+    IFS=$'\t' read -r usb_magicq_version _ \
+        </data/system/magicq-updates/available || true
+    [[ -z ${usb_magicq_version:-} ]] || \
+        status_line "$yellow" 'MAGICQ USB' "READY · $usb_magicq_version"
 fi
 
 vnc_auto=MANUAL
@@ -3099,7 +3181,8 @@ case ${1:-} in
     status) command_to_run=/usr/local/bin/wasalight-status ;;
     touch) command_to_run=/usr/local/bin/wasalight-touch-status ;;
     audio) command_to_run=/usr/local/bin/wasalight-audio-test ;;
-    *) echo "Usage: wasalight-terminal-tool status|touch|audio" >&2; exit 2 ;;
+    health) command_to_run=/usr/local/bin/wasalight-health ;;
+    *) echo "Usage: wasalight-terminal-tool status|touch|audio|health" >&2; exit 2 ;;
 esac
 exec lxterminal --title="Wasalight support" -e bash -lc \
     '"$1"; rc=$?; echo; echo "Premere Invio per chiudere."; read -r _; exit "$rc"' \
@@ -3885,6 +3968,8 @@ nm-applet --indicator &
 /usr/local/bin/wasalight-touch-watch &
 /usr/local/bin/magicq-fullscreen-watch &
 /usr/local/bin/wasalight-remote-autostart &
+/usr/local/bin/wasalight-magicq-usb-watch &
+( sleep 8; /usr/local/bin/wasalight-first-run ) &
 ( sleep 15; /usr/local/bin/wasalight-update-check ) &
 magicq_auto=enabled
 [[ ! -r /data/system/service-flags/magicq-autostart ]] || \
@@ -4050,6 +4135,145 @@ EOF
     visudo -cf /etc/sudoers.d/wasalight-plugins >/dev/null
 }
 
+configure_management_tools() {
+    install -d -m 0755 /etc/wasalight/apps.d
+    if mountpoint -q "$DATA_MOUNT"; then
+        install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 \
+            "$DATA_MOUNT/system/first-run" "$DATA_MOUNT/system/magicq-updates"
+    fi
+    for tool in \
+        wasalight-health wasalight-health-monitor wasalight-support-bundle wasalight-data-transfer \
+        wasalight-first-run wasalight-magicq-usb-watch \
+        wasalight-plugin-bundle wasalight-update-snapshot; do
+        source="$PROJECT_DIR/libexec/$tool"
+        [[ -s $source ]] || die "management tool is missing: $source"
+        case $tool in
+            wasalight-health|wasalight-first-run|wasalight-magicq-usb-watch)
+                destination="/usr/local/bin/$tool" ;;
+            *) destination="/usr/local/sbin/$tool" ;;
+        esac
+        install -o root -g root -m 0755 "$source" "$destination"
+    done
+
+    write_file /usr/local/bin/wasalight-support-bundle-terminal 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+exec lxterminal --title="Wasalight · Diagnostica" -e bash -lc '
+echo "Destinazioni USB montate:"; findmnt -rn -o TARGET | awk '\''$0 ~ "^/stick/[^/]+$"'\''
+echo; read -r -p "Destinazione (/data/log oppure /stick/NOME): " destination
+case $destination in /data/log|/stick/*) ;; *) echo "Destinazione non valida"; read -r _; exit 2 ;; esac
+sudo -n /usr/local/sbin/wasalight-support-bundle "$destination"
+rc=$?; echo; read -r -p "Premere Invio per chiudere"; exit "$rc"'
+EOF
+
+    write_file /usr/local/bin/wasalight-data-transfer-terminal 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+exec lxterminal --title="Wasalight · Backup e ripristino" -e bash -lc '
+sudo -n /usr/local/sbin/wasalight-data-transfer
+rc=$?; echo; read -r -p "Premere Invio per chiudere"; exit "$rc"'
+EOF
+
+    write_file /usr/local/bin/wasalight-plugin-bundle-terminal 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+exec lxterminal --title="Wasalight · Plugin firmato" -e bash -lc '
+find /stick -mindepth 2 -maxdepth 2 -type f -name "*.tar.gz" -print 2>/dev/null
+echo; read -r -p "Percorso bundle firmato: " bundle
+sudo -n /usr/local/sbin/wasalight-plugin-bundle "$bundle"
+rc=$?; echo; read -r -p "Premere Invio per chiudere"; exit "$rc"'
+EOF
+
+    write_file /etc/wasalight/apps.d/health.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Salute sistema
+Comment=Controlla disco, spazio, memoria e temperatura
+Exec=/usr/local/bin/wasalight-terminal-tool health
+Icon=utilities-system-monitor
+TryExec=/usr/local/bin/wasalight-health
+X-Wasalight-Section=Support
+X-Wasalight-Order=71
+EOF
+    write_file /etc/wasalight/apps.d/support-bundle.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Esporta diagnostica
+Comment=Crea un pacchetto assistenza privo di password
+Exec=/usr/local/bin/wasalight-support-bundle-terminal
+Icon=package-x-generic
+TryExec=/usr/local/bin/wasalight-support-bundle-terminal
+X-Wasalight-Section=Support
+X-Wasalight-Order=72
+EOF
+    write_file /etc/wasalight/apps.d/data-transfer.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Backup e ripristino
+Comment=Salva o ripristina /data tramite USB in MAINTENANCE
+Exec=/usr/local/bin/wasalight-data-transfer-terminal
+Icon=drive-removable-media
+TryExec=/usr/local/bin/wasalight-data-transfer-terminal
+X-Wasalight-Section=Support
+X-Wasalight-Order=73
+EOF
+    write_file /etc/wasalight/apps.d/plugin-bundle.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Installa plugin firmato
+Comment=Importa da USB un bundle verificato in MAINTENANCE
+Exec=/usr/local/bin/wasalight-plugin-bundle-terminal
+Icon=application-x-addon
+TryExec=/usr/local/bin/wasalight-plugin-bundle-terminal
+X-Wasalight-Section=Support
+X-Wasalight-Order=74
+EOF
+
+    write_file /etc/wasalight/apps.d/magicq-usb-update.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Aggiorna MagicQ da USB
+Comment=Importa e installa il MagicQ più recente trovato nella chiavetta
+Exec=/usr/local/bin/wasalight-update-terminal
+Icon=/usr/share/pixmaps/magicq.png
+TryExec=/usr/local/bin/wasalight-update-terminal
+X-Wasalight-Section=Support
+X-Wasalight-Order=75
+EOF
+
+    write_file /etc/sudoers.d/wasalight-management 0440 <<'EOF'
+chamsys ALL=(root) NOPASSWD: /usr/local/sbin/wasalight-data-transfer, /usr/local/sbin/wasalight-support-bundle /data/log, /usr/local/sbin/wasalight-support-bundle /stick/*, /usr/local/sbin/wasalight-plugin-bundle /stick/*
+EOF
+    visudo -cf /etc/sudoers.d/wasalight-management >/dev/null
+
+    write_file /etc/systemd/system/wasalight-health.service 0644 <<'EOF'
+[Unit]
+Description=Wasalight persistent hardware and storage health check
+RequiresMountsFor=/data
+ConditionPathIsMountPoint=/data
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/wasalight-health-monitor
+EOF
+    write_file /etc/systemd/system/wasalight-health.timer 0644 <<'EOF'
+[Unit]
+Description=Periodically monitor Wasalight health
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=15min
+AccuracySec=1min
+Persistent=true
+Unit=wasalight-health.service
+
+[Install]
+WantedBy=timers.target
+EOF
+    systemctl daemon-reload
+    systemctl enable --now wasalight-health.timer
+}
+
 configure_persistent_logs() {
     local log_file
     if mountpoint -q "$DATA_MOUNT"; then
@@ -4075,6 +4299,18 @@ include /etc/wasalight/logrotate.d
 /data/log/wasalight-magicq-console.log /data/log/wasalight-magicq-session.log /data/log/wasalight-control.log /data/log/wasalight-network-tools.log /data/log/wasalight-xorg-startup.log {
     size 5M
     rotate 5
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    create 0640 chamsys chamsys
+    su chamsys chamsys
+}
+
+/data/log/wasalight-health.log {
+    size 2M
+    rotate 4
     compress
     delaycompress
     missingok
@@ -4651,6 +4887,30 @@ EOF
         /usr/share/plymouth/themes/default.plymouth default.plymouth \
         "$theme_dir/wasalight.plymouth" 200
     update-alternatives --set default.plymouth "$theme_dir/wasalight.plymouth"
+    install -d -m 0755 /boot/grub
+    python3 - "$selected_logo" /boot/grub/wasalight-background.png <<'PYEOF'
+import gi
+import sys
+
+gi.require_version("GdkPixbuf", "2.0")
+from gi.repository import GdkPixbuf
+
+width, height = 1920, 1080
+canvas = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, width, height)
+canvas.fill(0x080B10FF)
+logo = GdkPixbuf.Pixbuf.new_from_file(sys.argv[1])
+scale = min((width * 0.34) / logo.get_width(),
+            (height * 0.24) / logo.get_height(), 1.0)
+logo_width = max(1, round(logo.get_width() * scale))
+logo_height = max(1, round(logo.get_height() * scale))
+logo = logo.scale_simple(logo_width, logo_height, GdkPixbuf.InterpType.BILINEAR)
+x = (width - logo_width) // 2
+y = (height - logo_height) // 2
+logo.composite(canvas, x, y, logo_width, logo_height,
+               x, y, 1.0, 1.0, GdkPixbuf.InterpType.BILINEAR, 255)
+canvas.savev(sys.argv[2], "png", [], [])
+PYEOF
+    chmod 0644 /boot/grub/wasalight-background.png
     install -d -m 0755 /etc/default/grub.d
     write_file /etc/default/grub.d/99-wasalight.cfg 0644 <<'EOF'
 # Quiet normal boot. Hold Esc during firmware/GRUB hand-off for the boot menu.
@@ -4658,8 +4918,18 @@ GRUB_TIMEOUT_STYLE=hidden
 GRUB_TIMEOUT=1
 GRUB_RECORDFAIL_TIMEOUT=3
 GRUB_DISABLE_OS_PROBER=true
+GRUB_TERMINAL_OUTPUT=gfxterm
+GRUB_GFXMODE=auto
+GRUB_GFXPAYLOAD_LINUX=keep
+GRUB_BACKGROUND="/boot/grub/wasalight-background.png"
 GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} quiet splash loglevel=3 systemd.show_status=auto rd.udev.log_level=3 vt.global_cursor_default=0"
 EOF
+    # On the HP EliteDesk target, include Intel KMS in the initramfs so
+    # Plymouth can own the display before the ordinary userspace hand-off.
+    if lspci 2>/dev/null | grep -Eiq 'VGA|Display' && \
+       lspci 2>/dev/null | grep -Eiq 'Intel.*(VGA|Display)|(VGA|Display).*Intel'; then
+        grep -qxF i915 /etc/initramfs-tools/modules || printf 'i915\n' >>/etc/initramfs-tools/modules
+    fi
     update-grub
 }
 
@@ -4717,6 +4987,17 @@ final_checks() {
     bash -n /usr/local/libexec/wasalight-update-session
     bash -n /usr/local/bin/wasalight-update-terminal
     bash -n /usr/local/bin/wasalight-terminal-tool
+    bash -n /usr/local/bin/wasalight-health
+    bash -n /usr/local/sbin/wasalight-health-monitor
+    bash -n /usr/local/bin/wasalight-first-run
+    bash -n /usr/local/bin/wasalight-magicq-usb-watch
+    bash -n /usr/local/sbin/wasalight-support-bundle
+    bash -n /usr/local/sbin/wasalight-data-transfer
+    bash -n /usr/local/sbin/wasalight-plugin-bundle
+    bash -n /usr/local/sbin/wasalight-update-snapshot
+    bash -n /usr/local/bin/wasalight-support-bundle-terminal
+    bash -n /usr/local/bin/wasalight-data-transfer-terminal
+    bash -n /usr/local/bin/wasalight-plugin-bundle-terminal
     bash -n /usr/local/sbin/wasalight-ip-scan
     bash -n /usr/local/bin/wasalight-ip-scanner
     bash -n /usr/local/bin/wasalight-artnet-monitor
@@ -4761,6 +5042,11 @@ final_checks() {
         die "Wasalight is not the active Plymouth theme"
     [[ -r /etc/default/grub.d/99-wasalight.cfg ]] || \
         die "Wasalight quiet GRUB configuration is unavailable"
+    [[ -s /boot/grub/wasalight-background.png ]] || \
+        die "Wasalight early GRUB background is unavailable"
+    systemd-analyze verify \
+        /etc/systemd/system/wasalight-health.service \
+        /etc/systemd/system/wasalight-health.timer
     logrotate --debug /etc/wasalight/wasalight-logrotate.conf >/dev/null 2>&1
     ldconfig -p | grep -F 'libGLU.so.1' >/dev/null || \
         die "OpenGL runtime check failed: libGLU.so.1 is unavailable"
@@ -4828,6 +5114,7 @@ main() {
     configure_companion
     configure_graphical_session
     configure_plugins
+    configure_management_tools
     configure_usb
     install_magicq
     repair_magicq_persistent_permissions
