@@ -86,3 +86,22 @@ Al primo avvio grafico il wizard controlla rete, touchscreen, audio e presenza
 di MagicQ, poi indica dove gestire SSH, VNC, backup e diagnostica. Il marker
 `/data/system/first-run/complete` impedisce nuove aperture. Per ripeterlo,
 rimuovere quel file in MAINTENANCE e riavviare la sessione grafica.
+
+## Calcolatrice
+
+La scheda **Applicazioni** include `galculator`, una calcolatrice GTK leggera
+con modalità base e scientifica. Non richiede privilegi e salva le proprie
+preferenze nel profilo di `chamsys`.
+
+## Blocco schermo manuale
+
+La voce **Blocca schermo** nella scheda **Supporto** mostra prima una conferma
+e poi avvia `i3lock` in primo piano. Lo sblocco usa PAM e quindi la stessa
+password Linux dell’utente `chamsys`. È necessaria una tastiera fisica: il lock
+sicuro acquisisce direttamente l’input Xorg e non può affidarsi alla tastiera
+virtuale della sessione.
+
+Il blocco è esclusivamente manuale. Wasalight non installa né avvia
+`xss-lock`, `xautolock` o altri timer. Subito prima e dopo lo sblocco riafferma
+con `xset` che screensaver, blanking e DPMS sono disabilitati, quindi il monitor
+resta acceso e la console non viene sospesa.

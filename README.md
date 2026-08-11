@@ -484,7 +484,9 @@ I programmi continuano a essere organizzati tramite il registro `apps.d`:
   pulsante Ferma, perché l'applicazione si chiude normalmente dalla propria X;
 - **Applicazioni**: programmi registrati dall'amministratore;
 - **Supporto**: rete, monitor, touchscreen, audio, file, terminale, stato,
-  diagnostica, salute, backup/ripristino e aggiornamento Wasalight.
+  diagnostica, salute, backup/ripristino, blocco schermo manuale e aggiornamento
+  Wasalight;
+- **Applicazioni** include anche la calcolatrice leggera `galculator`.
 
 Nella home **Stato**, il pulsante File è sostituito dal cambio modalità:
 **Passa a MAINTENANCE** quando la console è in SHOW oppure **Passa a SHOW** in
@@ -532,6 +534,9 @@ un keyring root-owned. I metadati dichiarano licenza, homepage, dipendenze,
 percorsi di backup e canale update. La procedura operativa per diagnostica e
 backup completo di `/data` è in
 [`docs/maintenance-tools.md`](docs/maintenance-tools.md).
+La stessa guida documenta il blocco manuale con password `chamsys`: non viene
+mai attivato per inattività e non abilita sospensione, spegnimento del display o
+DPMS.
 
 Tint2 non mostra più la scritta **desktop 1** e resta sempre visibile in basso.
 Il pannello riserva lo spazio necessario e offre i pulsanti Control e File,

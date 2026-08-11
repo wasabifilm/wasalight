@@ -460,6 +460,7 @@ install_packages() {
         libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0
         libasound2-data alsa-utils
         openbox tint2 picom pcmanfm lxterminal lxrandr lxtask x11vnc procps wmctrl x11-utils
+        galculator i3lock
         conky-all zenity libnotify-bin libglib2.0-bin desktop-file-utils librsvg2-common
         python3 python3-gi gir1.2-gtk-3.0 arp-scan iproute2
         network-manager network-manager-gnome wpasupplicant policykit-1 policykit-1-gnome
@@ -4184,6 +4185,33 @@ sudo -n /usr/local/sbin/wasalight-plugin-bundle "$bundle"
 rc=$?; echo; read -r -p "Premere Invio per chiudere"; exit "$rc"'
 EOF
 
+    write_file /usr/local/bin/wasalight-screen-lock 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+[[ $(id -un) == chamsys ]] || {
+    echo "Run as the chamsys desktop user." >&2
+    exit 1
+}
+[[ -n ${DISPLAY:-} ]] || { echo "Xorg display is unavailable." >&2; exit 1; }
+command -v i3lock >/dev/null 2>&1 || { echo "i3lock is unavailable." >&2; exit 1; }
+
+/usr/local/bin/wasalight-dialog --question --width=560 \
+    --title="Blocca schermo · Wasalight" \
+    --text="<big><b>Bloccare lo schermo adesso?</b></big>\n\nLo sblocco richiede la password Linux di chamsys e una tastiera.\nIl display resterà acceso: sospensione, salvaschermo e DPMS rimangono disattivati." \
+    --ok-label="Blocca" --cancel-label="Annulla" || exit 0
+
+# The appliance never arms an idle locker. Reassert the no-blanking policy
+# immediately before and after this explicit, foreground-only lock.
+xset s off
+xset s noblank
+xset -dpms
+i3lock -n -c 080b10
+xset s off
+xset s noblank
+xset -dpms
+EOF
+
     write_file /etc/wasalight/apps.d/health.desktop 0644 <<'EOF'
 [Desktop Entry]
 Type=Application
@@ -4239,6 +4267,30 @@ Icon=/usr/share/pixmaps/magicq.png
 TryExec=/usr/local/bin/wasalight-update-terminal
 X-Wasalight-Section=Support
 X-Wasalight-Order=75
+EOF
+
+    write_file /etc/wasalight/apps.d/calculator.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Calcolatrice
+Comment=Calcolatrice scientifica leggera
+Exec=galculator
+Icon=accessories-calculator
+TryExec=galculator
+X-Wasalight-Section=Applications
+X-Wasalight-Order=40
+EOF
+
+    write_file /etc/wasalight/apps.d/screen-lock.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Blocca schermo
+Comment=Blocco manuale con password, senza spegnere il display
+Exec=/usr/local/bin/wasalight-screen-lock
+Icon=system-lock-screen
+TryExec=/usr/local/bin/wasalight-screen-lock
+X-Wasalight-Section=Support
+X-Wasalight-Order=76
 EOF
 
     write_file /etc/sudoers.d/wasalight-management 0440 <<'EOF'
@@ -4998,6 +5050,7 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-support-bundle-terminal
     bash -n /usr/local/bin/wasalight-data-transfer-terminal
     bash -n /usr/local/bin/wasalight-plugin-bundle-terminal
+    bash -n /usr/local/bin/wasalight-screen-lock
     bash -n /usr/local/sbin/wasalight-ip-scan
     bash -n /usr/local/bin/wasalight-ip-scanner
     bash -n /usr/local/bin/wasalight-artnet-monitor
@@ -5018,7 +5071,7 @@ final_checks() {
         bash -n /usr/local/bin/wasalight-companion-panel
         bash -n /usr/local/bin/wasalight-companion-browser
         bash -n /usr/local/bin/wasalight-falkon-profile
-        command -v falkon >/dev/null 2>&1 || \
+    command -v falkon >/dev/null 2>&1 || \
             die "Falkon Companion browser is unavailable"
         mountpoint -q /home/companion || \
             die "Companion persistent home bind is unavailable"
@@ -5032,6 +5085,10 @@ final_checks() {
             die "Companion browser profile is not writable by $TARGET_USER"
         systemd-analyze verify /etc/systemd/system/companion.service
     fi
+    command -v galculator >/dev/null 2>&1 || \
+        die "Wasalight calculator is unavailable"
+    command -v i3lock >/dev/null 2>&1 || \
+        die "Wasalight manual screen locker is unavailable"
     python3 -c 'compile(open("/usr/local/libexec/wasalight-ip-scanner.py", encoding="utf-8").read(), "/usr/local/libexec/wasalight-ip-scanner.py", "exec")'
     python3 -c 'compile(open("/usr/local/sbin/wasalight-artnet-capture", encoding="utf-8").read(), "/usr/local/sbin/wasalight-artnet-capture", "exec")'
     python3 -c 'compile(open("/usr/local/libexec/wasalight-artnet-monitor.py", encoding="utf-8").read(), "/usr/local/libexec/wasalight-artnet-monitor.py", "exec")'
