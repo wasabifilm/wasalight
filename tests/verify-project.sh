@@ -303,9 +303,14 @@ required_patterns=(
     'i3lock -n -c 080b10'
     'xset -dpms'
     'GRUB_BACKGROUND="/boot/grub/wasalight-background.png"'
+    'FRAMEBUFFER=y'
+    'plymouth.use-simpledrm'
+    'CONFIG_DRM_SIMPLEDRM=y'
+    '98-wasalight-early-display.cfg'
     'grep -qxF i915 /etc/initramfs-tools/modules'
     'remote_commit=$(git ls-remote'
-    'snapshot=$("$snapshot_tool" create)'
+    'snapshot=$(bash "$snapshot_tool" create)'
+    'bash "$snapshot_tool" restore "$snapshot"'
     'SSH:        $ssh'
     'MAINTENANCE mode: automatic MagicQ start skipped'
 )
@@ -316,6 +321,9 @@ done
 
 if grep -Fq 'write_file /usr/share/themes/Wasalight/openbox-3/close.xbm' "$INSTALLER"; then
     fail "l'installer crea ancora una bitmap close.xbm personalizzata"
+fi
+if grep -Fq 'i915.fastboot' "$INSTALLER"; then
+    fail "l'installer usa il parametro i915.fastboot rimosso dai kernel moderni"
 fi
 
 main_body=$(awk '/^main\(\) \{/,/^}/' "$INSTALLER")
@@ -716,10 +724,12 @@ if grep -Fq '("File", ["pcmanfm", "/data"])' "$control_center"; then
 fi
 grep -Fq 'self.add_magicq_page(launchers)' "$control_center" || \
     fail "Wasalight Control non espone il pannello MagicQ dedicato"
-grep -Fq 'image_for("/usr/share/pixmaps/magicq.png", 72)' "$control_center" || \
+grep -Fq '"/usr/share/pixmaps/magicq.png",' "$control_center" || \
     fail "Wasalight Control non usa l'icona originale MagicQ"
-grep -Fq 'label="Apri MagicQ"' "$control_center" || \
-    fail "Wasalight Control non espone il solo avvio manuale MagicQ"
+grep -Fq 'CARD_WIDTH = 290' "$control_center" || \
+    fail "le schede software e servizi di Control non hanno una misura comune"
+grep -Fq 'self.card_flow()' "$control_center" || \
+    fail "MagicQ e Servizi non condividono la griglia Control"
 if grep -Fq '"Ferma MagicQ"' "$control_center"; then
     fail "Wasalight Control espone ancora il pulsante Ferma MagicQ"
 fi
@@ -737,8 +747,25 @@ grep -Fq 'switch:checked { background: #76bd22;' "$control_center" || \
     fail "i toggle Control non usano il verde Wasabi"
 grep -Fq 'if action["management"] or action.get("control")' "$control_center" || \
     fail "le azioni collegate ai toggle sono ancora duplicate come pulsanti"
-grep -Fq 'self.add_plugin_page("Services"' "$control_center" || \
+grep -Fq 'self.add_service_page()' "$control_center" || \
     fail "Wasalight Control non espone la gestione servizi"
+grep -Fq 'self.add_credits_page()' "$control_center" || \
+    fail "Wasalight Control non espone la pagina Crediti"
+grep -Fq 'Creato da Michele Moser /' "$control_center" || \
+    fail "la pagina Crediti non attribuisce Wasalight"
+grep -Fq 'https://github.com/wasabifilm/wasalight' "$control_center" || \
+    fail "la pagina Crediti non collega il repository ufficiale"
+grep -Fq 'https://www.instagram.com/wasabi_lightbulbfarm/' "$control_center" || \
+    fail "la pagina Crediti non collega Instagram"
+for launcher in files ip-scanner artnet-monitor; do
+    launcher_body=$(sed -n \
+        "/write_file \/etc\/wasalight\/apps.d\/${launcher}\.desktop/,/^EOF$/p" \
+        "$INSTALLER")
+    grep -Fq 'X-Wasalight-Section=Applications' <<<"$launcher_body" || \
+        fail "$launcher non è classificato in Applicazioni"
+done
+grep -Fq 'installed the verified official Bitfocus Companion icon' "$INSTALLER" || \
+    fail "l'installer non registra l'uso dell'icona ufficiale Companion"
 grep -Fq 'PLUGIN_COMMAND, "install"' "$control_center" || \
     fail "Wasalight Control non permette di installare plugin disponibili"
 grep -Fq 'mode != "MAINTENANCE"' "$control_center" || \
@@ -1016,6 +1043,7 @@ for old_command in \
 done
 for label in '"Dashboard": "Stato"' '"Services": "Servizi"' \
     '"Applications": "Applicazioni"' '"Support": "Supporto"' \
+    '"Credits": "Crediti"' \
     'Gtk.Button(label="Aggiorna")' 'Gtk.Button(label="Chiudi")'; do
     grep -Fq "$label" "$control_center" || \
         fail "etichetta Control non uniformata: $label"

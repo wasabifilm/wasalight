@@ -14,6 +14,8 @@ case ${1:-} in
         for path in \
             etc/wasalight etc/sudoers.d/chamsys-magicq etc/sudoers.d/wasalight-plugins \
             etc/sudoers.d/wasalight-management etc/initramfs-tools/modules \
+            etc/initramfs-tools/conf.d/wasalight-framebuffer \
+            etc/default/grub.d/98-wasalight-early-display.cfg \
             etc/default/grub.d/99-wasalight.cfg etc/overlayroot.local.conf \
             etc/systemd/system/companion.service.d usr/lib/wasalight/plugins \
             boot/grub/wasalight-background.png \

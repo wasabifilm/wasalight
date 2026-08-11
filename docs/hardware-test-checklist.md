@@ -82,8 +82,9 @@ uno spettacolo.
 - [ ] `stat -c '%U:%G %a %n' /home/chamsys/Desktop /home/chamsys/Desktop/*.desktop`
       mostra la directory `root:root 755` e tre launcher `root:root 444`.
 - [ ] La scheda **MagicQ** di Wasalight Control usa l'icona ufficiale
-      `/usr/share/pixmaps/magicq.png`, offre soltanto **Apri MagicQ** e il toggle
-      **Avvio automatico**, senza un pulsante Ferma.
+      `/usr/share/pixmaps/magicq.png`, mostra MagicQ, MagicHD e MagicVis in tre
+      schede touch uguali e offre il toggle **Avvio automatico**, senza un
+      pulsante Ferma.
 - [ ] Il toggle **Servizio attivo** di VNC avvia e ferma la condivisione del display `:0`;
       al primo avvio apre il terminale protetto per creare la password.
 - [ ] Il toggle **Servizio attivo** di SSH avvia e ferma OpenSSH; lo stato mostra
@@ -100,7 +101,13 @@ uno spettacolo.
 - [ ] Le finestre attive e inattive mantengono colori scuri; il pulsante X è
       grande, facilmente premibile al touch e diventa rosso quando evidenziato.
 - [ ] Wasalight Control mostra Stato, MagicQ, Servizi, Applicazioni,
-      Supporto e Plugin con pulsanti grandi e lascia Tint2 visibile.
+      Supporto, Plugin e Crediti con pulsanti grandi e lascia Tint2 visibile.
+- [ ] MagicQ e Servizi condividono intestazione, griglia a tre colonne e schede
+      uniformi; testi, toggle e azioni restano allineati.
+- [ ] File, Scanner IP e Art-Net Monitor compaiono in Applicazioni e non in
+      Supporto.
+- [ ] Crediti riporta Michele Moser / Wasabi Lightbulbfarm, Apache 2.0,
+      protezione del logo, GitHub, Instagram e i riconoscimenti esterni.
 - [ ] Icona, titolo e focus di Wasalight Control usano il verde Wasabi
       `#76bd22`; la scheda selezionata è verde scuro con sottolineatura Wasabi
       e tutte le pagine restano scure, senza grandi superfici bianche o verde acceso.
