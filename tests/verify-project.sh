@@ -296,6 +296,12 @@ required_patterns=(
     'wasalight-magicq-usb-watch'
     'wasalight-first-run'
     'wasalight-plugin-bundle'
+    'galculator i3lock'
+    '/usr/local/bin/wasalight-screen-lock'
+    '/etc/wasalight/apps.d/calculator.desktop'
+    '/etc/wasalight/apps.d/screen-lock.desktop'
+    'i3lock -n -c 080b10'
+    'xset -dpms'
     'GRUB_BACKGROUND="/boot/grub/wasalight-background.png"'
     'grep -qxF i915 /etc/initramfs-tools/modules'
     'remote_commit=$(git ls-remote'
@@ -427,6 +433,7 @@ helpers=(
     /usr/local/bin/wasalight-update-check
     /usr/local/bin/wasalight-control
     /usr/local/bin/wasalight-terminal-tool
+    /usr/local/bin/wasalight-screen-lock
     /usr/local/sbin/wasalight-app-register
 )
 
@@ -440,6 +447,10 @@ for helper in "${helpers[@]}"; do
     [[ -s "$output" ]] || fail "impossibile estrarre $helper"
     bash -n "$output"
 done
+
+if grep -Eq '(^|[[:space:]])(xss-lock|xautolock)([[:space:]]|$)' "$INSTALLER"; then
+    fail "il blocco schermo non deve essere armato automaticamente"
+fi
 
 wallpaper_python="$tmp_dir/wasalight-desktop-wallpaper.py"
 awk '/^python3 .*PYEOF/ { capture=1; next }
