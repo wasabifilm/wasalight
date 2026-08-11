@@ -8,7 +8,7 @@ set -Eeuo pipefail
 #   ./make-wasalight-minimal.sh [SOURCE-LIVE.iso [AUTOINSTALL.yaml]]
 #
 # Variante singola:
-#   ./make-wasalight-minimal.sh --variant offline|netboot \
+#   ./make-wasalight-minimal.sh --variant full|netboot \
 #     [SOURCE.iso [AUTOINSTALL.yaml [OUTPUT.iso]]]
 #
 # Dipendenza unica:
@@ -22,18 +22,20 @@ usage() {
   cat <<'EOF'
 Uso:
   ./make-wasalight-minimal.sh [SOURCE.iso [AUTOINSTALL.yaml]]
-  ./make-wasalight-minimal.sh --variant offline|netboot \
+  ./make-wasalight-minimal.sh --variant full|netboot \
     [SOURCE.iso [AUTOINSTALL.yaml [OUTPUT.iso]]]
 
 Senza SOURCE.iso il builder usa le basi ufficiali Live Server e Mini ISO 24.04.4
 presenti nella propria cartella.
 
 Senza --variant vengono create entrambe le immagini:
-  offline  Live Server completa, sistema base disponibile localmente
+  full     Live Server completa, sistema Ubuntu disponibile localmente
   netboot  Mini ISO di circa 100 MB, scarica e verifica la Live Server in RAM
 
-NETBOOT richiede DHCP, DNS, Internet e almeno 8 GiB di RAM durante
-l'installazione. Nessuna variante include il pacchetto proprietario MagicQ.
+FULL richiede Internet per installare Git e poi Wasalight; non scarica la base
+Ubuntu. NETBOOT richiede DHCP, DNS, Internet e almeno 8 GiB di RAM durante
+l'installazione. `offline` resta un alias compatibile di `full`. Nessuna
+variante include il pacchetto proprietario MagicQ.
 EOF
 }
 
@@ -44,7 +46,11 @@ iso_has_path() {
 }
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-readonly INSTALLER_VERSION="24"
+VERSION_FILE="$SCRIPT_DIR/VERSION"
+[[ -r "$VERSION_FILE" ]] || die "VERSION non trovato: $VERSION_FILE"
+INSTALLER_VERSION="$(tr -d '[:space:]' <"$VERSION_FILE")"
+[[ $INSTALLER_VERSION =~ ^[0-9]+$ ]] || die "VERSION non valido: $INSTALLER_VERSION"
+readonly VERSION_FILE INSTALLER_VERSION
 
 case "${1:-}" in
   -h|--help) usage; exit 0 ;;
@@ -52,7 +58,7 @@ esac
 
 BUILD_VARIANT=all
 if [[ ${1:-} == --variant ]]; then
-  (($# >= 2)) || die "--variant richiede offline oppure netboot."
+  (($# >= 2)) || die "--variant richiede full oppure netboot."
   BUILD_VARIANT=$2
   shift 2
 fi
@@ -60,8 +66,8 @@ fi
 case "$BUILD_VARIANT" in
   all)
     (($# <= 2)) || die "Con entrambe le varianti non specificare OUTPUT.iso."
-    info "Creo le varianti OFFLINE e NETBOOT."
-    bash "$0" --variant offline "$@"
+    info "Creo le varianti FULL e NETBOOT."
+    bash "$0" --variant full "$@"
     if (($# == 0)); then
       bash "$0" --variant netboot
     else
@@ -69,16 +75,17 @@ case "$BUILD_VARIANT" in
     fi
     exit 0
     ;;
-  offline)
-    VARIANT_LABEL=OFFLINE
+  full|offline)
+    BUILD_VARIANT=full
+    VARIANT_LABEL=FULL
     PACKAGES_VALUE='[git]'
     NETWORK_PRELOAD_VALUE="sh -c 'true'"
-    DEFAULT_OUTPUT="$SCRIPT_DIR/WASALIGHT-Installer-24.04-Minimal-Offline-v${INSTALLER_VERSION}.iso"
+    DEFAULT_OUTPUT="$SCRIPT_DIR/WASALIGHT-Installer-24.04-Minimal-Full-v${INSTALLER_VERSION}.iso"
     ;;
   netboot)
     exec bash "$SCRIPT_DIR/make-wasalight-netboot.sh" "$@"
     ;;
-  *) die "Variante sconosciuta: $BUILD_VARIANT (usa offline oppure netboot)." ;;
+  *) die "Variante sconosciuta: $BUILD_VARIANT (usa full oppure netboot)." ;;
 esac
 
 SOURCE_ISO="${1:-}"
@@ -163,12 +170,15 @@ output_real="$(CDPATH= cd -- "$output_parent" && pwd)/$(basename -- "$OUTPUT_ISO
 
 for placeholder in \
   __WASALIGHT_TARGET_DISK__ \
+  __WASALIGHT_DISK_GRUB_DEVICE__ \
+  __WASALIGHT_EFI_GRUB_DEVICE__ \
   __WASALIGHT_KEYBOARD_LAYOUT__ \
   __WASALIGHT_KEYBOARD_VARIANT__ \
   __WASALIGHT_PASSWORD_HASH__ \
   __WASALIGHT_INSTALL_VARIANT__ \
   __WASALIGHT_PACKAGES__ \
-  __WASALIGHT_NETWORK_PRELOAD__
+  __WASALIGHT_NETWORK_PRELOAD__ \
+  __WASALIGHT_INSTALLER_VERSION__
 do
   count=$(grep -Foc "$placeholder" "$AUTOINSTALL" || true)
   [[ "$count" == "1" ]] || \
@@ -197,7 +207,11 @@ if ! command -v xorriso >/dev/null 2>&1; then
 fi
 
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/wasalight.XXXXXX")"
-cleanup() { rm -rf "$TMP"; }
+PARTIAL_OUTPUT=""
+cleanup() {
+  [[ -z "$PARTIAL_OUTPUT" ]] || rm -f -- "$PARTIAL_OUTPUT"
+  rm -rf "$TMP"
+}
 trap cleanup EXIT INT TERM
 
 info "============================================================"
@@ -335,7 +349,7 @@ menuentry 'INSTALLA WASALIGHT ${VARIANT_LABEL} v${INSTALLER_VERSION}' {
     set gfxpayload=keep
     echo
     echo 'WASALIGHT INSTALLER v${INSTALLER_VERSION} - ${VARIANT_LABEL}'
-    echo 'Ubuntu Minimal automatico'
+    echo 'Ubuntu incluso localmente - Internet richiesto per Git e Wasalight'
     echo
     linux /casper/vmlinuz autoinstall ---
     initrd /casper/initrd
@@ -353,6 +367,7 @@ sed \
   -e "s|__WASALIGHT_INSTALL_VARIANT__|$VARIANT_LABEL|g" \
   -e "s|__WASALIGHT_PACKAGES__|$PACKAGES_VALUE|g" \
   -e "s|__WASALIGHT_NETWORK_PRELOAD__|$NETWORK_PRELOAD_VALUE|g" \
+  -e "s|__WASALIGHT_INSTALLER_VERSION__|$INSTALLER_VERSION|g" \
   "$AUTOINSTALL" > "$TMP/autoinstall.yaml"
 
 info "[6/7] Aggiorno i checksum..."
@@ -391,6 +406,7 @@ if iso_has_path "$SOURCE_ISO" /md5sum.txt; then
     "./wasalight/select-keyboard.sh" \
     "./wasalight/apply-theme.sh" \
     "./wasalight/install-ui.sh" \
+    "./wasalight/VERSION" \
     "./wasalight/wasalight-first-boot.sh" \
     "./wasalight/wasalight-first-boot.service"
   do
@@ -413,6 +429,7 @@ if iso_has_path "$SOURCE_ISO" /md5sum.txt; then
     printf '%s  ./wasalight/select-keyboard.sh\n' "$(md5sum_file "$KEYBOARD_SELECTOR")"
     printf '%s  ./wasalight/apply-theme.sh\n' "$(md5sum_file "$THEME_SCRIPT")"
     printf '%s  ./wasalight/install-ui.sh\n' "$(md5sum_file "$UI_SCRIPT")"
+    printf '%s  ./wasalight/VERSION\n' "$(md5sum_file "$VERSION_FILE")"
     printf '%s  ./wasalight/wasalight-first-boot.sh\n' "$(md5sum_file "$FIRST_BOOT_SCRIPT")"
     printf '%s  ./wasalight/wasalight-first-boot.service\n' "$(md5sum_file "$FIRST_BOOT_SERVICE")"
   } > "$TMP/md5sum.txt"
@@ -420,12 +437,12 @@ fi
 
 info "[7/7] Creo la ISO ibrida BIOS/UEFI..."
 
-rm -f "$OUTPUT_ISO"
+PARTIAL_OUTPUT="$(mktemp "$output_parent/.$(basename -- "$OUTPUT_ISO").partial.XXXXXX")"
 
 ARGS=(
   -abort_on SORRY
   -indev "$SOURCE_ISO"
-  -outdev "$OUTPUT_ISO"
+  -outdev "$PARTIAL_OUTPUT"
 )
 
 ARGS+=(
@@ -434,6 +451,7 @@ ARGS+=(
   -map "$KEYBOARD_SELECTOR" /wasalight/select-keyboard.sh
   -map "$THEME_SCRIPT" /wasalight/apply-theme.sh
   -map "$UI_SCRIPT" /wasalight/install-ui.sh
+  -map "$VERSION_FILE" /wasalight/VERSION
   -map "$FIRST_BOOT_SCRIPT" /wasalight/wasalight-first-boot.sh
   -map "$FIRST_BOOT_SERVICE" /wasalight/wasalight-first-boot.service
   -map "$TMP/grub.cfg" /boot/grub/grub.cfg
@@ -452,31 +470,67 @@ ARGS+=(
 )
 
 if ! xorriso "${ARGS[@]}"; then
-  rm -f "$OUTPUT_ISO"
   die "xorriso ha segnalato un errore. La ISO parziale è stata eliminata."
 fi
 
 info
 info "Verifica finale..."
 
-iso_has_path "$OUTPUT_ISO" /autoinstall.yaml || \
+iso_has_path "$PARTIAL_OUTPUT" /autoinstall.yaml || \
   die "autoinstall.yaml manca nella ISO finale."
-iso_has_path "$OUTPUT_ISO" /wasalight/select-disk.sh || \
+iso_has_path "$PARTIAL_OUTPUT" /wasalight/select-disk.sh || \
   die "select-disk.sh manca nella ISO finale."
-iso_has_path "$OUTPUT_ISO" /wasalight/select-keyboard.sh || \
+iso_has_path "$PARTIAL_OUTPUT" /wasalight/select-keyboard.sh || \
   die "select-keyboard.sh manca nella ISO finale."
-iso_has_path "$OUTPUT_ISO" /wasalight/apply-theme.sh || \
+iso_has_path "$PARTIAL_OUTPUT" /wasalight/apply-theme.sh || \
   die "apply-theme.sh manca nella ISO finale."
-iso_has_path "$OUTPUT_ISO" /wasalight/install-ui.sh || \
+iso_has_path "$PARTIAL_OUTPUT" /wasalight/install-ui.sh || \
   die "install-ui.sh manca nella ISO finale."
-iso_has_path "$OUTPUT_ISO" /wasalight/wasalight-first-boot.sh || \
+iso_has_path "$PARTIAL_OUTPUT" /wasalight/VERSION || \
+  die "VERSION manca nella ISO finale."
+iso_has_path "$PARTIAL_OUTPUT" /wasalight/wasalight-first-boot.sh || \
   die "wasalight-first-boot.sh manca nella ISO finale."
-iso_has_path "$OUTPUT_ISO" /wasalight/wasalight-first-boot.service || \
+iso_has_path "$PARTIAL_OUTPUT" /wasalight/wasalight-first-boot.service || \
   die "wasalight-first-boot.service manca nella ISO finale."
-iso_has_path "$OUTPUT_ISO" /casper/install-sources.yaml || \
+iso_has_path "$PARTIAL_OUTPUT" /casper/install-sources.yaml || \
   die "install-sources.yaml manca nella ISO finale."
-iso_has_path "$OUTPUT_ISO" "/casper/$MINIMAL_PATH" || \
+iso_has_path "$PARTIAL_OUTPUT" "/casper/$MINIMAL_PATH" || \
   die "La sorgente minimal manca nella ISO finale."
+
+install -d "$TMP/verify"
+xorriso -osirrox on -indev "$PARTIAL_OUTPUT" \
+  -extract /autoinstall.yaml "$TMP/verify/autoinstall.yaml" \
+  -extract /wasalight/select-disk.sh "$TMP/verify/select-disk.sh" \
+  -extract /wasalight/select-keyboard.sh "$TMP/verify/select-keyboard.sh" \
+  -extract /wasalight/apply-theme.sh "$TMP/verify/apply-theme.sh" \
+  -extract /wasalight/install-ui.sh "$TMP/verify/install-ui.sh" \
+  -extract /wasalight/VERSION "$TMP/verify/VERSION" \
+  -extract /wasalight/wasalight-first-boot.sh "$TMP/verify/wasalight-first-boot.sh" \
+  -extract /wasalight/wasalight-first-boot.service "$TMP/verify/wasalight-first-boot.service" \
+  >/dev/null 2>&1
+cmp -s "$TMP/autoinstall.yaml" "$TMP/verify/autoinstall.yaml" || \
+  die "autoinstall.yaml incorporato non corrisponde al file generato."
+cmp -s "$DISK_SELECTOR" "$TMP/verify/select-disk.sh" || \
+  die "select-disk.sh incorporato non corrisponde al sorgente."
+cmp -s "$KEYBOARD_SELECTOR" "$TMP/verify/select-keyboard.sh" || \
+  die "select-keyboard.sh incorporato non corrisponde al sorgente."
+cmp -s "$THEME_SCRIPT" "$TMP/verify/apply-theme.sh" || \
+  die "apply-theme.sh incorporato non corrisponde al sorgente."
+cmp -s "$UI_SCRIPT" "$TMP/verify/install-ui.sh" || \
+  die "install-ui.sh incorporato non corrisponde al sorgente."
+cmp -s "$VERSION_FILE" "$TMP/verify/VERSION" || \
+  die "VERSION incorporato non corrisponde al sorgente."
+cmp -s "$FIRST_BOOT_SCRIPT" "$TMP/verify/wasalight-first-boot.sh" || \
+  die "wasalight-first-boot.sh incorporato non corrisponde al sorgente."
+cmp -s "$FIRST_BOOT_SERVICE" "$TMP/verify/wasalight-first-boot.service" || \
+  die "wasalight-first-boot.service incorporato non corrisponde al sorgente."
+boot_report=$(xorriso -indev "$PARTIAL_OUTPUT" -report_el_torito plain 2>&1)
+grep -q 'BIOS' <<<"$boot_report" || die "Boot BIOS non preservato."
+grep -q 'UEFI' <<<"$boot_report" || die "Boot UEFI non preservato."
+
+chmod 0644 "$PARTIAL_OUTPUT"
+mv -f -- "$PARTIAL_OUTPUT" "$OUTPUT_ISO"
+PARTIAL_OUTPUT=""
 
 
 info
@@ -489,8 +543,9 @@ info "Caratteristiche:"
 info "  - Ubuntu Server 24.04 LTS"
 info "  - ubuntu-server-minimal come unica sorgente installabile"
 info "  - layer Casper originali preservati"
-if [[ $BUILD_VARIANT == offline ]]; then
+if [[ $BUILD_VARIANT == full ]]; then
   info "  - sistema base installato dalla ISO"
+  info "  - Internet richiesto per Git e Wasalight"
 else
   info "  - rete richiesta durante l'installazione"
   info "  - checkout Wasalight verificato e preparato durante l'autoinstall"
@@ -500,7 +555,8 @@ info "  - Wasalight main installato automaticamente al primo avvio con rete"
 info "  - autoinstall.yaml incluso"
 info "  - password chamsys scelta durante l'installazione"
 info "  - SSH non installato e accesso password SSH disabilitato"
-info "  - boot BIOS/UEFI originale preservato"
+info "  - disco minimo 32 GiB"
+info "  - boot installer e sistema installato compatibili BIOS/UEFI"
 info "  - nessun avvio distruttivo a tempo: serve premere ENTER"
 info "  - voci Ubuntu originali disponibili come recovery"
 info

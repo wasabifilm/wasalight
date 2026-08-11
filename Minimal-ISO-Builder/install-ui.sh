@@ -14,12 +14,30 @@ from pathlib import Path
 from typing import Any
 
 
-INSTALLER_VERSION = "24"
 LISTEN_ADDRESS = "127.0.0.1"
 LISTEN_PORT = 8765
 READY_FILE = Path("/run/wasalight-ui-ready")
 SUCCESS_FILE = Path("/run/wasalight-install-success")
 FAILURE_FILE = Path("/run/wasalight-install-failed")
+
+
+def read_installer_version() -> str:
+    candidates = (
+        Path(__file__).resolve().parent / "VERSION",
+        Path("/cdrom/wasalight/VERSION"),
+        Path("/wasalight/VERSION"),
+    )
+    for candidate in candidates:
+        try:
+            value = candidate.read_text(encoding="ascii").strip()
+        except OSError:
+            continue
+        if value.isdigit():
+            return value
+    return "?"
+
+
+INSTALLER_VERSION = read_installer_version()
 
 GREEN = "\033[1;32m"
 RED = "\033[1;31m"
@@ -139,7 +157,7 @@ def stage_for_event(name: str, description: str) -> str | None:
 
 
 class EventHandler(BaseHTTPRequestHandler):
-    server_version = "WasalightReporter/23"
+    server_version = f"WasalightReporter/{INSTALLER_VERSION}"
 
     def do_POST(self) -> None:  # noqa: N802 - required by BaseHTTPRequestHandler
         try:
@@ -185,6 +203,10 @@ def read_first_line(path: str) -> str:
         return ""
 
 
+def fit(value: str, width: int) -> str:
+    return value[:width]
+
+
 def stage_symbol(key: str, snapshot: dict[str, Any], spinner: str) -> tuple[str, str]:
     if key in snapshot["warnings"]:
         return YELLOW, "!"
@@ -200,15 +222,21 @@ def render(tty: Any, spinner: str) -> None:
     disk = read_first_line("/run/wasalight-target-disk")
     size = read_first_line("/run/wasalight-target-size")
     model = read_first_line("/run/wasalight-target-model")
+    boot_mode = read_first_line("/run/wasalight-boot-mode")
     keyboard = read_first_line("/run/wasalight-keyboard-label")
     variant = read_first_line("/run/wasalight-install-variant") or "INSTALL"
     title = f"WASALIGHT INSTALLER v{INSTALLER_VERSION} · {variant}"
+    if variant == "FULL":
+        network_note = "Ubuntu locale · Internet richiesto per Wasalight"
+    else:
+        network_note = "Internet richiesto per Ubuntu e Wasalight"
 
     lines = [
         CLEAR + HIDE_CURSOR,
         GREEN + "┌────────────────────────────────────────────────────────────┐" + RESET,
         GREEN + f"│{title:^60}│" + RESET,
         GREEN + "│                 Ubuntu Server 24.04 LTS                    │" + RESET,
+        GREEN + f"│{network_note:^60}│" + RESET,
         GREEN + "├────────────────────────────────────────────────────────────┤" + RESET,
         "│                                                            │",
     ]
@@ -222,7 +250,7 @@ def render(tty: Any, spinner: str) -> None:
         message = snapshot["failure_message"] or "Installazione non riuscita"
         lines.append(f"│   {RED}{message[:54]:<54}{RESET}   │")
     elif snapshot["finished"]:
-        lines.append(f"│   {GREEN}{'Ubuntu pronto. Wasalight verra installato al primo avvio.':<54}{RESET}   │")
+        lines.append(f"│   {GREEN}{'Ubuntu pronto. Rete richiesta al primo avvio.':<54}{RESET}   │")
     else:
         lines.append(f"│   {WHITE}{snapshot['message'][:54]:<54}{RESET}   │")
 
@@ -230,9 +258,10 @@ def render(tty: Any, spinner: str) -> None:
         (
             "│                                                            │",
             GREEN + "├────────────────────────────────────────────────────────────┤" + RESET,
-            f"│  Disco: {(disk + ' ' + size).strip():<51}│",
-            f"│  Modello: {model:<49}│",
-            f"│  Tastiera: {keyboard:<48}│",
+            f"│  Disco: {fit((disk + ' ' + size).strip(), 51):<51}│",
+            f"│  Modello: {fit(model, 49):<49}│",
+            f"│  Avvio: {fit(boot_mode, 51):<51}│",
+            f"│  Tastiera: {fit(keyboard, 48):<48}│",
             f"│  Account: {'chamsys · password configurata':<49}│",
             GREEN + "├────────────────────────────────────────────────────────────┤" + RESET,
             f"│  {DIM}{'Log tecnici: Ctrl+Alt+F1':<58}{RESET}│",

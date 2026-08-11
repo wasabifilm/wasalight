@@ -1,16 +1,21 @@
-WASALIGHT UBUNTU ISO BUILDER v24
-===============================
+WASALIGHT UBUNTU ISO BUILDER
+============================
 
 Il builder crea due immagini realmente diverse per Ubuntu Server 24.04.4 LTS
 amd64:
 
-- OFFLINE: circa 3,2 GB, basata sulla Live Server completa;
+- FULL: circa 3,2 GB, basata sulla Live Server completa;
 - NETBOOT: circa 100 MB, basata sulla Mini ISO ufficiale Canonical.
 
-OFFLINE contiene localmente il sistema Ubuntu Minimal. NETBOOT contiene
+FULL contiene localmente il sistema Ubuntu Minimal. Richiede comunque Internet
+durante l'autoinstall per Git e aggiornamenti e al primo avvio per scaricare e
+installare l'ultimo branch main di Wasalight. Il nome FULL distingue quindi la
+base Ubuntu locale da una installazione completamente offline.
+
+NETBOOT contiene
 bootloader, kernel e initrd, poi scarica in RAM la Live Server 24.04.4 ufficiale
 da releases.ubuntu.com. Prima di avviarla controlla dimensione e SHA-256
-Canonical. Non e' PXE: si avvia da USB o da ISO come l'immagine OFFLINE.
+Canonical. Non e' PXE: si avvia da USB o da ISO come l'immagine FULL.
 
 NETBOOT richiede:
 
@@ -31,7 +36,8 @@ automaticamente Wasalight al primo avvio reale:
 3. accetta solo un checkout pulito e aggiornamenti fast-forward;
 4. esegue tests/verify-project.sh;
 5. registra il commit in /data/log/wasalight-first-boot.version;
-6. esegue install.sh e riavvia in modalita' protetta.
+6. pubblica fase ed esito in /data/log/wasalight-first-boot.status;
+7. esegue install.sh e riavvia in modalita' protetta.
 
 Il log si trova in /data/log/wasalight-first-boot.log. Se rete o installazione
 falliscono, il servizio non dichiara il completamento e riprova dopo 60 secondi.
@@ -45,14 +51,19 @@ DISCO E INTERFACCIA
 Entrambe includono:
 
 - boot BIOS e UEFI conservato dalle immagini Canonical;
-- selezione manuale del disco, minimo 16 GiB;
+- selezione manuale del disco, minimo 32 GiB;
 - esclusione del supporto USB di installazione, anche nel doppio avvio NETBOOT;
 - conferma distruttiva digitando esattamente CANCELLA;
-- GPT con EFI, /boot, LVM, root al 50% e /data sul resto;
+- GPT ibrida con BIOS GRUB, EFI, /boot, LVM, root al 50% e /data sul resto;
 - scelta della tastiera e password chamsys durante l'installazione;
 - SSH inizialmente disabilitato;
 - UI Wasalight alimentata dagli eventi Subiquity/curtin su Ctrl+Alt+F2;
 - log tecnici su Ctrl+Alt+F1.
+
+In caso di errore l'hash della password viene oscurato prima di mostrare
+autoinstall.yaml. Premendo INVIO viene aperta una shell con controlling terminal
+sulla console 3. Il firmware usato (BIOS oppure UEFI) viene rilevato durante la
+scelta del disco e Curtin riceve il dispositivo GRUB appropriato.
 
 MAGICQ E SICUREZZA
 ------------------
@@ -86,15 +97,21 @@ Per creare entrambe:
 
 Output:
 
-  Minimal-ISO-Builder/WASALIGHT-Installer-24.04-Minimal-Offline-v24.iso
-  Minimal-ISO-Builder/WASALIGHT-Installer-24.04-Minimal-Netboot-v24.iso
+  Minimal-ISO-Builder/WASALIGHT-Installer-24.04-Minimal-Full-v<VERSION>.iso
+  Minimal-ISO-Builder/WASALIGHT-Installer-24.04-Minimal-Netboot-v<VERSION>.iso
 
 Per una sola variante:
 
-  bash Minimal-ISO-Builder/make-wasalight-minimal.sh --variant offline
+  bash Minimal-ISO-Builder/make-wasalight-minimal.sh --variant full
   bash Minimal-ISO-Builder/make-wasalight-minimal.sh --variant netboot
 
+`--variant offline` resta accettato come alias storico di `full`, ma tutti i
+nuovi menu, messaggi e nomi file usano FULL per non suggerire assenza di rete.
+
 Il menu non ha un timeout distruttivo: occorre premere ENTER.
+Il numero dell'installer e' definito una sola volta nel file VERSION. Le ISO
+vengono create con un nome temporaneo nella cartella di destinazione e
+sostituiscono una build precedente soltanto dopo tutti i controlli finali.
 
 CONTROLLO
 ---------

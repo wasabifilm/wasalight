@@ -3,7 +3,16 @@ set -eu
 
 umask 077
 
-INSTALLER_VERSION=24
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+VERSION_FILE=$SCRIPT_DIR/VERSION
+[ -r "$VERSION_FILE" ] || {
+  echo "ERRORE: VERSION non disponibile."
+  exit 1
+}
+INSTALLER_VERSION=$(tr -d '[:space:]' < "$VERSION_FILE")
+case "$INSTALLER_VERSION" in
+  ''|*[!0-9]*) echo "ERRORE: VERSION non valida."; exit 1 ;;
+esac
 
 TTY=/dev/tty1
 [ -c "$TTY" ] || TTY=/dev/console
