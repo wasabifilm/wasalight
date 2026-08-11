@@ -243,7 +243,6 @@ required_patterns=(
     'magicq-start'
     'magicq-stop'
     'magicq-root-stop'
-    'SESSION:    $session'
     '--with-companion'
     'readonly COMPANION_VERSION="5.0.3"'
     'readonly COMPANION_PI_COMMIT="07024263dbb54512f3acdc705eca70cd74dbae43"'
@@ -296,9 +295,10 @@ required_patterns=(
     'wasalight-magicq-usb-watch'
     'wasalight-first-run'
     'wasalight-plugin-bundle'
-    'galculator i3lock'
+    'galculator i3lock mousepad'
     '/usr/local/bin/wasalight-screen-lock'
     '/etc/wasalight/apps.d/calculator.desktop'
+    '/etc/wasalight/apps.d/mousepad.desktop'
     '/etc/wasalight/apps.d/screen-lock.desktop'
     'i3lock -n -c 080b10'
     'xset -dpms'
@@ -319,6 +319,10 @@ for pattern in "${required_patterns[@]}"; do
     grep -Fq -- "$pattern" "$INSTALLER" || fail "funzione richiesta non trovata: $pattern"
 done
 
+if grep -Fq 'SESSION:    $session' "$INSTALLER" || \
+   grep -Eq "status_line .*'SESSION'" "$INSTALLER"; then
+    fail "lo stato operatore mostra ancora la sessione tecnica MagicQ"
+fi
 if grep -Fq 'write_file /usr/share/themes/Wasalight/openbox-3/close.xbm' "$INSTALLER"; then
     fail "l'installer crea ancora una bitmap close.xbm personalizzata"
 fi

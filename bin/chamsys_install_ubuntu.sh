@@ -460,7 +460,7 @@ install_packages() {
         libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0
         libasound2-data alsa-utils
         openbox tint2 picom pcmanfm lxterminal lxrandr lxtask x11vnc procps wmctrl x11-utils
-        galculator i3lock
+        galculator i3lock mousepad
         conky-all zenity libnotify-bin libglib2.0-bin desktop-file-utils librsvg2-common
         python3 python3-gi gir1.2-gtk-3.0 arp-scan iproute2
         network-manager network-manager-gnome wpasupplicant policykit-1 policykit-1-gnome
@@ -3037,11 +3037,6 @@ if pgrep -x mqqt >/dev/null 2>&1; then
 else
     status_line "$yellow" 'MAGICQ' 'STOPPED'
 fi
-if pgrep -u chamsys -f '/usr/local/bin/magicq-session' >/dev/null 2>&1; then
-    status_line "$green" 'SESSION' 'RUNNING'
-else
-    status_line "$yellow" 'SESSION' 'STOPPED'
-fi
 if [[ -d /opt/companion ]]; then
     companion_version=$(cat /data/companion/installed-version 2>/dev/null || echo UNKNOWN)
     if systemctl is-active --quiet companion.service; then
@@ -4289,6 +4284,18 @@ X-Wasalight-Section=Applications
 X-Wasalight-Order=40
 EOF
 
+    write_file /etc/wasalight/apps.d/mousepad.desktop 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Mousepad
+Comment=Editor di testo leggero per note, log e configurazioni
+Exec=mousepad
+Icon=accessories-text-editor
+TryExec=mousepad
+X-Wasalight-Section=Applications
+X-Wasalight-Order=41
+EOF
+
     write_file /etc/wasalight/apps.d/screen-lock.desktop 0644 <<'EOF'
 [Desktop Entry]
 Type=Application
@@ -4783,13 +4790,6 @@ if [[ $magicq_pid =~ ^[0-9]+$ ]]; then
 elif [[ -x /opt/magicq/runmagicq.sh || -x /opt/magicq/bin/mqqt ]]; then
     magicq="installed, stopped ($magicq_mode)"
 fi
-session="stopped"
-session_pid_file="/run/user/$(id -u chamsys)/wasalight-magicq-session.pid"
-if [[ -r $session_pid_file ]]; then
-    session_pid=$(<"$session_pid_file")
-    [[ $session_pid =~ ^[0-9]+$ ]] && kill -0 "$session_pid" 2>/dev/null && \
-        session="running"
-fi
 network="volatile"
 mountpoint -q /etc/NetworkManager/system-connections && network="persistent bind"
 unmanaged_devices=$(nmcli -t -f DEVICE,TYPE,STATE device status 2>/dev/null | \
@@ -4850,7 +4850,6 @@ ROOT:       $root_fs
 DATA:       $data
 MAGICQ VER: $magicq_version
 MAGICQ:     $magicq
-SESSION:    $session
 NETWORK:    $network
 TOUCH:      $touch
 VNC:        $vnc
