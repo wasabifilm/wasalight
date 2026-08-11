@@ -156,11 +156,16 @@ EOF
 
     install -d -m 0755 /etc/wasalight/apps.d
     install_template /etc/wasalight/apps.d/companion.desktop 0644
+    install_template /etc/wasalight/apps.d/companion-web.desktop 0644
+    install -d -m 0755 /usr/local/share/applications
+    install -m 0644 /etc/wasalight/apps.d/companion-web.desktop \
+        /usr/local/share/applications/wasalight-companion-web.desktop
     if [[ ! -s /usr/local/share/icons/wasalight/companion-official.png ]]; then
         sed -i 's|companion-official.png|companion.svg|' \
-            /etc/wasalight/apps.d/companion.desktop
+            /etc/wasalight/apps.d/companion.desktop \
+            /etc/wasalight/apps.d/companion-web.desktop \
+            /usr/local/share/applications/wasalight-companion-web.desktop
     fi
-    install_template /etc/wasalight/apps.d/companion-web.desktop 0644
 
     systemctl daemon-reload
     if [[ -r $DATA_MOUNT/system/plugins-state/companion ]] && \

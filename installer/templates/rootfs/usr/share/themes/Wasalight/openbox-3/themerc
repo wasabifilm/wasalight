@@ -12,6 +12,17 @@ window.active.button.hover.image.color: #ffffff
 window.active.button.pressed.bg: flat
 window.active.button.pressed.bg.color: #7d1920
 window.active.button.pressed.image.color: #ffffff
+# The close button has its own strong states, independent from future generic
+# title-button styling changes.
+window.active.button.close.unpressed.bg: flat
+window.active.button.close.unpressed.bg.color: #3a2024
+window.active.button.close.unpressed.image.color: #ffffff
+window.active.button.close.hover.bg: flat
+window.active.button.close.hover.bg.color: #b4232c
+window.active.button.close.hover.image.color: #ffffff
+window.active.button.close.pressed.bg: flat
+window.active.button.close.pressed.bg.color: #7d1920
+window.active.button.close.pressed.image.color: #ffffff
 window.active.border.color: #30363d
 window.active.client.color: #11151b
 
@@ -28,14 +39,24 @@ window.inactive.button.hover.image.color: #ffffff
 window.inactive.button.pressed.bg: flat
 window.inactive.button.pressed.bg.color: #50171b
 window.inactive.button.pressed.image.color: #ffffff
+window.inactive.button.close.unpressed.bg: flat
+window.inactive.button.close.unpressed.bg.color: #24181b
+window.inactive.button.close.unpressed.image.color: #e6edf3
+window.inactive.button.close.hover.bg: flat
+window.inactive.button.close.hover.bg.color: #8f2229
+window.inactive.button.close.hover.image.color: #ffffff
+window.inactive.button.close.pressed.bg: flat
+window.inactive.button.close.pressed.bg.color: #65191f
+window.inactive.button.close.pressed.image.color: #ffffff
 window.inactive.border.color: #20252d
 window.inactive.client.color: #0b0e12
 
 window.label.text.justify: left
-# Openbox keeps title-button masks relatively small. Enlarge the click target
-# with decoration padding instead of using an oversized bitmap that is clipped.
-padding.width: 16
-padding.height: 16
+# Openbox derives the real button hit area from the title font height. The
+# installer raises that font to 28 and this smaller padding keeps the complete
+# title bar near 48 px without wasting most of it outside the clickable button.
+padding.width: 8
+padding.height: 6
 border.width: 1
 menu.items.active.bg: flat
 menu.items.active.bg.color: #30363d

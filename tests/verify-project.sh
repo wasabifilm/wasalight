@@ -120,6 +120,23 @@ grep -Fq 'sha256sum -c' "$rollback_tool" || fail "il rollback non verifica i che
 grep -Fq '!= overlay' "$rollback_tool" || fail "il rollback non richiede MAINTENANCE"
 grep -Fq 'pkexec /usr/local/sbin/wasalight-rollback restore' "$rollback_ui" || \
     fail "l’interfaccia rollback non richiede autenticazione amministrativa"
+grep -Fq 'pkexec /usr/local/sbin/wasalight-rollback delete' "$rollback_ui" || \
+    fail "l’interfaccia rollback non protegge l’eliminazione con autenticazione"
+grep -Fq 'Elimina definitivamente' "$rollback_ui" || \
+    fail "l’interfaccia rollback elimina snapshot senza seconda conferma"
+delete_branch_line=$(grep -n "^if \[\[ \$action == 'Elimina snapshot' \]\]; then$" \
+    "$rollback_ui" | cut -d: -f1)
+integrity_block_line=$(grep -n '^if \[\[ \$integrity != OK \]\]; then$' \
+    "$rollback_ui" | cut -d: -f1)
+[[ $delete_branch_line =~ ^[0-9]+$ && $integrity_block_line =~ ^[0-9]+$ ]] || \
+    fail "ordine eliminazione/checksum snapshot non verificabile"
+((integrity_block_line > delete_branch_line)) || \
+    fail "una snapshot non integra non può essere eliminata dalla GUI"
+grep -Fq 'delete) operation="eliminazione snapshot Wasalight"' \
+    "$PROJECT_DIR/libexec/wasalight-update-snapshot" || \
+    fail "l’eliminazione snapshot non acquisisce il lock globale"
+grep -Fq 'exec "$snapshot_tool" delete "$archive"' "$rollback_tool" || \
+    fail "il rollback non delega la cancellazione al gestore snapshot"
 if grep -Fq 'wasalight-rollback' \
         "$INSTALLER_TEMPLATE_ROOT/etc/sudoers.d/wasalight-management"; then
     fail "il rollback non deve essere autorizzato permanentemente senza password"
@@ -127,8 +144,8 @@ fi
 companion_web_launcher="$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/companion-web.desktop"
 grep -Fq 'Icon=/usr/local/share/icons/wasalight/companion-official.png' \
     "$companion_web_launcher" || fail "Falkon Companion non usa l’icona ufficiale"
-grep -Fq 'StartupWMClass=Falkon' "$companion_web_launcher" || \
-    fail "il launcher Companion non associa la finestra Falkon"
+grep -Fq 'StartupWMClass=WasalightCompanion' "$companion_web_launcher" || \
+    fail "il launcher Companion non usa una classe finestra dedicata"
 
 management_helpers=(
     wasalight-health wasalight-health-monitor wasalight-support-bundle wasalight-data-transfer
@@ -261,9 +278,15 @@ required_patterns=(
     'desktop SVG icon loader is unavailable'
     'background_color = #080b10 98'
     '/usr/share/themes/Wasalight/openbox-3/themerc'
+    '/usr/share/themes/Wasalight/openbox-3/close.xbm'
     '<titleLayout>NLC</titleLayout>'
-    'padding.width: 16'
-    'padding.height: 16'
+    '<font place="ActiveWindow">'
+    '<font place="InactiveWindow">'
+    '<size>28</size>'
+    'padding.width: 8'
+    'padding.height: 6'
+    'window.active.button.close.hover.bg.color: #b4232c'
+    'close_hover close_pressed close_disabled'
     '$TARGET_HOME/.config/picom/wasalight.conf'
     'unredir-if-possible = true'
     'picom --config "$HOME/.config/picom/wasalight.conf" --daemon'
@@ -351,6 +374,7 @@ required_patterns=(
     'Icon=/usr/local/share/icons/wasalight/companion-official.png'
     '/data/companion/browser/config'
     'XDG_CACHE_HOME="$runtime_base/wasalight-companion-browser-cache"'
+    '/usr/local/share/applications/wasalight-companion-web.desktop'
     '/usr/local/bin/wasalight-falkon-profile'
     'plugin == "internal:adblock"'
     'profile_marker="$profile_root/.wasalight-profile-$profile_schema"'
@@ -358,7 +382,7 @@ required_patterns=(
     'set_ini_value Web-Browser-Settings DefaultZoomLevel 8'
     "set_ini_value NavigationBar Layout 'button-backforward, button-reloadstop, button-home, locationbar, button-tools'"
     '#navigationbar QToolButton'
-    'falkon --profile wasalight-companion "$url"'
+    'falkon --wmclass=WasalightCompanion --profile wasalight-companion "$url"'
     'add,maximized_vert,maximized_horz'
     'web) exec /usr/local/bin/wasalight-companion-browser'
     'http://${ip_address:-SERVER_IP}:8000'
@@ -400,9 +424,10 @@ if grep -Fq 'SESSION:    $session' "$INSTALLER" || \
    grep -Eq "status_line .*'SESSION'" "$INSTALLER"; then
     fail "lo stato operatore mostra ancora la sessione tecnica MagicQ"
 fi
-if grep -Fq 'write_file /usr/share/themes/Wasalight/openbox-3/close.xbm' "$INSTALLER"; then
-    fail "l'installer crea ancora una bitmap close.xbm personalizzata"
-fi
+close_mask="$INSTALLER_TEMPLATE_ROOT/usr/share/themes/Wasalight/openbox-3/close.xbm"
+[[ -s $close_mask ]] || fail "maschera XBM del pulsante chiudi mancante"
+grep -Fq '#define close_width 24' "$close_mask" || fail "la X Openbox non e larga 24 px"
+grep -Fq '#define close_height 24' "$close_mask" || fail "la X Openbox non e alta 24 px"
 if grep -Fq 'i915.fastboot' "$INSTALLER"; then
     fail "l'installer usa il parametro i915.fastboot rimosso dai kernel moderni"
 fi

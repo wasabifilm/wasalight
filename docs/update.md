@@ -186,7 +186,10 @@ Il comando è ammesso soltanto in MAINTENANCE e richiede un riavvio successivo.
 La stessa operazione è disponibile in **Wasalight Control → Supporto → Rollback
 Wasalight**. L’interfaccia mostra gli ultimi cinque snapshot con versione, data,
 dimensione e stato del checksum, richiede MAINTENANCE e una conferma esplicita,
-quindi propone il riavvio. L’autenticazione amministrativa è sempre richiesta:
+quindi propone il riavvio. Dalla stessa selezione si può eliminare definitivamente
+una snapshot: il comando richiede una seconda conferma, rimuove archivio e
+checksum e resta disponibile soltanto in MAINTENANCE. L’autenticazione
+amministrativa è sempre richiesta:
 non viene concessa un’autorizzazione permanente senza password. Il ripristino
 riguarda configurazione, comandi e tema Wasalight; non sostituisce `/data`, gli
 show MagicQ, i pacchetti Ubuntu o il pacchetto MagicQ.

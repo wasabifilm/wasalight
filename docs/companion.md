@@ -78,6 +78,11 @@ La voce separata **Companion Web UI** apre `http://127.0.0.1:8000` in Falkon.
 Se il servizio è fermo, propone di avviarlo per la sessione. La finestra viene
 massimizzata lasciando visibile Tint2, quindi resta possibile cambiare
 applicazione o chiuderla con il grande pulsante del tema Wasalight.
+La finestra usa la classe X11 dedicata `WasalightCompanion`, registrata anche
+come applicazione XDG: il dock Tint2 mostra così l'icona ufficiale Companion al
+posto dell'icona Falkon mentre l'interfaccia web è aperta. Se il download
+verificato dell'icona ufficiale non è disponibile, viene usata l'icona locale
+Wasalight senza lasciare un collegamento privo di immagine.
 
 Il profilo dedicato viene inizializzato con un'interfaccia scura e semplificata
 per il touch: barra di navigazione alta, pulsanti grandi per indietro/avanti,
