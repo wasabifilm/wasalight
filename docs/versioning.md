@@ -41,10 +41,14 @@ registrata soltanto dopo il superamento dei controlli finali, in:
 ```text
 /etc/wasalight/version
 /data/system/installed-version
+/etc/wasalight/commit
+/data/system/installed-commit
 ```
 
-Il primo percorso descrive il sistema attivo. Il secondo è una copia persistente
-utile per diagnosi e recupero.
+I primi due percorsi registrano il numero CalVer; gli altri due il commit Git
+esatto. Le copie sotto `/data` sono persistenti e utili per diagnosi e recupero.
+L’updater usa la coppia versione/commit per riconoscere un vero no-op e impedire
+che una release venga modificata senza incrementarne `VERSION`.
 
 ## Stato sul desktop
 

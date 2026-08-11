@@ -18,6 +18,13 @@ readonly RELEASE_MANIFEST="$PROJECT_DIR/release-manifest.ini"
 . "$PROJECT_DIR/lib/wasalight-operation-lock.sh"
 readonly VERSION_FILE_NAME="$(require_manifest_value "$RELEASE_MANIFEST" Wasalight VersionFile)"
 readonly PROJECT_VERSION="$(<"$PROJECT_DIR/$VERSION_FILE_NAME")"
+PROJECT_COMMIT=unknown
+if command -v git >/dev/null 2>&1 && [[ -d $PROJECT_DIR/.git ]]; then
+    detected_project_commit=$(git -C "$PROJECT_DIR" rev-parse --verify HEAD 2>/dev/null || true)
+    [[ $detected_project_commit =~ ^[0-9a-f]{40}$ ]] && PROJECT_COMMIT=$detected_project_commit
+fi
+readonly PROJECT_COMMIT
+unset detected_project_commit
 readonly TARGET_UBUNTU_VERSION="$(require_manifest_value "$RELEASE_MANIFEST" Platform UbuntuVersion)"
 readonly TARGET_ARCHITECTURE="$(require_manifest_value "$RELEASE_MANIFEST" Platform Architecture)"
 readonly TARGET_USER="chamsys"

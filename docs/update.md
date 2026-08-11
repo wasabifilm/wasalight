@@ -23,16 +23,20 @@ stesso lock e possono completare la transazione senza bloccarsi tra loro.
                          ultima versione rilevata e data del controllo
 /data/system/update-backups
                          ultimi cinque snapshot pre-aggiornamento
+/etc/wasalight/commit    commit Git realmente installato
+/data/system/installed-commit
+                         copia persistente del commit installato
 ```
 
 Il repository pubblico non contiene il pacchetto MagicQ. Il `.deb` viene
 copiato separatamente, verificato byte per byte e protetto con permessi
 `root:root 0640`.
 
-Durante ogni esecuzione l’updater mostra la versione installata letta da
-`/etc/wasalight/version` e, dopo il download, la versione disponibile nel file
-`VERSION` del checkout persistente. Il numero installato viene aggiornato solo
-dopo un’installazione conclusa e verificata.
+Durante ogni esecuzione l’updater mostra versione e commit installati e, dopo
+il download, versione e commit disponibili. Entrambi vengono registrati solo
+dopo un’installazione conclusa e verificata. Un downgrade, una riscrittura non
+fast-forward di `main` o lo stesso numero `VERSION` pubblicato da un commit
+differente vengono bloccati.
 
 ## Aggiornare MagicQ da USB
 
@@ -112,7 +116,10 @@ chiudere la finestra, quindi il flusso è utilizzabile interamente al touch.
 In caso di errore non viene mai eseguito il riavvio automatico: il terminale
 mostra fase, comando, linea e codice di uscita. Il log completo della singola
 esecuzione resta in `/data/log/wasalight/updates/`, mentre
-`/data/log/wasalight-update.log` conserva la cronologia cumulativa.
+`/data/log/wasalight-update.log` conserva la cronologia cumulativa. Il registro
+cumulativo viene ruotato a 5 MiB mantenendo cinque copie compresse; dei log per
+singola esecuzione restano al massimo i venti più recenti e nessuno oltre
+trenta giorni.
 Prima di modificare il sistema viene creato uno snapshot verificato della
 configurazione Wasalight, dei manifest e dei comandi installati. Se l’installer
 fallisce, l’updater tenta automaticamente di ripristinarlo e indica il percorso
@@ -133,13 +140,17 @@ Ad ogni utilizzo il comando:
 1. cerca MagicQ nella root e in `packages/` di ogni USB montata;
 2. valida nome del pacchetto, formato, versione e architettura `amd64`;
 3. conserva in `/data/system/packages` soltanto candidati non precedenti;
-4. legge il commit remoto `main` e scarica il repository in
-   `/data/system/wasalight`;
-5. verifica che `HEAD` coincida con il commit remoto dichiarato;
-6. esegue `tests/verify-project.sh` sul codice scaricato;
-7. crea lo snapshot pre-aggiornamento;
-8. seleziona la versione MagicQ più recente tramite `dpkg` e rilancia
-   l’installer.
+4. prepara un checkout candidato separato con timeout e fino a tre tentativi;
+5. verifica fast-forward, commit, `VERSION` e assenza di downgrade;
+6. esegue `tests/verify-project.sh` prima di attivare il checkout candidato;
+7. mostra il piano e termina subito se release, commit, MagicQ e stato richiesto
+   sono già identici;
+8. crea lo snapshot e rilancia l’installer soltanto quando serve davvero.
+
+Lo scambio del checkout avviene soltanto dopo i test. Se l’alimentazione viene
+interrotta nel breve passaggio di rinomina, l’esecuzione successiva recupera
+automaticamente la copia precedente. I file non tracciati vengono considerati
+modifiche locali e bloccano lo scambio invece di essere cancellati.
 
 Per sicurezza l’installer lascia la macchina in MAINTENANCE. Dopo il collaudo:
 
@@ -154,6 +165,22 @@ Scaricare e verificare soltanto il codice:
 
 ```bash
 sudo wasalight-update --code-only
+```
+
+Mostrare il piano senza snapshot o installazione:
+
+```bash
+sudo wasalight-update --plan
+```
+
+Il piano aggiorna e verifica il checkout persistente e può importare in `/data`
+un pacchetto MagicQ trovato su USB, ma non modifica la configurazione di sistema.
+
+Reinstallare intenzionalmente la stessa release e lo stesso commit per riparare
+file di configurazione alterati:
+
+```bash
+sudo wasalight-update --repair
 ```
 
 Preparare direttamente il prossimo avvio protetto:
@@ -242,14 +269,16 @@ sudo wasalight-update --help
 ## Protezioni
 
 - Il comando rifiuta di operare in SHOW mode con overlay attivo.
-- Un aggiornamento Git deve essere un avanzamento lineare (`fast-forward`).
-- Le modifiche locali ai file tracciati interrompono l’operazione e non vengono
-  cancellate.
+- Un aggiornamento Git deve essere un avanzamento lineare (`fast-forward`) e
+  download lenti o bloccati terminano entro 120 secondi per tentativo.
+- Le modifiche locali, compresi i file non tracciati, interrompono l’operazione
+  e non vengono cancellate.
 - Due `.deb` con la stessa versione MagicQ ma contenuto diverso interrompono
   l’aggiornamento, anche quando hanno nomi differenti.
 - I file trovati sulle USB sono soltanto letti e copiati, mai rimossi.
 - Il codice scaricato viene verificato prima di eseguire l’installer.
 - Il commit installato deve coincidere con `refs/heads/main` letto dal remoto.
+- Lo stesso numero di versione non può indicare due commit differenti.
 - Lo snapshot precedente viene verificato con SHA-256 prima del ripristino.
 - Il log completo resta in `/data/log/wasalight-update.log`.
 

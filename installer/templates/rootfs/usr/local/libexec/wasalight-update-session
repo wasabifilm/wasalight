@@ -20,6 +20,13 @@ sudo /usr/local/sbin/wasalight-update "${update_args[@]}"
 rc=$?
 if ((rc == 0)); then
     echo
+    if [[ ! -e /run/wasalight-update-reboot-required ]]; then
+        echo "Il sistema è già aggiornato; nessun riavvio necessario."
+        /usr/local/bin/wasalight-dialog --info --width=520 --title="Wasalight aggiornato" \
+            --text="<big><b>Il sistema è già aggiornato.</b></big>\n\nNon sono state applicate modifiche e non serve riavviare." \
+            --ok-label="Chiudi"
+        exit 0
+    fi
     echo "Aggiornamento completato correttamente."
     if /usr/local/bin/wasalight-dialog --question --width=520 --title="Wasalight aggiornato" \
         --text="<big><b>Aggiornamento completato.</b></big>\n\nRiavviare ora per applicare la nuova configurazione?" \

@@ -226,21 +226,6 @@ install_packages() {
         apt-daily.timer apt-daily-upgrade.timer apt-daily.service \
         apt-daily-upgrade.service unattended-upgrades.service
 
-    log "refreshing package metadata"
-    apt-get update
-
-    purge_safe_unused_packages
-
-    # Openbox, libinput-tools, lxrandr and other appliance components are in
-    # Ubuntu's official Universe component. Standard Server installations
-    # normally enable it; minimal/custom images may not.
-    if ! apt-cache show openbox >/dev/null 2>&1; then
-        log "enabling the official Ubuntu Universe component"
-        apt_install software-properties-common
-        add-apt-repository -y universe
-        apt-get update
-    fi
-
     local packages=(
         ca-certificates sudo dbus-x11 xinit x11-xserver-utils xinput libinput-tools
         xserver-xorg-core xserver-xorg-input-libinput xserver-xorg-video-all
@@ -267,7 +252,33 @@ install_packages() {
             libfontconfig1 libatomic1 libasound2t64 falkon
         )
     fi
-    apt_install "${packages[@]}"
+
+    # Most Wasalight releases only replace configuration or UI files. Avoid a
+    # network metadata refresh when every package required by the selected
+    # feature set is already correctly installed.
+    local missing_packages=() package
+    for package in "${packages[@]}"; do
+        is_installed "$package" || missing_packages+=("$package")
+    done
+
+    purge_safe_unused_packages
+    if ((${#missing_packages[@]})); then
+        log "refreshing package metadata for ${#missing_packages[@]} missing packages"
+        apt-get update
+
+        # Openbox, libinput-tools, lxrandr and other appliance components are
+        # in Ubuntu's official Universe component. Standard Server installs
+        # normally enable it; minimal/custom images may not.
+        if ! apt-cache show openbox >/dev/null 2>&1; then
+            log "enabling the official Ubuntu Universe component"
+            apt_install software-properties-common
+            add-apt-repository -y universe
+            apt-get update
+        fi
+        apt_install "${missing_packages[@]}"
+    else
+        log "all required packages are installed; skipping apt metadata refresh"
+    fi
 
     systemctl enable NetworkManager.service chrony.service
     # SSH reboot persistence is deliberately stored on /data instead of in

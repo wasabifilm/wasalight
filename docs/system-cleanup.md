@@ -27,8 +27,10 @@ tra le dipendenze dell'appliance, così APT non può considerarle superflue.
 ## Ordine delle operazioni APT
 
 L’installer evita che i timer APT e `unattended-upgrades` lavorino in parallelo,
-quindi aggiorna gli indici dei pacchetti. `apt-get update` scarica soltanto i
-metadati: non aggiorna ancora i programmi installati.
+quindi calcola l’elenco dei pacchetti richiesti dalla configurazione scelta. Se
+sono già tutti installati salta sia `apt-get update` sia `apt-get install`. Se ne
+manca almeno uno aggiorna gli indici e installa soltanto i pacchetti mancanti.
+`apt-get update` scarica soltanto metadati: non aggiorna i programmi presenti.
 
 Prima di installare lo stack Wasalight vengono rimossi i componenti certamente
 estranei all’appliance: Snap, stampa, Bluetooth, ModemManager, Avahi, Whoopsie,

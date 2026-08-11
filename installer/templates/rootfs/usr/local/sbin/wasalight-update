@@ -13,6 +13,7 @@ repository=$(require_manifest_value /etc/wasalight/release-manifest.ini Wasaligh
 branch=$(require_manifest_value /etc/wasalight/release-manifest.ini Wasalight Branch)
 magicq_package=$(require_manifest_value /etc/wasalight/release-manifest.ini MagicQ Package)
 magicq_architecture=$(require_manifest_value /etc/wasalight/release-manifest.ini MagicQ Architecture)
+. /usr/local/libexec/wasalight-update-lib.sh
 
 protect=0
 code_only=0
@@ -22,9 +23,14 @@ allow_missing_magicq=0
 with_companion=0
 verbose=0
 rollback=0
+plan_only=0
+repair=0
+explicit_state_change=0
 plugins=()
 snapshot=
 snapshot_tool=/run/wasalight-update-snapshot
+candidate_checkout=
+previous_checkout="${checkout}.previous"
 
 usage() {
     cat <<'EOT'
@@ -39,6 +45,10 @@ Opzioni:
   --reboot        Riavvia automaticamente dopo un aggiornamento riuscito.
   --verbose       Mostra anche ogni comando eseguito; il log resta completo
                   anche senza questa opzione.
+  --plan          Scarica e verifica il codice, quindi mostra cosa cambierebbe
+                  senza creare snapshot o installare la configurazione.
+  --repair        Reinstalla la release anche quando versione e commit
+                  coincidono; utile per riparare una configurazione alterata.
   --rollback      Ripristina l'ultimo snapshot della configurazione Wasalight
                   e termina senza scaricare o installare codice.
   --with-ssh      Mantiene SSH attivo automaticamente dopo il riavvio.
@@ -58,14 +68,16 @@ EOT
 
 while (($#)); do
     case $1 in
-        --protect) protect=1 ;;
+        --protect) protect=1; explicit_state_change=1 ;;
         --code-only) code_only=1 ;;
         --reboot) reboot_after=1 ;;
         --verbose) verbose=1 ;;
         --rollback) rollback=1 ;;
-        --with-ssh) ssh_mode=enabled ;;
-        --without-ssh) ssh_mode=disabled ;;
-        --with-companion) with_companion=1; plugins+=(companion) ;;
+        --plan) plan_only=1 ;;
+        --repair) repair=1 ;;
+        --with-ssh) ssh_mode=enabled; explicit_state_change=1 ;;
+        --without-ssh) ssh_mode=disabled; explicit_state_change=1 ;;
+        --with-companion) with_companion=1; explicit_state_change=1; plugins+=(companion) ;;
         --plugin)
             shift
             (($#)) || { echo "--plugin richiede un ID" >&2; exit 2; }
@@ -74,6 +86,7 @@ while (($#)); do
                 ssh|vnc) ;;
                 *) echo "Plugin Wasalight sconosciuto: $1" >&2; exit 2 ;;
             esac
+            explicit_state_change=1
             plugins+=("$1")
             ;;
         --allow-missing-magicq) allow_missing_magicq=1 ;;
@@ -83,13 +96,16 @@ while (($#)); do
     shift
 done
 
-if ((code_only && reboot_after)) || ((rollback && (code_only || reboot_after))); then
-    echo "--rollback, --code-only e --reboot non possono essere combinati." >&2
+if ((code_only && (reboot_after || plan_only))) || \
+   ((rollback && (code_only || reboot_after || plan_only || repair))) || \
+   ((plan_only && reboot_after)); then
+    echo "--rollback, --code-only, --plan e --reboot hanno combinazioni non valide." >&2
     exit 2
 fi
 
 [[ $EUID -eq 0 ]] || { echo "Esegui con: sudo wasalight-update" >&2; exit 1; }
 wasalight_acquire_operation_lock "aggiornamento Wasalight"
+rm -f /run/wasalight-update-reboot-required
 [[ $(findmnt -n -o FSTYPE / 2>/dev/null) != overlay ]] || {
     echo "Serve la modalità MAINTENANCE. Esegui sudo wasalight-maintenance e riavvia." >&2
     exit 1
@@ -116,6 +132,12 @@ touch "$log_file" "$legacy_log"
 chown root:adm "$log_file" "$legacy_log" 2>/dev/null || \
     chown root:root "$log_file" "$legacy_log"
 chmod 0640 "$log_file" "$legacy_log"
+# Individual run logs are intentionally self-contained. Keep the most recent
+# twenty and remove files older than thirty days so /data cannot grow forever.
+find "$log_root" -maxdepth 1 -type f -name 'update-*.log' -mtime +30 -delete
+mapfile -t stale_run_logs < <(find "$log_root" -maxdepth 1 -type f \
+    -name 'update-*.log' -printf '%T@\t%p\n' | sort -nr | tail -n +21 | cut -f2-)
+((${#stale_run_logs[@]} == 0)) || rm -f -- "${stale_run_logs[@]}"
 exec > >(tee -a "$legacy_log" "$log_file") 2>&1
 ((verbose)) && { export PS4='+ ${BASH_SOURCE##*/}:${LINENO}: '; set -x; }
 
@@ -154,100 +176,9 @@ echo "Avvio: $(date --iso-8601=seconds)"
 echo "Log di questa esecuzione: $log_file"
 installed_version=$(cat /etc/wasalight/version 2>/dev/null || echo non-installata)
 echo "Versione installata: $installed_version"
-
-magicq_version_of() {
-    local source=$1 version
-    dpkg-deb --info "$source" >/dev/null 2>&1 || return 1
-    [[ $(dpkg-deb -f "$source" Package 2>/dev/null) == "$magicq_package" ]] || return 1
-    [[ $(dpkg-deb -f "$source" Architecture 2>/dev/null) == "$magicq_architecture" ]] || return 1
-    version=$(dpkg-deb -f "$source" Version 2>/dev/null) || return 1
-    dpkg --validate-version "$version" >/dev/null 2>&1 || return 1
-    printf '%s\n' "$version"
-}
-
-newest_stored_version() {
-    local stored version newest=
-    while IFS= read -r -d '' stored; do
-        version=$(magicq_version_of "$stored") || continue
-        if [[ -z $newest ]] || dpkg --compare-versions "$version" gt "$newest"; then
-            newest=$version
-        fi
-    done < <(find "$package_store" -maxdepth 1 -type f -name '*.deb' -print0)
-    printf '%s\n' "$newest"
-}
-
-import_magicq_package() {
-    local source=$1 remove_source=${2:-0}
-    local version installed_record installed_magicq_version= stored stored_version
-    local baseline destination
-
-    [[ -f $source ]] || return 0
-    version=$(magicq_version_of "$source") || {
-        echo "Ignoro un file che non è MagicQ amd64 valido: $source" >&2
-        return 0
-    }
-
-    # Equal versions must also be byte-identical. This prevents an ambiguous or
-    # repackaged installer from silently replacing the trusted persistent copy.
-    while IFS= read -r -d '' stored; do
-        stored_version=$(magicq_version_of "$stored") || continue
-        if dpkg --compare-versions "$version" eq "$stored_version"; then
-            if ! cmp -s -- "$source" "$stored"; then
-                echo "CONFLITTO: MagicQ $version esiste già con contenuto differente: $stored" >&2
-                return 1
-            fi
-            ((remove_source)) && rm -f -- "$source"
-            echo "MagicQ $version è già conservato in $stored"
-            return 0
-        fi
-    done < <(find "$package_store" -maxdepth 1 -type f -name '*.deb' -print0)
-
-    baseline=$(newest_stored_version)
-    installed_record=$(dpkg-query -W -f='${db:Status-Abbrev}\t${Version}' magicq \
-        2>/dev/null || true)
-    [[ $installed_record == ii*$'\t'* ]] && \
-        installed_magicq_version=${installed_record#*$'\t'}
-    if [[ -n $installed_magicq_version ]] && \
-       { [[ -z $baseline ]] || dpkg --compare-versions "$installed_magicq_version" gt "$baseline"; }; then
-        baseline=$installed_magicq_version
-    fi
-    if [[ -n $baseline ]] && dpkg --compare-versions "$version" lt "$baseline"; then
-        echo "Ignoro MagicQ $version da $source: è precedente alla versione $baseline"
-        ((remove_source)) && rm -f -- "$source"
-        return 0
-    fi
-
-    destination="$package_store/magicq_${version}_amd64.deb"
-    install -o root -g root -m 0640 "$source" "$destination"
-    cmp -s -- "$source" "$destination" || {
-        echo "Verifica della copia del pacchetto non riuscita: $destination" >&2
-        rm -f -- "$destination"
-        return 1
-    }
-    ((remove_source)) && rm -f -- "$source"
-    echo "MagicQ $version importato e conservato in $destination"
-}
-
-select_newest_magicq_package() {
-    local stored version
-    selected_package=
-    selected_package_version=
-    while IFS= read -r -d '' stored; do
-        version=$(magicq_version_of "$stored") || {
-            echo "Ignoro un pacchetto persistente non valido: $stored" >&2
-            continue
-        }
-        if [[ -z $selected_package ]] || \
-           dpkg --compare-versions "$version" gt "$selected_package_version"; then
-            selected_package=$stored
-            selected_package_version=$version
-        elif dpkg --compare-versions "$version" eq "$selected_package_version" && \
-             ! cmp -s -- "$stored" "$selected_package"; then
-            echo "CONFLITTO: due pacchetti MagicQ $version persistenti hanno contenuto differente." >&2
-            return 1
-        fi
-    done < <(find "$package_store" -maxdepth 1 -type f -name '*.deb' -print0)
-}
+installed_commit=$(cat /etc/wasalight/commit 2>/dev/null || echo unknown)
+echo "Commit installato: ${installed_commit:0:12}"
+update_preflight
 
 step "1/4 · Controllo dei pacchetti MagicQ"
 while IFS= read -r usb_mount; do
@@ -273,62 +204,103 @@ while IFS= read -r usb_mount; do
         -name 'fsapfs[0-9]*' -print0 2>/dev/null)
 done < <(findmnt -rn -o TARGET 2>/dev/null | awk '$0 ~ "^/stick/[^/]+$"')
 
+if [[ ! -e $checkout && -d $previous_checkout/.git ]]; then
+    echo "Ripristino il checkout precedente dopo un aggiornamento interrotto."
+    mv "$previous_checkout" "$checkout"
+fi
 if [[ -e $checkout && ! -d $checkout/.git ]]; then
     echo "Il percorso aggiornamenti esiste ma non è un repository Git: $checkout" >&2
     exit 1
 fi
 
 step "2/4 · Download dell'ultima versione"
-remote_commit=$(git ls-remote "$repository" "refs/heads/$branch" | awk 'NR == 1 {print $1}')
-[[ $remote_commit =~ ^[0-9a-f]{40}$ ]] || {
-    echo "Impossibile determinare il commit remoto main." >&2; exit 1;
-}
+existing_checkout=0
+old_checkout_commit=
 if [[ -d $checkout/.git ]]; then
-    if ! git -C "$checkout" diff --quiet || ! git -C "$checkout" diff --cached --quiet; then
+    if [[ -n $(git -C "$checkout" status --porcelain) ]]; then
         echo "Il repository persistente contiene modifiche locali: aggiornamento interrotto." >&2
         exit 1
     fi
-    git -C "$checkout" remote set-url origin "$repository"
-    git -C "$checkout" fetch origin "$branch"
-    git -C "$checkout" merge --ff-only FETCH_HEAD
-else
-    temporary_checkout="${checkout}.new.$$"
-    cleanup() { rm -rf -- "$temporary_checkout"; }
-    trap cleanup EXIT
-    git clone --branch "$branch" "$repository" "$temporary_checkout"
-    mv "$temporary_checkout" "$checkout"
-    trap - EXIT
+    existing_checkout=1
+    old_checkout_commit=$(git -C "$checkout" rev-parse --verify HEAD)
 fi
-downloaded_commit=$(git -C "$checkout" rev-parse HEAD)
+
+candidate_checkout=$(mktemp -d "${checkout}.candidate.XXXXXX")
+cleanup_candidate() {
+    [[ -z ${candidate_checkout:-} ]] || rm -rf -- "$candidate_checkout"
+    if [[ ! -e $checkout && -d $previous_checkout/.git ]]; then
+        mv "$previous_checkout" "$checkout"
+    fi
+}
+trap cleanup_candidate EXIT
+if [[ -d $checkout/.git ]]; then
+    git clone --quiet --no-hardlinks --no-checkout "$checkout" "$candidate_checkout"
+    git -C "$candidate_checkout" remote set-url origin "$repository"
+else
+    git -C "$candidate_checkout" init --quiet
+    git -C "$candidate_checkout" remote add origin "$repository"
+fi
+if ((existing_checkout)); then
+    git_retry -C "$candidate_checkout" fetch --quiet origin "refs/heads/$branch"
+else
+    git_retry -C "$candidate_checkout" fetch --quiet --depth=1 origin "refs/heads/$branch"
+fi
+remote_commit=$(git -C "$candidate_checkout" rev-parse --verify FETCH_HEAD)
+[[ $remote_commit =~ ^[0-9a-f]{40}$ ]] || {
+    echo "Impossibile determinare il commit remoto $branch." >&2; exit 1;
+}
+if ((existing_checkout)) && \
+   ! git -C "$candidate_checkout" merge-base --is-ancestor \
+        "$old_checkout_commit" "$remote_commit"; then
+    echo "Il ramo remoto non è un avanzamento fast-forward del checkout verificato." >&2
+    exit 1
+fi
+git -C "$candidate_checkout" checkout --quiet --detach "$remote_commit"
+downloaded_commit=$(git -C "$candidate_checkout" rev-parse --verify HEAD)
 [[ $downloaded_commit == "$remote_commit" ]] || {
-    echo "Il checkout non corrisponde al commit remoto verificato: $remote_commit" >&2
+    echo "Il checkout candidato non corrisponde al commit remoto: $remote_commit" >&2
     exit 1
 }
 
 step "3/4 · Verifica del progetto scaricato"
-"$checkout/tests/verify-project.sh"
-available_version=$(<"$checkout/VERSION")
+"$candidate_checkout/tests/verify-project.sh"
+available_version=$(<"$candidate_checkout/VERSION")
+[[ $available_version =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]] || {
+    echo "VERSION scaricata non valida: $available_version" >&2
+    exit 1
+}
+if [[ $installed_version =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]] && \
+   [[ $(printf '%s\n%s\n' "$installed_version" "$available_version" | sort -V | tail -n1) == "$installed_version" ]] && \
+   [[ $available_version != "$installed_version" ]]; then
+    echo "Downgrade bloccato: installata $installed_version, disponibile $available_version." >&2
+    exit 1
+fi
+if [[ $installed_version == "$available_version" && \
+      $installed_commit =~ ^[0-9a-f]{40}$ && \
+      $installed_commit != "$downloaded_commit" ]]; then
+    echo "Release incoerente: la versione $available_version è associata a un commit differente." >&2
+    echo "Pubblicare un nuovo numero VERSION prima di aggiornare." >&2
+    exit 1
+fi
 echo "Versione disponibile: $available_version"
-echo "Codice verificato e pronto in $checkout"
+echo "Commit disponibile: ${downloaded_commit:0:12}"
+echo "Codice candidato verificato."
+
+rm -rf -- "$previous_checkout"
+if [[ -d $checkout/.git ]]; then
+    mv "$checkout" "$previous_checkout"
+fi
+mv "$candidate_checkout" "$checkout"
+candidate_checkout=
+rm -rf -- "$previous_checkout"
+trap - EXIT
+echo "Checkout attivo aggiornato atomicamente in $checkout"
 if ((code_only)); then
     echo
     printf '%sOK%s · codice aggiornato e verificato; sistema non modificato.\n' \
         "$green" "$reset"
     exit 0
 fi
-
-# The helper is taken from the checkout just verified, so even the first
-# upgrade to this release can create and automatically restore a snapshot.
-install -o root -g root -m 0755 "$checkout/libexec/wasalight-update-snapshot" \
-    "$snapshot_tool"
-bash -n "$snapshot_tool"
-if snapshot=$(bash "$snapshot_tool" create); then
-    :
-else
-    snapshot_rc=$?
-    update_failed "$snapshot_rc" "$LINENO" 'bash "$snapshot_tool" create'
-fi
-echo "Snapshot pre-aggiornamento: $snapshot"
 
 installer_args=()
 ((protect)) || installer_args+=(--no-protection)
@@ -359,11 +331,26 @@ for plugin in "${plugins[@]-}"; do
 done
 
 select_newest_magicq_package
+installed_magicq_version=
+installed_magicq_record=$(dpkg-query -W -f='${db:Status-Abbrev}\t${Version}' magicq \
+    2>/dev/null || true)
+[[ $installed_magicq_record == ii*$'\t'* ]] && \
+    installed_magicq_version=${installed_magicq_record#*$'\t'}
+magicq_change=0
 if [[ -n $selected_package ]]; then
-    echo "Pacchetto MagicQ selezionato: $selected_package (versione $selected_package_version)"
-    installer_args+=("$selected_package")
-elif dpkg-query -W -f='${db:Status-Abbrev}' magicq 2>/dev/null | grep -q '^ii'; then
-    echo "MagicQ è già installato; aggiornamento della configurazione senza reinstallare il pacchetto."
+    if [[ -z $installed_magicq_version ]] || \
+       dpkg --compare-versions "$selected_package_version" gt "$installed_magicq_version" || \
+       ((repair)); then
+        echo "Pacchetto MagicQ da installare: $selected_package (versione $selected_package_version)"
+        installer_args+=("$selected_package")
+        magicq_change=1
+    elif dpkg --compare-versions "$selected_package_version" eq "$installed_magicq_version"; then
+        echo "MagicQ $installed_magicq_version è già installato; reinstallazione evitata."
+    else
+        echo "MagicQ installato $installed_magicq_version è più recente del pacchetto conservato $selected_package_version; downgrade evitato."
+    fi
+elif [[ -n $installed_magicq_version ]]; then
+    echo "MagicQ $installed_magicq_version è già installato; nessun pacchetto locale necessario."
 elif ((allow_missing_magicq)); then
     echo "ATTENZIONE: assenza di MagicQ ignorata esplicitamente." >&2
     installer_args+=(--allow-missing-magicq)
@@ -374,8 +361,50 @@ else
     exit 2
 fi
 
+same_release=0
+if [[ $installed_version == "$available_version" && \
+      $installed_commit == "$downloaded_commit" ]]; then
+    same_release=1
+fi
+
+printf '\nPIANO AGGIORNAMENTO\n'
+printf '  Wasalight: %s (%s) → %s (%s)\n' \
+    "$installed_version" "${installed_commit:0:12}" \
+    "$available_version" "${downloaded_commit:0:12}"
+if ((magicq_change)); then
+    printf '  MagicQ:    %s → %s\n' "${installed_magicq_version:-non installato}" "$selected_package_version"
+else
+    printf '  MagicQ:    invariato (%s)\n' "${installed_magicq_version:-non installato}"
+fi
+printf '  Snapshot:  %s\n' "$([[ $plan_only == 1 ]] && echo 'non creata (--plan)' || echo 'creata prima delle modifiche')"
+printf '  Modalità:  %s\n' "$([[ $protect == 1 ]] && echo 'SHOW al prossimo avvio' || echo 'MAINTENANCE al prossimo avvio')"
+
+if ((plan_only)); then
+    echo "Piano completato: nessuna configurazione di sistema è stata modificata."
+    exit 0
+fi
+if ((same_release && !explicit_state_change && !magicq_change && !repair)); then
+    printf '%sOK%s · sistema già aggiornato; snapshot, APT e installer non necessari.\n' \
+        "$green" "$reset"
+    exit 0
+fi
+
+# The helper is taken from the checkout just verified, so even the first
+# upgrade to this release can create and automatically restore a snapshot.
+install -o root -g root -m 0755 "$checkout/libexec/wasalight-update-snapshot" \
+    "$snapshot_tool"
+bash -n "$snapshot_tool"
+if snapshot=$(bash "$snapshot_tool" create); then
+    :
+else
+    snapshot_rc=$?
+    update_failed "$snapshot_rc" "$LINENO" 'bash "$snapshot_tool" create'
+fi
+echo "Snapshot pre-aggiornamento: $snapshot"
+
 step "4/4 · Installazione della configurazione Wasalight"
 "$checkout/install.sh" "${installer_args[@]}"
+touch /run/wasalight-update-reboot-required
 
 trap - ERR
 printf '\n========================================\n'
