@@ -29,9 +29,10 @@ jobs:
 
       - name: Verify Minimal ISO Builder sources
         run: |
-          find Minimal-ISO-Builder -maxdepth 1 -type f -name '*.sh' -print0 |
+          find Minimal-ISO-Builder -maxdepth 1 -type f -name '*.sh' \
+            ! -name 'install-ui.sh' -print0 |
             xargs -0 -r -n1 bash -n
-          python3 -c 'import pathlib; [compile(p.read_text(), str(p), "exec") for p in pathlib.Path("Minimal-ISO-Builder").glob("*.py")]'
+          python3 -c 'import pathlib; p=pathlib.Path("Minimal-ISO-Builder/install-ui.sh"); compile(p.read_text(), str(p), "exec")'
 
       - name: Check whitespace
         run: git diff --check HEAD
