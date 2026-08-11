@@ -25,17 +25,25 @@ autoinstall:
       ptable: gpt
       wipe: superblock-recursive
       preserve: false
-      grub_device: false
+      grub_device: false # __WASALIGHT_DISK_GRUB_DEVICE__
       path: __WASALIGHT_TARGET_DISK__
+    - type: partition
+      id: partition-bios-grub
+      device: disk0
+      size: 1048576
+      flag: bios_grub
+      number: 1
+      preserve: false
+      grub_device: false
     - type: partition
       id: partition-efi
       device: disk0
       size: 1127219200
       flag: boot
-      number: 1
+      number: 2
       wipe: superblock
       preserve: false
-      grub_device: true
+      grub_device: true # __WASALIGHT_EFI_GRUB_DEVICE__
     - type: format
       id: format-efi
       volume: partition-efi
@@ -45,7 +53,7 @@ autoinstall:
       id: partition-boot
       device: disk0
       size: 2147483648
-      number: 2
+      number: 3
       wipe: superblock
       preserve: false
       grub_device: false
@@ -58,7 +66,7 @@ autoinstall:
       id: partition-lvm
       device: disk0
       size: -1
-      number: 3
+      number: 4
       wipe: superblock
       preserve: false
       grub_device: false
@@ -141,11 +149,11 @@ autoinstall:
       echo "Installazione non riuscita" >/run/wasalight-install-failed;
       echo;
       echo "==============================================================";
-      echo "          WASALIGHT v24 - ERRORE INSTALLAZIONE";
+      echo "          WASALIGHT v__WASALIGHT_INSTALLER_VERSION__ - ERRORE INSTALLAZIONE";
       echo "==============================================================";
       echo;
       echo "--- AUTOINSTALL FINALE ---";
-      cat /autoinstall.yaml 2>/dev/null || true;
+      sed -E "s/^([[:space:]]*password:).*/\1 \"<oscurata>\"/" /autoinstall.yaml 2>/dev/null || true;
       echo;
       echo "--- WASALIGHT UI LOG ---";
       cat /run/wasalight-ui.log 2>/dev/null || true;
@@ -158,5 +166,10 @@ autoinstall:
       echo;
       echo "==============================================================";
       echo "Fai una foto di questa schermata.";
-      echo "Premi INVIO per aprire una shell.";
-    } >/dev/tty1; read _x </dev/tty1; exec sh </dev/tty1 >/dev/tty1 2>&1'
+      echo "Premi INVIO per aprire una shell sulla console 3.";
+    } >/dev/tty1;
+    read _x </dev/tty1;
+    if command -v openvt >/dev/null 2>&1; then
+      exec openvt -c 3 -f -s -w -- /bin/sh;
+    fi;
+    exec setsid -f --wait --ctty sh -c "exec sh </dev/tty1 >/dev/tty1 2>&1"'

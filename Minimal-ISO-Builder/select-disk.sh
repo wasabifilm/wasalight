@@ -9,8 +9,17 @@ exec <"$TTY" >"$TTY" 2>&1
 
 DISK_LIST=/run/wasalight-disks.txt
 DEVICE_LIST=/run/wasalight-device-names.txt
-MINIMUM_BYTES=$((16 * 1024 * 1024 * 1024))
-INSTALLER_VERSION=24
+MINIMUM_BYTES=$((32 * 1024 * 1024 * 1024))
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+VERSION_FILE=$SCRIPT_DIR/VERSION
+[ -r "$VERSION_FILE" ] || {
+  echo "ERRORE: VERSION non disponibile."
+  exit 1
+}
+INSTALLER_VERSION=$(tr -d '[:space:]' < "$VERSION_FILE")
+case "$INSTALLER_VERSION" in
+  ''|*[!0-9]*) echo "ERRORE: VERSION non valida."; exit 1 ;;
+esac
 
 clear_screen() { printf '\033[2J\033[H'; }
 green() { printf '\033[1;32m%s\033[0m\n' "$1"; }
@@ -89,6 +98,16 @@ while :; do
   echo
   echo "Seleziona il disco sul quale installare WASALIGHT."
   echo
+  install_variant=$(sed -n '1p' /run/wasalight-install-variant 2>/dev/null || true)
+  case "$install_variant" in
+    FULL)
+      echo "Modalita' FULL: Ubuntu e' nella ISO; Internet serve per Git e Wasalight."
+      ;;
+    NETBOOT)
+      echo "Modalita' NETBOOT: Internet serve per scaricare Ubuntu e Wasalight."
+      ;;
+  esac
+  echo
   echo "ATTENZIONE: IL DISCO SCELTO VERRA' CANCELLATO COMPLETAMENTE."
   echo "Il supporto USB da cui e' avviato l'installer non viene mostrato."
   echo
@@ -97,7 +116,7 @@ while :; do
   disk_count=$(wc -l < "$DISK_LIST" | tr -d ' ')
 
   if [ "$disk_count" -eq 0 ]; then
-    pause_error "Nessun disco installabile da almeno 16 GiB trovato."
+    pause_error "Nessun disco installabile da almeno 32 GiB trovato."
     continue
   fi
 
@@ -185,19 +204,52 @@ grep -Fq '__WASALIGHT_TARGET_DISK__' /autoinstall.yaml || {
   exec sh
 }
 
+grep -Fq '__WASALIGHT_DISK_GRUB_DEVICE__' /autoinstall.yaml || {
+  echo
+  echo "ERRORE: placeholder GRUB disco non trovato."
+  echo "Premi INVIO per aprire una shell."
+  IFS= read -r _dummy
+  exec sh
+}
+
+grep -Fq '__WASALIGHT_EFI_GRUB_DEVICE__' /autoinstall.yaml || {
+  echo
+  echo "ERRORE: placeholder GRUB EFI non trovato."
+  echo "Premi INVIO per aprire una shell."
+  IFS= read -r _dummy
+  exec sh
+}
+
+if [ -d /sys/firmware/efi ]; then
+  boot_mode=UEFI
+  disk_grub_device=false
+  efi_grub_device=true
+else
+  boot_mode=BIOS
+  disk_grub_device=true
+  efi_grub_device=false
+fi
+
 escaped_target=$(printf '%s' "$target" | sed 's/[\/&]/\\&/g')
 sed "s/__WASALIGHT_TARGET_DISK__/$escaped_target/g" \
-  /autoinstall.yaml > /run/autoinstall.wasalight.yaml
+  /autoinstall.yaml | \
+  sed \
+    -e "s/false # __WASALIGHT_DISK_GRUB_DEVICE__/$disk_grub_device/g" \
+    -e "s/true # __WASALIGHT_EFI_GRUB_DEVICE__/$efi_grub_device/g" \
+  > /run/autoinstall.wasalight.yaml
 cat /run/autoinstall.wasalight.yaml > /autoinstall.yaml
 
 printf '%s\n' "$target" > /run/wasalight-target-disk
 printf '%s\n' "$size" > /run/wasalight-target-size
 printf '%s\n' "$model" > /run/wasalight-target-model
+printf '%s\n' "$boot_mode" > /run/wasalight-boot-mode
 
 clear_screen
 echo "Disco selezionato: $target"
 echo
 echo "Layout WASALIGHT:"
+echo "  Boot $boot_mode"
+echo "  BIOS GRUB"
 echo "  EFI"
 echo "  /boot"
 echo "  LVM"

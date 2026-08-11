@@ -7,7 +7,11 @@ die() { printf '\nERRORE: %s\n' "$*" >&2; exit 1; }
 info() { printf '%s\n' "$*"; }
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-readonly INSTALLER_VERSION=24
+VERSION_FILE="$SCRIPT_DIR/VERSION"
+[[ -r "$VERSION_FILE" ]] || die "VERSION non trovato: $VERSION_FILE"
+INSTALLER_VERSION="$(tr -d '[:space:]' <"$VERSION_FILE")"
+[[ $INSTALLER_VERSION =~ ^[0-9]+$ ]] || die "VERSION non valido: $INSTALLER_VERSION"
+readonly VERSION_FILE INSTALLER_VERSION
 readonly MINI_SHA256=57bfe99e776698ae08358145cf3a58bfb74beafe8c8cf965ca86552233d2f53f
 readonly SERVER_SHA256=e907d92eeec9df64163a7e454cbc8d7755e8ddc7ed42f99dbc80c40f1a138433
 readonly SERVER_SIZE=3405469696
@@ -25,6 +29,12 @@ THEME_SCRIPT="$SCRIPT_DIR/apply-theme.sh"
 UI_SCRIPT="$SCRIPT_DIR/install-ui.sh"
 FIRST_BOOT_SCRIPT="$SCRIPT_DIR/wasalight-first-boot.sh"
 FIRST_BOOT_SERVICE="$SCRIPT_DIR/wasalight-first-boot.service"
+
+output_parent="$(dirname -- "$OUTPUT_ISO")"
+[[ -d "$output_parent" ]] || die "La cartella di destinazione non esiste: $output_parent"
+mini_real="$(CDPATH= cd -- "$(dirname -- "$MINI_ISO")" && pwd)/$(basename -- "$MINI_ISO")"
+output_real="$(CDPATH= cd -- "$output_parent" && pwd)/$(basename -- "$OUTPUT_ISO")"
+[[ "$mini_real" != "$output_real" ]] || die "La ISO di output non puo' sovrascrivere la Mini ISO sorgente."
 
 sha256sum_file() {
   if command -v sha256sum >/dev/null 2>&1; then
@@ -50,6 +60,27 @@ for source in "$MINI_ISO" "$AUTOINSTALL" "$LOADER" "$COPY_SEED" \
   [[ -f $source ]] || die "File richiesto non trovato: $source"
 done
 
+for placeholder in \
+  __WASALIGHT_TARGET_DISK__ \
+  __WASALIGHT_DISK_GRUB_DEVICE__ \
+  __WASALIGHT_EFI_GRUB_DEVICE__ \
+  __WASALIGHT_KEYBOARD_LAYOUT__ \
+  __WASALIGHT_KEYBOARD_VARIANT__ \
+  __WASALIGHT_PASSWORD_HASH__ \
+  __WASALIGHT_INSTALL_VARIANT__ \
+  __WASALIGHT_PACKAGES__ \
+  __WASALIGHT_NETWORK_PRELOAD__ \
+  __WASALIGHT_INSTALLER_VERSION__
+do
+  count=$(grep -Foc "$placeholder" "$AUTOINSTALL" || true)
+  [[ "$count" == "1" ]] || \
+    die "Il placeholder $placeholder deve comparire una sola volta in $AUTOINSTALL."
+done
+
+if grep -Eq 'password:[[:space:]]+["'\'']?\$[156y]\$' "$AUTOINSTALL"; then
+  die "autoinstall.yaml contiene un hash password fisso."
+fi
+
 [[ $(sha256sum_file "$MINI_ISO") == "$MINI_SHA256" ]] || \
   die "Checksum Mini ISO non valido."
 bash -n "$0"
@@ -62,7 +93,12 @@ sh -n "$THEME_SCRIPT"
 python3 -c 'compile(open(__import__("sys").argv[1], encoding="utf-8").read(), __import__("sys").argv[1], "exec")' "$UI_SCRIPT"
 
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/wasalight-netboot.XXXXXX")"
-cleanup() { chmod -R u+w "$TMP" 2>/dev/null || true; rm -rf "$TMP"; }
+PARTIAL_OUTPUT=""
+cleanup() {
+  [[ -z "$PARTIAL_OUTPUT" ]] || rm -f -- "$PARTIAL_OUTPUT"
+  chmod -R u+w "$TMP" 2>/dev/null || true
+  rm -rf "$TMP"
+}
 trap cleanup EXIT INT TERM
 
 info "============================================================"
@@ -88,11 +124,12 @@ sed \
   -e 's|__WASALIGHT_INSTALL_VARIANT__|NETBOOT|g' \
   -e 's|__WASALIGHT_PACKAGES__|[git]|g' \
   -e 's|__WASALIGHT_NETWORK_PRELOAD__|curtin in-target --target=/target -- /usr/local/sbin/wasalight-first-boot --download-only|g' \
+  -e "s|__WASALIGHT_INSTALLER_VERSION__|$INSTALLER_VERSION|g" \
   -e 's|/cdrom/wasalight|/wasalight|g' \
   "$AUTOINSTALL" >"$TMP/autoinstall.yaml"
 grep -Fq 'packages: [git]' "$TMP/autoinstall.yaml" || die "Git non presente nell'autoinstall NETBOOT."
 grep -Fq -- '--download-only' "$TMP/autoinstall.yaml" || die "Preload Git Wasalight non configurato."
-if grep -Eq '__WASALIGHT_(INSTALL_VARIANT|PACKAGES|NETWORK_PRELOAD)__|/cdrom/wasalight' "$TMP/autoinstall.yaml"; then
+if grep -Eq '__WASALIGHT_(INSTALL_VARIANT|PACKAGES|NETWORK_PRELOAD|INSTALLER_VERSION)__|/cdrom/wasalight' "$TMP/autoinstall.yaml"; then
   die "Autoinstall NETBOOT contiene placeholder o percorsi non risolti."
 fi
 
@@ -103,6 +140,7 @@ install -m 0755 "$DISK_SELECTOR" "$FINAL_ROOT/wasalight/select-disk.sh"
 install -m 0755 "$KEYBOARD_SELECTOR" "$FINAL_ROOT/wasalight/select-keyboard.sh"
 install -m 0755 "$THEME_SCRIPT" "$FINAL_ROOT/wasalight/apply-theme.sh"
 install -m 0755 "$UI_SCRIPT" "$FINAL_ROOT/wasalight/install-ui.sh"
+install -m 0644 "$VERSION_FILE" "$FINAL_ROOT/wasalight/VERSION"
 install -m 0755 "$FIRST_BOOT_SCRIPT" "$FINAL_ROOT/wasalight/wasalight-first-boot.sh"
 install -m 0644 "$FIRST_BOOT_SERVICE" "$FINAL_ROOT/wasalight/wasalight-first-boot.service"
 install -m 0755 "$COPY_SEED" "$FINAL_ROOT/scripts/casper-bottom/62wasalight-seed"
@@ -143,20 +181,31 @@ menuentry 'INSTALLA WASALIGHT NETBOOT v${INSTALLER_VERSION}' {
 EOF
 
 info "[4/5] Creo la ISO ibrida BIOS/UEFI..."
-rm -f "$OUTPUT_ISO"
-xorriso -abort_on SORRY -indev "$MINI_ISO" -outdev "$OUTPUT_ISO" \
+PARTIAL_OUTPUT="$(mktemp "$output_parent/.$(basename -- "$OUTPUT_ISO").partial.XXXXXX")"
+xorriso -abort_on SORRY -indev "$MINI_ISO" -outdev "$PARTIAL_OUTPUT" \
   -map "$TMP/initrd" /casper/initrd \
   -map "$TMP/grub.cfg" /boot/grub/grub.cfg \
   -boot_image any replay -compliance no_emul_toc -padding included
 
 info "[5/5] Verifico contenuto e boot..."
-xorriso -indev "$OUTPUT_ISO" -ls /casper/initrd >/dev/null 2>&1
-xorriso -indev "$OUTPUT_ISO" -ls /boot/grub/grub.cfg >/dev/null 2>&1
-boot_report=$(xorriso -indev "$OUTPUT_ISO" -report_el_torito plain 2>&1)
+xorriso -indev "$PARTIAL_OUTPUT" -ls /casper/initrd >/dev/null 2>&1
+xorriso -indev "$PARTIAL_OUTPUT" -ls /boot/grub/grub.cfg >/dev/null 2>&1
+boot_report=$(xorriso -indev "$PARTIAL_OUTPUT" -report_el_torito plain 2>&1)
 grep -q 'BIOS' <<<"$boot_report" || die "Boot BIOS non preservato."
 grep -q 'UEFI' <<<"$boot_report" || die "Boot UEFI non preservato."
-[[ $(file_size "$OUTPUT_ISO") -lt 209715200 ]] || \
+[[ $(file_size "$PARTIAL_OUTPUT") -lt 209715200 ]] || \
   die "La ISO NETBOOT supera 200 MiB: build non realmente minimale."
+xorriso -osirrox on -indev "$PARTIAL_OUTPUT" \
+  -extract /casper/initrd "$TMP/verify-initrd" \
+  -extract /boot/grub/grub.cfg "$TMP/verify-grub.cfg" >/dev/null 2>&1
+cmp -s "$TMP/initrd" "$TMP/verify-initrd" || \
+  die "initrd NETBOOT incorporato non corrisponde al file generato."
+cmp -s "$TMP/grub.cfg" "$TMP/verify-grub.cfg" || \
+  die "grub.cfg NETBOOT incorporato non corrisponde al file generato."
+
+chmod 0644 "$PARTIAL_OUTPUT"
+mv -f -- "$PARTIAL_OUTPUT" "$OUTPUT_ISO"
+PARTIAL_OUTPUT=""
 
 info
 info "ISO NETBOOT v${INSTALLER_VERSION} creata: $OUTPUT_ISO"
