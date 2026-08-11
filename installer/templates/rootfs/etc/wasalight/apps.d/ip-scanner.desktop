@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Scanner IP
+Comment=Trova dispositivi, indirizzi IP e produttori nella rete locale
+Exec=/usr/local/bin/wasalight-ip-scanner
+Icon=/usr/local/share/icons/wasalight/ip-scanner.svg
+TryExec=/usr/local/bin/wasalight-ip-scanner
+X-Wasalight-Section=Applications
+X-Wasalight-Order=20

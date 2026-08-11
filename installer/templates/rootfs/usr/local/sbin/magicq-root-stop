@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $EUID -eq 0 ]] || {
+    echo "MagicQ root stop must be run through sudo." >&2
+    exit 1
+}
+
+if ! pgrep -x mqqt >/dev/null 2>&1; then
+    echo "MagicQ is already stopped."
+    exit 0
+fi
+
+pkill -TERM -x mqqt
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+    pgrep -x mqqt >/dev/null 2>&1 || {
+        echo "MagicQ stopped."
+        exit 0
+    }
+    sleep 1
+done
+
+pkill -KILL -x mqqt 2>/dev/null || true
+echo "MagicQ required a forced stop."

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Monitor sistema
+Comment=Mostra processi e utilizzo di CPU e memoria
+Exec=lxtask
+Icon=utilities-system-monitor
+TryExec=lxtask
+X-Wasalight-Section=Support
+X-Wasalight-Order=58

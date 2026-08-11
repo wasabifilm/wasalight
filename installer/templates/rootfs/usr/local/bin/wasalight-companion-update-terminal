@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+exec lxterminal --title="Bitfocus Companion Update" \
+    -e /usr/local/libexec/wasalight-companion-update-session

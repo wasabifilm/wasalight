@@ -1,0 +1,8 @@
+[Unit]
+Description=Rotate persistent Wasalight MagicQ logs
+RequiresMountsFor=/data/log
+ConditionPathIsMountPoint=/data
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/logrotate --state /run/wasalight-logrotate.status /etc/wasalight/wasalight-logrotate.conf

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $EUID -eq 0 ]] || { echo "wasalight-ip-scan requires root" >&2; exit 1; }
+(($# == 0)) || { echo "wasalight-ip-scan accepts no arguments" >&2; exit 2; }
+
+mapfile -t interfaces < <(
+    nmcli -t -f DEVICE,TYPE,STATE device status 2>/dev/null | \
+        awk -F: '($2 == "ethernet" || $2 == "wifi") && $3 == "connected" { print $1 }'
+)
+((${#interfaces[@]} > 0)) || { echo "!\tNessuna interfaccia di rete connessa"; exit 0; }
+
+for interface in "${interfaces[@]}"; do
+    echo "#\t$interface"
+    /usr/sbin/arp-scan --interface="$interface" --localnet --plain --ignoredups \
+        2>/dev/null | awk -v dev="$interface" 'NF >= 2 { vendor=""; for (i=3;i<=NF;i++) vendor=vendor (i==3?"":" ") $i; print dev "\t" $1 "\t" $2 "\t" vendor }'
+done

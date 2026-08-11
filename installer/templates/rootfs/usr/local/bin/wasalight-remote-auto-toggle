@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || { echo "Run as the chamsys desktop user." >&2; exit 1; }
+service=${1:-}
+case $service in
+    ssh) title=SSH ;;
+    vnc) title=VNC ;;
+    *) echo "Usage: wasalight-remote-auto-toggle ssh|vnc" >&2; exit 2 ;;
+esac
+flag="/data/system/service-flags/${service}-autostart"
+current=disabled
+[[ -r $flag ]] && current=$(<"$flag")
+if [[ $current == enabled ]]; then
+    next=disable
+    question="Disabilitare l'avvio automatico di $title?\n\nIl servizio corrente non verrà fermato."
+    button="Disabilita automatico"
+else
+    next=enable
+    question="Abilitare l'avvio automatico di $title dopo ogni riavvio?"
+    button="Abilita automatico"
+fi
+/usr/local/bin/wasalight-dialog --question --width=520 --title="$title · Wasalight" \
+    --text="<big><b>$question</b></big>" --ok-label="$button" --cancel-label="Annulla" || exit 0
+output=$(sudo -n /usr/local/sbin/wasalight-remote-persistence "$service" "$next" 2>&1) || {
+    /usr/local/bin/wasalight-dialog --error --width=540 --title="$title · Wasalight" --text="$output"
+    exit 1
+}
+/usr/local/bin/wasalight-dialog --info --width=460 --title="$title · Wasalight" --text="$output"

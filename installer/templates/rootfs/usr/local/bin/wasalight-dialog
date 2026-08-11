@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+export GDK_BACKEND=x11
+export GTK_A11Y=none
+exec /usr/bin/zenity --modal "$@"

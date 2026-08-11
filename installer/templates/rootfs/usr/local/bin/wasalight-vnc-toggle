@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || {
+    echo "Run this command as the chamsys desktop user." >&2
+    exit 1
+}
+
+if pgrep -u chamsys -x x11vnc >/dev/null 2>&1; then
+    /usr/local/bin/wasalight-dialog --question --width=460 --title="VNC · Wasalight" \
+        --text="<big><b>VNC è attivo.</b></big>\n\nFermare la condivisione della sessione corrente?" \
+        --ok-label="Stop VNC" --cancel-label="Cancel" || exit 0
+    output=$(/usr/local/bin/wasalight-vnc-stop 2>&1) || {
+        /usr/local/bin/wasalight-dialog --error --width=460 --title="VNC · Wasalight" --text="$output"
+        exit 1
+    }
+    /usr/local/bin/wasalight-dialog --info --width=420 --title="VNC · Wasalight" --text="$output"
+    exit 0
+fi
+
+password_file=/home/chamsys/.config/wasalight-vnc/passwd
+[[ ! -r /data/system/vnc/passwd ]] || password_file=/data/system/vnc/passwd
+if [[ ! -r $password_file ]]; then
+    # x11vnc deliberately reads the new password from a terminal so it never
+    # appears in a process argument, temporary file or Wasalight log.
+    lxterminal --title="VNC password · Wasalight" -e bash -lc \
+        '/usr/local/bin/wasalight-vnc-start; rc=$?; echo; echo "Premere Invio per chiudere."; read -r _; exit "$rc"'
+    exit 0
+fi
+
+output=$(/usr/local/bin/wasalight-vnc-start 2>&1) || {
+    /usr/local/bin/wasalight-dialog --error --width=520 --title="VNC · Wasalight" --text="$output"
+    exit 1
+}
+ip_address=$(hostname -I 2>/dev/null | awk '{print $1}')
+/usr/local/bin/wasalight-dialog --info --width=500 --title="VNC · Wasalight" \
+    --text="<big><b>VNC attivo nella sessione corrente</b></big>\n\nIndirizzo: vnc://${ip_address:-SERVER_IP}:5900\n\nUsare soltanto su una rete locale fidata."

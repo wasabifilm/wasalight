@@ -1,0 +1,12 @@
+[Unit]
+Description=Periodically monitor Wasalight health
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=15min
+AccuracySec=1min
+Persistent=true
+Unit=wasalight-health.service
+
+[Install]
+WantedBy=timers.target

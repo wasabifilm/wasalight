@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Stato sistema
+Comment=Mostra lo stato completo Wasalight
+Exec=/usr/local/bin/wasalight-terminal-tool status
+Icon=utilities-system-monitor
+TryExec=/usr/local/bin/wasalight-status
+X-Wasalight-Section=Support
+X-Wasalight-Order=70

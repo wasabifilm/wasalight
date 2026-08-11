@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Touchscreen
+Comment=Mostra dispositivi e associazione touch
+Exec=/usr/local/bin/wasalight-terminal-tool touch
+Icon=input-touchpad
+TryExec=/usr/local/bin/wasalight-touch-status
+X-Wasalight-Section=Support
+X-Wasalight-Order=30

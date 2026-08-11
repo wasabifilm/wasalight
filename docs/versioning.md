@@ -19,11 +19,17 @@ Il formato non usa `+`: in Semantic Versioning quel simbolo introduce metadati
 che non partecipano alla precedenza, mentre per Wasalight il numero di build deve
 essere confrontabile con `sort -V`.
 
-## Sorgente unica
+## Sorgenti dichiarative
 
 La versione ufficiale del codice è contenuta nel file `VERSION` alla radice del
 repository. Gli script la leggono; non deve essere duplicata manualmente nel
 codice.
+
+`release-manifest.ini` centralizza invece i valori della release che prima
+erano distribuiti negli script: Ubuntu supportato, architettura, repository e
+ramo Wasalight, URL del controllo versione, versione/commit/checksum di
+Companion e requisiti del pacchetto MagicQ. Il campo `VersionFile` collega il
+manifesto a `VERSION`, che resta l’unica sorgente del numero CalVer.
 
 ```bash
 ./install.sh --version

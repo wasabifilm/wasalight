@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+readonly state_dir=/data/system/update-check
+. /usr/local/libexec/wasalight-release-manifest.sh
+readonly version_url="$(require_manifest_value /etc/wasalight/release-manifest.ini Wasalight VersionURL)"
+
+[[ $(id -un) == chamsys ]] || { echo "Run as the chamsys desktop user." >&2; exit 1; }
+mountpoint -q /data || exit 0
+install -d -m 0755 "$state_dir"
+temporary=$(mktemp "$state_dir/.latest.XXXXXX")
+trap 'rm -f -- "$temporary"' EXIT
+
+if ! curl --fail --silent --show-error --location \
+    --connect-timeout 5 --max-time 15 "$version_url" >"$temporary"; then
+    printf '%s\n' "$(date -Is)" >"$state_dir/last-failure"
+    logger -t wasalight-update-check "version check unavailable"
+    exit 0
+fi
+latest=$(tr -d '[:space:]' <"$temporary")
+[[ $latest =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]] || {
+    logger -t wasalight-update-check "GitHub returned an invalid version: $latest"
+    exit 0
+}
+printf '%s\n' "$latest" >"$temporary"
+mv -f -- "$temporary" "$state_dir/latest-version"
+trap - EXIT
+printf '%s\n' "$(date -Is)" >"$state_dir/last-success"
+rm -f "$state_dir/last-failure"
+
+installed=$(cat /etc/wasalight/version 2>/dev/null || echo 0.0.0.0)
+if [[ $(printf '%s\n%s\n' "$installed" "$latest" | sort -V | tail -n1) == "$latest" && \
+      $latest != "$installed" ]]; then
+    logger -t wasalight-update-check "Wasalight $latest available (installed $installed)"
+    command -v notify-send >/dev/null 2>&1 && notify-send \
+        --app-name=Wasalight --icon=system-software-update \
+        "Aggiornamento Wasalight disponibile" \
+        "Versione $latest. Apri Wasalight Control in MAINTENANCE per aggiornare." || true
+fi

@@ -3,9 +3,13 @@
 set -Eeuo pipefail
 
 PROJECT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
-INSTALLER="$PROJECT_DIR/bin/chamsys_install_ubuntu.sh"
+INSTALLER_ENTRY="$PROJECT_DIR/bin/chamsys_install_ubuntu.sh"
+INSTALLER="$INSTALLER_ENTRY"
+INSTALLER_MODULE_DIR="$PROJECT_DIR/installer/modules"
+INSTALLER_TEMPLATE_ROOT="$PROJECT_DIR/installer/templates/rootfs"
 ENTRYPOINT="$PROJECT_DIR/install.sh"
 VERSION_FILE="$PROJECT_DIR/VERSION"
+RELEASE_MANIFEST="$PROJECT_DIR/release-manifest.ini"
 tmp_dir=$(mktemp -d)
 vnc_test_pid=
 cleanup() {
@@ -53,11 +57,83 @@ grep -Fq "dpkg-query -W -f='\${db:Status-Abbrev}' magicq" "$ENTRYPOINT" || \
 
 bash -n "$INSTALLER"
 bash -n "$ENTRYPOINT"
+[[ -d $INSTALLER_MODULE_DIR ]] || fail "directory moduli installer mancante"
+installer_modules=()
+while IFS= read -r module; do
+    installer_modules+=("$module")
+done < <(find "$INSTALLER_MODULE_DIR" -maxdepth 1 -type f -name '*.sh' | sort)
+((${#installer_modules[@]} >= 8)) || fail "installer non sufficientemente suddiviso in moduli"
+for module in "${installer_modules[@]}"; do
+    bash -n "$module"
+done
+[[ -d $INSTALLER_TEMPLATE_ROOT ]] || fail "directory template installer mancante"
+template_count=0
+while IFS= read -r template; do
+    template_count=$((template_count + 1))
+    case $(head -n 1 "$template") in
+        '#!/usr/bin/env bash'|'#!/bin/bash') bash -n "$template" ;;
+        '#!/usr/bin/env python3')
+            python3 -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' \
+                "$template" ;;
+    esac
+done < <(find "$INSTALLER_TEMPLATE_ROOT" -type f | sort)
+((template_count >= 100)) || fail "troppi file statici sono ancora incorporati nei moduli"
+installer_combined="$tmp_dir/chamsys-installer-combined.sh"
+{
+    cat "$INSTALLER_ENTRY"
+    for module in "${installer_modules[@]}"; do cat "$module"; done
+    while IFS= read -r template; do cat "$template"; done \
+        < <(find "$INSTALLER_TEMPLATE_ROOT" -type f | sort)
+} >"$installer_combined"
+INSTALLER="$installer_combined"
+
+[[ -s $RELEASE_MANIFEST ]] || fail "release-manifest.ini mancante"
+for declaration in \
+    '[Wasalight]' 'VersionFile=VERSION' \
+    'Repository=https://github.com/wasabifilm/wasalight.git' 'Branch=main' \
+    'VersionURL=https://raw.githubusercontent.com/wasabifilm/wasalight/main/VERSION' \
+    '[Platform]' 'UbuntuVersion=24.04' 'Architecture=amd64' \
+    '[Companion]' 'Version=5.0.3' \
+    'Commit=07024263dbb54512f3acdc705eca70cd74dbae43'; do
+    grep -Fqx "$declaration" "$RELEASE_MANIFEST" || \
+        fail "valore release centralizzato mancante: $declaration"
+done
+
+lock_library="$PROJECT_DIR/lib/wasalight-operation-lock.sh"
+[[ -s $lock_library ]] || fail "libreria lock globale mancante"
+grep -Fq 'flock -n 9' "$lock_library" || fail "il lock globale non usa flock non bloccante"
+grep -Fq 'Operazione Wasalight già in corso' "$lock_library" || \
+    fail "il lock globale non mostra un errore comprensibile"
+grep -Fq 'wasalight_acquire_operation_lock "installazione Wasalight"' "$ENTRYPOINT" || \
+    fail "install.sh non acquisisce il lock globale"
+for locked_tool in \
+    "$INSTALLER_TEMPLATE_ROOT/usr/local/sbin/wasalight-update" \
+    "$PROJECT_DIR/libexec/wasalight-update-snapshot" \
+    "$PROJECT_DIR/libexec/wasalight-data-transfer"; do
+    grep -Fq 'wasalight_acquire_operation_lock' "$locked_tool" || \
+        fail "operazione mutante priva di lock globale: $locked_tool"
+done
+rollback_tool="$PROJECT_DIR/libexec/wasalight-rollback"
+rollback_ui="$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-rollback-ui"
+grep -Fq 'head -n 5' "$rollback_tool" || fail "il rollback non limita la lista agli ultimi cinque snapshot"
+grep -Fq 'sha256sum -c' "$rollback_tool" || fail "il rollback non verifica i checksum"
+grep -Fq '!= overlay' "$rollback_tool" || fail "il rollback non richiede MAINTENANCE"
+grep -Fq 'pkexec /usr/local/sbin/wasalight-rollback restore' "$rollback_ui" || \
+    fail "l’interfaccia rollback non richiede autenticazione amministrativa"
+if grep -Fq 'wasalight-rollback' \
+        "$INSTALLER_TEMPLATE_ROOT/etc/sudoers.d/wasalight-management"; then
+    fail "il rollback non deve essere autorizzato permanentemente senza password"
+fi
+companion_web_launcher="$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/companion-web.desktop"
+grep -Fq 'Icon=/usr/local/share/icons/wasalight/companion-official.png' \
+    "$companion_web_launcher" || fail "Falkon Companion non usa l’icona ufficiale"
+grep -Fq 'StartupWMClass=Falkon' "$companion_web_launcher" || \
+    fail "il launcher Companion non associa la finestra Falkon"
 
 management_helpers=(
     wasalight-health wasalight-health-monitor wasalight-support-bundle wasalight-data-transfer
     wasalight-first-run wasalight-magicq-usb-watch wasalight-plugin-bundle
-    wasalight-update-snapshot
+    wasalight-update-snapshot wasalight-rollback
 )
 for helper in "${management_helpers[@]}"; do
     [[ -x "$PROJECT_DIR/libexec/$helper" ]] || fail "helper non eseguibile: $helper"
@@ -72,8 +148,8 @@ for helper in \
 done
 
 required_patterns=(
-    'VERSION_ID:-} == 24.04'
-    'PROJECT_VERSION="$(<"$PROJECT_DIR/VERSION")"'
+    'VERSION_ID:-} == "$TARGET_UBUNTU_VERSION"'
+    'PROJECT_VERSION="$(<"$PROJECT_DIR/$VERSION_FILE_NAME")"'
     '/etc/wasalight/version'
     '$DATA_MOUNT/system/installed-version'
     "status_line \"\$blue\" 'VERSION'"
@@ -99,7 +175,7 @@ required_patterns=(
     'readonly USB_MOUNT="/stick"'
     'mountpoint="$base/$dev_name"'
     'state="$state_dir/$dev_name.mount"'
-    '[[ $(dpkg-deb -f "$DEB_PATH" Package) == magicq ]]'
+    '[[ $(dpkg-deb -f "$DEB_PATH" Package) == "$MAGICQ_PACKAGE_NAME" ]]'
     'wasalight-maintenance'
     'wasalight-protect'
     'wasalight-mode-toggle'
@@ -170,7 +246,7 @@ required_patterns=(
     '${execpi 2 /usr/local/bin/wasalight-desktop-status}'
     '/data/system/wasalight'
     '/data/system/packages'
-    'git clone --branch main'
+    'git clone --branch "$branch"'
     '/etc/wasalight/apps.d/network.desktop'
     '/data/system/apps.d'
     'wasalight-app-register'
@@ -244,8 +320,8 @@ required_patterns=(
     'magicq-stop'
     'magicq-root-stop'
     '--with-companion'
-    'readonly COMPANION_VERSION="5.0.3"'
-    'readonly COMPANION_PI_COMMIT="07024263dbb54512f3acdc705eca70cd74dbae43"'
+    'COMPANION_VERSION="$(require_manifest_value "$RELEASE_MANIFEST" Companion Version)"'
+    'COMPANION_PI_COMMIT="$(require_manifest_value "$RELEASE_MANIFEST" Companion Commit)"'
     '$DATA_MOUNT/companion/home /home/companion none bind'
     '$DATA_MOUNT/companion/etc /etc/companion none bind'
     'RequiresMountsFor=/data/companion/home /data/companion/etc /data/companion/log'
@@ -272,7 +348,7 @@ required_patterns=(
     '/usr/local/libexec/wasalight-control-center.py'
     'Name=Wasalight Control'
     'Exec=/usr/local/bin/wasalight-control'
-    'Icon=/usr/local/share/icons/wasalight/companion-web.svg'
+    'Icon=/usr/local/share/icons/wasalight/companion-official.png'
     '/data/companion/browser/config'
     'XDG_CACHE_HOME="$runtime_base/wasalight-companion-browser-cache"'
     '/usr/local/bin/wasalight-falkon-profile'
@@ -292,6 +368,7 @@ required_patterns=(
     'wasalight-health.timer'
     'wasalight-data-transfer'
     'wasalight-update-snapshot'
+    'wasalight-rollback-ui'
     'wasalight-magicq-usb-watch'
     'wasalight-first-run'
     'wasalight-plugin-bundle'
@@ -451,11 +528,15 @@ helpers=(
 
 for helper in "${helpers[@]}"; do
     output="$tmp_dir/${helper##*/}"
-    awk -v needle="write_file $helper" '
-        index($0, needle) { capture=1; next }
-        capture && /^EOF$/ { exit }
-        capture { print }
-    ' "$INSTALLER" >"$output"
+    if [[ -f $INSTALLER_TEMPLATE_ROOT$helper ]]; then
+        cp "$INSTALLER_TEMPLATE_ROOT$helper" "$output"
+    else
+        awk -v needle="write_file $helper" '
+            index($0, needle) { capture=1; next }
+            capture && /^EOF$/ { exit }
+            capture { print }
+        ' "$INSTALLER" >"$output"
+    fi
     [[ -s "$output" ]] || fail "impossibile estrarre $helper"
     bash -n "$output"
 done
@@ -588,7 +669,7 @@ grep -Fq 'find "$usb_mount" -maxdepth 1' "$tmp_dir/wasalight-update" || \
     fail "l'updater non cerca il pacchetto MagicQ nella root USB"
 grep -Fq 'find "$usb_mount/packages" -maxdepth 1' "$tmp_dir/wasalight-update" || \
     fail "l'updater non cerca il pacchetto MagicQ nella cartella packages USB"
-grep -Fq '[[ $(dpkg-deb -f "$source" Package 2>/dev/null) == magicq ]]' \
+grep -Fq '[[ $(dpkg-deb -f "$source" Package 2>/dev/null) == "$magicq_package" ]]' \
     "$tmp_dir/wasalight-update" || \
     fail "l'updater non verifica che il pacchetto USB sia MagicQ"
 grep -Fq 'dpkg --compare-versions' "$tmp_dir/wasalight-update" || \
@@ -642,9 +723,9 @@ grep -Fq 'sudo wasalight-update --allow-missing-magicq' \
     fail "l'updater non spiega come ignorare l'assenza di MagicQ"
 grep -Fq 'systemctl reboot' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update --reboot non riavvia il sistema"
-grep -Fq 'raw.githubusercontent.com/wasabifilm/wasalight/main/VERSION' \
+grep -Fq 'require_manifest_value /etc/wasalight/release-manifest.ini Wasalight VersionURL' \
     "$tmp_dir/wasalight-update-check" || \
-    fail "il controllo aggiornamenti non usa la VERSION pubblicata"
+    fail "il controllo aggiornamenti non usa la VersionURL centralizzata"
 grep -Fq -- '--max-time 15' "$tmp_dir/wasalight-update-check" || \
     fail "il controllo aggiornamenti può bloccare indefinitamente l'avvio"
 grep -Fq '( sleep 15; /usr/local/bin/wasalight-update-check ) &' "$INSTALLER" || \
@@ -762,9 +843,7 @@ grep -Fq 'https://github.com/wasabifilm/wasalight' "$control_center" || \
 grep -Fq 'https://www.instagram.com/wasabi_lightbulbfarm/' "$control_center" || \
     fail "la pagina Crediti non collega Instagram"
 for launcher in files ip-scanner artnet-monitor; do
-    launcher_body=$(sed -n \
-        "/write_file \/etc\/wasalight\/apps.d\/${launcher}\.desktop/,/^EOF$/p" \
-        "$INSTALLER")
+    launcher_body=$(cat "$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/$launcher.desktop")
     grep -Fq 'X-Wasalight-Section=Applications' <<<"$launcher_body" || \
         fail "$launcher non è classificato in Applicazioni"
 done
@@ -869,11 +948,7 @@ for embedded in \
     'wasalight-artnet-monitor.py:/usr/local/libexec/wasalight-artnet-monitor.py'; do
     output=${embedded%%:*}
     marker=${embedded#*:}
-    awk -v marker="$marker" '
-        index($0, "write_file " marker " ") { capture=1; next }
-        capture && /^PYEOF$/ { exit }
-        capture { print }
-    ' "$INSTALLER" >"$tmp_dir/$output"
+    cp "$INSTALLER_TEMPLATE_ROOT$marker" "$tmp_dir/$output"
     [[ -s $tmp_dir/$output ]] || fail "strumento Python non estraibile: $output"
     python3 -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' \
         "$tmp_dir/$output"
@@ -888,11 +963,7 @@ for embedded in \
     'falkon-profile:/usr/local/bin/wasalight-falkon-profile'; do
     output=${embedded%%:*}
     marker=${embedded#*:}
-    awk -v marker="$marker" '
-        index($0, "write_file " marker " ") { capture=1; next }
-        capture && /^EOF$/ { exit }
-        capture { print }
-    ' "$INSTALLER" >"$tmp_dir/$output"
+    cp "$INSTALLER_TEMPLATE_ROOT$marker" "$tmp_dir/$output"
     [[ -s $tmp_dir/$output ]] || fail "strumento Companion non estraibile: $output"
     bash -n "$tmp_dir/$output"
 done

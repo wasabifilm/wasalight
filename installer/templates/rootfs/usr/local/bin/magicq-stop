@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || {
+    echo "Run this command as the chamsys desktop user." >&2
+    exit 1
+}
+runtime_dir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+pid_file="$runtime_dir/wasalight-magicq-session.pid"
+session_pid=
+
+valid_session() {
+    local candidate=${1:-}
+    [[ $candidate =~ ^[0-9]+$ ]] && \
+    [[ $(ps -o uid= -p "$candidate" 2>/dev/null | tr -d ' ') == $(id -u) ]] && \
+    [[ $(ps -o args= -p "$candidate" 2>/dev/null) == *'/usr/local/bin/magicq-session'* ]]
+}
+
+if [[ -r $pid_file ]]; then
+    session_pid=$(<"$pid_file")
+fi
+if ! valid_session "$session_pid"; then
+    session_pid=
+    while read -r candidate; do
+        if valid_session "$candidate"; then
+            session_pid=$candidate
+            break
+        fi
+    done < <(pgrep -u "$(id -u)" -f '/usr/local/bin/magicq-session' 2>/dev/null || true)
+fi
+[[ -z $session_pid ]] || kill -TERM "$session_pid" 2>/dev/null || true
+
+# Stop the root-owned application after ending its tracked launch session.
+sudo -n /usr/local/sbin/magicq-root-stop
+for _ in 1 2 3 4 5; do
+    [[ ! -r $pid_file ]] && break
+    sleep 1
+done
+rm -f "$pid_file"
+echo "MagicQ will remain stopped until magicq-start or the next login/reboot."

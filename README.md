@@ -18,8 +18,13 @@ magicq-ubuntu-appliance/
 ├── NOTICE                             attribuzione da conservare
 ├── CITATION.cff                       citazione standard del progetto
 ├── VERSION                            versione CalVer dell’installer
+├── release-manifest.ini               piattaforma, repository e versioni esterne
 ├── bin/
-│   └── chamsys_install_ubuntu.sh      installer completo
+│   └── chamsys_install_ubuntu.sh      orchestratore dell’installer
+├── installer/
+│   ├── modules/                       fasi funzionali separate
+│   └── templates/rootfs/              file installati, testabili direttamente
+├── lib/                               lettura manifest e lock globale
 ├── Minimal-ISO-Builder/               builder ISO Ubuntu 24.04.4
 │   ├── README.txt
 │   ├── make-wasalight-minimal.sh
@@ -77,6 +82,11 @@ Dopo un’installazione riuscita la stessa versione appare sul pannello desktop 
 in `wasalight-status`. `UPDATE READY` indica che il codice già scaricato in `/data`
 è più recente della configurazione installata. Dettagli e procedura di incremento
 sono nella [guida al versionamento](docs/versioning.md).
+
+Versioni della piattaforma, repository, commit e checksum esterni sono
+centralizzati in `release-manifest.ini`. L’architettura modulare e le regole per
+aggiungere una fase o un template sono descritte in
+[architettura installer](docs/installer-architecture.md).
 
 La riga `MAGICQ VER` mostra invece la versione del pacchetto MagicQ realmente
 installato secondo `dpkg`, per esempio `1.9.8.3`; non viene ricavata dal nome del

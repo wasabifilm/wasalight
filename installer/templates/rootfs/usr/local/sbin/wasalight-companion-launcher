@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+[[ $EUID -eq 0 ]] || {
+    echo "Wasalight companion launcher must be run through sudo." >&2
+    exit 1
+}
+
+case ${1:-} in
+    magichd) launcher=/opt/magicq/runmagichd.sh ;;
+    magicvis) launcher=/opt/magicq/runmagicvis.sh ;;
+    *) echo "Usage: wasalight-companion-launcher magichd|magicvis" >&2; exit 2 ;;
+esac
+[[ -x $launcher ]] || {
+    echo "ChamSys companion launcher not found: $launcher" >&2
+    exit 127
+}
+
+# MagicHD and MagicVis use the same proprietary Qt/OpenGL runtime as MagicQ.
+# Match the root X11 environment already proven on the target while keeping
+# root's Documents/MagicQ directory backed by persistent /data bind mounts.
+export HOME=/root
+export USER=root
+export LOGNAME=root
+export XDG_DATA_HOME=/root/.local/share
+export XDG_CONFIG_HOME=/root/.config
+export DISPLAY=:0
+export XAUTHORITY=/home/chamsys/.Xauthority
+unset DBUS_SESSION_BUS_ADDRESS XDG_CACHE_HOME XDG_RUNTIME_DIR
+umask 0022
+
+cd /opt/magicq
+exec "$launcher"

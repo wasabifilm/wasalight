@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+exec lxterminal --title="Wasalight · Diagnostica" -e bash -lc '
+echo "Destinazioni USB montate:"; findmnt -rn -o TARGET | awk '\''$0 ~ "^/stick/[^/]+$"'\''
+echo; read -r -p "Destinazione (/data/log oppure /stick/NOME): " destination
+case $destination in /data/log|/stick/*) ;; *) echo "Destinazione non valida"; read -r _; exit 2 ;; esac
+sudo -n /usr/local/sbin/wasalight-support-bundle "$destination"
+rc=$?; echo; read -r -p "Premere Invio per chiudere"; exit "$rc"'

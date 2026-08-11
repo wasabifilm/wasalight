@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+import datetime
+import os
+import socket
+import struct
+import sys
+
+if os.geteuid() != 0:
+    raise SystemExit("wasalight-artnet-capture requires root")
+if len(sys.argv) != 1:
+    raise SystemExit("wasalight-artnet-capture accepts no arguments")
+
+capture = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0003))
+capture.settimeout(1.0)
+parent_pid = os.getppid()
+while os.getppid() == parent_pid:
+    try:
+        frame = capture.recv(65535)
+    except socket.timeout:
+        continue
+    if len(frame) < 42:
+        continue
+    offset = 14
+    ether_type = struct.unpack("!H", frame[12:14])[0]
+    if ether_type in (0x8100, 0x88A8) and len(frame) >= 46:
+        ether_type = struct.unpack("!H", frame[16:18])[0]
+        offset = 18
+    if ether_type != 0x0800 or len(frame) < offset + 28:
+        continue
+    ihl = (frame[offset] & 0x0F) * 4
+    if ihl < 20 or frame[offset + 9] != 17:
+        continue
+    udp = offset + ihl
+    if len(frame) < udp + 8:
+        continue
+    source_port, destination_port = struct.unpack("!HH", frame[udp:udp + 4])
+    if source_port != 6454 and destination_port != 6454:
+        continue
+    payload = frame[udp + 8:]
+    if len(payload) < 12 or payload[:8] != b"Art-Net\x00":
+        continue
+    opcode = struct.unpack("<H", payload[8:10])[0]
+    source = socket.inet_ntoa(frame[offset + 12:offset + 16])
+    destination = socket.inet_ntoa(frame[offset + 16:offset + 20])
+    universe, length = -1, 0
+    if opcode == 0x5000 and len(payload) >= 18:
+        universe = payload[14] | (payload[15] << 8)
+        length = struct.unpack("!H", payload[16:18])[0]
+    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+    print(f"{timestamp}\t{source}\t{destination}\t0x{opcode:04x}\t{universe}\t{length}", flush=True)

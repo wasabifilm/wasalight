@@ -1,0 +1,234 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+profile_root=${WASALIGHT_FALKON_PROFILE_ROOT:-/data/companion/browser/config/falkon/profiles/wasalight-companion}
+if [[ -z ${WASALIGHT_FALKON_PROFILE_ROOT:-} && $(id -un) != chamsys ]]; then
+    echo "Configure the Falkon profile as the chamsys desktop user." >&2
+    exit 1
+fi
+
+install -d -m 0700 "$profile_root"
+settings_file="$profile_root/settings.ini"
+if [[ ! -e $settings_file ]]; then
+    printf '%s\n' \
+        '[Plugin-Settings]' \
+        'AllowedPlugins=@Invalid()' >"$settings_file"
+    chmod 0600 "$settings_file"
+else
+    temporary="${settings_file}.tmp.$$"
+    if ! awk '
+    function write_empty_list() {
+        print "AllowedPlugins=@Invalid()"
+    }
+    BEGIN {
+        in_plugins = 0
+        saw_group = 0
+        saw_key = 0
+    }
+    /^\[Plugin-Settings\][[:space:]]*$/ {
+        in_plugins = 1
+        saw_group = 1
+        saw_key = 0
+        print
+        next
+    }
+    /^\[/ {
+        if (in_plugins && !saw_key) {
+            write_empty_list()
+        }
+        in_plugins = 0
+    }
+    in_plugins && /^[[:space:]]*AllowedPlugins[[:space:]]*=/ {
+        value = $0
+        sub(/^[^=]*=/, "", value)
+        count = split(value, plugins, /,[[:space:]]*/)
+        output = ""
+        for (i = 1; i <= count; i++) {
+            plugin = plugins[i]
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", plugin)
+            if (plugin == "" || plugin == "internal:adblock" || plugin == "@Invalid()") {
+                continue
+            }
+            output = output (output == "" ? "" : ", ") plugin
+        }
+        print "AllowedPlugins=" (output == "" ? "@Invalid()" : output)
+        saw_key = 1
+        next
+    }
+    { print }
+    END {
+        if (in_plugins && !saw_key) {
+            write_empty_list()
+        }
+        if (!saw_group) {
+            if (NR > 0) {
+                print ""
+            }
+            print "[Plugin-Settings]"
+            write_empty_list()
+        }
+    }
+' "$settings_file" >"$temporary"; then
+        rm -f -- "$temporary"
+        echo "Unable to configure the Falkon Companion profile." >&2
+        exit 1
+    fi
+    mv -- "$temporary" "$settings_file"
+fi
+chmod 0600 "$settings_file"
+
+set_ini_value() {
+    local section=$1 key=$2 value=$3 temporary
+    temporary="${settings_file}.tmp.$$"
+    if ! awk -v section="$section" -v key="$key" -v value="$value" '
+        BEGIN {
+            in_section = 0
+            saw_section = 0
+            wrote_key = 0
+        }
+        $0 == "[" section "]" {
+            in_section = 1
+            saw_section = 1
+            print
+            next
+        }
+        /^\[/ {
+            if (in_section && !wrote_key) {
+                print key "=" value
+                wrote_key = 1
+            }
+            in_section = 0
+        }
+        in_section {
+            line = $0
+            sub(/^[[:space:]]*/, "", line)
+            if (index(line, key "=") == 1 || line ~ ("^" key "[[:space:]]*=")) {
+                print key "=" value
+                wrote_key = 1
+                next
+            }
+        }
+        { print }
+        END {
+            if (in_section && !wrote_key) {
+                print key "=" value
+            } else if (!saw_section) {
+                if (NR > 0) {
+                    print ""
+                }
+                print "[" section "]"
+                print key "=" value
+            }
+        }
+    ' "$settings_file" >"$temporary"; then
+        rm -f -- "$temporary"
+        echo "Unable to initialise the Falkon Companion profile." >&2
+        exit 1
+    fi
+    mv -- "$temporary" "$settings_file"
+}
+
+# Apply the Wasalight browser defaults once. Subsequent updates preserve all
+# operator changes; AdBlock remains the only setting enforced on every launch.
+profile_schema=1
+profile_marker="$profile_root/.wasalight-profile-$profile_schema"
+if [[ ! -e $profile_marker ]]; then
+    set_ini_value Web-URL-Settings homepage http://127.0.0.1:8000
+    set_ini_value Web-URL-Settings newTabUrl http://127.0.0.1:8000
+    set_ini_value Web-URL-Settings afterLaunch 1
+    set_ini_value Browser-View-Settings showStatusBar false
+    set_ini_value Browser-View-Settings instantBookmarksToolbar false
+    set_ini_value Browser-View-Settings showBookmarksToolbar false
+    set_ini_value Browser-View-Settings showNavigationToolbar true
+    set_ini_value Browser-View-Settings showMenubar false
+    set_ini_value Browser-View-Settings showProfileName false
+    set_ini_value Browser-Tabs-Settings hideTabsWithOneTab true
+    set_ini_value Browser-Tabs-Settings AskOnClosing false
+    set_ini_value Web-Browser-Settings DefaultZoomLevel 8
+    set_ini_value Web-Browser-Settings CheckUpdates false
+    set_ini_value Web-Browser-Settings CheckDefaultBrowser false
+    set_ini_value NavigationBar ShowSearchBar false
+    set_ini_value NavigationBar Layout 'button-backforward, button-reloadstop, button-home, locationbar, button-tools'
+
+    if [[ ! -e $profile_root/userChrome.css ]]; then
+        cat >"$profile_root/userChrome.css" <<'WASALIGHT_QSS'
+QWidget {
+    background-color: #11151b;
+    color: #f0f3f6;
+}
+
+#navigationbar {
+    background-color: #11151b;
+    border-bottom: 1px solid #30363d;
+    min-height: 58px;
+    spacing: 5px;
+}
+
+#navigationbar QToolButton {
+    background-color: #1c222b;
+    border: 1px solid #303842;
+    border-radius: 7px;
+    margin: 3px;
+    min-height: 46px;
+    min-width: 46px;
+    padding: 2px;
+}
+
+#navigationbar QToolButton:hover,
+#navigationbar QToolButton:pressed {
+    background-color: #303842;
+    border-color: #76bd22;
+}
+
+#locationbar {
+    background-color: #20262e;
+    border: 1px solid #3a424d;
+    border-radius: 7px;
+    color: #ffffff;
+    font-size: 16px;
+    min-height: 42px;
+    selection-background-color: #76bd22;
+    selection-color: #080b10;
+}
+
+QMenu {
+    background-color: #161b22;
+    border: 1px solid #3a424d;
+    color: #f0f3f6;
+}
+
+QMenu::item {
+    min-height: 38px;
+    padding: 4px 24px 4px 12px;
+}
+
+QMenu::item:selected {
+    background-color: #303842;
+    color: #ffffff;
+}
+
+QTabBar::tab {
+    background-color: #1c222b;
+    border: 1px solid #303842;
+    color: #f0f3f6;
+    min-height: 38px;
+    min-width: 120px;
+    padding: 3px 10px;
+}
+
+QTabBar::tab:selected {
+    border-bottom: 2px solid #76bd22;
+}
+
+QToolTip {
+    background-color: #20262e;
+    border: 1px solid #76bd22;
+    color: #ffffff;
+    padding: 4px;
+}
+WASALIGHT_QSS
+        chmod 0600 "$profile_root/userChrome.css"
+    fi
+
+    touch "$profile_marker"
+    chmod 0600 "$settings_file" "$profile_marker"
+fi

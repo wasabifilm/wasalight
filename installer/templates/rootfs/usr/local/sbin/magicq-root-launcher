@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+readonly magicq_user=chamsys
+readonly magicq_home=/home/chamsys
+readonly magicq_data=/data/magicq
+
+[[ $EUID -eq 0 ]] || {
+    echo "MagicQ root launcher must be run through sudo." >&2
+    exit 1
+}
+id "$magicq_user" >/dev/null 2>&1 || {
+    echo "Required user is unavailable: $magicq_user" >&2
+    exit 1
+}
+
+install -d -o "$magicq_user" -g "$magicq_user" -m 2770 \
+    "$magicq_home/Documents/MagicQ" "$magicq_home/.local/share"
+
+# Match the manual sudo launch that works on the target. Root's MagicQ config
+# and local data are bind-mounted from /data; user-dirs.dirs sends the Documents
+# location to /home/chamsys/Documents. /root/Documents/MagicQ is also a bind
+# fallback to the same persistent show directory.
+export HOME=/root
+export USER=root
+export LOGNAME=root
+export XDG_DATA_HOME=/root/.local/share
+export XDG_CONFIG_HOME=/root/.config
+export DISPLAY=:0
+export XAUTHORITY=/home/chamsys/.Xauthority
+unset DBUS_SESSION_BUS_ADDRESS XDG_CACHE_HOME XDG_RUNTIME_DIR
+umask 0022
+
+repair_magicq_ownership() {
+    if mountpoint -q /data; then
+        chown -R "$magicq_user:$magicq_user" \
+            "$magicq_data/Documents/MagicQ" "$magicq_data/.local/share" \
+            2>/dev/null || true
+        find "$magicq_data/Documents/MagicQ" "$magicq_data/.local/share" \
+            -type d -exec chmod g+rwx {} + 2>/dev/null || true
+    fi
+}
+trap repair_magicq_ownership EXIT
+
+cd /opt/magicq
+if [[ -x ./runmagicq.sh ]]; then
+    ./runmagicq.sh
+elif [[ -x ./bin/mqqt ]]; then
+    ./bin/mqqt
+else
+    echo "MagicQ executable not found under /opt/magicq." >&2
+    exit 127
+fi

@@ -1,0 +1,53 @@
+#!/bin/sh
+set -u
+log_dir=${MAGICQ_LOG_DIR:-/data/log}
+runtime_dir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+
+if [ ! -d "$log_dir" ] || [ ! -w "$log_dir" ]; then
+    log_dir="$runtime_dir"
+    logger -t magicq-session "Persistent log directory unavailable; using $log_dir"
+fi
+console_log="$log_dir/wasalight-magicq-console.log"
+session_log="$log_dir/wasalight-magicq-session.log"
+touch "$console_log" "$session_log"
+chmod 0640 "$console_log" "$session_log" 2>/dev/null || true
+
+# Openbox menu actions and autostart may overlap. Keep one launch session only.
+exec 9>"$runtime_dir/wasalight-magicq-session.lock"
+flock -n 9 || exit 0
+pid_file="$runtime_dir/wasalight-magicq-session.pid"
+
+session_event() {
+    event_message=$1
+    printf '%s %s\n' "$(date -Is)" "$event_message" >>"$session_log"
+    logger -t magicq-session "$event_message"
+}
+
+cleanup_session() {
+    if [ -r "$pid_file" ] && [ "$(cat "$pid_file")" = "$$" ]; then
+        rm -f "$pid_file"
+    fi
+}
+
+stop_session() {
+    session_event "MagicQ session stopped by operator"
+    exit 0
+}
+
+printf '%s\n' "$$" >"$pid_file"
+trap stop_session HUP INT TERM
+trap cleanup_session EXIT
+
+session_event "MagicQ session started"
+if [ ! -x /usr/local/sbin/magicq-root-launcher ]; then
+    session_event "MagicQ root launcher not found"
+    exit 127
+fi
+# Start MagicQ exactly once. If the operator closes it, it remains closed until
+# magicq-start or the next SHOW login/reboot.
+session_event "Starting MagicQ"
+printf '\n===== %s MagicQ launch =====\n' "$(date -Is)" >>"$console_log"
+sudo -n /usr/local/sbin/magicq-root-launcher >>"$console_log" 2>&1
+rc=$?
+session_event "MagicQ exited with status $rc; automatic restart disabled"
+exit "$rc"

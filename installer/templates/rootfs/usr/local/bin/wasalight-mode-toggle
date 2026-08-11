@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || {
+    echo "Run this command as the chamsys desktop user." >&2
+    exit 1
+}
+
+if [[ $(findmnt -n -o FSTYPE / 2>/dev/null) == overlay ]]; then
+    target=MAINTENANCE
+    command=/usr/local/sbin/wasalight-maintenance
+    explanation="Il prossimo avvio userà il filesystem scrivibile per aggiornamenti e manutenzione."
+else
+    target=SHOW
+    command=/usr/local/sbin/wasalight-protect
+    explanation="Il prossimo avvio userà la protezione overlayroot per lo show."
+fi
+
+/usr/local/bin/wasalight-dialog --question --width=560 \
+    --title="Modalità $target · Wasalight" \
+    --text="<big><b>Preparare la modalità $target?</b></big>\n\n$explanation\n\nLa modalità cambierà soltanto dopo il riavvio." \
+    --ok-label="Prepara $target" --cancel-label="Annulla" || exit 0
+
+output=$(sudo -n "$command" 2>&1) || {
+    /usr/local/bin/wasalight-dialog --error --width=540 \
+        --title="Modalità Wasalight" --text="$output"
+    exit 1
+}
+
+if /usr/local/bin/wasalight-dialog --question --width=520 \
+    --title="$target pronto · Wasalight" \
+    --text="<big><b>Modalità $target preparata.</b></big>\n\nRiavviare adesso per applicarla?" \
+    --ok-label="Riavvia ora" --cancel-label="Più tardi"; then
+    exec sudo -n /usr/local/sbin/wasalight-power-control reboot
+fi

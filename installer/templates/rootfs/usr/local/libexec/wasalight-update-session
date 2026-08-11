@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -u
+
+# The minimal Openbox session does not run the AT-SPI accessibility bus.
+# Disable GTK accessibility only for this small update UI so Zenity does not
+# print a harmless GDBus warning after a successful installation.
+export GTK_A11Y=none
+
+update_args=()
+if [[ -n ${WASALIGHT_UPDATE_PLUGIN:-} ]]; then
+    update_args+=(--plugin "$WASALIGHT_UPDATE_PLUGIN")
+fi
+
+clear
+printf '\n  WASALIGHT UPDATE\n'
+printf '  Scarico, verifico e installo l’ultima versione.\n'
+printf '  La password richiesta è quella Linux di chamsys.\n\n'
+
+sudo /usr/local/sbin/wasalight-update "${update_args[@]}"
+rc=$?
+if ((rc == 0)); then
+    echo
+    echo "Aggiornamento completato correttamente."
+    if /usr/local/bin/wasalight-dialog --question --width=520 --title="Wasalight aggiornato" \
+        --text="<big><b>Aggiornamento completato.</b></big>\n\nRiavviare ora per applicare la nuova configurazione?" \
+        --ok-label="Riavvia ora" --cancel-label="Più tardi"; then
+        echo "Riavvio in corso…"
+        sudo -n /usr/local/sbin/wasalight-power-control reboot
+        exit $?
+    fi
+    /usr/local/bin/wasalight-dialog --info --width=500 --title="Wasalight aggiornato" \
+        --text="Aggiornamento installato.\n\nRicordati di riavviare prima del prossimo utilizzo." \
+        --ok-label="Chiudi"
+    exit 0
+fi
+
+echo
+echo "Aggiornamento non completato. La macchina non verrà riavviata."
+/usr/local/bin/wasalight-dialog --error --width=560 --title="Aggiornamento non riuscito" \
+    --text="<big><b>Wasalight non è stato aggiornato.</b></big>\n\nLa macchina non verrà riavviata.\nControlla: /data/log/wasalight-update.log" \
+    --ok-label="Chiudi" 2>/dev/null || true
+exit "$rc"

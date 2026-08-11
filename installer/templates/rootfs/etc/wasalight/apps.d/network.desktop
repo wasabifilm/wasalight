@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Rete
+Comment=Configura Ethernet e Wi-Fi
+Exec=nm-connection-editor
+Icon=/usr/local/share/icons/wasalight/network.svg
+TryExec=nm-connection-editor
+X-Wasalight-Section=Support
+X-Wasalight-Order=10

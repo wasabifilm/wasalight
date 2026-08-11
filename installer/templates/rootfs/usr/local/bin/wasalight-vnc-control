@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || {
+    echo "Run this command as the chamsys desktop user." >&2
+    exit 1
+}
+case ${1:-} in
+    start)
+        password_file=/home/chamsys/.config/wasalight-vnc/passwd
+        [[ ! -r /data/system/vnc/passwd ]] || password_file=/data/system/vnc/passwd
+        if [[ ! -r $password_file ]]; then
+            lxterminal --title="VNC password · Wasalight" -e bash -lc \
+                '/usr/local/bin/wasalight-vnc-start; rc=$?; echo; echo "Premere Invio per chiudere."; read -r _; exit "$rc"' &
+            exit 0
+        fi
+        exec /usr/local/bin/wasalight-vnc-start
+        ;;
+    stop) exec /usr/local/bin/wasalight-vnc-stop ;;
+    *) echo "Usage: wasalight-vnc-control start|stop" >&2; exit 2 ;;
+esac

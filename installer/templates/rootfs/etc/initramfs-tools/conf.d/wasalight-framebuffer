@@ -1,0 +1,3 @@
+# Keep framebuffer and DRM support in the initramfs so Plymouth can display
+# before the ordinary root filesystem and graphical session are available.
+FRAMEBUFFER=y

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $EUID -eq 0 ]] || { echo "Companion control must be run through sudo." >&2; exit 1; }
+[[ -f /etc/systemd/system/companion.service ]] || {
+    echo "Bitfocus Companion is not installed." >&2; exit 1;
+}
+case ${1:-} in
+    start) exec systemctl start companion.service ;;
+    stop) exec systemctl stop companion.service ;;
+    restart) exec systemctl restart companion.service ;;
+    *) echo "Usage: wasalight-companion-control start|stop|restart" >&2; exit 2 ;;
+esac

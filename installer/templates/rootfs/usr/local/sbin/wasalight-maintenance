@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $EUID -eq 0 ]] || exec sudo "$0" "$@"
+if findmnt -n -o FSTYPE / | grep -qx overlay; then
+    command -v overlayroot-chroot >/dev/null || { echo "overlayroot-chroot is missing" >&2; exit 1; }
+    overlayroot-chroot /usr/local/libexec/wasalight-set-mode maintenance
+else
+    /usr/local/libexec/wasalight-set-mode maintenance
+fi

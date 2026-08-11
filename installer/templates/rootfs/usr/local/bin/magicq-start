@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || {
+    echo "Run this command as the chamsys desktop user." >&2
+    exit 1
+}
+runtime_dir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+exec 9>"$runtime_dir/wasalight-magicq-session.lock"
+if ! flock -n 9; then
+    echo "MagicQ is already running."
+    exit 0
+fi
+flock -u 9
+nohup /usr/local/bin/magicq-session >/dev/null 2>&1 &
+echo "MagicQ started."

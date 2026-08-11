@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -u
+installed=$(cat /data/companion/installed-version 2>/dev/null || echo unknown)
+target=$(cat /etc/wasalight/companion-target-version 2>/dev/null || echo unknown)
+printf '%s\n' "$installed"
+[[ $installed == "$target" ]] || printf 'target: %s\n' "$target"

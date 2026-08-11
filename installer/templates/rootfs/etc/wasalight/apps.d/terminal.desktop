@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Terminal
+Comment=Apre il terminale di manutenzione
+Exec=lxterminal
+Icon=/usr/local/share/icons/wasalight/terminal.svg
+TryExec=lxterminal
+X-Wasalight-Section=Support
+X-Wasalight-Order=60

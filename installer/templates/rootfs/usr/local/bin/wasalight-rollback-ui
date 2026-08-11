@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+title='Wasalight · Rollback'
+if [[ $(findmnt -n -o FSTYPE / 2>/dev/null) == overlay ]]; then
+    /usr/local/bin/wasalight-dialog --error --width=560 --title="$title" \
+        --text="<big><b>Modalità MAINTENANCE richiesta.</b></big>\n\nPassa a MAINTENANCE e riavvia prima di ripristinare uno snapshot."
+    exit 1
+fi
+
+snapshots=$(pkexec /usr/local/sbin/wasalight-rollback list)
+if [[ -z $snapshots ]]; then
+    /usr/local/bin/wasalight-dialog --info --width=520 --title="$title" \
+        --text="Nessuno snapshot Wasalight disponibile."
+    exit 0
+fi
+
+rows=()
+while IFS=$'\t' read -r file version stamp size integrity mode; do
+    rows+=("$file" "$version" "$stamp" "$size" "$integrity")
+done <<<"$snapshots"
+
+selected=$(zenity --list --modal --width=820 --height=430 --title="$title" \
+    --text="Seleziona una configurazione Wasalight da ripristinare.\nMagicQ, pacchetti Ubuntu e dati dello show non vengono modificati." \
+    --column="File" --column="Versione" --column="Data" --column="Dimensione" \
+    --column="Checksum" --hide-column=1 --print-column=1 "${rows[@]}") || exit 0
+[[ -n $selected ]] || exit 0
+
+details=$(awk -F '\t' -v selected="$selected" '$1 == selected {print "Versione: "$2"\nData: "$3"\nDimensione: "$4"\nChecksum: "$5}' <<<"$snapshots")
+integrity=$(awk -F '\t' -v selected="$selected" '$1 == selected {print $5}' <<<"$snapshots")
+if [[ $integrity != OK ]]; then
+    /usr/local/bin/wasalight-dialog --error --width=560 --title="$title" \
+        --text="<big><b>Snapshot non integro.</b></big>\n\nIl checksum non è valido: il ripristino è stato bloccato."
+    exit 1
+fi
+if ! /usr/local/bin/wasalight-dialog --question --width=620 --title="$title" \
+    --text="<big><b>Ripristinare questa configurazione?</b></big>\n\n$details\n\nVerranno sostituiti configurazione, comandi e tema Wasalight. Al termine sarà obbligatorio riavviare." \
+    --ok-label="Ripristina" --cancel-label="Annulla"; then
+    exit 0
+fi
+
+log_file=$(mktemp /tmp/wasalight-rollback.XXXXXX)
+trap 'rm -f -- "$log_file"' EXIT
+set +e
+pkexec /usr/local/sbin/wasalight-rollback restore "$selected" >"$log_file" 2>&1 &
+restore_pid=$!
+(
+    while kill -0 "$restore_pid" 2>/dev/null; do
+        echo "# Ripristino della configurazione in corso…"
+        sleep 1
+    done
+) | zenity --progress --pulsate --auto-close --no-cancel --modal \
+    --width=520 --title="$title" 2>/dev/null
+wait "$restore_pid"
+rc=$?
+set -e
+
+if ((rc != 0)); then
+    details=$(tail -n 20 "$log_file")
+    /usr/local/bin/wasalight-dialog --error --width=680 --title="$title" \
+        --text="<big><b>Rollback non riuscito.</b></big>\n\n$details"
+    exit "$rc"
+fi
+
+if /usr/local/bin/wasalight-dialog --question --width=560 --title="$title" \
+    --text="<big><b>Configurazione ripristinata.</b></big>\n\nRiavviare ora per applicarla?" \
+    --ok-label="Riavvia ora" --cancel-label="Più tardi"; then
+    sudo -n /usr/local/sbin/wasalight-power-control reboot
+fi
