@@ -4,14 +4,11 @@ Wasalight usa `x11vnc` per condividere la sessione Xorg/Openbox esistente
 dell'utente `chamsys`. Non crea un secondo desktop e permette quindi di vedere
 esattamente ciò che appare sul monitor della postazione MagicQ.
 
-Usare **Wasalight Control → Servizi → VNC**. La voce VNC resta disponibile
-anche nel menu Openbox di emergenza, ma non occupa un'icona sul desktop.
-Lo stesso pulsante avvia la condivisione quando è spenta e
-propone di fermarla quando è già attiva. Al primo utilizzo apre un terminale
-dedicato per impostare la password senza inserirla negli argomenti dei processi
-o nei log.
+Usare **Wasalight Control → Servizi → VNC**. Il toggle **Servizio attivo**
+avvia o ferma la condivisione corrente. Al primo avvio apre un terminale dedicato
+per impostare la password senza inserirla negli argomenti dei processi o nei log.
 
-Il pulsante **Automatico** gestisce separatamente l'avvio dopo ogni riavvio.
+Il toggle **Avvio automatico** gestisce separatamente l'avvio dopo ogni riavvio.
 La prima abilitazione viene accettata soltanto dopo aver creato la password VNC.
 La scelta è il flag persistente `/data/system/service-flags/vnc-autostart`.
 

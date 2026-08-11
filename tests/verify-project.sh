@@ -96,7 +96,7 @@ required_patterns=(
     'libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0'
     'libasound2-data alsa-utils'
     'openbox tint2 picom pcmanfm lxterminal lxrandr lxtask x11vnc procps wmctrl x11-utils'
-    'conky-all zenity libglib2.0-bin desktop-file-utils librsvg2-common'
+    'conky-all zenity libnotify-bin libglib2.0-bin desktop-file-utils librsvg2-common'
     'python3 python3-gi gir1.2-gtk-3.0'
     'arp-scan iproute2'
     'plymouth plymouth-themes file'
@@ -135,14 +135,13 @@ required_patterns=(
     'wallpapers_configured=1'
     'desktop_bg=#080b10'
     'pcmanfm --desktop --profile=default'
-    '$TARGET_HOME/Desktop/Wasalight-Control.desktop'
-    '$TARGET_HOME/Desktop/Files.desktop'
+    '$TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop'
+    '$TARGET_HOME/.config/wasalight/dock/Files.desktop'
+    '$TARGET_HOME/Desktop/MagicQ.desktop'
     '$TARGET_HOME/Desktop/Power-Off.desktop'
     '$TARGET_HOME/Desktop/Reboot.desktop'
     'Icon=/usr/local/share/icons/wasalight/hub.svg'
     'Icon=/usr/local/share/icons/wasalight/files.svg'
-    'Icon=/usr/local/share/icons/wasalight/vnc.svg'
-    'Icon=/usr/local/share/icons/wasalight/ssh.svg'
     'Icon=/usr/local/share/icons/wasalight/power.svg'
     'Icon=/usr/local/share/icons/wasalight/reboot.svg'
     'conky --config="$HOME/.config/conky/wasalight.conf"'
@@ -161,8 +160,8 @@ required_patterns=(
     'taskbar_name = 0'
     'autohide = 0'
     'strut_policy = follow_size'
-    'launcher_item_app = $TARGET_HOME/Desktop/Wasalight-Control.desktop'
-    'launcher_item_app = $TARGET_HOME/Desktop/Files.desktop'
+    'launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop'
+    'launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Files.desktop'
     'quick_exec=1'
     'chown -R root:root "$TARGET_HOME/Desktop"'
     '-exec chmod 0444 {} +'
@@ -377,6 +376,7 @@ helpers=(
     /usr/local/bin/wasalight-vnc-password
     /usr/local/bin/wasalight-vnc-start
     /usr/local/bin/wasalight-vnc-stop
+    /usr/local/bin/wasalight-vnc-control
     /usr/local/bin/magicq-fullscreen-watch
     /usr/local/bin/wasalight-audio-test
     /usr/local/bin/wasalight-power
@@ -393,6 +393,7 @@ helpers=(
     /usr/local/sbin/wasalight-update
     /usr/local/libexec/wasalight-update-session
     /usr/local/bin/wasalight-update-terminal
+    /usr/local/bin/wasalight-update-check
     /usr/local/bin/wasalight-control
     /usr/local/bin/wasalight-terminal-tool
     /usr/local/sbin/wasalight-app-register
@@ -469,11 +470,16 @@ grep -Fq 'desktop_icon_size=64' "$INSTALLER" || \
     fail "i pulsanti desktop non sono dimensionati per l'uso touch"
 grep -Fq '/usr/local/bin/wasalight-dialog --question' "$tmp_dir/wasalight-power" || \
     fail "spegnimento e riavvio non richiedono una conferma touch"
-grep -Fq 'exec /usr/bin/zenity --class=WasalightConfirm "$@"' \
+grep -Fq 'exec /usr/bin/zenity --modal "$@"' \
     "$tmp_dir/wasalight-dialog" || \
-    fail "i dialoghi Wasalight non usano una classe Openbox comune"
-grep -Fq '<application class="WasalightConfirm">' "$INSTALLER" || \
-    fail "Openbox non riconosce i dialoghi Wasalight"
+    fail "i dialoghi Wasalight non usano la modalità compatibile con Zenity 4"
+grep -Fq 'export GTK_A11Y=none' "$tmp_dir/wasalight-dialog" || \
+    fail "i dialoghi Zenity 4 non disabilitano il bus accessibilità assente"
+if grep -Fq -- '--class=WasalightConfirm' "$INSTALLER"; then
+    fail "i dialoghi usano ancora l'opzione rimossa da Zenity 4"
+fi
+grep -Fq '<application name="zenity" class="zenity">' "$INSTALLER" || \
+    fail "Openbox non riconosce i dialoghi Zenity"
 grep -Fq '<x>center</x>' "$INSTALLER" || \
     fail "Openbox non centra i dialoghi Wasalight"
 grep -Fq '<layer>above</layer>' "$INSTALLER" || \
@@ -494,6 +500,10 @@ grep -Fq 'wasalight-vnc-start' "$tmp_dir/wasalight-vnc-toggle" || \
     fail "il pulsante VNC non avvia la sessione condivisa"
 grep -Fq 'wasalight-vnc-stop' "$tmp_dir/wasalight-vnc-toggle" || \
     fail "il pulsante VNC non ferma la sessione condivisa"
+grep -Fq 'wasalight-vnc-start' "$tmp_dir/wasalight-vnc-control" || \
+    fail "il toggle VNC non avvia la sessione condivisa"
+grep -Fq 'wasalight-vnc-stop' "$tmp_dir/wasalight-vnc-control" || \
+    fail "il toggle VNC non ferma la sessione condivisa"
 grep -Fq 'wasalight-ssh-control start' "$tmp_dir/wasalight-ssh-toggle" || \
     fail "il pulsante SSH non avvia il servizio controllato"
 grep -Fq 'wasalight-ssh-control stop' "$tmp_dir/wasalight-ssh-toggle" || \
@@ -555,6 +565,12 @@ grep -Fq 'wasalight-power-control reboot' "$tmp_dir/wasalight-update-session" ||
     fail "la sessione guidata non offre il riavvio finale"
 grep -Fq -- '--reboot' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non espone l'opzione di riavvio"
+grep -Fq -- '--verbose' "$tmp_dir/wasalight-update" || \
+    fail "wasalight-update non espone la diagnostica dettagliata"
+grep -Fq '/data/log/wasalight/updates' "$tmp_dir/wasalight-update" || \
+    fail "wasalight-update non crea un log separato per ogni esecuzione"
+grep -Fq 'Comando: %s' "$tmp_dir/wasalight-update" || \
+    fail "wasalight-update non riporta il comando che ha causato l'errore"
 grep -Fq -- '--with-companion' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non espone --with-companion"
 grep -Fq -- '--plugin ID' "$tmp_dir/wasalight-update" || \
@@ -572,6 +588,13 @@ grep -Fq 'sudo wasalight-update --allow-missing-magicq' \
     fail "l'updater non spiega come ignorare l'assenza di MagicQ"
 grep -Fq 'systemctl reboot' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update --reboot non riavvia il sistema"
+grep -Fq 'raw.githubusercontent.com/wasabifilm/wasalight/main/VERSION' \
+    "$tmp_dir/wasalight-update-check" || \
+    fail "il controllo aggiornamenti non usa la VERSION pubblicata"
+grep -Fq -- '--max-time 15' "$tmp_dir/wasalight-update-check" || \
+    fail "il controllo aggiornamenti può bloccare indefinitamente l'avvio"
+grep -Fq '( sleep 15; /usr/local/bin/wasalight-update-check ) &' "$INSTALLER" || \
+    fail "il controllo aggiornamenti non parte con la sessione grafica"
 if grep -Fq 'read -r _' "$tmp_dir/wasalight-update-terminal" || \
    grep -Fq 'read -r _' "$tmp_dir/wasalight-update-session"; then
     fail "l'interfaccia Update richiede ancora la tastiera per chiudersi"
@@ -587,11 +610,21 @@ if grep -Fq 'write_file "$TARGET_HOME/Desktop/Network.desktop"' "$INSTALLER" || 
    grep -Fq 'write_file "$TARGET_HOME/Desktop/Terminal.desktop"' "$INSTALLER"; then
     fail "le vecchie icone Network/Terminal sono ancora create sul desktop"
 fi
-grep -Fq 'write_file "$TARGET_HOME/Desktop/Files.desktop"' "$INSTALLER" || \
-    fail "il File Manager non è disponibile sul desktop"
+if grep -Fq 'write_file "$TARGET_HOME/Desktop/Files.desktop"' "$INSTALLER" || \
+   grep -Fq 'write_file "$TARGET_HOME/Desktop/Wasalight-Control.desktop"' "$INSTALLER"; then
+    fail "File Manager o Wasalight Control sono ancora duplicati sul desktop"
+fi
+grep -Fq 'write_file "$TARGET_HOME/Desktop/MagicQ.desktop"' "$INSTALLER" || \
+    fail "l'avvio rapido MagicQ non è disponibile sul desktop"
 if grep -Fq 'write_file "$TARGET_HOME/Desktop/VNC.desktop"' "$INSTALLER" || \
    grep -Fq 'write_file "$TARGET_HOME/Desktop/SSH.desktop"' "$INSTALLER"; then
     fail "SSH o VNC sono ancora duplicati sul desktop"
+fi
+if grep -Fq 'write_file /etc/wasalight/apps.d/vnc.desktop' "$INSTALLER" || \
+   grep -Fq 'write_file /etc/wasalight/apps.d/ssh.desktop' "$INSTALLER" || \
+   grep -Fq '<item label="VNC">' "$INSTALLER" || \
+   grep -Fq '<item label="SSH">' "$INSTALLER"; then
+    fail "SSH o VNC sono ancora duplicati fuori dalla scheda Servizi"
 fi
 if grep -Fq 'write_file "$TARGET_HOME/Desktop/MagicQ-Start.desktop"' "$INSTALLER" || \
    grep -Fq 'write_file "$TARGET_HOME/Desktop/MagicQ-Stop.desktop"' "$INSTALLER"; then
@@ -618,8 +651,17 @@ grep -Fq 'self.add_dashboard()' "$control_center" || \
     fail "Wasalight Control non espone la dashboard unificata"
 grep -Fq "foreground='#76bd22'" "$control_center" || \
     fail "il titolo di Wasalight Control non usa il verde Wasabi"
-grep -Fq 'notebook tab:checked { background: #76bd22; color: #080b10; }' \
-    "$control_center" || fail "la scheda attiva di Control non usa il verde Wasabi"
+grep -Fq 'notebook > header tab:checked {' "$control_center" || \
+    fail "la scheda attiva di Control non ha una palette dedicata"
+grep -Fq 'background: #223016; color: #9bd95a;' "$control_center" || \
+    fail "la scheda attiva di Control non usa il verde Wasabi bilanciato"
+grep -Fq 'notebook, notebook > stack, scrolledwindow, viewport, flowbox {' \
+    "$control_center" || fail "le pagine Control non impongono il fondo scuro"
+grep -Fq 'gi.require_version("Gdk", "3.0")' "$control_center" || \
+    fail "Control non fissa la versione Gdk e genera warning PyGI"
+if grep -Fq 'add_with_viewport' "$control_center"; then
+    fail "Control usa ancora l'API GTK deprecata add_with_viewport"
+fi
 grep -Fq 'fill="#76bd22"' "$INSTALLER" || \
     fail "l'icona Wasalight Control non usa il verde Wasabi"
 if grep -Fq '#8957e5' "$INSTALLER"; then
@@ -634,6 +676,25 @@ grep -Fq 'self.add_magicq_page(launchers)' "$control_center" || \
     fail "Wasalight Control non espone il pannello MagicQ dedicato"
 grep -Fq 'image_for("/usr/share/pixmaps/magicq.png", 72)' "$control_center" || \
     fail "Wasalight Control non usa l'icona originale MagicQ"
+grep -Fq 'label="Apri MagicQ"' "$control_center" || \
+    fail "Wasalight Control non espone il solo avvio manuale MagicQ"
+if grep -Fq '"Ferma MagicQ"' "$control_center"; then
+    fail "Wasalight Control espone ancora il pulsante Ferma MagicQ"
+fi
+grep -Fq 'self.magicq_auto_switch = Gtk.Switch()' "$control_center" || \
+    fail "Wasalight Control non espone il toggle automatico MagicQ"
+grep -Fq 'magicq-autostart' "$INSTALLER" || \
+    fail "l'avvio automatico MagicQ non ha un flag persistente"
+grep -Fq 'wasalight-remote-persistence magicq enable' "$INSTALLER" || \
+    fail "il toggle MagicQ non dispone del comando sudo ristretto"
+grep -Fq 'magicq_auto=enabled' "$INSTALLER" || \
+    fail "l'autostart SHOW di MagicQ non legge il flag persistente"
+grep -Fq 'def plugin_control_changed' "$control_center" || \
+    fail "Wasalight Control non gestisce i toggle servizio dichiarativi"
+grep -Fq 'switch:checked { background: #76bd22;' "$control_center" || \
+    fail "i toggle Control non usano il verde Wasabi"
+grep -Fq 'if action["management"] or action.get("control")' "$control_center" || \
+    fail "le azioni collegate ai toggle sono ancora duplicate come pulsanti"
 grep -Fq 'self.add_plugin_page("Services"' "$control_center" || \
     fail "Wasalight Control non espone la gestione servizi"
 grep -Fq 'PLUGIN_COMMAND, "install"' "$control_center" || \
@@ -653,7 +714,7 @@ grep -Fq 'dialog.set_keep_above(True)' "$control_center" || \
     fail "i dialoghi GTK di Control non restano in primo piano"
 grep -Fq 'if item["optional"]:' "$control_center" || \
     fail "la scheda Plugin mostra ancora i servizi fondamentali"
-grep -Fq 'if action["management"]:' "$control_center" || \
+grep -Fq 'if action["management"] or action.get("control"):' "$control_center" || \
     fail "Control non separa le azioni operative da quelle di gestione"
 grep -Fq 'if not optional:' "$plugin_admin" || \
     fail "il gestore permette di disabilitare servizi fondamentali"
@@ -688,8 +749,16 @@ assert plugins["ssh"]["persistent"] is True
 assert plugins["vnc"]["persistent"] is False
 assert plugins["ssh"]["state_label"].endswith("AUTO")
 assert plugins["vnc"]["state_label"].endswith("MANUALE")
-assert any(action["id"] == "automatic" for action in plugins["ssh"]["actions"])
-assert any(action["id"] == "automatic" for action in plugins["vnc"]["actions"])
+for plugin_id in ("ssh", "vnc"):
+    controls = {control["id"]: control for control in plugins[plugin_id]["controls"]}
+    assert set(controls) == {"runtime", "automatic"}
+    assert controls["runtime"]["label"] == "Servizio attivo"
+    assert controls["automatic"]["label"] == "Avvio automatico"
+    assert controls["runtime"]["checked"] is plugins[plugin_id]["active"]
+    assert controls["automatic"]["checked"] is plugins[plugin_id]["persistent"]
+    controlled = {action["id"] for action in plugins[plugin_id]["actions"]
+                  if action["control"]}
+    assert controlled == {"start", "stop", "auto-enable", "auto-disable"}
 assert any(action["id"] == "open" for action in plugins["companion"]["actions"])
 assert any(action["id"] == "update" and action["management"]
            for action in plugins["companion"]["actions"])
@@ -712,6 +781,11 @@ grep -Fq 'Key=ssh-autostart' "$PROJECT_DIR/plugins/ssh/manifest.ini" || \
     fail "il manifest SSH non dichiara il flag persistente"
 grep -Fq 'Key=vnc-autostart' "$PROJECT_DIR/plugins/vnc/manifest.ini" || \
     fail "il manifest VNC non dichiara il flag persistente"
+for manifest in "$PROJECT_DIR/plugins/ssh/manifest.ini" \
+                "$PROJECT_DIR/plugins/vnc/manifest.ini"; do
+    grep -Fq '[Control runtime]' "$manifest" || fail "toggle runtime mancante: $manifest"
+    grep -Fq '[Control automatic]' "$manifest" || fail "toggle automatico mancante: $manifest"
+done
 grep -Fq 'Command=/usr/local/bin/wasalight-companion-update-terminal' \
     "$PROJECT_DIR/plugins/companion/manifest.ini" || \
     fail "Companion non espone l'aggiornamento dal Control Center"

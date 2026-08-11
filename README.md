@@ -334,7 +334,10 @@ successivo. Dopo il comando occorre riavviare quando si è pronti.
 
 In modalità **SHOW / PROTECTED**, MagicQ parte automaticamente una sola volta
 all'avvio della sessione grafica. Se viene chiuso, resta chiuso: Wasalight non
-lo riavvia automaticamente.
+lo riavvia automaticamente. Il toggle **Avvio automatico** nella scheda MagicQ
+salva la scelta in `/data/system/service-flags/magicq-autostart`: disattivandolo,
+MagicQ resta chiuso anche ai successivi avvii SHOW finché non viene aperto
+manualmente.
 
 In modalità **MAINTENANCE**, Openbox parte normalmente ma MagicQ resta chiuso.
 Questo evita che l'applicazione interferisca con aggiornamenti, copie e diagnosi.
@@ -392,14 +395,15 @@ appare la richiesta «Apri con…». Non viene usato il metadato GIO
 `metadata::trusted`, assente nel profilo PCManFM/GVFS dell’installazione
 Server. `chamsys` può avviare i launcher ma non cancellarli, rinominarli,
 spostarli o modificarli accidentalmente.
-Sul desktop rimangono soltanto i quattro comandi principali: **Wasalight
-Control**, **File**, **Spegni** e **Riavvia**. Avvia/Ferma MagicQ sono raccolti
-nella scheda MagicQ di Control e nel menu Openbox, evitando icone duplicate.
+Sul desktop rimangono **MagicQ**, **Spegni** e **Riavvia**. L'icona MagicQ usa
+l'immagine originale ChamSys e consente l'avvio rapido con un solo tocco.
+**Wasalight Control** e **File** restano nel dock inferiore sempre visibile e
+non sono duplicati sul desktop.
 
-SSH e VNC sono gestiti nella scheda **Servizi** di Wasalight Control e restano
-disponibili anche nel menu Openbox di emergenza, senza duplicare icone sul
-desktop. Per entrambi, **Automatico** conserva in `/data` la scelta di avvio ai
-riavvii, mentre **Avvia/Ferma** modifica soltanto la sessione corrente.
+SSH e VNC sono gestiti esclusivamente nella scheda **Servizi** di Wasalight
+Control. Entrambi presentano gli stessi toggle: **Servizio attivo** modifica la
+sessione corrente e **Avvio automatico** conserva in `/data` la scelta per i
+riavvii. Le due impostazioni restano indipendenti.
 
 Spegnimento e riavvio mostrano sempre una grande finestra di conferma. Soltanto
 dopo la conferma viene eseguito un comando amministrativo ristretto, senza
@@ -438,20 +442,24 @@ istanza per sessione: un nuovo tocco sull'icona porta in primo piano la finestra
 già aperta. Stato e plugin vengono letti in background, così il cambio scheda e
 i comandi touch restano reattivi anche quando `systemctl` o la rete sono lenti.
 Il colore identificativo di Control è il verde Wasabi `#76bd22`, applicato a
-icona, titolo, scheda selezionata, focus e pressione dei pulsanti sul fondo scuro.
+icona, titolo, focus e pressione dei pulsanti. La scheda selezionata usa un verde
+scuro `#223016`, testo `#9bd95a` e una sottolineatura Wasabi: mantiene così il
+branding senza creare una fascia troppo accesa. Schede, pagine e aree scorrevoli
+rimangono nella stessa famiglia quasi nera del desktop.
 
 I programmi continuano a essere organizzati tramite il registro `apps.d`:
 
-- **MagicQ**: controllo Avvia/Ferma con l'icona originale ChamSys e programmi
-  companion rilevati quando realmente installati;
+- **MagicQ**: grande comando di apertura con l'icona originale ChamSys, stato
+  `APERTO/CHIUSO · AUTO/MANUALE` e toggle dell'avvio automatico; non esiste un
+  pulsante Ferma, perché l'applicazione si chiude normalmente dalla propria X;
 - **Applicazioni**: programmi registrati dall'amministratore;
-- **Supporto**: rete, monitor, touchscreen, audio, file, terminale, stato, VNC,
-  SSH e aggiornamento Wasalight.
+- **Supporto**: rete, monitor, touchscreen, audio, file, terminale, stato e
+  aggiornamento Wasalight.
 
 Nella home **Stato**, il pulsante File è sostituito dal cambio modalità:
 **Passa a MAINTENANCE** quando la console è in SHOW oppure **Passa a SHOW** in
 MAINTENANCE. Dopo la conferma viene preparato il prossimo avvio e viene proposto
-il riavvio immediato. Il File Manager resta nel desktop, nella barra e in Supporto.
+il riavvio immediato. Il File Manager resta nel dock e in Supporto.
 
 Il rilevamento automatico è intenzionalmente limitato ai companion riconoscibili
 come MagicVis, MagicHD e strumenti Remote/Viewer ChamSys. Il programma MagicQ
@@ -497,7 +505,7 @@ raggiungibili i controlli. Il tema è quasi nero (`#080b10`), con selezioni
 antracite discrete e senza il precedente fondo blu acceso.
 
 Il clic destro apre soltanto un menu Wasalight minimale: Avvia/Ferma MagicQ,
-Control, File, Terminale, Aggiorna Wasalight, VNC, SSH, riavvio e spegnimento. Le
+Control, File, Terminale, Aggiorna Wasalight, riavvio e spegnimento. Le
 preferenze Openbox e le impostazioni di sistema generiche non sono esposte.
 
 Le finestre Openbox usano il tema scuro **Wasalight** sia quando sono attive sia
@@ -547,7 +555,7 @@ gestito dalla stessa rotazione degli altri log Wasalight.
 
 ### VNC della sessione corrente
 
-Il pulsante **VNC** condivide esclusivamente il display Xorg corrente `:0`:
+Il toggle **Servizio attivo** di VNC condivide esclusivamente il display Xorg corrente `:0`:
 
 - se VNC è spento, lo avvia e mostra l'indirizzo di connessione;
 - se è attivo, chiede conferma prima di fermarlo;
@@ -558,7 +566,7 @@ Il pulsante **VNC** condivide esclusivamente il display Xorg corrente `:0`:
 ### SSH remoto
 
 OpenSSH è installato ma resta spento finché non viene avviato. In Wasalight
-Control, **Avvia/Ferma** gestisce la sessione corrente e **Automatico** il flag
+Control, **Servizio attivo** gestisce la sessione corrente e **Avvio automatico** il flag
 persistente dei riavvii. L’accesso usa `chamsys` e la sua password Linux.
 `--with-ssh` e `--without-ssh` impostano lo stesso flag dall'installer. Il
 pannello Conky distingue `MANUAL` da `AUTO`. Dettagli nella [guida SSH](docs/ssh.md).
@@ -673,9 +681,9 @@ diagnosi, rotazioni, configurazioni multimonitor e tastiera virtuale consultare
 
 Wasalight installa `x11vnc` per condividere la sessione Openbox/MagicQ già
 visibile sul monitor. L'avvio automatico è disabilitato inizialmente e può
-essere attivato, dopo aver creato la password VNC, con **Automatico** in
-**Wasalight Control → Servizi → VNC**. Per un avvio soltanto corrente usare
-la voce nel menu Openbox oppure, dalla sessione `chamsys`, il comando:
+essere attivato, dopo aver creato la password VNC, con **Avvio automatico** in
+**Wasalight Control → Servizi → VNC**. Per un avvio soltanto corrente usare il
+toggle **Servizio attivo** oppure, dalla sessione `chamsys`, il comando:
 
 ```bash
 wasalight-vnc-start
@@ -693,8 +701,8 @@ tunnel SSH, cambio password e rimozione consultare la [guida VNC](docs/vnc.md).
 
 ## Assistenza remota SSH
 
-Usare la scheda **Servizi** di Wasalight Control oppure la voce SSH del menu
-Openbox.
+Usare i toggle **Servizio attivo** e **Avvio automatico** nella scheda
+**Servizi** di Wasalight Control.
 Quando è attivo, collegarsi con:
 
 ```bash
@@ -713,6 +721,16 @@ dispositivo: per esempio `/stick/sdb1` e `/stick/sdc1`. FAT32, exFAT e NTFS
 possono quindi restare montati in lettura/scrittura e visibili contemporaneamente
 nella vista Flash di MagicQ. Una seconda chiavetta non nasconde né sostituisce
 la prima.
+
+In una macchina virtuale UTM, montare la chiavetta nel Finder non la collega
+automaticamente a Linux: occorre usare il pulsante **USB** della finestra UTM e
+assegnare il dispositivo alla VM. Prima del pass-through, `lsusb` e `lsblk` non
+mostrano il supporto e Wasalight non può creare alcuna directory sotto `/stick`.
+Se UTM mostra **Disconnect…** ma `lsusb` continua a non vedere la chiavetta, il
+redirect USB di UTM è rimasto bloccato prima del kernel guest: spegnere davvero
+la VM (non metterla in pausa), scollegare e ricollegare il dispositivo dal menu
+USB, quindi riavviare. In questo caso non esiste ancora un problema di mount
+Linux da correggere.
 
 APFS è supportato tramite il pacchetto Ubuntu `libfsapfs-utils`, ma
 **esclusivamente in lettura**. Serve per aprire o importare file provenienti da

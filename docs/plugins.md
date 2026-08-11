@@ -112,6 +112,13 @@ AutoEnable=true
 ActiveLabel=Active
 InactiveLabel=Stopped
 
+[Control runtime]
+Label=Servizio attivo
+State=active
+OnAction=start
+OffAction=stop
+Modes=show,maintenance
+
 [Action start]
 Label=Start
 Command=/usr/local/sbin/wasalight-example-control start
@@ -123,7 +130,11 @@ L'ID deve coincidere con il nome della directory. `MinimumWasalight` impedisce
 di abilitare o avviare il plugin con un core troppo vecchio. `InstalledCheck` determina se
 il software è realmente disponibile. Un runtime può essere `systemd`, `process`
 oppure omesso. Ogni azione dichiara modalità ammesse, eventuale conferma,
-privilegio e se deve essere avviata come processo separato.
+privilegio e se deve essere avviata come processo separato. Una sezione
+`[Control ID]` trasforma due azioni esplicite in un toggle: `State` seleziona
+lo stato `active` oppure `persistent`, mentre `OnAction` e `OffAction` indicano
+le operazioni. Le azioni collegate non vengono duplicate come pulsanti. Lo
+schema è generico e riutilizzabile dai servizi futuri.
 
 ## Wasalight Control
 
@@ -142,7 +153,8 @@ SSH e VNC sono servizi fondamentali e compaiono soltanto in **Servizi**.
 componente opzionale: dalla scheda **Plugin** può essere installato,
 abilitato/disabilitato e aggiornato in MAINTENANCE.
 
-Per SSH e VNC l'azione **Automatico** gestisce un flag separato sotto
+Per SSH e VNC i toggle **Servizio attivo** e **Avvio automatico** hanno lo stesso
+aspetto e restano indipendenti. Il secondo gestisce un flag separato sotto
 `/data/system/service-flags`. Il registro espone il campo JSON `persistent` e
 aggiunge `AUTO` o `MANUALE` allo stato. L'autostart VNC può essere abilitato
 soltanto dopo aver creato la password VNC persistente.

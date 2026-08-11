@@ -8,8 +8,12 @@ partizione persistente `/data`, fuori dall’overlay del sistema.
 ```text
 /data/system/wasalight   repository Git operativo
 /data/system/packages   pacchetti MagicQ proprietari
+/data/log/wasalight/updates/update-AAAAMMGG-HHMMSS.log
+                         log completo della singola esecuzione
 /data/log/wasalight-update.log
-                         registro degli aggiornamenti
+                         registro cumulativo compatibile
+/data/system/update-check
+                         ultima versione rilevata e data del controllo
 ```
 
 Il repository pubblico non contiene il pacchetto MagicQ. Il `.deb` viene
@@ -96,8 +100,16 @@ download, verifica e installazione. Al termine compare un grande pulsante
 ricordato che il riavvio è ancora necessario. Non occorre più premere Invio per
 chiudere la finestra, quindi il flusso è utilizzabile interamente al touch.
 
-In caso di errore non viene mai eseguito il riavvio automatico: appare un
-messaggio breve e i dettagli restano in `/data/log/wasalight-update.log`.
+In caso di errore non viene mai eseguito il riavvio automatico: il terminale
+mostra fase, comando, linea e codice di uscita. Il log completo della singola
+esecuzione resta in `/data/log/wasalight/updates/`, mentre
+`/data/log/wasalight-update.log` conserva la cronologia cumulativa.
+
+Ad ogni avvio grafico un controllo asincrono confronta la versione installata
+con `VERSION` pubblicato su GitHub. Non rallenta Openbox o MagicQ, non installa
+nulla e, in assenza di rete, termina senza finestre di errore. Quando trova una
+release nuova mostra una notifica discreta e la riga `UPDATE` di
+`wasalight-status` riporta la versione disponibile.
 
 Ad ogni utilizzo il comando:
 
@@ -137,6 +149,13 @@ Aggiornare e riavviare automaticamente, utile da SSH o terminale:
 sudo wasalight-update --reboot
 ```
 
+Per una diagnosi dettagliata visualizzare anche ogni comando mentre viene
+eseguito; il log rimane comunque completo anche senza questa opzione:
+
+```bash
+sudo wasalight-update --verbose
+```
+
 Le opzioni possono essere combinate, ad esempio
 `sudo wasalight-update --protect --reboot`. `--code-only --reboot` viene invece
 rifiutato perché il solo download non modifica la configurazione del sistema.
@@ -149,8 +168,8 @@ sudo wasalight-update --without-ssh
 ```
 
 Senza queste opzioni viene conservato il flag persistente
-`/data/system/service-flags/ssh-autostart`, lo stesso gestito dal pulsante
-**Automatico** in Wasalight Control.
+`/data/system/service-flags/ssh-autostart`, lo stesso gestito dal toggle
+**Avvio automatico** in Wasalight Control.
 La tastiera Onboard viene conservata automaticamente quando è già installata.
 
 Per installare Bitfocus Companion durante un aggiornamento Wasalight:

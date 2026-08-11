@@ -76,17 +76,18 @@ uno spettacolo.
       sostituiscono o fanno scomparire l'icona.
 - [ ] Il pannello Conky ha un fondo scuro semitrasparente e testo leggibile;
       avviando MagicQ fullscreen, Picom libera la finestra dal compositing.
-- [ ] Con MagicQ fermo, i quattro pulsanti desktop hanno icone grandi e leggibili
+- [ ] Con MagicQ fermo, i tre pulsanti desktop MagicQ/Spegni/Riavvia hanno icone grandi e leggibili
       al touch e si avviano con un solo tocco senza mostrare «Apri con…».
 - [ ] `chamsys` non può cancellare, rinominare o spostare i launcher desktop.
 - [ ] `stat -c '%U:%G %a %n' /home/chamsys/Desktop /home/chamsys/Desktop/*.desktop`
-      mostra la directory `root:root 755` e quattro launcher `root:root 444`.
+      mostra la directory `root:root 755` e tre launcher `root:root 444`.
 - [ ] La scheda **MagicQ** di Wasalight Control usa l'icona ufficiale
-      `/usr/share/pixmaps/magicq.png` e offre Avvia/Ferma senza duplicati sul desktop.
-- [ ] Il controllo VNC in **Servizi** avvia la condivisione del display `:0`, mostra l'indirizzo
-      e propone l'arresto quando viene premuto mentre VNC è già attivo.
-- [ ] Il controllo SSH in **Servizi** avvia e ferma OpenSSH dopo conferma e mostra indirizzo,
-      utente e tipo di attivazione (`SESSION` oppure `AUTO`).
+      `/usr/share/pixmaps/magicq.png`, offre soltanto **Apri MagicQ** e il toggle
+      **Avvio automatico**, senza un pulsante Ferma.
+- [ ] Il toggle **Servizio attivo** di VNC avvia e ferma la condivisione del display `:0`;
+      al primo avvio apre il terminale protetto per creare la password.
+- [ ] Il toggle **Servizio attivo** di SSH avvia e ferma OpenSSH; lo stato mostra
+      indirizzo, porta e tipo di attivazione (`MANUALE` oppure `AUTO`).
 - [ ] **Spegni** e **Riavvia** mostrano sempre la conferma; **Annulla** non
       esegue azioni e la conferma completa correttamente l'operazione scelta.
 - [ ] Le conferme Wasalight sono centrate, ricevono subito il focus e restano in
@@ -100,22 +101,27 @@ uno spettacolo.
       grande, facilmente premibile al touch e diventa rosso quando evidenziato.
 - [ ] Wasalight Control mostra Stato, MagicQ, Servizi, Applicazioni,
       Supporto e Plugin con pulsanti grandi e lascia Tint2 visibile.
-- [ ] Icona, titolo, scheda selezionata e focus di Wasalight Control usano il
-      verde Wasabi `#76bd22`, senza il precedente accento viola.
+- [ ] Icona, titolo e focus di Wasalight Control usano il verde Wasabi
+      `#76bd22`; la scheda selezionata è verde scuro con sottolineatura Wasabi
+      e tutte le pagine restano scure, senza grandi superfici bianche o verde acceso.
 - [ ] Nella home Stato non compare File: il pulsante mostra **Passa a
       MAINTENANCE** in SHOW e **Passa a SHOW** in MAINTENANCE, prepara il boot
       selezionato e propone il riavvio.
 - [ ] SSH e VNC compaiono soltanto in **Servizi**, non nella scheda **Plugin** e
-      non come icone desktop; restano disponibili nel menu Openbox.
+      non come icone desktop, in Supporto o nel menu Openbox.
 - [ ] Companion in **Plugin** offre Abilita/Disabilita e, quando installato,
       **Aggiorna**; quest'ultimo è attivo solo in MAINTENANCE.
 - [ ] `wasalight-plugin list` mostra SSH, VNC e Companion; lo stato attivo
       coincide con processi/servizi reali e sopravvive al riavvio.
-- [ ] **Automatico** per SSH e VNC scrive i rispettivi flag sotto
+- [ ] **Avvio automatico** per SSH e VNC scrive i rispettivi flag sotto
       `/data/system/service-flags`; Conky mostra `AUTO` o `MANUAL` anche quando
       il servizio è fermo.
 - [ ] Dopo un riavvio, SSH riparte soltanto con `ssh-autostart=enabled`; VNC
       riparte soltanto con `vnc-autostart=enabled` e una password VNC valida.
+- [ ] MagicQ parte in SHOW soltanto con `magicq-autostart=enabled`; l'icona sul
+      desktop e **Apri MagicQ** funzionano anche quando il flag è disabilitato.
+- [ ] Entro circa 20 secondi dall'avvio, con rete disponibile, `wasalight-status`
+      mostra `UPDATE: up to date` oppure la nuova versione senza finestre modali.
 - [ ] In SHOW enable/disable di un plugin viene rifiutato chiaramente. In
       MAINTENANCE la modifica persiste sotto `/data/system/plugins-state` e un
       update ordinario non riabilita un plugin disabilitato.
@@ -198,6 +204,11 @@ uno spettacolo.
 
 ## Chiavette USB
 
+- [ ] In UTM, la chiavetta è assegnata alla VM dal pulsante **USB**; prima del
+      pass-through è normale che non compaia né in `lsusb` né sotto `/stick`.
+- [ ] Se UTM indica il dispositivo con **Disconnect…** ma `lsusb` non cambia,
+      un arresto completo della VM seguito da riconnessione USB ripristina il
+      redirect; non si interviene sugli script di mount finché manca `/dev/sdX`.
 - [ ] Su Ubuntu minimale non ancora configurato, una chiavetta FAT32 non
       montata con MagicQ nella root viene rilevata dal bootstrap, montata in
       sola lettura, importata in `/data/system/packages` e smontata.

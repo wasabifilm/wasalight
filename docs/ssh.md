@@ -6,14 +6,10 @@ sulla rete.
 
 ## Uso dal touchscreen
 
-Usare **Wasalight Control → Servizi → SSH**. La voce SSH resta disponibile
-anche nel menu Openbox di emergenza, ma non occupa un'icona sul desktop.
-Dopo la conferma, il servizio viene avviato e la finestra mostra
-l’indirizzo di collegamento. Premendo nuovamente il pulsante è possibile
-fermarlo.
+Usare **Wasalight Control → Servizi → SSH**.
 
-I pulsanti **Avvia** e **Ferma** agiscono soltanto sulla sessione corrente.
-Il pulsante **Automatico** abilita o disabilita separatamente la persistenza
+Il toggle **Servizio attivo** agisce soltanto sulla sessione corrente.
+Il toggle **Avvio automatico** abilita o disabilita separatamente la persistenza
 ai riavvii, salvata nel flag `/data/system/service-flags/ssh-autostart`. Conky mostra:
 
 - `SSH  ACTIVE · MANUAL` per l’attivazione temporanea;
@@ -34,7 +30,7 @@ registra altre credenziali SSH.
 
 ## Avvio automatico
 
-Il metodo normale è premere **Automatico** nella scheda **Servizi**. La scelta
+Il metodo normale è usare **Avvio automatico** nella scheda **Servizi**. La scelta
 rimane in `/data` anche in SHOW protetto. Per impostare lo stesso flag durante
 l’installazione o un aggiornamento in MAINTENANCE si può usare:
 

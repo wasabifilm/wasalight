@@ -458,12 +458,12 @@ install_packages() {
         libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0
         libasound2-data alsa-utils
         openbox tint2 picom pcmanfm lxterminal lxrandr lxtask x11vnc procps wmctrl x11-utils
-        conky-all zenity libglib2.0-bin desktop-file-utils librsvg2-common
+        conky-all zenity libnotify-bin libglib2.0-bin desktop-file-utils librsvg2-common
         python3 python3-gi gir1.2-gtk-3.0 arp-scan iproute2
         network-manager network-manager-gnome wpasupplicant policykit-1 policykit-1-gnome
         overlayroot initramfs-tools plymouth plymouth-themes file chrony
         exfatprogs ntfs-3g dosfstools libfsapfs-utils util-linux udev logrotate
-        openssh-server git
+        openssh-server git curl
     )
     ((ENABLE_ONSCREEN_KEYBOARD)) && packages+=(onboard)
     if ((ENABLE_COMPANION)) || [[ -d /opt/companion ]]; then
@@ -1198,6 +1198,29 @@ ip_address=$(hostname -I 2>/dev/null | awk '{print $1}')
 /usr/local/bin/wasalight-dialog --info --width=500 --title="VNC · Wasalight" \
     --text="<big><b>VNC attivo nella sessione corrente</b></big>\n\nIndirizzo: vnc://${ip_address:-SERVER_IP}:5900\n\nUsare soltanto su una rete locale fidata."
 EOF
+
+    write_file /usr/local/bin/wasalight-vnc-control 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || {
+    echo "Run this command as the chamsys desktop user." >&2
+    exit 1
+}
+case ${1:-} in
+    start)
+        password_file=/home/chamsys/.config/wasalight-vnc/passwd
+        [[ ! -r /data/system/vnc/passwd ]] || password_file=/data/system/vnc/passwd
+        if [[ ! -r $password_file ]]; then
+            lxterminal --title="VNC password · Wasalight" -e bash -lc \
+                '/usr/local/bin/wasalight-vnc-start; rc=$?; echo; echo "Premere Invio per chiudere."; read -r _; exit "$rc"' &
+            exit 0
+        fi
+        exec /usr/local/bin/wasalight-vnc-start
+        ;;
+    stop) exec /usr/local/bin/wasalight-vnc-stop ;;
+    *) echo "Usage: wasalight-vnc-control start|stop" >&2; exit 2 ;;
+esac
+EOF
 }
 
 configure_ssh() {
@@ -1282,6 +1305,10 @@ configure_remote_persistence() {
         printf '%s\n' disabled >"$flag_dir/vnc-autostart"
         chmod 0644 "$flag_dir/vnc-autostart"
     fi
+    if [[ ! -e $flag_dir/magicq-autostart ]]; then
+        printf '%s\n' enabled >"$flag_dir/magicq-autostart"
+        chmod 0644 "$flag_dir/magicq-autostart"
+    fi
 
     write_file /usr/local/sbin/wasalight-remote-persistence 0755 <<'EOF'
 #!/usr/bin/env bash
@@ -1290,8 +1317,8 @@ set -Eeuo pipefail
 
 service=${1:-}
 state=${2:-}
-case $service in ssh|vnc) ;; *) echo "Usage: wasalight-remote-persistence ssh|vnc enable|disable" >&2; exit 2 ;; esac
-case $state in enable) value=enabled ;; disable) value=disabled ;; *) echo "Usage: wasalight-remote-persistence ssh|vnc enable|disable" >&2; exit 2 ;; esac
+case $service in ssh|vnc|magicq) ;; *) echo "Usage: wasalight-remote-persistence ssh|vnc|magicq enable|disable" >&2; exit 2 ;; esac
+case $state in enable) value=enabled ;; disable) value=disabled ;; *) echo "Usage: wasalight-remote-persistence ssh|vnc|magicq enable|disable" >&2; exit 2 ;; esac
 
 flag_root=${WASALIGHT_SERVICE_FLAG_ROOT:-/data/system/service-flags}
 if [[ -z ${WASALIGHT_SERVICE_FLAG_ROOT:-} ]]; then
@@ -1367,6 +1394,8 @@ EOF
 }
 
 configure_update() {
+    install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0755 \
+        "$DATA_MOUNT/system/update-check"
     write_file /usr/local/sbin/wasalight-update 0755 <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -1375,7 +1404,8 @@ IFS=$'\n\t'
 readonly repository=https://github.com/wasabifilm/wasalight.git
 readonly checkout=/data/system/wasalight
 readonly package_store=/data/system/packages
-readonly log_file=/data/log/wasalight-update.log
+readonly log_root=/data/log/wasalight/updates
+readonly legacy_log=/data/log/wasalight-update.log
 
 protect=0
 code_only=0
@@ -1383,6 +1413,7 @@ reboot_after=0
 ssh_mode=preserve
 allow_missing_magicq=0
 with_companion=0
+verbose=0
 plugins=()
 
 usage() {
@@ -1396,6 +1427,8 @@ Opzioni:
   --protect       Prepara SHOW / PROTECTED per il prossimo avvio.
   --code-only     Scarica e verifica il codice senza installarlo.
   --reboot        Riavvia automaticamente dopo un aggiornamento riuscito.
+  --verbose       Mostra anche ogni comando eseguito; il log resta completo
+                  anche senza questa opzione.
   --with-ssh      Mantiene SSH attivo automaticamente dopo il riavvio.
   --without-ssh   Mantiene SSH spento all'avvio; il pulsante resta disponibile.
   --with-companion
@@ -1416,6 +1449,7 @@ while (($#)); do
         --protect) protect=1 ;;
         --code-only) code_only=1 ;;
         --reboot) reboot_after=1 ;;
+        --verbose) verbose=1 ;;
         --with-ssh) ssh_mode=enabled ;;
         --without-ssh) ssh_mode=disabled ;;
         --with-companion) with_companion=1; plugins+=(companion) ;;
@@ -1449,27 +1483,42 @@ fi
 mountpoint -q /data || { echo "/data non è montata: aggiornamento interrotto." >&2; exit 1; }
 install -d -o root -g root -m 0755 /data/system
 install -d -o chamsys -g chamsys -m 0750 /data/log
+install -d -o root -g adm -m 0750 /data/log/wasalight "$log_root"
 install -d -o root -g root -m 0750 "$package_store"
-touch "$log_file"
-chown root:adm "$log_file" 2>/dev/null || chown root:root "$log_file"
-chmod 0640 "$log_file"
-exec > >(tee -a "$log_file") 2>&1
+run_stamp=$(date +%Y%m%d-%H%M%S)
+log_file="$log_root/update-$run_stamp.log"
+touch "$log_file" "$legacy_log"
+chown root:adm "$log_file" "$legacy_log" 2>/dev/null || \
+    chown root:root "$log_file" "$legacy_log"
+chmod 0640 "$log_file" "$legacy_log"
+exec > >(tee -a "$legacy_log" "$log_file") 2>&1
+((verbose)) && { export PS4='+ ${BASH_SOURCE##*/}:${LINENO}: '; set -x; }
 
-step() { printf '\n==> %s\n' "$*"; }
+phase="Preparazione"
+if [[ -t 1 ]]; then
+    green=$'\033[1;32m'; amber=$'\033[1;33m'; red=$'\033[1;31m'; reset=$'\033[0m'
+else
+    green= amber= red= reset=
+fi
+step() { phase=$*; printf '\n%s▶ %s%s\n' "$green" "$phase" "$reset"; }
 update_failed() {
-    local rc=$?
+    local rc=$1 line=$2 command=$3
     trap - ERR
-    printf '\nAGGIORNAMENTO INTERROTTO (errore %d).\n' "$rc" >&2
-    echo "La macchina non verrà riavviata. Dettagli: $log_file" >&2
+    printf '\n%sERRORE%s · aggiornamento interrotto nella fase: %s\n' \
+        "$red" "$reset" "$phase" >&2
+    printf 'Comando: %s\nLinea: %s · codice: %s\n' "$command" "$line" "$rc" >&2
+    echo "La macchina non verrà riavviata." >&2
+    echo "Log completo: $log_file" >&2
+    echo "Log cumulativo: $legacy_log" >&2
     exit "$rc"
 }
-trap update_failed ERR
+trap 'update_failed "$?" "$LINENO" "$BASH_COMMAND"' ERR
 
 printf '\n========================================\n'
 printf '       WASALIGHT · AGGIORNAMENTO\n'
 printf '========================================\n'
 echo "Avvio: $(date --iso-8601=seconds)"
-echo "Log:   $log_file"
+echo "Log di questa esecuzione: $log_file"
 installed_version=$(cat /etc/wasalight/version 2>/dev/null || echo non-installata)
 echo "Versione installata: $installed_version"
 
@@ -1621,7 +1670,8 @@ echo "Versione disponibile: $available_version"
 echo "Codice verificato e pronto in $checkout"
 if ((code_only)); then
     echo
-    echo "Aggiornamento del codice completato. Nessuna modifica applicata al sistema."
+    printf '%sOK%s · codice aggiornato e verificato; sistema non modificato.\n' \
+        "$green" "$reset"
     exit 0
 fi
 
@@ -1677,6 +1727,7 @@ printf '\n========================================\n'
 printf '       AGGIORNAMENTO COMPLETATO\n'
 printf '========================================\n'
 echo "Fine: $(date --iso-8601=seconds)"
+printf '%sOK%s · tutte le fasi sono terminate correttamente.\n' "$green" "$reset"
 if ((protect)); then
     echo "Prossimo avvio: SHOW / PROTECTED"
 else
@@ -1752,6 +1803,46 @@ case ${1:-} in
     *) echo "Usage: wasalight-update-terminal [--plugin ID]" >&2; exit 2 ;;
 esac
 exec lxterminal --title="Wasalight Update" -e /usr/local/libexec/wasalight-update-session
+EOF
+
+    write_file /usr/local/bin/wasalight-update-check 0755 <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+readonly version_url=https://raw.githubusercontent.com/wasabifilm/wasalight/main/VERSION
+readonly state_dir=/data/system/update-check
+
+[[ $(id -un) == chamsys ]] || { echo "Run as the chamsys desktop user." >&2; exit 1; }
+mountpoint -q /data || exit 0
+install -d -m 0755 "$state_dir"
+temporary=$(mktemp "$state_dir/.latest.XXXXXX")
+trap 'rm -f -- "$temporary"' EXIT
+
+if ! curl --fail --silent --show-error --location \
+    --connect-timeout 5 --max-time 15 "$version_url" >"$temporary"; then
+    printf '%s\n' "$(date -Is)" >"$state_dir/last-failure"
+    logger -t wasalight-update-check "version check unavailable"
+    exit 0
+fi
+latest=$(tr -d '[:space:]' <"$temporary")
+[[ $latest =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]] || {
+    logger -t wasalight-update-check "GitHub returned an invalid version: $latest"
+    exit 0
+}
+printf '%s\n' "$latest" >"$temporary"
+mv -f -- "$temporary" "$state_dir/latest-version"
+trap - EXIT
+printf '%s\n' "$(date -Is)" >"$state_dir/last-success"
+rm -f "$state_dir/last-failure"
+
+installed=$(cat /etc/wasalight/version 2>/dev/null || echo 0.0.0.0)
+if [[ $(printf '%s\n%s\n' "$installed" "$latest" | sort -V | tail -n1) == "$latest" && \
+      $latest != "$installed" ]]; then
+    logger -t wasalight-update-check "Wasalight $latest available (installed $installed)"
+    command -v notify-send >/dev/null 2>&1 && notify-send \
+        --app-name=Wasalight --icon=system-software-update \
+        "Aggiornamento Wasalight disponibile" \
+        "Versione $latest. Apri Wasalight Control in MAINTENANCE per aggiornare." || true
+fi
 EOF
 
     if mountpoint -q "$DATA_MOUNT" && [[ ! -d $UPDATE_CHECKOUT/.git ]]; then
@@ -2396,10 +2487,14 @@ EOF
 }
 
 configure_graphical_session() {
-    write_file /usr/local/bin/wasalight-dialog 0755 <<'EOF'
+    install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0755 \
+        "$TARGET_HOME/.config/wasalight/dock"
+write_file /usr/local/bin/wasalight-dialog 0755 <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
-exec /usr/bin/zenity --class=WasalightConfirm "$@"
+export GDK_BACKEND=x11
+export GTK_A11Y=none
+exec /usr/bin/zenity --modal "$@"
 EOF
 
     write_file /etc/X11/Xwrapper.config 0644 <<'EOF'
@@ -2423,7 +2518,7 @@ EOF
     grep -q '</applications>' "$TARGET_HOME/.config/openbox/rc.xml" || \
         die "Openbox applications section is unavailable"
     sed -i '/<\/applications>/i\
-    <application class="WasalightConfirm">\
+    <application name="zenity" class="zenity">\
       <position force="yes">\
         <x>center</x>\
         <y>center</y>\
@@ -2657,7 +2752,7 @@ EOF
 </svg>
 EOF
 
-    write_file "$TARGET_HOME/Desktop/Wasalight-Control.desktop" 0755 <<'EOF'
+    write_file "$TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop" 0644 <<'EOF'
 [Desktop Entry]
 Type=Application
 Name=Wasalight Control
@@ -2668,7 +2763,7 @@ Terminal=false
 StartupNotify=false
 EOF
 
-    write_file "$TARGET_HOME/Desktop/Files.desktop" 0755 <<'EOF'
+    write_file "$TARGET_HOME/.config/wasalight/dock/Files.desktop" 0644 <<'EOF'
 [Desktop Entry]
 Type=Application
 Name=File
@@ -2678,6 +2773,23 @@ Icon=/usr/local/share/icons/wasalight/files.svg
 Terminal=false
 StartupNotify=true
 EOF
+
+    write_file "$TARGET_HOME/Desktop/MagicQ.desktop" 0755 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=MagicQ
+Comment=Avvia ChamSys MagicQ
+Exec=/usr/local/bin/magicq-start
+Icon=/usr/share/pixmaps/magicq.png
+Terminal=false
+StartupNotify=false
+EOF
+
+    # Keep the touch desktop and tint2 dock as separate, authoritative layouts.
+    # File Manager and Control belong only to the dock.
+    rm -f "$TARGET_HOME/Desktop/Files.desktop" \
+        "$TARGET_HOME/Desktop/Wasalight-Hub.desktop" \
+        "$TARGET_HOME/Desktop/Wasalight-Control.desktop"
 
     write_file "$TARGET_HOME/Desktop/Power-Off.desktop" 0755 <<'EOF'
 [Desktop Entry]
@@ -3400,28 +3512,9 @@ TryExec=/usr/local/bin/wasalight-status
 X-Wasalight-Section=Support
 X-Wasalight-Order=70
 EOF
-    write_file /etc/wasalight/apps.d/vnc.desktop 0644 <<'EOF'
-[Desktop Entry]
-Type=Application
-Name=Sessione VNC
-Comment=Avvia o ferma la condivisione corrente
-Exec=/usr/local/bin/wasalight-vnc-toggle
-Icon=/usr/local/share/icons/wasalight/vnc.svg
-TryExec=/usr/local/bin/wasalight-vnc-toggle
-X-Wasalight-Section=Support
-X-Wasalight-Order=80
-EOF
-    write_file /etc/wasalight/apps.d/ssh.desktop 0644 <<'EOF'
-[Desktop Entry]
-Type=Application
-Name=Accesso SSH
-Comment=Avvia o ferma il server SSH
-Exec=/usr/local/bin/wasalight-ssh-toggle
-Icon=/usr/local/share/icons/wasalight/ssh.svg
-TryExec=/usr/local/bin/wasalight-ssh-toggle
-X-Wasalight-Section=Support
-X-Wasalight-Order=90
-EOF
+    # SSH and VNC are managed only in the Services page; keep apps.d free from
+    # duplicate controls when the installer is run repeatedly.
+    rm -f /etc/wasalight/apps.d/vnc.desktop /etc/wasalight/apps.d/ssh.desktop
     write_file /etc/wasalight/apps.d/update.desktop 0644 <<'EOF'
 [Desktop Entry]
 Type=Application
@@ -3502,8 +3595,8 @@ launcher_padding = 8 4 8
 launcher_background_id = 2
 launcher_icon_background_id = 0
 launcher_icon_size = 46
-launcher_item_app = $TARGET_HOME/Desktop/Wasalight-Control.desktop
-launcher_item_app = $TARGET_HOME/Desktop/Files.desktop
+launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop
+launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Files.desktop
 
 taskbar_mode = single_desktop
 taskbar_padding = 4 0 4
@@ -3792,8 +3885,15 @@ nm-applet --indicator &
 /usr/local/bin/wasalight-touch-watch &
 /usr/local/bin/magicq-fullscreen-watch &
 /usr/local/bin/wasalight-remote-autostart &
-if findmnt -n -o FSTYPE / 2>/dev/null | grep -qx overlay; then
+( sleep 15; /usr/local/bin/wasalight-update-check ) &
+magicq_auto=enabled
+[[ ! -r /data/system/service-flags/magicq-autostart ]] || \
+    magicq_auto=$(cat /data/system/service-flags/magicq-autostart)
+if findmnt -n -o FSTYPE / 2>/dev/null | grep -qx overlay && \
+   [ "$magicq_auto" = enabled ]; then
     /usr/local/bin/magicq-session &
+elif findmnt -n -o FSTYPE / 2>/dev/null | grep -qx overlay; then
+    logger -t magicq-session "SHOW mode: automatic MagicQ start disabled by operator"
 else
     logger -t magicq-session "MAINTENANCE mode: automatic MagicQ start skipped"
 fi
@@ -3825,8 +3925,6 @@ EOF
     <item label="File"><action name="Execute"><command>pcmanfm /data</command></action></item>
     <item label="Terminal"><action name="Execute"><command>lxterminal</command></action></item>
     <item label="Aggiorna Wasalight"><action name="Execute"><command>/usr/local/bin/wasalight-update-terminal</command></action></item>
-    <item label="VNC"><action name="Execute"><command>/usr/local/bin/wasalight-vnc-toggle</command></action></item>
-    <item label="SSH"><action name="Execute"><command>/usr/local/bin/wasalight-ssh-toggle</command></action></item>
     <separator />
     <item label="Riavvia"><action name="Execute"><command>/usr/local/bin/wasalight-power reboot</command></action></item>
     <item label="Spegni"><action name="Execute"><command>/usr/local/bin/wasalight-power poweroff</command></action></item>
@@ -4380,11 +4478,14 @@ usb=$(findmnt -rn -o SOURCE,TARGET,FSTYPE,OPTIONS 2>/dev/null | \
     awk '$2 ~ "^/stick/"' || true)
 [[ -n $usb ]] || usb="empty"
 magicq="missing"
+magicq_mode="manual"
+[[ -r /data/system/service-flags/magicq-autostart && \
+   $(</data/system/service-flags/magicq-autostart) == enabled ]] && magicq_mode="automatic"
 magicq_pid=$(pgrep -o -x mqqt 2>/dev/null || true)
 if [[ $magicq_pid =~ ^[0-9]+$ ]]; then
-    magicq="running as $(ps -o user= -p "$magicq_pid" | tr -d ' ')"
+    magicq="running as $(ps -o user= -p "$magicq_pid" | tr -d ' ') ($magicq_mode)"
 elif [[ -x /opt/magicq/runmagicq.sh || -x /opt/magicq/bin/mqqt ]]; then
-    magicq="installed, stopped"
+    magicq="installed, stopped ($magicq_mode)"
 fi
 session="stopped"
 session_pid_file="/run/user/$(id -u chamsys)/wasalight-magicq-session.pid"
@@ -4431,10 +4532,22 @@ if [[ -d /opt/companion ]]; then
 fi
 logs="unavailable"
 [[ -d /data/log && -w /data/log ]] && logs="persistent in /data/log"
+update="not checked"
+if [[ -r /data/system/update-check/latest-version ]]; then
+    latest_version=$(</data/system/update-check/latest-version)
+    if [[ $latest_version =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]] && \
+       [[ $(printf '%s\n%s\n' "$version" "$latest_version" | sort -V | tail -n1) == "$latest_version" ]] && \
+       [[ $latest_version != "$version" ]]; then
+        update="AVAILABLE: $latest_version"
+    else
+        update="up to date"
+    fi
+fi
 
 cat <<EOT
 MagicQ Appliance
 WASALIGHT:  $version
+UPDATE:     $update
 OS:         $os
 MODE:       $mode
 ROOT:       $root_fs
@@ -4453,7 +4566,7 @@ EOT
 EOF
 
     write_file /etc/sudoers.d/chamsys-magicq 0440 <<'EOF'
-chamsys ALL=(root) NOPASSWD: /usr/local/sbin/wasalight-maintenance, /usr/local/sbin/wasalight-protect, /usr/local/sbin/magicq-root-launcher, /usr/local/sbin/magicq-root-stop, /usr/local/sbin/wasalight-companion-launcher magichd, /usr/local/sbin/wasalight-companion-launcher magicvis, /usr/local/sbin/wasalight-ip-scan, /usr/local/sbin/wasalight-artnet-capture, /usr/local/sbin/wasalight-power-control poweroff, /usr/local/sbin/wasalight-power-control reboot, /usr/local/sbin/wasalight-ssh-control start, /usr/local/sbin/wasalight-ssh-control stop, /usr/local/sbin/wasalight-remote-persistence ssh enable, /usr/local/sbin/wasalight-remote-persistence ssh disable, /usr/local/sbin/wasalight-remote-persistence vnc enable, /usr/local/sbin/wasalight-remote-persistence vnc disable, /usr/local/sbin/wasalight-companion-control start, /usr/local/sbin/wasalight-companion-control stop, /usr/local/sbin/wasalight-companion-control restart, /usr/local/sbin/wasalight-companion-backup
+chamsys ALL=(root) NOPASSWD: /usr/local/sbin/wasalight-maintenance, /usr/local/sbin/wasalight-protect, /usr/local/sbin/magicq-root-launcher, /usr/local/sbin/magicq-root-stop, /usr/local/sbin/wasalight-companion-launcher magichd, /usr/local/sbin/wasalight-companion-launcher magicvis, /usr/local/sbin/wasalight-ip-scan, /usr/local/sbin/wasalight-artnet-capture, /usr/local/sbin/wasalight-power-control poweroff, /usr/local/sbin/wasalight-power-control reboot, /usr/local/sbin/wasalight-ssh-control start, /usr/local/sbin/wasalight-ssh-control stop, /usr/local/sbin/wasalight-remote-persistence ssh enable, /usr/local/sbin/wasalight-remote-persistence ssh disable, /usr/local/sbin/wasalight-remote-persistence vnc enable, /usr/local/sbin/wasalight-remote-persistence vnc disable, /usr/local/sbin/wasalight-remote-persistence magicq enable, /usr/local/sbin/wasalight-remote-persistence magicq disable, /usr/local/sbin/wasalight-companion-control start, /usr/local/sbin/wasalight-companion-control stop, /usr/local/sbin/wasalight-companion-control restart, /usr/local/sbin/wasalight-companion-backup
 EOF
     visudo -cf /etc/sudoers.d/chamsys-magicq >/dev/null
 }
@@ -4591,6 +4704,7 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-vnc-password
     bash -n /usr/local/bin/wasalight-vnc-start
     bash -n /usr/local/bin/wasalight-vnc-stop
+    bash -n /usr/local/bin/wasalight-vnc-control
     bash -n /usr/local/bin/wasalight-power
     bash -n /usr/local/bin/wasalight-dialog
     bash -n /usr/local/sbin/wasalight-power-control
@@ -4599,6 +4713,7 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-ssh-toggle
     bash -n /usr/local/sbin/wasalight-ssh-control
     bash -n /usr/local/sbin/wasalight-update
+    bash -n /usr/local/bin/wasalight-update-check
     bash -n /usr/local/libexec/wasalight-update-session
     bash -n /usr/local/bin/wasalight-update-terminal
     bash -n /usr/local/bin/wasalight-terminal-tool

@@ -139,6 +139,12 @@ def persistent_state(parser):
 
 
 def action_records(parser, mode):
+    controlled_actions = set()
+    for section_name in parser.sections():
+        if section_name.startswith("Control "):
+            control = parser[section_name]
+            controlled_actions.update((control.get("OnAction", ""),
+                                       control.get("OffAction", "")))
     records = []
     for section_name in parser.sections():
         if not section_name.startswith("Action "):
@@ -154,6 +160,41 @@ def action_records(parser, mode):
             "confirm": action.get("Confirm", ""),
             "available": mode in modes,
             "management": boolean(action, "Management"),
+            "control": action_id in controlled_actions,
+        })
+    return records
+
+
+def control_records(parser, active, persistent, mode):
+    records = []
+    for section_name in parser.sections():
+        if not section_name.startswith("Control "):
+            continue
+        control_id = section_name.split(" ", 1)[1]
+        if not ID_PATTERN.fullmatch(control_id):
+            continue
+        control = parser[section_name]
+        state = control.get("State", "")
+        if state == "active":
+            checked = active
+        elif state == "persistent" and persistent is not None:
+            checked = persistent
+        else:
+            continue
+        on_action = control.get("OnAction", "")
+        off_action = control.get("OffAction", "")
+        if (f"Action {on_action}" not in parser or
+                f"Action {off_action}" not in parser):
+            continue
+        modes = [value.strip() for value in
+                 control.get("Modes", "show,maintenance").split(",")]
+        records.append({
+            "id": control_id,
+            "label": control.get("Label", control_id.title()),
+            "checked": checked,
+            "on_action": on_action,
+            "off_action": off_action,
+            "available": mode in modes,
         })
     return records
 
@@ -173,6 +214,7 @@ def plugin_record(parser):
         "Active" if active else "Stopped")
     if persistent is not None:
         state_label += " · AUTO" if persistent else " · MANUALE"
+    mode = system_mode()
     return {
         "id": plugin_id,
         "name": plugin.get("Name", plugin_id),
@@ -188,7 +230,8 @@ def plugin_record(parser):
         "active": active,
         "persistent": persistent,
         "state_label": state_label,
-        "actions": action_records(parser, system_mode()),
+        "actions": action_records(parser, mode),
+        "controls": control_records(parser, active, persistent, mode),
     }
 
 
