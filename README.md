@@ -20,6 +20,10 @@ magicq-ubuntu-appliance/
 ├── VERSION                            versione CalVer dell’installer
 ├── bin/
 │   └── chamsys_install_ubuntu.sh      installer completo
+├── Minimal-ISO-Builder/               builder ISO Ubuntu 24.04.4
+│   ├── README.txt
+│   ├── make-wasalight-minimal.sh
+│   └── autoinstall.yaml
 ├── packages/
 │   ├── README.md
 │   └── magicq_ubuntu_v1_9_8_3.deb    da aggiungere
@@ -131,6 +135,26 @@ La nuova partizione può essere passata all’installer con
 `--data-device LABEL=DATA`. Se il disco usa LVM, cifratura o RAID, non seguire
 questa procedura: preparare la partizione durante una nuova installazione con
 partizionamento manuale oppure usare una procedura specifica per quel layout.
+
+## Builder ISO minimale
+
+[`Minimal-ISO-Builder`](Minimal-ISO-Builder/README.txt) crea due installer
+Wasalight basati sulle immagini ufficiali Ubuntu Server 24.04.4 amd64:
+
+- **OFFLINE**, basato sulla Live Server completa;
+- **NETBOOT**, circa 100 MB, che scarica e verifica la Live Server durante
+  l’installazione e richiede Ethernet, Internet stabile e almeno 8 GiB di RAM.
+
+Per creare entrambe le varianti, dopo aver installato `xorriso`:
+
+```bash
+bash Minimal-ISO-Builder/make-wasalight-minimal.sh
+```
+
+Il builder verifica i checksum Canonical, non incorpora MagicQ e configura
+Ubuntu affinché Wasalight venga scaricato e installato al primo avvio. Immagini
+ISO sorgenti e generate, pacchetti `.deb`, cache e directory di lavoro sono
+esclusi dal repository Git.
 
 ## Verifica del progetto
 
