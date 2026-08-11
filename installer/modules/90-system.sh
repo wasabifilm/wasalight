@@ -255,13 +255,19 @@ record_installed_version() {
     write_file /etc/wasalight/version 0644 <<EOF
 $PROJECT_VERSION
 EOF
+    write_file /etc/wasalight/commit 0644 <<EOF
+$PROJECT_COMMIT
+EOF
     if mountpoint -q "$DATA_MOUNT"; then
         install -d -o root -g root -m 0755 "$DATA_MOUNT/system"
         write_file "$DATA_MOUNT/system/installed-version" 0644 <<EOF
 $PROJECT_VERSION
 EOF
+        write_file "$DATA_MOUNT/system/installed-commit" 0644 <<EOF
+$PROJECT_COMMIT
+EOF
     fi
-    log "installed Wasalight version: $PROJECT_VERSION"
+    log "installed Wasalight version: $PROJECT_VERSION ($PROJECT_COMMIT)"
 }
 
 final_checks() {
@@ -292,6 +298,7 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-ssh-toggle
     bash -n /usr/local/sbin/wasalight-ssh-control
     bash -n /usr/local/sbin/wasalight-update
+    bash -n /usr/local/libexec/wasalight-update-lib.sh
     bash -n /usr/local/bin/wasalight-update-check
     bash -n /usr/local/libexec/wasalight-update-session
     bash -n /usr/local/bin/wasalight-update-terminal

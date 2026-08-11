@@ -167,8 +167,11 @@ done
 required_patterns=(
     'VERSION_ID:-} == "$TARGET_UBUNTU_VERSION"'
     'PROJECT_VERSION="$(<"$PROJECT_DIR/$VERSION_FILE_NAME")"'
+    'PROJECT_COMMIT=unknown'
     '/etc/wasalight/version'
+    '/etc/wasalight/commit'
     '$DATA_MOUNT/system/installed-version'
+    '$DATA_MOUNT/system/installed-commit'
     "status_line \"\$blue\" 'VERSION'"
     "status_line \"\$yellow\" 'UPDATE' \"READY · \$available_version\""
     "status_line \"\$blue\" 'MAGICQ VER'"
@@ -263,7 +266,7 @@ required_patterns=(
     '${execpi 2 /usr/local/bin/wasalight-desktop-status}'
     '/data/system/wasalight'
     '/data/system/packages'
-    'git clone --branch "$branch"'
+    'candidate_checkout=$(mktemp -d "${checkout}.candidate.XXXXXX")'
     '/etc/wasalight/apps.d/network.desktop'
     '/data/system/apps.d'
     'wasalight-app-register'
@@ -409,7 +412,7 @@ required_patterns=(
     'CONFIG_DRM_SIMPLEDRM=y'
     '98-wasalight-early-display.cfg'
     'grep -qxF i915 /etc/initramfs-tools/modules'
-    'remote_commit=$(git ls-remote'
+    'remote_commit=$(git -C "$candidate_checkout" rev-parse --verify FETCH_HEAD)'
     'snapshot=$(bash "$snapshot_tool" create)'
     'bash "$snapshot_tool" restore "$snapshot"'
     'SSH:        $ssh'
@@ -489,14 +492,17 @@ grep -Fq -- "-name 'fsapfs[0-9]*'" "$ENTRYPOINT" || \
     fail "install.sh non cerca MagicQ nei volumi APFS esposti da libfsapfs"
 
 install_packages_body=$(awk '/^install_packages\(\) \{/,/^}/' "$INSTALLER")
-metadata_line=$(grep -n '^    apt-get update$' <<<"$install_packages_body" | head -n1 | cut -d: -f1)
+metadata_line=$(grep -n '^        apt-get update$' <<<"$install_packages_body" | head -n1 | cut -d: -f1)
 safe_purge_line=$(grep -n '^    purge_safe_unused_packages$' <<<"$install_packages_body" | cut -d: -f1)
-required_install_line=$(grep -n '^    apt_install "${packages\[@\]}"$' <<<"$install_packages_body" | cut -d: -f1)
+required_install_line=$(grep -n '^        apt_install "${missing_packages\[@\]}"$' <<<"$install_packages_body" | cut -d: -f1)
 [[ $metadata_line =~ ^[0-9]+$ && $safe_purge_line =~ ^[0-9]+$ && \
    $required_install_line =~ ^[0-9]+$ ]] || \
     fail "ordine della pulizia APT iniziale non verificabile"
-((safe_purge_line > metadata_line && safe_purge_line < required_install_line)) || \
+((safe_purge_line < metadata_line && metadata_line < required_install_line)) || \
     fail "i pacchetti inutili non vengono rimossi prima dell'installazione Wasalight"
+grep -Fq 'all required packages are installed; skipping apt metadata refresh' \
+    <<<"$install_packages_body" || \
+    fail "l'installer aggiorna APT anche quando tutti i pacchetti sono presenti"
 [[ $(grep -Fc 'apt-get autoremove --purge -y' "$INSTALLER") == 1 ]] || \
     fail "autoremove deve essere eseguito una sola volta alla fine"
 
@@ -542,6 +548,7 @@ helpers=(
     /usr/local/bin/wasalight-remote-auto-toggle
     /usr/local/bin/wasalight-remote-autostart
     /usr/local/sbin/wasalight-update
+    /usr/local/libexec/wasalight-update-lib.sh
     /usr/local/libexec/wasalight-update-session
     /usr/local/bin/wasalight-update-terminal
     /usr/local/bin/wasalight-update-check
@@ -684,9 +691,17 @@ grep -Fq 'wasalight-vnc-start --lan' "$tmp_dir/wasalight-remote-autostart" || \
     fail "l'autostart remoto non riattiva VNC"
 grep -Fq '/usr/local/bin/wasalight-remote-autostart &' "$INSTALLER" || \
     fail "l'autostart remoto non è collegato alla sessione Openbox"
-grep -Fq 'merge --ff-only FETCH_HEAD' "$tmp_dir/wasalight-update" || \
-    fail "l'aggiornamento Wasalight non impone un avanzamento Git sicuro"
-grep -Fq 'cmp -s -- "$source" "$destination"' "$tmp_dir/wasalight-update" || \
+grep -Fq 'git_retry -C "$candidate_checkout" fetch' "$tmp_dir/wasalight-update" || \
+    fail "l'aggiornamento Wasalight non usa download Git con retry"
+grep -Fq 'merge-base --is-ancestor' "$tmp_dir/wasalight-update" || \
+    fail "l'updater non blocca una riscrittura non fast-forward del ramo"
+grep -Fq 'timeout --signal=TERM 120' "$tmp_dir/wasalight-update-lib.sh" || \
+    fail "il download Git dell'updater può bloccarsi indefinitamente"
+grep -Fq 'mv "$candidate_checkout" "$checkout"' "$tmp_dir/wasalight-update" || \
+    fail "il checkout verificato non viene attivato transazionalmente"
+grep -Fq 'status --porcelain' "$tmp_dir/wasalight-update" || \
+    fail "l'updater non protegge i file Git non tracciati"
+grep -Fq 'cmp -s -- "$source" "$destination"' "$tmp_dir/wasalight-update-lib.sh" || \
     fail "la copia persistente del pacchetto MagicQ non viene verificata"
 grep -Fq 'findmnt -rn -o TARGET' "$tmp_dir/wasalight-update" || \
     fail "l'updater non controlla le USB attualmente montate"
@@ -695,14 +710,14 @@ grep -Fq 'find "$usb_mount" -maxdepth 1' "$tmp_dir/wasalight-update" || \
 grep -Fq 'find "$usb_mount/packages" -maxdepth 1' "$tmp_dir/wasalight-update" || \
     fail "l'updater non cerca il pacchetto MagicQ nella cartella packages USB"
 grep -Fq '[[ $(dpkg-deb -f "$source" Package 2>/dev/null) == "$magicq_package" ]]' \
-    "$tmp_dir/wasalight-update" || \
+    "$tmp_dir/wasalight-update-lib.sh" || \
     fail "l'updater non verifica che il pacchetto USB sia MagicQ"
 grep -Fq 'dpkg --compare-versions' "$tmp_dir/wasalight-update" || \
     fail "l'updater non confronta le vere versioni Debian di MagicQ"
-grep -Fq 'CONFLITTO: MagicQ $version' "$tmp_dir/wasalight-update" || \
+grep -Fq 'CONFLITTO: MagicQ $version' "$tmp_dir/wasalight-update-lib.sh" || \
     fail "l'updater non blocca pacchetti della stessa versione ma differenti"
 if grep -Fq 'find "$package_store" -maxdepth 1 -type f -name '"'"'*.deb'"'"' -print | sort -V' \
-    "$tmp_dir/wasalight-update"; then
+    "$tmp_dir/wasalight-update-lib.sh"; then
     fail "l'updater sceglie ancora MagicQ ordinando i nomi dei file"
 fi
 grep -Fq 'tests/verify-project.sh' "$tmp_dir/wasalight-update" || \
@@ -727,8 +742,31 @@ grep -Fq -- '--reboot' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non espone l'opzione di riavvio"
 grep -Fq -- '--verbose' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non espone la diagnostica dettagliata"
+grep -Fq -- '--plan' "$tmp_dir/wasalight-update" || \
+    fail "wasalight-update non espone il piano senza installazione"
+grep -Fq -- '--repair' "$tmp_dir/wasalight-update" || \
+    fail "wasalight-update non espone la reinstallazione intenzionale"
+grep -Fq 'same_release && !explicit_state_change && !magicq_change && !repair' \
+    "$tmp_dir/wasalight-update" || \
+    fail "l'updater non evita una reinstallazione identica"
+grep -Fq 'touch /run/wasalight-update-reboot-required' "$tmp_dir/wasalight-update" || \
+    fail "l'updater non registra quando serve davvero un riavvio"
+grep -Fq '[[ ! -e /run/wasalight-update-reboot-required ]]' \
+    "$tmp_dir/wasalight-update-session" || \
+    fail "la GUI updater propone un riavvio anche dopo un no-op"
+grep -Fq 'Downgrade bloccato:' "$tmp_dir/wasalight-update" || \
+    fail "l'updater non blocca downgrade Wasalight"
+grep -Fq 'Release incoerente:' "$tmp_dir/wasalight-update" || \
+    fail "l'updater accetta lo stesso VERSION da commit differenti"
+grep -Fq 'downgrade evitato' "$tmp_dir/wasalight-update" || \
+    fail "l'updater può installare un vecchio pacchetto MagicQ persistente"
 grep -Fq '/data/log/wasalight/updates' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non crea un log separato per ogni esecuzione"
+grep -Fq 'tail -n +21' "$tmp_dir/wasalight-update" || \
+    fail "i log delle singole esecuzioni updater non hanno retention"
+grep -Fq '/data/log/wasalight-update.log' \
+    "$INSTALLER_TEMPLATE_ROOT/etc/wasalight/wasalight-logrotate.conf" || \
+    fail "il log cumulativo updater non viene ruotato"
 grep -Fq 'Comando: %s' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non riporta il comando che ha causato l'errore"
 grep -Fq -- '--with-companion' "$tmp_dir/wasalight-update" || \

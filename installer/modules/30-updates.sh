@@ -10,6 +10,8 @@ configure_update() {
         "$DATA_MOUNT/system/update-check"
     install_template /usr/local/sbin/wasalight-update 0755
 
+    install_template /usr/local/libexec/wasalight-update-lib.sh 0755
+
     install_template /usr/local/libexec/wasalight-update-session 0755
 
     install_template /usr/local/bin/wasalight-update-terminal 0755

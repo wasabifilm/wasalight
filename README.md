@@ -244,7 +244,11 @@ L’installer prova a inizializzare automaticamente questa copia persistente;
 un problema temporaneo di rete produce un avviso e può essere recuperato con
 `sudo wasalight-update --code-only`.
 L’aggiornamento non usa `git reset --hard`: se trova modifiche locali ai file
-tracciati si ferma senza cancellarle. La procedura completa è descritta nella
+tracciati o non tracciati si ferma senza cancellarle. Scarica prima un checkout
+candidato, applica timeout e retry, verifica versione e commit e sostituisce la
+copia attiva solo dopo i test. Se il sistema è già identico evita snapshot, APT,
+installer e riavvio. `--plan` mostra le operazioni previste e `--repair` forza
+una reinstallazione intenzionale. La procedura completa è descritta nella
 [guida aggiornamenti](docs/update.md).
 
 La voce grafica **Aggiorna Wasalight** mostra chiaramente le quattro fasi e, solo

@@ -60,6 +60,12 @@ uno spettacolo.
       restano al massimo cinque copie.
 - [ ] Il log `wasalight-update.log` mostra la pulizia dei pacchetti estranei
       prima dell’installazione Wasalight e un solo `autoremove --purge` finale.
+- [ ] Ripetendo l’update della stessa versione/commit compare **sistema già
+      aggiornato** senza snapshot, APT, installer o richiesta di riavvio.
+- [ ] `wasalight-update --plan` mostra versione, commit, MagicQ, snapshot e
+      modalità prevista senza modificare la configurazione del sistema.
+- [ ] Il log cumulativo ruota a 5 MiB e in `updates/` restano al massimo venti
+      esecuzioni, nessuna più vecchia di trenta giorni.
 - [ ] Il controllo di `libqxcb.so`, eseguito con le librerie incluse da MagicQ,
       non mostra dipendenze `not found`.
 - [ ] `/usr/share/alsa/alsa.conf` esiste e `wasalight-audio-test` riproduce una
