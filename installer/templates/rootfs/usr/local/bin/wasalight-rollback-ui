@@ -28,15 +28,36 @@ selected=$(zenity --list --modal --width=820 --height=430 --title="$title" \
 
 details=$(awk -F '\t' -v selected="$selected" '$1 == selected {print "Versione: "$2"\nData: "$3"\nDimensione: "$4"\nChecksum: "$5}' <<<"$snapshots")
 integrity=$(awk -F '\t' -v selected="$selected" '$1 == selected {print $5}' <<<"$snapshots")
-if [[ $integrity != OK ]]; then
+set +e
+action=$(/usr/local/bin/wasalight-dialog --question --width=620 --title="$title" \
+    --text="<big><b>Cosa vuoi fare con questa snapshot?</b></big>\n\n$details\n\nIl ripristino sostituisce configurazione, comandi e tema Wasalight. L'eliminazione è definitiva." \
+    --ok-label="Ripristina" --cancel-label="Annulla" \
+    --extra-button="Elimina snapshot")
+action_rc=$?
+set -e
+
+if [[ $action == 'Elimina snapshot' ]]; then
+    if ! /usr/local/bin/wasalight-dialog --question --width=600 --title="$title" \
+        --text="<big><b>Eliminare definitivamente questa snapshot?</b></big>\n\n$details\n\nIl file e il relativo checksum verranno rimossi da /data e non potranno essere recuperati." \
+        --ok-label="Elimina definitivamente" --cancel-label="Conserva"; then
+        exit 0
+    fi
+    if pkexec /usr/local/sbin/wasalight-rollback delete "$selected"; then
+        /usr/local/bin/wasalight-dialog --info --width=520 --title="$title" \
+            --text="<big><b>Snapshot eliminata.</b></big>\n\n$details"
+        exit 0
+    fi
     /usr/local/bin/wasalight-dialog --error --width=560 --title="$title" \
-        --text="<big><b>Snapshot non integro.</b></big>\n\nIl checksum non è valido: il ripristino è stato bloccato."
+        --text="<big><b>Eliminazione non riuscita.</b></big>\n\nLa snapshot è stata conservata."
     exit 1
 fi
-if ! /usr/local/bin/wasalight-dialog --question --width=620 --title="$title" \
-    --text="<big><b>Ripristinare questa configurazione?</b></big>\n\n$details\n\nVerranno sostituiti configurazione, comandi e tema Wasalight. Al termine sarà obbligatorio riavviare." \
-    --ok-label="Ripristina" --cancel-label="Annulla"; then
+if ((action_rc != 0)); then
     exit 0
+fi
+if [[ $integrity != OK ]]; then
+    /usr/local/bin/wasalight-dialog --error --width=560 --title="$title" \
+        --text="<big><b>Snapshot non integro.</b></big>\n\nIl checksum non è valido: il ripristino è stato bloccato. Puoi comunque eliminare la snapshot dal menu precedente."
+    exit 1
 fi
 
 log_file=$(mktemp /tmp/wasalight-rollback.XXXXXX)

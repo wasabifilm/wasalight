@@ -71,9 +71,13 @@ uno spettacolo.
       sul bordo inferiore anche dopo una chiusura e un successivo avvio manuale.
 - [ ] Openbox espone un solo desktop virtuale (`wmctrl -d` mostra una riga).
 - [ ] Il pulsante di chiusura Openbox mostra una X netta e il bersaglio touch è
-      circa 44×44 px; viene usato il simbolo interno Openbox e gli stati
-      normale, inattivo, hover e pressione non
-      sostituiscono o fanno scomparire l'icona.
+      sensibilmente più grande del tema Ubuntu standard; la maschera XBM è
+      24×24 px e il font titolo a 28 amplia anche la vera area cliccabile.
+      Gli stati normale, inattivo, hover rosso e pressione non deformano o
+      fanno scomparire l'icona.
+- [ ] In **Rollback Wasalight**, il tasto **Elimina snapshot** richiede una
+      seconda conferma, rimuove archivio e checksum selezionati e non funziona
+      in modalità SHOW.
 - [ ] Il pannello Conky ha un fondo scuro semitrasparente e testo leggibile;
       avviando MagicQ fullscreen, Picom libera la finestra dal compositing.
 - [ ] Con MagicQ fermo, i tre pulsanti desktop MagicQ/Spegni/Riavvia hanno icone grandi e leggibili
@@ -192,6 +196,8 @@ uno spettacolo.
       mostrano versione e stato coerenti.
 - [ ] **Companion Web UI** avvia Falkon su `http://127.0.0.1:8000`; se il servizio
       è fermo ne propone l'avvio e la finestra massimizzata lascia Tint2 visibile.
+- [ ] La finestra Companion aperta in Falkon mostra nel taskbar Tint2 l'icona
+      Companion, non l'icona generica Falkon (`WM_CLASS=WasalightCompanion`).
 - [ ] Editor pulsanti, installazione moduli, drag-and-drop, WebSocket e feedback
       funzionano correttamente nel Falkon fornito da Ubuntu 24.04.
 - [ ] Preferenze e cookie Falkon sopravvivono in `/data/companion/browser`, ma

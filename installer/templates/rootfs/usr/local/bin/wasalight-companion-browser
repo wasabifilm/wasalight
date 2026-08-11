@@ -49,7 +49,9 @@ export XDG_CACHE_HOME="$runtime_base/wasalight-companion-browser-cache"
 install -d -m 0700 "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME"
 /usr/local/bin/wasalight-falkon-profile
 
-falkon --profile wasalight-companion "$url" &
+# Give the Companion web app its own X11 identity. Tint2 can then resolve the
+# matching XDG desktop entry and show the Companion icon instead of Falkon's.
+falkon --wmclass=WasalightCompanion --profile wasalight-companion "$url" &
 browser_pid=$!
 # Maximise without EWMH fullscreen so Tint2 remains reachable on touchscreens.
 for _ in {1..30}; do

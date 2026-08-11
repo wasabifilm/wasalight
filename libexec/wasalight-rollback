@@ -46,5 +46,16 @@ case ${1:-} in
         }
         exec "$snapshot_tool" restore "$archive"
         ;;
-    *) echo "Usage: wasalight-rollback list | restore SNAPSHOT" >&2; exit 2 ;;
+    delete)
+        (($# == 2)) || { echo "Usage: wasalight-rollback delete SNAPSHOT" >&2; exit 2; }
+        [[ $(findmnt -n -o FSTYPE / 2>/dev/null) != overlay ]] || {
+            echo "Snapshot deletion requires MAINTENANCE mode." >&2; exit 1;
+        }
+        archive=$(snapshot_path "$2")
+        [[ -f $archive || -f $archive.sha256 ]] || {
+            echo "Snapshot is unavailable." >&2; exit 1;
+        }
+        exec "$snapshot_tool" delete "$archive"
+        ;;
+    *) echo "Usage: wasalight-rollback list | restore SNAPSHOT | delete SNAPSHOT" >&2; exit 2 ;;
 esac

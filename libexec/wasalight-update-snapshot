@@ -16,6 +16,7 @@ fi
 case ${1:-} in
     create) operation="creazione snapshot Wasalight" ;;
     restore) operation="ripristino snapshot Wasalight" ;;
+    delete) operation="eliminazione snapshot Wasalight" ;;
     list) operation= ;;
     *) operation="gestione snapshot Wasalight" ;;
 esac
@@ -72,8 +73,18 @@ case ${1:-} in
         update-initramfs -u
         echo "Wasalight configuration restored from $archive"
         ;;
+    delete)
+        archive=${2:?snapshot required}
+        case $archive in "$root"/wasalight-*.tar.gz) ;; *) echo "Invalid snapshot path." >&2; exit 2 ;; esac
+        [[ -f $archive || -f $archive.sha256 ]] || {
+            echo "Snapshot is unavailable." >&2
+            exit 1
+        }
+        rm -f -- "$archive" "$archive.sha256"
+        echo "Wasalight snapshot deleted: $archive"
+        ;;
     list)
         find "$root" -maxdepth 1 -type f -name 'wasalight-*.tar.gz' -print | sort -r
         ;;
-    *) echo "Usage: wasalight-update-snapshot create|restore ARCHIVE|list" >&2; exit 2 ;;
+    *) echo "Usage: wasalight-update-snapshot create|restore ARCHIVE|delete ARCHIVE|list" >&2; exit 2 ;;
 esac

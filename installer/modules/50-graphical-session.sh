@@ -17,7 +17,13 @@ EOF
     sed -i \
         -e '0,/<name>.*<\/name>/s//<name>Wasalight<\/name>/' \
         -e 's#<titleLayout>.*</titleLayout>#<titleLayout>NLC</titleLayout>#' \
+        -e '/<font place="ActiveWindow">/,/<\/font>/s#<size>.*</size>#<size>28</size>#' \
+        -e '/<font place="InactiveWindow">/,/<\/font>/s#<size>.*</size>#<size>28</size>#' \
         "$TARGET_HOME/.config/openbox/rc.xml"
+    grep -A8 '<font place="ActiveWindow">' "$TARGET_HOME/.config/openbox/rc.xml" | \
+        grep -q '<size>28</size>' || die "Openbox active title font was not enlarged"
+    grep -A8 '<font place="InactiveWindow">' "$TARGET_HOME/.config/openbox/rc.xml" | \
+        grep -q '<size>28</size>' || die "Openbox inactive title font was not enlarged"
     grep -q '</applications>' "$TARGET_HOME/.config/openbox/rc.xml" || \
         die "Openbox applications section is unavailable"
     sed -i '/<\/applications>/i\
@@ -33,9 +39,13 @@ EOF
 
     install -d -m 0755 /usr/share/themes/Wasalight/openbox-3
     install_template /usr/share/themes/Wasalight/openbox-3/themerc 0644
-
-    # No custom close bitmap is installed: Openbox uses its native X symbol,
-    # with the larger touch target supplied by the decoration padding above.
+    install_template /usr/share/themes/Wasalight/openbox-3/close.xbm 0644
+    local close_state
+    for close_state in close_hover close_pressed close_disabled; do
+        install -m 0644 \
+            /usr/share/themes/Wasalight/openbox-3/close.xbm \
+            "/usr/share/themes/Wasalight/openbox-3/${close_state}.xbm"
+    done
 
     install_template /usr/local/bin/wasalight-desktop-wallpaper 0755
 
