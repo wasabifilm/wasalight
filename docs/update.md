@@ -111,6 +111,9 @@ configurazione Wasalight, dei manifest e dei comandi installati. Se l’installe
 fallisce, l’updater tenta automaticamente di ripristinarlo e indica il percorso
 dello snapshot. I pacchetti Ubuntu già aggiornati da APT non vengono
 downgradati: il rollback riguarda la configurazione dell’appliance.
+L’helper temporaneo viene interpretato esplicitamente con Bash, quindi funziona
+anche con `/run` montato `noexec`. Se la creazione fallisce, l’errore viene
+mostrato una sola volta e l’installer non viene avviato.
 
 Ad ogni avvio grafico un controllo asincrono confronta la versione installata
 con `VERSION` pubblicato su GitHub. Non rallenta Openbox o MagicQ, non installa

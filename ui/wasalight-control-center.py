@@ -28,7 +28,10 @@ PAGE_LABELS = {
     "Applications": "Applicazioni",
     "Support": "Supporto",
     "Plugins": "Plugin",
+    "Credits": "Crediti",
 }
+CARD_WIDTH = 290
+CARD_HEIGHT = 280
 
 
 def desktop_bool(item, key, default=False):
@@ -172,10 +175,11 @@ class ControlCenter(Gtk.Window):
         self.add_dashboard()
         launchers = installed_launchers()
         self.add_magicq_page(launchers)
-        self.add_plugin_page("Services", self.service_cards)
+        self.add_service_page()
         self.add_launcher_page("Applications", launchers)
         self.add_launcher_page("Support", launchers)
         self.add_plugin_page("Plugins", self.plugin_cards)
+        self.add_credits_page()
 
         footer = Gtk.Box(spacing=10)
         refresh = Gtk.Button(label="Aggiorna")
@@ -235,64 +239,92 @@ class ControlCenter(Gtk.Window):
         box.pack_start(scroll, True, True, 0)
         self.notebook.append_page(box, Gtk.Label(label=PAGE_LABELS["Dashboard"]))
 
+    @staticmethod
+    def section_heading(title, subtitle):
+        heading = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
+        title_label = Gtk.Label()
+        title_label.set_xalign(0)
+        title_label.set_markup(
+            f"<span size='18000' weight='bold'>{GLib.markup_escape_text(title)}</span>")
+        subtitle_label = Gtk.Label(label=subtitle)
+        subtitle_label.set_xalign(0)
+        subtitle_label.set_line_wrap(True)
+        subtitle_label.get_style_context().add_class("section-subtitle")
+        heading.pack_start(title_label, False, False, 0)
+        heading.pack_start(subtitle_label, False, False, 0)
+        return heading
+
+    @staticmethod
+    def card_flow():
+        flow = Gtk.FlowBox()
+        flow.set_selection_mode(Gtk.SelectionMode.NONE)
+        flow.set_row_spacing(14)
+        flow.set_column_spacing(14)
+        flow.set_min_children_per_line(1)
+        flow.set_max_children_per_line(3)
+        flow.set_homogeneous(True)
+        flow.set_halign(Gtk.Align.CENTER)
+        return flow
+
+    @staticmethod
+    def software_button(name, comment, icon, callback):
+        button = Gtk.Button()
+        button.set_size_request(CARD_WIDTH, CARD_HEIGHT)
+        button.set_tooltip_text(comment)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        content.set_border_width(14)
+        content.pack_start(image_for(icon, 88), True, True, 0)
+        label = Gtk.Label()
+        label.set_markup(
+            f"<span size='15500' weight='bold'>{GLib.markup_escape_text(name)}</span>")
+        label.set_line_wrap(True)
+        label.set_justify(Gtk.Justification.CENTER)
+        content.pack_start(label, False, False, 0)
+        description = Gtk.Label(label=comment)
+        description.set_line_wrap(True)
+        description.set_justify(Gtk.Justification.CENTER)
+        description.get_style_context().add_class("card-description")
+        content.pack_start(description, False, False, 0)
+        button.add(content)
+        button.connect("clicked", callback)
+        return button
+
     def add_magicq_page(self, launchers):
-        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
-        page.set_border_width(12)
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        page.set_border_width(14)
+        page.pack_start(self.section_heading(
+            "Software ChamSys",
+            "Avvio rapido dei programmi installati e controllo dell’avvio automatico di MagicQ."),
+            False, False, 0)
 
-        card = Gtk.Frame()
-        card_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        card_box.set_border_width(16)
-        heading = Gtk.Box(spacing=14)
-        heading.pack_start(image_for("/usr/share/pixmaps/magicq.png", 72), False, False, 0)
-        title = Gtk.Label()
-        title.set_xalign(0)
-        title.set_markup("<span size='18000' weight='bold'>ChamSys MagicQ</span>\n"
-                         "<span size='10500'>Console luci principale</span>")
-        heading.pack_start(title, True, True, 0)
-        card_box.pack_start(heading, False, False, 0)
-
+        status_card = Gtk.Frame()
+        status_row = Gtk.Box(spacing=18)
+        status_row.set_border_width(14)
         self.magicq_state_label.set_xalign(0)
-        card_box.pack_start(self.magicq_state_label, False, False, 0)
-
-        controls = Gtk.Box(spacing=14)
-        start = Gtk.Button()
-        start.set_size_request(230, 96)
-        start.set_sensitive(os.path.exists("/opt/magicq"))
-        start_content = Gtk.Box(spacing=12)
-        start_content.pack_start(image_for("/usr/share/pixmaps/magicq.png", 58), False, False, 0)
-        start_content.pack_start(Gtk.Label(label="Apri MagicQ"), True, True, 0)
-        start.add(start_content)
-        start.connect("clicked", self.run_desktop_command, ["/usr/local/bin/magicq-start"])
-        controls.pack_start(start, False, False, 0)
+        status_row.pack_start(self.magicq_state_label, True, True, 0)
         auto_row = self.toggle_row("Avvio automatico", self.magicq_auto_switch)
         self.magicq_auto_handler = self.magicq_auto_switch.connect(
             "state-set", self.magicq_auto_changed)
-        controls.pack_start(auto_row, True, True, 0)
-        card_box.pack_start(controls, False, False, 0)
-        card.add(card_box)
-        page.pack_start(card, False, False, 0)
+        status_row.pack_start(auto_row, False, False, 0)
+        status_card.add(status_row)
+        page.pack_start(status_card, False, False, 0)
+
+        flow = self.card_flow()
+        magicq = self.software_button(
+            "MagicQ", "Console luci principale",
+            "/usr/share/pixmaps/magicq.png",
+            lambda button: self.run_desktop_command(
+                button, ["/usr/local/bin/magicq-start"]))
+        magicq.set_sensitive(os.path.exists("/opt/magicq"))
+        flow.add(magicq)
 
         companions = [item for item in launchers if item["section"] == "MagicQ"]
-        if companions:
-            label = Gtk.Label(label="Programmi ChamSys aggiuntivi")
-            label.set_xalign(0)
-            page.pack_start(label, False, False, 0)
-            flow = Gtk.FlowBox()
-            flow.set_selection_mode(Gtk.SelectionMode.NONE)
-            flow.set_row_spacing(12)
-            flow.set_column_spacing(12)
-            flow.set_max_children_per_line(5)
-            for item in companions:
-                button = Gtk.Button()
-                button.set_size_request(180, 132)
-                button.set_tooltip_text(item["comment"])
-                content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7)
-                content.pack_start(image_for(item["icon"], 58), True, True, 0)
-                content.pack_start(Gtk.Label(label=item["name"]), False, False, 0)
-                button.add(content)
-                button.connect("clicked", self.launch_application, item)
-                flow.add(button)
-            page.pack_start(flow, False, False, 0)
+        for item in companions:
+            flow.add(self.software_button(
+                item["name"], item["comment"] or "Programma ChamSys",
+                item["icon"],
+                lambda button, selected=item: self.launch_application(button, selected)))
+        page.pack_start(flow, False, False, 0)
 
         scroll = Gtk.ScrolledWindow()
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -329,6 +361,20 @@ class ControlCenter(Gtk.Window):
         scroll.add(flow)
         self.notebook.append_page(scroll, Gtk.Label(label=PAGE_LABELS[section]))
 
+    def add_service_page(self):
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        page.set_border_width(14)
+        page.pack_start(self.section_heading(
+            "Servizi",
+            "Controllo uniforme dello stato corrente e della persistenza dei servizi Wasalight."),
+            False, False, 0)
+        self.service_cards = self.card_flow()
+        page.pack_start(self.service_cards, False, False, 0)
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroll.add(page)
+        self.notebook.append_page(scroll, Gtk.Label(label=PAGE_LABELS["Services"]))
+
     def add_plugin_page(self, title, flow):
         flow.set_selection_mode(Gtk.SelectionMode.NONE)
         flow.set_row_spacing(12)
@@ -340,9 +386,69 @@ class ControlCenter(Gtk.Window):
         scroll.add(flow)
         self.notebook.append_page(scroll, Gtk.Label(label=PAGE_LABELS[title]))
 
+    def add_credits_page(self):
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        page.set_border_width(14)
+        page.pack_start(self.section_heading(
+            "Crediti",
+            "Autori, licenza e riconoscimenti del progetto."), False, False, 0)
+
+        frame = Gtk.Frame()
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        content.set_border_width(22)
+        content.pack_start(
+            image_for("/usr/share/plymouth/themes/wasalight/boot-logo.png", 190),
+            False, False, 0)
+        _mode, version = mode_and_version()
+        title = Gtk.Label()
+        title.set_markup(
+            "<span foreground='#76bd22' size='19000' weight='bold'>Wasalight</span>\n"
+            f"<span size='10500'>Versione {GLib.markup_escape_text(version)}</span>")
+        title.set_justify(Gtk.Justification.CENTER)
+        content.pack_start(title, False, False, 0)
+
+        author = Gtk.Label()
+        author.set_markup(
+            "<span size='12500' weight='bold'>Creato da Michele Moser / "
+            "Wasabi Lightbulbfarm</span>")
+        author.set_line_wrap(True)
+        author.set_justify(Gtk.Justification.CENTER)
+        content.pack_start(author, False, False, 0)
+
+        license_text = Gtk.Label(label=(
+            "Codice e documentazione: Apache License 2.0. "
+            "Il logo Wasabi Lightbulbfarm è escluso dalla licenza software e resta protetto.\n"
+            "ChamSys MagicQ e Bitfocus Companion sono prodotti esterni e mantengono "
+            "i rispettivi marchi e licenze."))
+        license_text.set_line_wrap(True)
+        license_text.set_justify(Gtk.Justification.CENTER)
+        license_text.set_max_width_chars(78)
+        content.pack_start(license_text, False, False, 0)
+
+        links = Gtk.Box(spacing=12)
+        github = Gtk.LinkButton.new_with_label(
+            "https://github.com/wasabifilm/wasalight", "Progetto GitHub")
+        instagram = Gtk.LinkButton.new_with_label(
+            "https://www.instagram.com/wasabi_lightbulbfarm/",
+            "@wasabi_lightbulbfarm")
+        github.set_size_request(220, 58)
+        instagram.set_size_request(260, 58)
+        links.pack_start(Gtk.Label(), True, True, 0)
+        links.pack_start(github, False, False, 0)
+        links.pack_start(instagram, False, False, 0)
+        links.pack_start(Gtk.Label(), True, True, 0)
+        content.pack_start(links, False, False, 0)
+        frame.add(content)
+        page.pack_start(frame, False, False, 0)
+
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroll.add(page)
+        self.notebook.append_page(scroll, Gtk.Label(label=PAGE_LABELS["Credits"]))
+
     def plugin_card(self, item, management=False):
         frame = Gtk.Frame()
-        frame.set_size_request(300, 220 if management else 190)
+        frame.set_size_request(CARD_WIDTH, CARD_HEIGHT if not management else 300)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7)
         box.set_border_width(12)
         heading = Gtk.Box(spacing=10)
@@ -364,7 +470,30 @@ class ControlCenter(Gtk.Window):
         description.set_xalign(0)
         description.set_line_wrap(True)
         box.pack_start(description, True, True, 0)
-        actions = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7)
+        actions = Gtk.Grid()
+        actions.set_row_spacing(7)
+        actions.set_column_spacing(7)
+        action_row = 0
+        action_column = 0
+
+        def add_action(widget, full_width=False):
+            nonlocal action_row, action_column
+            widget.set_hexpand(True)
+            if isinstance(widget, Gtk.Button):
+                widget.set_size_request(-1, 46)
+            if full_width:
+                if action_column:
+                    action_row += 1
+                    action_column = 0
+                actions.attach(widget, 0, action_row, 2, 1)
+                action_row += 1
+                return
+            actions.attach(widget, action_column, action_row, 1, 1)
+            action_column += 1
+            if action_column == 2:
+                action_row += 1
+                action_column = 0
+
         if management:
             label = "Installa con Update" if not item["installed"] else (
                 "Disabilita" if item["enabled"] else "Abilita")
@@ -374,7 +503,7 @@ class ControlCenter(Gtk.Window):
                 button.connect("clicked", self.change_plugin_state, item, not item["enabled"])
             else:
                 button.connect("clicked", self.install_plugin, item)
-            actions.pack_start(button, True, True, 0)
+            add_action(button, True)
             if item["installed"] and item["enabled"]:
                 for action in item["actions"]:
                     if not action["management"]:
@@ -382,7 +511,7 @@ class ControlCenter(Gtk.Window):
                     button = Gtk.Button(label=action["label"])
                     button.set_sensitive(action["available"])
                     button.connect("clicked", self.plugin_action, item, action)
-                    actions.pack_start(button, False, False, 0)
+                    add_action(button)
         elif item["enabled"] and item["installed"] and item["compatible"]:
             for control in item.get("controls", []):
                 switch = Gtk.Switch()
@@ -390,17 +519,16 @@ class ControlCenter(Gtk.Window):
                 switch.set_sensitive(control["available"])
                 switch.connect("state-set", self.plugin_control_changed,
                                item, control)
-                actions.pack_start(self.toggle_row(control["label"], switch),
-                                   False, False, 0)
+                add_action(self.toggle_row(control["label"], switch), True)
             for action in item["actions"]:
                 if action["management"] or action.get("control"):
                     continue
                 button = Gtk.Button(label=action["label"])
                 button.set_sensitive(action["available"])
                 button.connect("clicked", self.plugin_action, item, action)
-                actions.pack_start(button, True, True, 0)
+                add_action(button)
         if not item["enabled"] and not management:
-            actions.pack_start(Gtk.Label(label="Plugin disabilitato"), True, True, 0)
+            add_action(Gtk.Label(label="Plugin disabilitato"), True)
         box.pack_start(actions, False, False, 0)
         frame.add(box)
         return frame
@@ -643,6 +771,8 @@ notebook > header tab:checked {
 }
 frame { background: #11151b; border: 1px solid #303842; border-radius: 7px; }
 textview, textview text { background: #0d1117; color: #e6edf3; font-size: 16px; }
+.section-subtitle { color: #aeb7c2; font-size: 15px; }
+.card-description { color: #aeb7c2; font-size: 14px; }
 """
 
 

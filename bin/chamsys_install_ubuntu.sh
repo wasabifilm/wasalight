@@ -1529,9 +1529,9 @@ update_failed() {
         "$red" "$reset" "$phase" >&2
     printf 'Comando: %s\nLinea: %s · codice: %s\n' "$command" "$line" "$rc" >&2
     echo "La macchina non verrà riavviata." >&2
-    if [[ -n ${snapshot:-} && -x ${snapshot_tool:-} ]]; then
+    if [[ -n ${snapshot:-} && -r ${snapshot_tool:-} ]]; then
         echo "Ripristino automatico della configurazione precedente…" >&2
-        if "$snapshot_tool" restore "$snapshot"; then
+        if bash "$snapshot_tool" restore "$snapshot"; then
             echo "Configurazione precedente ripristinata. Riavviare prima dell'uso." >&2
         else
             echo "ATTENZIONE: rollback automatico non riuscito; snapshot: $snapshot" >&2
@@ -1718,7 +1718,12 @@ fi
 install -o root -g root -m 0755 "$checkout/libexec/wasalight-update-snapshot" \
     "$snapshot_tool"
 bash -n "$snapshot_tool"
-snapshot=$("$snapshot_tool" create)
+if snapshot=$(bash "$snapshot_tool" create); then
+    :
+else
+    snapshot_rc=$?
+    update_failed "$snapshot_rc" "$LINENO" 'bash "$snapshot_tool" create'
+fi
 echo "Snapshot pre-aggiornamento: $snapshot"
 
 installer_args=()
@@ -1969,6 +1974,9 @@ configure_companion() {
        printf '%s  %s\n' "$COMPANION_ICON_SHA256" "$companion_icon_tmp" | sha256sum -c -; then
         install -m 0644 "$companion_icon_tmp" \
             /usr/local/share/icons/wasalight/companion-official.png
+        log "installed the verified official Bitfocus Companion icon"
+    elif [[ -s /usr/local/share/icons/wasalight/companion-official.png ]]; then
+        warn "official Companion icon refresh failed; keeping the previously verified icon"
     else
         warn "official Companion icon unavailable or checksum mismatch; using the local fallback"
     fi
@@ -3538,8 +3546,8 @@ Comment=Apre dati persistenti e chiavette USB
 Exec=pcmanfm /data
 Icon=/usr/local/share/icons/wasalight/files.svg
 TryExec=pcmanfm
-X-Wasalight-Section=Support
-X-Wasalight-Order=50
+X-Wasalight-Section=Applications
+X-Wasalight-Order=10
 EOF
     write_file /etc/wasalight/apps.d/ip-scanner.desktop 0644 <<'EOF'
 [Desktop Entry]
@@ -3549,8 +3557,8 @@ Comment=Trova dispositivi, indirizzi IP e produttori nella rete locale
 Exec=/usr/local/bin/wasalight-ip-scanner
 Icon=/usr/local/share/icons/wasalight/ip-scanner.svg
 TryExec=/usr/local/bin/wasalight-ip-scanner
-X-Wasalight-Section=Support
-X-Wasalight-Order=55
+X-Wasalight-Section=Applications
+X-Wasalight-Order=20
 EOF
     write_file /etc/wasalight/apps.d/artnet-monitor.desktop 0644 <<'EOF'
 [Desktop Entry]
@@ -3560,8 +3568,8 @@ Comment=Mostra sorgenti, universi e pacchetti Art-Net in tempo reale
 Exec=/usr/local/bin/wasalight-artnet-monitor
 Icon=/usr/local/share/icons/wasalight/artnet-monitor.svg
 TryExec=/usr/local/bin/wasalight-artnet-monitor
-X-Wasalight-Section=Support
-X-Wasalight-Order=56
+X-Wasalight-Section=Applications
+X-Wasalight-Order=21
 EOF
     write_file /etc/wasalight/apps.d/system-monitor.desktop 0644 <<'EOF'
 [Desktop Entry]
@@ -4865,6 +4873,18 @@ configure_boot_branding() {
     local persistent_logo="$persistent_dir/boot-logo.png"
     local selected_logo="$default_logo"
     local theme_dir=/usr/share/plymouth/themes/wasalight
+    local intel_graphics=0
+    local early_simpledrm=0
+
+    if lspci 2>/dev/null | grep -Eiq \
+        'Intel.*(VGA|Display)|(VGA|Display).*Intel'; then
+        intel_graphics=1
+    fi
+    if [[ -d /sys/firmware/efi ]] && \
+       grep -qx 'CONFIG_DRM_SIMPLEDRM=y' "/boot/config-$(uname -r)" 2>/dev/null && \
+       grep -aFq 'plymouth.use-simpledrm' /usr/sbin/plymouthd 2>/dev/null; then
+        early_simpledrm=1
+    fi
 
     [[ -s $default_logo ]] || die "default boot logo is missing: $default_logo"
     if mountpoint -q "$DATA_MOUNT"; then
@@ -4963,7 +4983,24 @@ logo.composite(canvas, x, y, logo_width, logo_height,
 canvas.savev(sys.argv[2], "png", [], [])
 PYEOF
     chmod 0644 /boot/grub/wasalight-background.png
+    install -d -m 0755 /etc/initramfs-tools/conf.d
+    write_file /etc/initramfs-tools/conf.d/wasalight-framebuffer 0644 <<'EOF'
+# Keep framebuffer and DRM support in the initramfs so Plymouth can display
+# before the ordinary root filesystem and graphical session are available.
+FRAMEBUFFER=y
+EOF
     install -d -m 0755 /etc/default/grub.d
+    if ((early_simpledrm)); then
+        write_file /etc/default/grub.d/98-wasalight-early-display.cfg 0644 <<'EOF'
+# Use the generic UEFI GOP framebuffer while the native DRM driver is loading.
+# This is resolution-independent and shortens the dark GRUB-to-Plymouth gap.
+GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} plymouth.use-simpledrm"
+EOF
+        log "enabled the resolution-independent UEFI SimpleDRM boot hand-off"
+    else
+        rm -f /etc/default/grub.d/98-wasalight-early-display.cfg
+        log "using the standard DRM boot hand-off (SimpleDRM prerequisites not met)"
+    fi
     write_file /etc/default/grub.d/99-wasalight.cfg 0644 <<'EOF'
 # Quiet normal boot. Hold Esc during firmware/GRUB hand-off for the boot menu.
 GRUB_TIMEOUT_STYLE=hidden
@@ -4978,8 +5015,7 @@ GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} quiet splash loglevel=
 EOF
     # On the HP EliteDesk target, include Intel KMS in the initramfs so
     # Plymouth can own the display before the ordinary userspace hand-off.
-    if lspci 2>/dev/null | grep -Eiq 'VGA|Display' && \
-       lspci 2>/dev/null | grep -Eiq 'Intel.*(VGA|Display)|(VGA|Display).*Intel'; then
+    if ((intel_graphics)); then
         grep -qxF i915 /etc/initramfs-tools/modules || printf 'i915\n' >>/etc/initramfs-tools/modules
     fi
     update-grub
@@ -5099,6 +5135,8 @@ final_checks() {
         die "Wasalight is not the active Plymouth theme"
     [[ -r /etc/default/grub.d/99-wasalight.cfg ]] || \
         die "Wasalight quiet GRUB configuration is unavailable"
+    [[ -r /etc/initramfs-tools/conf.d/wasalight-framebuffer ]] || \
+        die "Wasalight early framebuffer configuration is unavailable"
     [[ -s /boot/grub/wasalight-background.png ]] || \
         die "Wasalight early GRUB background is unavailable"
     systemd-analyze verify \

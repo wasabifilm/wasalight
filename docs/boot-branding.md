@@ -45,6 +45,37 @@ con grafica Intel aggiunge `i915` all’initramfs: il kernel modesetting e
 Plymouth possono così prendere lo schermo prima. UTM resta un ambiente di test;
 questa ottimizzazione hardware è pensata per il target fisico Intel.
 
+La risoluzione GRUB rimane intenzionalmente `auto`: Wasalight non può conoscere
+in anticipo il monitor che verrà collegato. L’installer forza invece
+`FRAMEBUFFER=y` nell’initramfs su ogni macchina. Su qualunque sistema **UEFI**
+il cui kernel dichiara `CONFIG_DRM_SIMPLEDRM=y` e la cui versione Plymouth
+riconosce l’opzione, aggiunge anche `plymouth.use-simpledrm`: Plymouth può
+riutilizzare il framebuffer GOP generico del firmware mentre viene caricato il
+driver nativo Intel, AMD, NVIDIA o virtuale, riducendo il periodo senza segnale
+tra GRUB e il logo successivo. Su BIOS legacy o kernel senza SimpleDRM
+l’opzione non viene scritta e resta il percorso standard.
+
+Il precaricamento esplicito di `i915` resta invece limitato all’hardware Intel:
+forzare un driver specifico su tutte le schede renderebbe l’immagine meno
+portabile. Le altre GPU effettuano il passaggio dal framebuffer UEFI al proprio
+driver DRM rilevato dal sistema.
+
+Wasalight non imposta `i915.fastboot`: il parametro è stato rimosso dai kernel
+moderni e usarlo non sarebbe un’ottimizzazione portabile. Se uno specifico
+firmware UEFI mostra una regressione con SimpleDRM, entrare in MAINTENANCE e
+disabilitare soltanto l’anticipo, mantenendo framebuffer e `i915`:
+
+```bash
+sudo rm /etc/default/grub.d/98-wasalight-early-display.cfg
+sudo update-grub
+sudo update-initramfs -u
+sudo reboot
+```
+
+Un successivo aggiornamento Wasalight riattiva l’opzione se l’hardware soddisfa
+nuovamente i controlli; il comando sopra è quindi pensato come diagnosi e
+fallback temporaneo.
+
 ## Sostituire il logo
 
 Usare un PNG con trasparenza o con un fondo che renda leggibile il marchio. Sono

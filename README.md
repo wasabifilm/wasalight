@@ -246,8 +246,11 @@ con `--protect` quando il prossimo avvio deve tornare direttamente in SHOW mode.
 ### Logo e avvio silenzioso
 
 Il progetto include il logo Wasabi Lightbulbfarm per GRUB, Plymouth e desktop.
-Il marchio appare centrato e discreto su fondo quasi nero; sul target Intel il
-driver `i915` entra nell’initramfs per anticipare lo splash. Alla prima installazione il
+Il marchio appare centrato e discreto su fondo quasi nero; il framebuffer entra
+nell’initramfs su tutti i sistemi e, sul target Intel, viene precaricato anche
+il driver `i915`. Su qualunque sistema UEFI compatibile, SimpleDRM mantiene
+inoltre il framebuffer del firmware senza dipendere dalla scheda video e senza
+fissare la risoluzione del monitor. Alla prima installazione il
 file viene copiato in `/data/system/branding/boot-logo.png`: sostituendo questa
 immagine è possibile personalizzare insieme i boot successivi e lo sfondo
 Openbox, senza perdere la modifica con gli aggiornamenti. Logo, dimensione,
@@ -466,7 +469,7 @@ prima passare a MAINTENANCE oppure fermare MagicQ con `magicq-stop`.
 ### Wasalight Control, plugin e applicazioni future
 
 **Wasalight Control** è il centro di gestione GTK progettato per il touchscreen.
-Riunisce dashboard, MagicQ, servizi, applicazioni, supporto e plugin in una
+Riunisce dashboard, MagicQ, servizi, applicazioni, supporto, plugin e crediti in una
 finestra massimizzata, lasciando sempre visibile Tint2. Rimane attiva una sola
 istanza per sessione: un nuovo tocco sull'icona porta in primo piano la finestra
 già aperta. Stato e plugin vengono letti in background, così il cambio scheda e
@@ -479,19 +482,26 @@ rimangono nella stessa famiglia quasi nera del desktop.
 
 I programmi continuano a essere organizzati tramite il registro `apps.d`:
 
-- **MagicQ**: grande comando di apertura con l'icona originale ChamSys, stato
-  `APERTO/CHIUSO · AUTO/MANUALE` e toggle dell'avvio automatico; non esiste un
-  pulsante Ferma, perché l'applicazione si chiude normalmente dalla propria X;
-- **Applicazioni**: programmi registrati dall'amministratore;
-- **Supporto**: rete, monitor, touchscreen, audio, file, terminale, stato,
+- **MagicQ**: MagicQ, MagicHD e MagicVis usano tre schede touch grandi e uguali;
+  stato `APERTO/CHIUSO · AUTO/MANUALE` e toggle dell'avvio automatico restano
+  nella riga superiore; non esiste un pulsante Ferma, perché l'applicazione si
+  chiude normalmente dalla propria X;
+- **Servizi**: usa la stessa intestazione e la stessa griglia a tre colonne di
+  MagicQ; icona, nome, stato, descrizione, toggle e azioni mantengono posizioni
+  coerenti in ogni scheda;
+- **Applicazioni**: programmi registrati dall'amministratore, compresi File,
+  Scanner IP e Art-Net Monitor;
+- **Supporto**: rete, monitor, touchscreen, audio, terminale, stato,
   diagnostica, salute, backup/ripristino, blocco schermo manuale e aggiornamento
   Wasalight;
 - **Applicazioni** include anche la calcolatrice leggera `galculator`.
+- **Crediti**: autore, versione, licenza, attribuzioni e collegamenti ufficiali
+  del progetto; ChamSys e Bitfocus sono indicati come prodotti esterni.
 
 Nella home **Stato**, il pulsante File è sostituito dal cambio modalità:
 **Passa a MAINTENANCE** quando la console è in SHOW oppure **Passa a SHOW** in
 MAINTENANCE. Dopo la conferma viene preparato il prossimo avvio e viene proposto
-il riavvio immediato. Il File Manager resta nel dock e in Supporto.
+il riavvio immediato. Il File Manager resta nel dock e in Applicazioni.
 
 Il rilevamento automatico è intenzionalmente limitato ai companion riconoscibili
 come MagicVis, MagicHD e strumenti Remote/Viewer ChamSys. Il programma MagicQ
