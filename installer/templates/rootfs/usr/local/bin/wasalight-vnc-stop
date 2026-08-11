@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || {
+    echo "Run this command as the chamsys desktop user." >&2
+    exit 1
+}
+
+runtime_dir=${MAGICQ_VNC_RUNTIME_DIR:-${XDG_RUNTIME_DIR:-/run/user/$(id -u)}}
+[[ -d $runtime_dir && -w $runtime_dir ]] || runtime_dir=/tmp
+pid_file="$runtime_dir/wasalight-x11vnc.pid"
+[[ -r $pid_file ]] || { echo "Managed VNC server is not running."; exit 0; }
+vnc_pid=$(<"$pid_file")
+
+if [[ $vnc_pid =~ ^[0-9]+$ ]] && kill -0 "$vnc_pid" 2>/dev/null && \
+   [[ $(ps -p "$vnc_pid" -o comm= 2>/dev/null | tr -d ' ') == x11vnc ]]; then
+    kill "$vnc_pid"
+    for _ in 1 2 3 4 5; do
+        kill -0 "$vnc_pid" 2>/dev/null || break
+        sleep 1
+    done
+    echo "VNC stopped."
+else
+    echo "Removing stale VNC state; no managed x11vnc process was found."
+fi
+rm -f "$pid_file"

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+exec lxterminal --title="Wasalight · Backup e ripristino" -e bash -lc '
+sudo -n /usr/local/sbin/wasalight-data-transfer
+rc=$?; echo; read -r -p "Premere Invio per chiudere"; exit "$rc"'

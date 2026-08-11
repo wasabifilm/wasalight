@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $EUID -eq 0 ]] || exec sudo "$0" "$@"
+(($# == 0)) || { echo "Usage: wasalight-companion-update" >&2; exit 2; }
+. /usr/local/libexec/wasalight-release-manifest.sh
+. /usr/local/libexec/wasalight-operation-lock.sh
+wasalight_acquire_operation_lock "aggiornamento Bitfocus Companion"
+[[ $(findmnt -n -o FSTYPE / 2>/dev/null) != overlay ]] || {
+    echo "Companion updates require MAINTENANCE mode." >&2; exit 1;
+}
+mountpoint -q /data || { echo "/data is not mounted." >&2; exit 1; }
+source_dir=/usr/local/src/companionpi
+repository=$(require_manifest_value /etc/wasalight/release-manifest.ini Companion Repository)
+commit=$(cat /etc/wasalight/companion-pi-commit)
+version=$(cat /etc/wasalight/companion-target-version)
+[[ -d $source_dir/.git ]] || { echo "CompanionPi checkout is unavailable." >&2; exit 1; }
+was_active=0
+systemctl is-active --quiet companion.service && was_active=1
+/usr/local/sbin/wasalight-companion-backup
+restore_service() {
+    ((was_active == 0)) || systemctl start companion.service
+}
+trap restore_service EXIT
+((was_active == 0)) || systemctl stop companion.service
+git -C "$source_dir" remote set-url origin "$repository"
+git -C "$source_dir" fetch --depth=1 origin "$commit"
+git -C "$source_dir" checkout --detach "$commit"
+"$source_dir/update.sh" stable "$version"
+[[ -s /opt/companion/BUILD ]] || { echo "Updated Companion BUILD file is missing." >&2; exit 1; }
+actual_build=$(tr -d '\r\n' </opt/companion/BUILD)
+actual=${actual_build#[vV]}
+actual=${actual%%+*}
+[[ $actual == "$version" ]] || {
+    echo "Companion update requested $version but BUILD reports $actual_build." >&2; exit 1;
+}
+printf '%s\n' "$actual" >/data/companion/installed-version
+systemctl daemon-reload
+trap - EXIT
+((was_active == 0)) || systemctl start companion.service
+echo "Bitfocus Companion $version updated successfully."

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=File
+Comment=Apre dati persistenti e chiavette USB
+Exec=pcmanfm /data
+Icon=/usr/local/share/icons/wasalight/files.svg
+TryExec=pcmanfm
+X-Wasalight-Section=Applications
+X-Wasalight-Order=10

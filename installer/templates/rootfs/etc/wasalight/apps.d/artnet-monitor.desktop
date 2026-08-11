@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Art-Net Monitor
+Comment=Mostra sorgenti, universi e pacchetti Art-Net in tempo reale
+Exec=/usr/local/bin/wasalight-artnet-monitor
+Icon=/usr/local/share/icons/wasalight/artnet-monitor.svg
+TryExec=/usr/local/bin/wasalight-artnet-monitor
+X-Wasalight-Section=Applications
+X-Wasalight-Order=21

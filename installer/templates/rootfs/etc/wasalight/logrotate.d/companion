@@ -1,0 +1,11 @@
+/data/companion/log/companion.log {
+    size 5M
+    rotate 5
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    create 0640 companion companion
+    su companion companion
+}

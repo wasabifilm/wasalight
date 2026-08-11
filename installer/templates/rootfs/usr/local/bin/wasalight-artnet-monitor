@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+log_file=/tmp/wasalight-network-tools.log
+[[ -d /data/log && -w /data/log ]] && log_file=/data/log/wasalight-network-tools.log
+exec /usr/local/libexec/wasalight-artnet-monitor.py >>"$log_file" 2>&1

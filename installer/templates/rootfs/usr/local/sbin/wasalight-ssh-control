@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $EUID -eq 0 ]] || {
+    echo "Wasalight SSH control must be run through sudo." >&2
+    exit 1
+}
+
+case ${1:-} in
+    start)
+        systemctl start ssh.service
+        systemctl is-active --quiet ssh.service
+        echo "SSH started."
+        ;;
+    stop)
+        systemctl stop ssh.service
+        echo "SSH stopped."
+        ;;
+    *) echo "Usage: wasalight-ssh-control start|stop" >&2; exit 2 ;;
+esac

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Blocca schermo
+Comment=Blocco manuale con password, senza spegnere il display
+Exec=/usr/local/bin/wasalight-screen-lock
+Icon=system-lock-screen
+TryExec=/usr/local/bin/wasalight-screen-lock
+X-Wasalight-Section=Support
+X-Wasalight-Order=76

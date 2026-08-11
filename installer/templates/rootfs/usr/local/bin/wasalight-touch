@@ -1,0 +1,326 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+readonly DATA_CONFIG=/data/system/touchscreen/config
+readonly FALLBACK_CONFIG=/home/chamsys/.config/wasalight-touch/config
+CONFIG=$FALLBACK_CONFIG
+[[ -e $DATA_CONFIG || -d ${DATA_CONFIG%/*} ]] && CONFIG=$DATA_CONFIG
+[[ -n ${MAGICQ_TOUCH_CONFIG:-} ]] && CONFIG=$MAGICQ_TOUCH_CONFIG
+
+MODE=auto
+DEVICE=
+OUTPUT=
+ROTATION=normal
+TOUCH_IDS=()
+TOUCH_NAMES=()
+TOUCH_NODES=()
+TOUCH_KEYS=()
+OUTPUTS=()
+RESOLVED_ID=
+RESOLVED_DEVICE=
+RESOLVED_OUTPUT=
+
+warn() { printf 'Touchscreen: %s\n' "$*" >&2; }
+
+usage() {
+    cat <<'EOT'
+Usage:
+  wasalight-touch-status
+  wasalight-touch-config list
+  wasalight-touch-config auto [normal|right|inverted|left]
+  wasalight-touch-config set DEVICE OUTPUT [normal|right|inverted|left]
+  wasalight-touch-config disable
+  wasalight-touch-apply
+  wasalight-touch-watch
+
+Names containing spaces must be quoted. Configuration is persistent under
+/data when that filesystem is available. "auto" acts only when exactly one
+touchscreen and one connected output are detected.
+EOT
+}
+
+prepare_x() {
+    export DISPLAY=${DISPLAY:-:0}
+    export XAUTHORITY=${XAUTHORITY:-/home/chamsys/.Xauthority}
+    xset q >/dev/null 2>&1
+}
+
+load_config() {
+    [[ -r $CONFIG ]] || return 0
+    local key value
+    while IFS='=' read -r key value; do
+        case "$key" in
+            MODE) MODE=$value ;;
+            DEVICE) DEVICE=$value ;;
+            OUTPUT) OUTPUT=$value ;;
+            ROTATION) ROTATION=$value ;;
+        esac
+    done <"$CONFIG"
+}
+
+valid_rotation() {
+    case "$1" in normal|right|inverted|left) return 0 ;; *) return 1 ;; esac
+}
+
+detect_hardware() {
+    TOUCH_IDS=()
+    TOUCH_NAMES=()
+    TOUCH_NODES=()
+    TOUCH_KEYS=()
+    OUTPUTS=()
+
+    local id props node name udev_props key
+    while IFS= read -r id; do
+        [[ $id =~ ^[0-9]+$ ]] || continue
+        props=$(xinput list-props "$id" 2>/dev/null) || continue
+        node=$(sed -n 's/^[[:space:]]*Device Node ([0-9][0-9]*):[[:space:]]*"\([^"]*\)".*/\1/p' <<<"$props")
+        [[ -n $node && -e $node ]] || continue
+        udev_props=$(udevadm info --query=property --name="$node" 2>/dev/null) || continue
+        grep -qx 'ID_INPUT_TOUCHSCREEN=1' <<<"$udev_props" || continue
+        name=$(xinput list --name-only "$id" 2>/dev/null) || continue
+        key=$(sed -n 's/^ID_SERIAL_SHORT=//p' <<<"$udev_props" | head -n1)
+        [[ -n $key ]] || key=$(sed -n 's/^ID_PATH=//p' <<<"$udev_props" | head -n1)
+        [[ -n $key ]] || key=$(sed -n 's/^ID_SERIAL=//p' <<<"$udev_props" | head -n1)
+        [[ -n $key ]] || key=$name
+        TOUCH_IDS+=("$id")
+        TOUCH_NAMES+=("$name")
+        TOUCH_NODES+=("$node")
+        TOUCH_KEYS+=("$key")
+    done < <(xinput --list --short | sed -n 's/.*id=\([0-9][0-9]*\).*/\1/p' | sort -nu)
+
+    while IFS= read -r name; do
+        [[ -n $name ]] && OUTPUTS+=("$name")
+    done < <(xrandr --query | awk '$2 == "connected" {print $1}')
+}
+
+find_touch_id() {
+    local wanted=$1 i found=
+    for i in "${!TOUCH_NAMES[@]}"; do
+        if [[ ${TOUCH_NAMES[$i]} == "$wanted" || ${TOUCH_KEYS[$i]} == "$wanted" ]]; then
+            [[ -z $found ]] || return 2
+            found=${TOUCH_IDS[$i]}
+        fi
+    done
+    [[ -n $found ]] || return 1
+    printf '%s\n' "$found"
+}
+
+output_exists() {
+    local wanted=$1 item
+    for item in "${OUTPUTS[@]}"; do
+        [[ $item == "$wanted" ]] && return 0
+    done
+    return 1
+}
+
+write_config() {
+    local mode=$1 device=$2 output=$3 rotation=$4 tmp
+    [[ $device != *$'\n'* && $output != *$'\n'* ]] || {
+        warn 'device and output names cannot contain newlines'; return 2;
+    }
+    install -d -m 0750 "${CONFIG%/*}"
+    tmp=$(mktemp "${CONFIG}.XXXXXX")
+    chmod 0600 "$tmp"
+    printf 'MODE=%s\nDEVICE=%s\nOUTPUT=%s\nROTATION=%s\n' \
+        "$mode" "$device" "$output" "$rotation" >"$tmp"
+    mv -f "$tmp" "$CONFIG"
+}
+
+rotation_matrix() {
+    case "$1" in
+        normal)   printf '1 0 0 0 1 0 0 0 1\n' ;;
+        right)    printf '0 -1 1 1 0 0 0 0 1\n' ;;
+        inverted) printf '%s\n' '-1 0 1 0 -1 1 0 0 1' ;;
+        left)     printf '0 1 0 -1 0 1 0 0 1\n' ;;
+    esac
+}
+
+calibrated_matrix() {
+    local id=$1 rotation=$2 props default rotate
+    props=$(xinput list-props "$id")
+    default=$(sed -n \
+        's/^[[:space:]]*libinput Calibration Matrix Default ([0-9][0-9]*):[[:space:]]*//p' \
+        <<<"$props" | head -n1 | tr ',' ' ')
+    [[ -n $default ]] || default='1 0 0 0 1 0 0 0 1'
+    rotate=$(rotation_matrix "$rotation")
+    awk -v a="$rotate" -v b="$default" 'BEGIN {
+        split(a, A, " "); split(b, B, " ");
+        for (row = 0; row < 3; row++)
+            for (col = 0; col < 3; col++) {
+                value = 0;
+                for (k = 0; k < 3; k++)
+                    value += A[row * 3 + k + 1] * B[k * 3 + col + 1];
+                printf "%s%.8g", (row || col ? " " : ""), value;
+            }
+        print "";
+    }'
+}
+
+resolve_target() {
+    local id
+    RESOLVED_ID=
+    RESOLVED_DEVICE=
+    RESOLVED_OUTPUT=
+    case "$MODE" in
+        disabled) return 1 ;;
+        auto)
+            ((${#TOUCH_IDS[@]} == 1)) || {
+                warn "automatic configuration skipped: ${#TOUCH_IDS[@]} touchscreens detected";
+                return 2;
+            }
+            ((${#OUTPUTS[@]} == 1)) || {
+                warn "automatic configuration skipped: ${#OUTPUTS[@]} outputs connected";
+                return 2;
+            }
+            RESOLVED_ID=${TOUCH_IDS[0]}
+            RESOLVED_DEVICE=${TOUCH_NAMES[0]}
+            RESOLVED_OUTPUT=${OUTPUTS[0]}
+            ;;
+        manual)
+            id=$(find_touch_id "$DEVICE") || {
+                warn "configured touchscreen not found or name is ambiguous: $DEVICE";
+                return 2;
+            }
+            output_exists "$OUTPUT" || {
+                warn "configured output is not connected: $OUTPUT";
+                return 2;
+            }
+            RESOLVED_ID=$id
+            for id in "${!TOUCH_IDS[@]}"; do
+                if [[ ${TOUCH_IDS[$id]} == "$RESOLVED_ID" ]]; then
+                    RESOLVED_DEVICE=${TOUCH_NAMES[$id]}
+                    break
+                fi
+            done
+            RESOLVED_OUTPUT=$OUTPUT
+            ;;
+        *) warn "invalid mode in $CONFIG: $MODE"; return 2 ;;
+    esac
+}
+
+apply_config() {
+    load_config
+    valid_rotation "$ROTATION" || { warn "invalid rotation in $CONFIG: $ROTATION"; return 2; }
+    [[ $MODE != disabled ]] || return 0
+    prepare_x || { warn 'Xorg session is not available'; return 0; }
+    detect_hardware
+    local matrix
+    local -a matrix_values
+    resolve_target || return 0
+    xinput map-to-output "$RESOLVED_ID" "$RESOLVED_OUTPUT"
+
+    if xinput list-props "$RESOLVED_ID" | grep -Fq 'libinput Calibration Matrix'; then
+        matrix=$(calibrated_matrix "$RESOLVED_ID" "$ROTATION")
+        IFS=' ' read -r -a matrix_values <<<"$matrix"
+        xinput set-prop "$RESOLVED_ID" 'libinput Calibration Matrix' "${matrix_values[@]}"
+    elif [[ $ROTATION != normal ]]; then
+        warn "rotation skipped: $RESOLVED_DEVICE has no libinput calibration matrix"
+    fi
+    logger -t wasalight-touch \
+        "Mapped $RESOLVED_DEVICE to $RESOLVED_OUTPUT with rotation $ROTATION"
+}
+
+watch_hardware() {
+    local signature previous=
+    while :; do
+        if prepare_x; then
+            signature=$( {
+                xinput --list --short 2>/dev/null || true
+                xrandr --query 2>/dev/null | awk '$2 == "connected" {print $1, $3}' || true
+                stat -c '%Y:%s' "$CONFIG" 2>/dev/null || true
+            } )
+            if [[ $signature != "$previous" ]]; then
+                apply_config || true
+                previous=$signature
+            fi
+        fi
+        sleep 3
+    done
+}
+
+show_status() {
+    load_config
+    if ! prepare_x; then
+        if [[ ${1:-} == --summary ]]; then
+            printf 'X session unavailable; configured mode: %s\n' "$MODE"
+        else
+            printf 'Touchscreen support\nX SESSION: unavailable\nCONFIG:    %s\nMODE:      %s\n' \
+                "$CONFIG" "$MODE"
+        fi
+        return 0
+    fi
+    detect_hardware
+
+    local readiness=disabled i
+    if [[ $MODE != disabled ]]; then
+        if resolve_target 2>/dev/null; then readiness=ready; else readiness=attention; fi
+    fi
+    if [[ ${1:-} == --summary ]]; then
+        printf '%s detected; mode: %s; target: %s\n' \
+            "${#TOUCH_IDS[@]}" "$MODE" "$readiness"
+        return 0
+    fi
+
+    printf 'Touchscreen support\n'
+    printf 'X SESSION: available (%s)\n' "$DISPLAY"
+    printf 'CONFIG:    %s\n' "$CONFIG"
+    printf 'MODE:      %s\n' "$MODE"
+    printf 'ROTATION:  %s\n' "$ROTATION"
+    [[ $MODE == manual ]] && printf 'TARGET:    %s -> %s\n' "$DEVICE" "$OUTPUT"
+    printf 'STATE:     %s\n' "$readiness"
+    printf 'OUTPUTS (%s):\n' "${#OUTPUTS[@]}"
+    for i in "${!OUTPUTS[@]}"; do printf '  - %s\n' "${OUTPUTS[$i]}"; done
+    printf 'TOUCHSCREENS (%s):\n' "${#TOUCH_IDS[@]}"
+    for i in "${!TOUCH_IDS[@]}"; do
+        printf '  - %s [key=%s, id=%s, node=%s]\n' \
+            "${TOUCH_NAMES[$i]}" "${TOUCH_KEYS[$i]}" \
+            "${TOUCH_IDS[$i]}" "${TOUCH_NODES[$i]}"
+    done
+}
+
+configure() {
+    local action=${1:-list} rotation id
+    prepare_x || { warn 'run this command inside the graphical session'; return 1; }
+    detect_hardware
+    case "$action" in
+        list) show_status ;;
+        auto)
+            rotation=${2:-normal}
+            valid_rotation "$rotation" || { usage >&2; return 2; }
+            write_config auto '' '' "$rotation"
+            apply_config
+            ;;
+        set)
+            (($# >= 3 && $# <= 4)) || { usage >&2; return 2; }
+            rotation=${4:-normal}
+            valid_rotation "$rotation" || { usage >&2; return 2; }
+            id=$(find_touch_id "$2") || {
+                warn "touchscreen not found or name is ambiguous: $2"; return 1;
+            }
+            output_exists "$3" || { warn "output is not connected: $3"; return 1; }
+            write_config manual "$2" "$3" "$rotation"
+            apply_config
+            ;;
+        disable)
+            write_config disabled '' '' normal
+            ;;
+        *) usage >&2; return 2 ;;
+    esac
+}
+
+case "${0##*/}" in
+    wasalight-touch-status) show_status "${1:-}" ;;
+    wasalight-touch-apply) apply_config ;;
+    wasalight-touch-watch) watch_hardware ;;
+    wasalight-touch-config) configure "$@" ;;
+    *)
+        case "${1:-}" in
+            status) shift; show_status "${1:-}" ;;
+            apply) shift; apply_config "$@" ;;
+            watch) shift; watch_hardware ;;
+            config|configure) shift; configure "$@" ;;
+            *) usage; exit 2 ;;
+        esac
+        ;;
+esac

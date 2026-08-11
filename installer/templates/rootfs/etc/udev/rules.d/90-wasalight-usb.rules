@@ -1,0 +1,3 @@
+# Start a systemd unit for supported USB filesystem partitions. Mounting is
+# intentionally not performed inside udev.
+ACTION=="add", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition|disk", ENV{ID_BUS}=="usb", ENV{ID_FS_TYPE}=="vfat|exfat|ntfs|apfs", TAG+="systemd", ENV{SYSTEMD_WANTS}+="wasalight-usb@%k.service"

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Salute sistema
+Comment=Controlla disco, spazio, memoria e temperatura
+Exec=/usr/local/bin/wasalight-terminal-tool health
+Icon=utilities-system-monitor
+TryExec=/usr/local/bin/wasalight-health
+X-Wasalight-Section=Support
+X-Wasalight-Order=71

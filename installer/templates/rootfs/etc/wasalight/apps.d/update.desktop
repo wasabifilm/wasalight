@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Aggiorna Wasalight
+Comment=Scarica e installa l’ultima versione in MAINTENANCE
+Exec=/usr/local/bin/wasalight-update-terminal
+Icon=system-software-update
+TryExec=/usr/local/bin/wasalight-update-terminal
+X-Wasalight-Section=Support
+X-Wasalight-Order=100

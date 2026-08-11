@@ -1,0 +1,23 @@
+#!/bin/sh
+set -u
+
+# MagicQ 1.9.x requests a maximized window, not the EWMH fullscreen state.
+# Watch the Openbox desktop so this also covers manual starts in MAINTENANCE.
+export DISPLAY=${DISPLAY:-:0}
+last_window=
+
+while :; do
+    window_id=$(wmctrl -l 2>/dev/null | \
+        awk 'tolower($0) ~ /magicq pc/ { print $1; exit }')
+    if [ -n "$window_id" ]; then
+        if [ "$window_id" != "$last_window" ]; then
+            if wmctrl -ir "$window_id" -b add,fullscreen; then
+                logger -t magicq-fullscreen "MagicQ window set to fullscreen: $window_id"
+                last_window=$window_id
+            fi
+        fi
+    else
+        last_window=
+    fi
+    sleep 1
+done

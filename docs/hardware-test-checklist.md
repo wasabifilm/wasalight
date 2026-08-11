@@ -94,8 +94,10 @@ uno spettacolo.
 - [ ] Le conferme Wasalight sono centrate, ricevono subito il focus e restano in
       primo piano anche sopra MagicQ, browser e altre finestre massimizzate.
 - [ ] Il pannello destro mostra CURRENT, NEXT BOOT, versione e stato MagicQ,
-      sessione, data, log, rete/IP, touch, USB, VNC, SSH e audio con colori
+      data, log, rete/IP, touch, USB, VNC, SSH e audio con colori
       coerenti, senza mostrare letteralmente sequenze `${color ...}`.
+- [ ] Il pannello e `wasalight-status` non mostrano la riga tecnica `SESSION`;
+      `magicq-session`, PID, lock e log continuano però a funzionare internamente.
 - [ ] Il pannello Tint2 resta sempre visibile, non mostra `desktop 1` e consente
       con un tocco di aprire Wasalight Control o selezionare un’applicazione.
 - [ ] Le finestre attive e inattive mantengono colori scuri; il pulsante X è
@@ -106,6 +108,8 @@ uno spettacolo.
       uniformi; testi, toggle e azioni restano allineati.
 - [ ] File, Scanner IP e Art-Net Monitor compaiono in Applicazioni e non in
       Supporto.
+- [ ] Mousepad compare in Applicazioni e apre l’editor di testo con un solo
+      tocco.
 - [ ] Crediti riporta Michele Moser / Wasabi Lightbulbfarm, Apache 2.0,
       protezione del logo, GitHub, Instagram e i riconoscimenti esterni.
 - [ ] Icona, titolo e focus di Wasalight Control usano il verde Wasabi

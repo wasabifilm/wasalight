@@ -3,6 +3,13 @@
 Wasalight mantiene codice e pacchetti necessari agli aggiornamenti sulla
 partizione persistente `/data`, fuori dall’overlay del sistema.
 
+Installer, aggiornamento, snapshot, backup e ripristino condividono un lock
+globale basato su `flock`. Se una seconda operazione mutante viene avviata
+mentre la prima è ancora attiva, termina senza modificare dati e mostra
+`Operazione Wasalight già in corso`, insieme all’operazione e al PID registrati.
+I processi figli autorizzati, come lo snapshot creato dall’updater, ereditano lo
+stesso lock e possono completare la transazione senza bloccarsi tra loro.
+
 ## Percorsi
 
 ```text
@@ -175,6 +182,14 @@ sudo wasalight-update --rollback
 ```
 
 Il comando è ammesso soltanto in MAINTENANCE e richiede un riavvio successivo.
+
+La stessa operazione è disponibile in **Wasalight Control → Supporto → Rollback
+Wasalight**. L’interfaccia mostra gli ultimi cinque snapshot con versione, data,
+dimensione e stato del checksum, richiede MAINTENANCE e una conferma esplicita,
+quindi propone il riavvio. L’autenticazione amministrativa è sempre richiesta:
+non viene concessa un’autorizzazione permanente senza password. Il ripristino
+riguarda configurazione, comandi e tema Wasalight; non sostituisce `/data`, gli
+show MagicQ, i pacchetti Ubuntu o il pacchetto MagicQ.
 
 Le opzioni possono essere combinate, ad esempio
 `sudo wasalight-update --protect --reboot`. `--code-only --reboot` viene invece

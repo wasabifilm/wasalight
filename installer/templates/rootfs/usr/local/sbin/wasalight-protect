@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $EUID -eq 0 ]] || exec sudo "$0" "$@"
+if ! mountpoint -q /data || [[ $(findmnt -n -o FSTYPE -M /data) != ext4 ]]; then
+    echo "Refusing protected mode: /data is not a separate mounted ext4 filesystem" >&2
+    exit 1
+fi
+if findmnt -n -o FSTYPE / | grep -qx overlay; then
+    overlayroot-chroot /usr/local/libexec/wasalight-set-mode show
+else
+    /usr/local/libexec/wasalight-set-mode show
+fi

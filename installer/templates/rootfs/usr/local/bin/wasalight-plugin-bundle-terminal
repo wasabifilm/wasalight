@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+exec lxterminal --title="Wasalight · Plugin firmato" -e bash -lc '
+find /stick -mindepth 2 -maxdepth 2 -type f -name "*.tar.gz" -print 2>/dev/null
+echo; read -r -p "Percorso bundle firmato: " bundle
+sudo -n /usr/local/sbin/wasalight-plugin-bundle "$bundle"
+rc=$?; echo; read -r -p "Premere Invio per chiudere"; exit "$rc"'

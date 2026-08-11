@@ -1,0 +1,8 @@
+[Unit]
+Description=Wasalight persistent hardware and storage health check
+RequiresMountsFor=/data
+ConditionPathIsMountPoint=/data
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/wasalight-health-monitor

@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+dev_name=${1:?missing block device name}
+dev="/dev/$dev_name"
+base=/stick
+state_dir=/run/wasalight-usb
+
+[[ $dev_name =~ ^[a-zA-Z0-9._-]+$ ]] || exit 1
+mountpoint="$base/$dev_name"
+state="$state_dir/$dev_name.mount"
+
+exec 9>/run/wasalight-usb.lock
+flock 9
+
+[[ -b "$dev" ]] || exit 0
+props=$(udevadm info --query=property --name="$dev")
+grep -qx 'ID_BUS=usb' <<<"$props" || exit 0
+fs=$(sed -n 's/^ID_FS_TYPE=//p' <<<"$props" | head -n1)
+
+case "$fs" in
+    vfat)   type=vfat;    opts='rw,nosuid,nodev,noexec,sync,flush,uid=chamsys,gid=chamsys,umask=0022,shortname=mixed,utf8=1' ;;
+    exfat)  type=exfat;   opts='rw,nosuid,nodev,noexec,sync,uid=chamsys,gid=chamsys,umask=0022' ;;
+    ntfs)   type=ntfs-3g; opts='rw,nosuid,nodev,noexec,sync,uid=chamsys,gid=chamsys,umask=0022' ;;
+    apfs)   type=apfs;    opts=read-only ;;
+    *) logger -t wasalight-usb "Ignoring $dev: unsupported filesystem '$fs'"; exit 0 ;;
+esac
+
+install -d -m 0755 "$state_dir"
+install -d -o chamsys -g chamsys -m 0755 "$base" "$mountpoint"
+mountpoint -q "$mountpoint" && exit 0
+mounted=0
+if [[ $type == apfs ]]; then
+    # Ubuntu's libfsapfs implementation exposes APFS through FUSE without write
+    # callbacks. Never substitute the experimental read/write kernel module.
+    if command -v fsapfsmount >/dev/null 2>&1 && \
+       fsapfsmount -X ro,allow_other,nosuid,nodev,noexec "$dev" "$mountpoint" && \
+       mountpoint -q "$mountpoint"; then
+        mounted=1
+    fi
+elif mount -t "$type" -o "$opts" "$dev" "$mountpoint"; then
+    mounted=1
+fi
+if ((mounted)); then
+    printf '%s\n' "$mountpoint" >"$state"
+    if [[ $type == apfs ]]; then
+        logger -t wasalight-usb "Mounted $dev (APFS) read-only at $mountpoint"
+    else
+        logger -t wasalight-usb "Mounted $dev ($fs) at $mountpoint with synchronous writes"
+    fi
+else
+    logger -t wasalight-usb "Failed to mount $dev ($fs)"
+    exit 1
+fi

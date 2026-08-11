@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+log_dir=/tmp
+[[ -d /data/log && -w /data/log ]] && log_dir=/data/log
+log_file="$log_dir/wasalight-control.log"
+runtime_dir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+install -d -m 0700 "$runtime_dir"
+
+# Keep one Control Center per desktop session. A repeated touch focuses the
+# existing window instead of starting another GTK process.
+exec 9>"$runtime_dir/wasalight-control.lock"
+if ! flock -n 9; then
+    wmctrl -a "Wasalight Control Center" 2>/dev/null || true
+    exit 0
+fi
+
+if /usr/local/libexec/wasalight-control-center.py "$@" >>"$log_file" 2>&1; then
+    exit 0
+else
+    rc=$?
+fi
+details=$(tail -n 18 "$log_file" 2>/dev/null || true)
+/usr/local/bin/wasalight-dialog --error --width=640 --title="Wasalight Control" \
+    --text="<big><b>Wasalight Control non è riuscito ad avviarsi.</b></big>\n\n$details\n\nLog: $log_file" \
+    2>/dev/null || true
+exit "$rc"

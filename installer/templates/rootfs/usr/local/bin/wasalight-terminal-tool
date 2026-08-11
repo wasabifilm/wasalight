@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+case ${1:-} in
+    status) command_to_run=/usr/local/bin/wasalight-status ;;
+    touch) command_to_run=/usr/local/bin/wasalight-touch-status ;;
+    audio) command_to_run=/usr/local/bin/wasalight-audio-test ;;
+    health) command_to_run=/usr/local/bin/wasalight-health ;;
+    *) echo "Usage: wasalight-terminal-tool status|touch|audio|health" >&2; exit 2 ;;
+esac
+exec lxterminal --title="Wasalight support" -e bash -lc \
+    '"$1"; rc=$?; echo; echo "Premere Invio per chiudere."; read -r _; exit "$rc"' \
+    _ "$command_to_run"

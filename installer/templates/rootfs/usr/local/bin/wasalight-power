@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+action=${1:-}
+case "$action" in
+    poweroff)
+        title="Spegni Wasalight"
+        question="Spegnere completamente la postazione?"
+        confirm="Spegni"
+        ;;
+    reboot)
+        title="Riavvia Wasalight"
+        question="Riavviare adesso la postazione?"
+        confirm="Riavvia"
+        ;;
+    *)
+        echo "Usage: wasalight-power poweroff|reboot" >&2
+        exit 2
+        ;;
+esac
+
+/usr/local/bin/wasalight-dialog --question --width=460 --title="$title" \
+    --text="<big><b>$question</b></big>\n\nGli show salvati in /data resteranno persistenti." \
+    --ok-label="$confirm" --cancel-label="Annulla" || exit 0
+sudo -n /usr/local/sbin/wasalight-power-control "$action"

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || {
+    echo "Run this command as the chamsys desktop user." >&2
+    exit 1
+}
+
+ip_address=$(hostname -I 2>/dev/null | awk '{print $1}')
+if systemctl is-active --quiet ssh.service; then
+    next_boot=""
+    if [[ -r /data/system/service-flags/ssh-autostart && \
+         $(</data/system/service-flags/ssh-autostart) == enabled ]]; then
+        next_boot="\n\nNota: SSH è configurato per riattivarsi al prossimo avvio."
+    fi
+    /usr/local/bin/wasalight-dialog --question --width=500 --title="SSH · Wasalight" \
+        --text="<big><b>SSH è attivo.</b></big>\n\nIndirizzo: ssh://chamsys@${ip_address:-SERVER_IP}:22${next_boot}\n\nFermare ora l’accesso SSH?" \
+        --ok-label="Stop SSH" --cancel-label="Cancel" || exit 0
+    output=$(sudo -n /usr/local/sbin/wasalight-ssh-control stop 2>&1) || {
+        /usr/local/bin/wasalight-dialog --error --width=500 --title="SSH · Wasalight" --text="$output"
+        exit 1
+    }
+    /usr/local/bin/wasalight-dialog --info --width=420 --title="SSH · Wasalight" --text="$output"
+    exit 0
+fi
+
+/usr/local/bin/wasalight-dialog --question --width=520 --title="SSH · Wasalight" \
+    --text="<big><b>Attivare SSH?</b></big>\n\nL’accesso userà l’utente chamsys e la sua password Linux. Attivarlo soltanto su una rete fidata." \
+    --ok-label="Start SSH" --cancel-label="Cancel" || exit 0
+output=$(sudo -n /usr/local/sbin/wasalight-ssh-control start 2>&1) || {
+    /usr/local/bin/wasalight-dialog --error --width=500 --title="SSH · Wasalight" --text="$output"
+    exit 1
+}
+ip_address=$(hostname -I 2>/dev/null | awk '{print $1}')
+/usr/local/bin/wasalight-dialog --info --width=500 --title="SSH · Wasalight" \
+    --text="<big><b>SSH attivo</b></big>\n\nIndirizzo: ssh://chamsys@${ip_address:-SERVER_IP}:22\nUtente: chamsys\nPassword: la password Linux di chamsys"

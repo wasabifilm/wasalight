@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+logo=/data/system/branding/boot-logo.png
+[[ -s $logo ]] || logo=/usr/share/plymouth/themes/wasalight/boot-logo.png
+[[ -s $logo ]] || {
+    echo "Wasalight desktop logo is unavailable" >&2
+    exit 1
+}
+
+read -r screen_width screen_height < <(
+    xdpyinfo 2>/dev/null | awk '
+        /dimensions:/ {
+            split($2, size, "x")
+            print size[1], size[2]
+            exit
+        }
+    '
+) || true
+[[ ${screen_width:-} =~ ^[0-9]+$ && ${screen_height:-} =~ ^[0-9]+$ ]] || {
+    echo "Unable to determine the Xorg desktop size" >&2
+    exit 1
+}
+
+output="$HOME/.cache/wasalight/desktop-wallpaper.png"
+install -d -m 0750 "${output%/*}"
+python3 - "$logo" "$output" "$screen_width" "$screen_height" <<'PYEOF'
+import pathlib
+import sys
+
+import gi
+
+gi.require_version("GdkPixbuf", "2.0")
+from gi.repository import GdkPixbuf
+
+logo_path = pathlib.Path(sys.argv[1])
+output_path = pathlib.Path(sys.argv[2])
+screen_width = int(sys.argv[3])
+screen_height = int(sys.argv[4])
+
+logo = GdkPixbuf.Pixbuf.new_from_file(str(logo_path))
+scale = min(
+    (screen_width * 0.34) / logo.get_width(),
+    (screen_height * 0.24) / logo.get_height(),
+    1.0,
+)
+logo_width = max(1, round(logo.get_width() * scale))
+logo_height = max(1, round(logo.get_height() * scale))
+if (logo_width, logo_height) != (logo.get_width(), logo.get_height()):
+    logo = logo.scale_simple(
+        logo_width, logo_height, GdkPixbuf.InterpType.BILINEAR
+    )
+
+# Same near-black RGB background used by the Plymouth theme: #080b10.
+wallpaper = GdkPixbuf.Pixbuf.new(
+    GdkPixbuf.Colorspace.RGB, False, 8, screen_width, screen_height
+)
+wallpaper.fill(0x080B10FF)
+logo.composite(
+    wallpaper,
+    (screen_width - logo_width) // 2,
+    (screen_height - logo_height) // 2,
+    logo_width,
+    logo_height,
+    (screen_width - logo_width) // 2,
+    (screen_height - logo_height) // 2,
+    1.0,
+    1.0,
+    GdkPixbuf.InterpType.NEAREST,
+    255,
+)
+wallpaper.savev(str(output_path), "png", [], [])
+PYEOF

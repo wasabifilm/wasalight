@@ -1,0 +1,46 @@
+# Wasalight: large touch title bar, dark in both active and inactive states.
+window.active.title.bg: flat
+window.active.title.bg.color: #11151b
+window.active.label.bg: parentrelative
+window.active.label.text.color: #f0f3f6
+window.active.button.unpressed.bg: flat
+window.active.button.unpressed.bg.color: #232933
+window.active.button.unpressed.image.color: #f0f3f6
+window.active.button.hover.bg: flat
+window.active.button.hover.bg.color: #b4232c
+window.active.button.hover.image.color: #ffffff
+window.active.button.pressed.bg: flat
+window.active.button.pressed.bg.color: #7d1920
+window.active.button.pressed.image.color: #ffffff
+window.active.border.color: #30363d
+window.active.client.color: #11151b
+
+window.inactive.title.bg: flat
+window.inactive.title.bg.color: #0b0e12
+window.inactive.label.bg: parentrelative
+window.inactive.label.text.color: #9da7b3
+window.inactive.button.unpressed.bg: flat
+window.inactive.button.unpressed.bg.color: #171b22
+window.inactive.button.unpressed.image.color: #c9d1d9
+window.inactive.button.hover.bg: flat
+window.inactive.button.hover.bg.color: #6e2026
+window.inactive.button.hover.image.color: #ffffff
+window.inactive.button.pressed.bg: flat
+window.inactive.button.pressed.bg.color: #50171b
+window.inactive.button.pressed.image.color: #ffffff
+window.inactive.border.color: #20252d
+window.inactive.client.color: #0b0e12
+
+window.label.text.justify: left
+# Openbox keeps title-button masks relatively small. Enlarge the click target
+# with decoration padding instead of using an oversized bitmap that is clipped.
+padding.width: 16
+padding.height: 16
+border.width: 1
+menu.items.active.bg: flat
+menu.items.active.bg.color: #30363d
+menu.items.active.text.color: #ffffff
+menu.items.text.color: #d0d7de
+menu.items.bg.color: #11151b
+menu.title.bg.color: #080b10
+menu.title.text.color: #ffffff

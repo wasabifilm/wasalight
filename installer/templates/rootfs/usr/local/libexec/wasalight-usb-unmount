@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+dev_name=${1:?missing block device name}
+base=/stick
+state_dir=/run/wasalight-usb
+
+[[ $dev_name =~ ^[a-zA-Z0-9._-]+$ ]] || exit 1
+state="$state_dir/$dev_name.mount"
+
+exec 9>/run/wasalight-usb.lock
+flock 9
+
+[[ -r "$state" ]] || exit 0
+mountpoint=$(<"$state")
+[[ $mountpoint == "$base/$dev_name" ]] || exit 1
+
+# If removal has already happened, sync may fail; lazy detach still cleans the
+# namespace and prevents a stale device directory from affecting other sticks.
+sync -f "$mountpoint" 2>/dev/null || true
+umount "$mountpoint" 2>/dev/null || umount -l "$mountpoint" 2>/dev/null || true
+rm -f "$state"
+rmdir "$mountpoint" 2>/dev/null || true
+logger -t wasalight-usb "Cleaned up $dev_name from $mountpoint"

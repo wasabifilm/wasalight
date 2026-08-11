@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+set -u
+
+readonly green='#3fb950'
+readonly yellow='#d29922'
+readonly red='#f85149'
+readonly blue='#58a6ff'
+
+status_line() {
+    printf '${color %s}%-13s${color white}%s\n' "$1" "$2" "$3"
+}
+
+installed_version=$(cat /etc/wasalight/version 2>/dev/null || echo UNKNOWN)
+available_version=$(cat /data/system/wasalight/VERSION 2>/dev/null || true)
+status_line "$blue" 'VERSION' "$installed_version"
+if [[ $available_version =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]]; then
+    if [[ $installed_version == "$available_version" ]]; then
+        status_line "$green" 'UPDATE' 'CODE MATCH'
+    else
+        newest_version=$(printf '%s\n%s\n' "$installed_version" "$available_version" | \
+            sort -V | tail -n 1)
+        if [[ ! $installed_version =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]] || \
+           [[ $newest_version == "$available_version" ]]; then
+            status_line "$yellow" 'UPDATE' "READY · $available_version"
+        else
+            status_line "$yellow" 'UPDATE' "CHECKOUT OLDER · $available_version"
+        fi
+    fi
+else
+    status_line "$yellow" 'UPDATE' 'NOT CHECKED'
+fi
+
+root_fs=$(findmnt -n -o FSTYPE / 2>/dev/null || echo unknown)
+if [[ $root_fs == overlay ]]; then
+    status_line "$green" 'CURRENT' 'PROTECTED'
+else
+    status_line "$yellow" 'CURRENT' 'MAINTENANCE'
+fi
+
+if grep -Eq '^overlayroot="tmpfs:' /etc/overlayroot.local.conf 2>/dev/null; then
+    status_line "$green" 'NEXT BOOT' 'PROTECTED'
+elif grep -Fqx 'overlayroot="disabled"' /etc/overlayroot.local.conf 2>/dev/null; then
+    status_line "$yellow" 'NEXT BOOT' 'MAINTENANCE'
+else
+    status_line "$red" 'NEXT BOOT' 'UNKNOWN'
+fi
+
+if command -v dpkg-query >/dev/null 2>&1; then
+    magicq_package=$(dpkg-query -W -f='${db:Status-Abbrev}\t${Version}' magicq \
+        2>/dev/null || true)
+    if [[ $magicq_package == ii*$'\t'* ]]; then
+        status_line "$blue" 'MAGICQ VER' "${magicq_package#*$'\t'}"
+    else
+        status_line "$red" 'MAGICQ VER' 'NOT INSTALLED'
+    fi
+else
+    status_line "$red" 'MAGICQ VER' 'UNKNOWN'
+fi
+
+if pgrep -x mqqt >/dev/null 2>&1; then
+    status_line "$green" 'MAGICQ' 'RUNNING'
+else
+    status_line "$yellow" 'MAGICQ' 'STOPPED'
+fi
+if [[ -d /opt/companion ]]; then
+    companion_version=$(cat /data/companion/installed-version 2>/dev/null || echo UNKNOWN)
+    if systemctl is-active --quiet companion.service; then
+        status_line "$green" 'COMPANION' "RUNNING · $companion_version"
+    else
+        status_line "$yellow" 'COMPANION' "STOPPED · $companion_version"
+    fi
+fi
+
+if [[ -r /data/system/health/status ]]; then
+    IFS=$'\t' read -r health_state health_time </data/system/health/status || true
+    if [[ ${health_state:-} == OK ]]; then
+        status_line "$green" 'HEALTH' "OK · ${health_time:-unknown}"
+    else
+        status_line "$red" 'HEALTH' "WARNING · ${health_time:-unknown}"
+    fi
+else
+    status_line "$yellow" 'HEALTH' 'NOT CHECKED'
+fi
+
+if mountpoint -q /data; then
+    data_free=$(df -h --output=avail /data 2>/dev/null | tail -n 1 | xargs)
+    status_line "$green" 'DATA' "MOUNTED · ${data_free:-?} free"
+else
+    status_line "$red" 'DATA' 'NOT MOUNTED'
+fi
+if [[ -d /data/log && -w /data/log ]]; then
+    status_line "$green" 'LOGS' 'PERSISTENT'
+else
+    status_line "$red" 'LOGS' 'UNAVAILABLE'
+fi
+
+unmanaged=$(nmcli -t -f DEVICE,TYPE,STATE device status 2>/dev/null | \
+    awk -F: '$2 == "ethernet" || $2 == "wifi" { if ($3 == "unmanaged") print $1 }' | \
+    paste -sd, -)
+ip_address=$(hostname -I 2>/dev/null | awk '{print $1}')
+if [[ -n $unmanaged ]]; then
+    status_line "$red" 'NETWORK' "UNMANAGED: $unmanaged"
+elif [[ -n $ip_address ]]; then
+    status_line "$green" 'NETWORK' "$ip_address"
+else
+    status_line "$yellow" 'NETWORK' 'DISCONNECTED'
+fi
+
+touch_state=$(/usr/local/bin/wasalight-touch-status --summary 2>/dev/null || true)
+if [[ $touch_state == *ready* ]]; then
+    status_line "$green" 'TOUCH' 'READY'
+elif [[ -n $touch_state ]]; then
+    status_line "$yellow" 'TOUCH' "${touch_state:0:32}"
+else
+    status_line "$yellow" 'TOUCH' 'NOT DETECTED'
+fi
+
+usb_count=$(findmnt -rn -o TARGET 2>/dev/null | \
+    awk '$0 ~ "^/stick/" { count++ } END { print count+0 }')
+if ((usb_count > 0)); then
+    status_line "$green" 'USB' "$usb_count MOUNTED"
+else
+    status_line "$yellow" 'USB' 'EMPTY'
+fi
+if [[ -r /data/system/magicq-updates/available ]]; then
+    IFS=$'\t' read -r usb_magicq_version _ \
+        </data/system/magicq-updates/available || true
+    [[ -z ${usb_magicq_version:-} ]] || \
+        status_line "$yellow" 'MAGICQ USB' "READY · $usb_magicq_version"
+fi
+
+vnc_auto=MANUAL
+[[ -r /data/system/service-flags/vnc-autostart && \
+   $(</data/system/service-flags/vnc-autostart) == enabled ]] && vnc_auto=AUTO
+if pgrep -u chamsys -x x11vnc >/dev/null 2>&1; then
+    status_line "$blue" 'VNC' "ACTIVE · $vnc_auto"
+else
+    status_line "$yellow" 'VNC' "OFF · $vnc_auto"
+fi
+ssh_auto=MANUAL
+[[ -r /data/system/service-flags/ssh-autostart && \
+   $(</data/system/service-flags/ssh-autostart) == enabled ]] && ssh_auto=AUTO
+if systemctl is-active --quiet ssh.service; then
+    status_line "$blue" 'SSH' "ACTIVE · $ssh_auto"
+else
+    status_line "$yellow" 'SSH' "OFF · $ssh_auto"
+fi
+if aplay -l 2>/dev/null | grep -q '^card '; then
+    status_line "$green" 'AUDIO' 'READY'
+else
+    status_line "$red" 'AUDIO' 'NO DEVICE'
+fi

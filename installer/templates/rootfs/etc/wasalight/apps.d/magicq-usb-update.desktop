@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Aggiorna MagicQ da USB
+Comment=Importa e installa il MagicQ più recente trovato nella chiavetta
+Exec=/usr/local/bin/wasalight-update-terminal
+Icon=/usr/share/pixmaps/magicq.png
+TryExec=/usr/local/bin/wasalight-update-terminal
+X-Wasalight-Section=Support
+X-Wasalight-Order=75

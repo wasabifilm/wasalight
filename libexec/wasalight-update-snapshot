@@ -1,7 +1,25 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+if [[ -r /usr/local/libexec/wasalight-operation-lock.sh ]]; then
+    . /usr/local/libexec/wasalight-operation-lock.sh
+elif [[ -r /data/system/wasalight/lib/wasalight-operation-lock.sh ]]; then
+    # The first update to the modular release copies this helper before the
+    # installer has installed the shared library on the root filesystem.
+    . /data/system/wasalight/lib/wasalight-operation-lock.sh
+else
+    echo "Wasalight operation lock library is unavailable." >&2
+    exit 1
+fi
+
 [[ $EUID -eq 0 ]] || { echo "Run through sudo." >&2; exit 1; }
+case ${1:-} in
+    create) operation="creazione snapshot Wasalight" ;;
+    restore) operation="ripristino snapshot Wasalight" ;;
+    list) operation= ;;
+    *) operation="gestione snapshot Wasalight" ;;
+esac
+[[ -z $operation ]] || wasalight_acquire_operation_lock "$operation"
 root=/data/system/update-backups
 install -d -o root -g root -m 0700 "$root"
 

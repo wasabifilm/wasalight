@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+mode=${1:?usage: wasalight-set-mode show|maintenance}
+[[ $EUID -eq 0 ]] || { echo "Must run as root" >&2; exit 1; }
+
+case "$mode" in
+    show)
+        printf '%s\n' 'overlayroot="tmpfs:swap=0,recurse=0"' >/etc/overlayroot.local.conf
+        ;;
+    maintenance)
+        printf '%s\n' 'overlayroot="disabled"' >/etc/overlayroot.local.conf
+        ;;
+    *) echo "Unknown mode: $mode" >&2; exit 2 ;;
+esac
+update-initramfs -u
+echo "Next boot mode: ${mode^^}. Reboot when ready."

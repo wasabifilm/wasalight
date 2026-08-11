@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Schermo
+Comment=Configura monitor e risoluzione
+Exec=lxrandr
+Icon=video-display
+TryExec=lxrandr
+X-Wasalight-Section=Support
+X-Wasalight-Order=20

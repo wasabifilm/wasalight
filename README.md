@@ -18,8 +18,13 @@ magicq-ubuntu-appliance/
 ├── NOTICE                             attribuzione da conservare
 ├── CITATION.cff                       citazione standard del progetto
 ├── VERSION                            versione CalVer dell’installer
+├── release-manifest.ini               piattaforma, repository e versioni esterne
 ├── bin/
-│   └── chamsys_install_ubuntu.sh      installer completo
+│   └── chamsys_install_ubuntu.sh      orchestratore dell’installer
+├── installer/
+│   ├── modules/                       fasi funzionali separate
+│   └── templates/rootfs/              file installati, testabili direttamente
+├── lib/                               lettura manifest e lock globale
 ├── Minimal-ISO-Builder/               builder ISO Ubuntu 24.04.4
 │   ├── README.txt
 │   ├── make-wasalight-minimal.sh
@@ -77,6 +82,11 @@ Dopo un’installazione riuscita la stessa versione appare sul pannello desktop 
 in `wasalight-status`. `UPDATE READY` indica che il codice già scaricato in `/data`
 è più recente della configurazione installata. Dettagli e procedura di incremento
 sono nella [guida al versionamento](docs/versioning.md).
+
+Versioni della piattaforma, repository, commit e checksum esterni sono
+centralizzati in `release-manifest.ini`. L’architettura modulare e le regole per
+aggiungere una fase o un template sono descritte in
+[architettura installer](docs/installer-architecture.md).
 
 La riga `MAGICQ VER` mostra invece la versione del pacchetto MagicQ realmente
 installato secondo `dpkg`, per esempio `1.9.8.3`; non viene ricavata dal nome del
@@ -396,8 +406,10 @@ magicq-start
 ```
 
 Le stesse azioni sono disponibili nel menu Openbox come **Avvia MagicQ** e
-**Ferma MagicQ**. `wasalight-status` distingue applicazione e sessione di lancio
-con le righe `MAGICQ` e `SESSION`.
+**Ferma MagicQ**. `wasalight-status` mostra soltanto lo stato operativo
+`MAGICQ`; il processo tecnico `magicq-session`, il lock, il PID e il relativo
+log rimangono disponibili internamente per impedire duplicati e diagnosticare
+gli errori di avvio.
 
 ### Fullscreen automatico
 
@@ -447,7 +459,7 @@ restano sopra le altre finestre fino alla conferma o all'annullamento.
 Sul lato destro Conky mostra un pannello aggiornato ogni due secondi con:
 
 - modalità corrente e modalità prevista al prossimo avvio;
-- stato di MagicQ e della sessione di lancio;
+- stato operativo di MagicQ;
 - montaggio e spazio libero di `/data`;
 - persistenza dei log;
 - rete e indirizzo IP, evidenziando dispositivi `unmanaged`;
@@ -490,11 +502,11 @@ I programmi continuano a essere organizzati tramite il registro `apps.d`:
   MagicQ; icona, nome, stato, descrizione, toggle e azioni mantengono posizioni
   coerenti in ogni scheda;
 - **Applicazioni**: programmi registrati dall'amministratore, compresi File,
-  Scanner IP e Art-Net Monitor;
+  Scanner IP, Art-Net Monitor, la calcolatrice `galculator` e l’editor di testo
+  leggero Mousepad;
 - **Supporto**: rete, monitor, touchscreen, audio, terminale, stato,
   diagnostica, salute, backup/ripristino, blocco schermo manuale e aggiornamento
   Wasalight;
-- **Applicazioni** include anche la calcolatrice leggera `galculator`.
 - **Crediti**: autore, versione, licenza, attribuzioni e collegamenti ufficiali
   del progetto; ChamSys e Bitfocus sono indicati come prodotti esterni.
 

@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $EUID -eq 0 ]] || exec sudo "$0" "$@"
+destination=/etc/wasalight/apps.d
+mountpoint -q /data && destination=/data/system/apps.d
+install -d -m 0755 "$destination"
+
+case ${1:-} in
+    --list)
+        {
+            for registry in /etc/wasalight/apps.d /data/system/apps.d; do
+                [[ ! -d $registry ]] || find "$registry" -maxdepth 1 \
+                    -type f -name '*.desktop' -print
+            done
+        } | sort
+        exit 0
+        ;;
+    --remove)
+        name=${2##*/}
+        [[ $name =~ ^[A-Za-z0-9._+-]+\.desktop$ ]] || {
+            echo "Invalid launcher name: $name" >&2; exit 2;
+        }
+        rm -f "$destination/$name"
+        echo "Removed: $destination/$name"
+        exit 0
+        ;;
+esac
+
+source_file=${1:?usage: wasalight-app-register FILE.desktop | --list | --remove NAME.desktop}
+[[ -f $source_file && ${source_file##*.} == desktop ]] || {
+    echo "A readable .desktop file is required: $source_file" >&2; exit 2;
+}
+desktop-file-validate "$source_file"
+name=${source_file##*/}
+install -m 0644 "$source_file" "$destination/$name"
+echo "Registered in Wasalight Control: $destination/$name"

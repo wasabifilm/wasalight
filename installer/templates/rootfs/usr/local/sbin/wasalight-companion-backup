@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $EUID -eq 0 ]] || exec sudo "$0" "$@"
+(($# == 0)) || { echo "Usage: wasalight-companion-backup" >&2; exit 2; }
+. /usr/local/libexec/wasalight-operation-lock.sh
+wasalight_acquire_operation_lock "backup Bitfocus Companion"
+[[ $(findmnt -n -o FSTYPE / 2>/dev/null) != overlay ]] || {
+    echo "Companion backups must be created in MAINTENANCE mode." >&2; exit 1;
+}
+mountpoint -q /data || { echo "/data is not mounted." >&2; exit 1; }
+backup_dir=/data/companion/backups
+stamp=$(date +%Y%m%d-%H%M%S)
+destination="$backup_dir/companion-$stamp.tar.gz"
+temporary="$destination.tmp"
+was_active=0
+systemctl is-active --quiet companion.service && was_active=1
+cleanup() {
+    rm -f -- "$temporary"
+    ((was_active == 0)) || systemctl start companion.service
+}
+trap cleanup EXIT
+((was_active == 0)) || systemctl stop companion.service
+install -d -o companion -g companion -m 0750 "$backup_dir"
+tar -C /data/companion -czf "$temporary" home etc installed-version
+mv "$temporary" "$destination"
+chmod 0640 "$destination"
+trap - EXIT
+((was_active == 0)) || systemctl start companion.service
+echo "Companion backup created: $destination"

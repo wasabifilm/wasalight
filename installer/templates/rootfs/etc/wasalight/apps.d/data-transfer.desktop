@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Backup e ripristino
+Comment=Salva o ripristina /data tramite USB in MAINTENANCE
+Exec=/usr/local/bin/wasalight-data-transfer-terminal
+Icon=drive-removable-media
+TryExec=/usr/local/bin/wasalight-data-transfer-terminal
+X-Wasalight-Section=Support
+X-Wasalight-Order=73

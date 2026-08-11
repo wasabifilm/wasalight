@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || exit 1
+flag_root=${WASALIGHT_SERVICE_FLAG_ROOT:-/data/system/service-flags}
+
+if [[ -r $flag_root/ssh-autostart && $(<"$flag_root/ssh-autostart") == enabled ]]; then
+    sudo -n /usr/local/sbin/wasalight-ssh-control start >/dev/null 2>&1 || \
+        logger -t wasalight-remote "automatic SSH startup failed"
+fi
+if [[ -r $flag_root/vnc-autostart && $(<"$flag_root/vnc-autostart") == enabled ]]; then
+    if [[ -s /data/system/vnc/passwd ]]; then
+        /usr/local/bin/wasalight-vnc-start --lan >/dev/null 2>&1 || \
+            logger -t wasalight-remote "automatic VNC startup failed"
+    else
+        logger -t wasalight-remote "automatic VNC startup skipped: password missing"
+    fi
+fi

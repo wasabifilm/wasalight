@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+[[ $EUID -eq 0 ]] || { echo "Run through sudo." >&2; exit 1; }
+readonly snapshot_root=/data/system/update-backups
+readonly snapshot_tool=/usr/local/sbin/wasalight-update-snapshot
+
+snapshot_path() {
+    local name=$1
+    [[ $name != */* && $name == wasalight-*.tar.gz ]] || {
+        echo "Invalid snapshot name." >&2
+        return 2
+    }
+    printf '%s/%s\n' "$snapshot_root" "$name"
+}
+
+case ${1:-} in
+    list)
+        findmnt -n -o FSTYPE / 2>/dev/null | grep -qx overlay && mode=SHOW || mode=MAINTENANCE
+        while IFS= read -r archive; do
+            [[ -f $archive.sha256 ]] || continue
+            name=${archive##*/}
+            version=${name#wasalight-}
+            version=${version%-????????-??????.tar.gz}
+            stamp=${name#wasalight-$version-}
+            stamp=${stamp%.tar.gz}
+            size=$(du -h "$archive" | awk '{print $1}')
+            if (cd "$snapshot_root" && sha256sum -c "${name}.sha256" >/dev/null 2>&1); then
+                integrity=OK
+            else
+                integrity=ERRORE
+            fi
+            printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
+                "$name" "$version" "$stamp" "$size" "$integrity" "$mode"
+        done < <(find "$snapshot_root" -maxdepth 1 -type f \
+            -name 'wasalight-*.tar.gz' -print | sort -r | head -n 5)
+        ;;
+    restore)
+        (($# == 2)) || { echo "Usage: wasalight-rollback restore SNAPSHOT" >&2; exit 2; }
+        [[ $(findmnt -n -o FSTYPE / 2>/dev/null) != overlay ]] || {
+            echo "Rollback requires MAINTENANCE mode." >&2; exit 1;
+        }
+        archive=$(snapshot_path "$2")
+        [[ -f $archive && -f $archive.sha256 ]] || {
+            echo "Snapshot is incomplete or unavailable." >&2; exit 1;
+        }
+        exec "$snapshot_tool" restore "$archive"
+        ;;
+    *) echo "Usage: wasalight-rollback list | restore SNAPSHOT" >&2; exit 2 ;;
+esac

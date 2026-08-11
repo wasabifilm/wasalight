@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Mousepad
+Comment=Editor di testo leggero per note, log e configurazioni
+Exec=mousepad
+Icon=accessories-text-editor
+TryExec=mousepad
+X-Wasalight-Section=Applications
+X-Wasalight-Order=41

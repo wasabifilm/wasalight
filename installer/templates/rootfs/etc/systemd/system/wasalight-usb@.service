@@ -1,0 +1,11 @@
+[Unit]
+Description=MagicQ USB mount for /dev/%I
+BindsTo=dev-%i.device
+After=dev-%i.device
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/libexec/wasalight-usb-mount %I
+ExecStop=/usr/local/libexec/wasalight-usb-unmount %I
+TimeoutStopSec=10

@@ -5,14 +5,18 @@ set -Eeuo pipefail
 
 PROJECT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 INSTALLER="$PROJECT_DIR/bin/chamsys_install_ubuntu.sh"
+. "$PROJECT_DIR/lib/wasalight-release-manifest.sh"
+RELEASE_MANIFEST="$PROJECT_DIR/release-manifest.ini"
+MAGICQ_PACKAGE_NAME=$(require_manifest_value "$RELEASE_MANIFEST" MagicQ Package)
+MAGICQ_ARCHITECTURE=$(require_manifest_value "$RELEASE_MANIFEST" MagicQ Architecture)
 args=("$@")
 deb_supplied=0
 
 magicq_version_of() {
     local package=$1 version
     dpkg-deb --info "$package" >/dev/null 2>&1 || return 1
-    [[ $(dpkg-deb -f "$package" Package 2>/dev/null) == magicq ]] || return 1
-    [[ $(dpkg-deb -f "$package" Architecture 2>/dev/null) == amd64 ]] || return 1
+    [[ $(dpkg-deb -f "$package" Package 2>/dev/null) == "$MAGICQ_PACKAGE_NAME" ]] || return 1
+    [[ $(dpkg-deb -f "$package" Architecture 2>/dev/null) == "$MAGICQ_ARCHITECTURE" ]] || return 1
     version=$(dpkg-deb -f "$package" Version 2>/dev/null) || return 1
     dpkg --validate-version "$version" >/dev/null 2>&1 || return 1
     printf '%s\n' "$version"
@@ -26,6 +30,11 @@ for arg in "$@"; do
     [[ "$arg" == --allow-missing-magicq ]] && allow_missing_magicq=1
     [[ "$arg" == *.deb ]] && deb_supplied=1
 done
+
+# shellcheck source=lib/wasalight-operation-lock.sh
+. "$PROJECT_DIR/lib/wasalight-operation-lock.sh"
+[[ $EUID -eq 0 ]] || { echo "Esegui l'installer con sudo." >&2; exit 1; }
+wasalight_acquire_operation_lock "installazione Wasalight"
 
 if ((deb_supplied == 0)); then
     shopt -s nullglob

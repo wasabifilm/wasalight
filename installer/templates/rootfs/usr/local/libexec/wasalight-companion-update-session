@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -u
+clear
+echo "BITFOCUS COMPANION UPDATE"
+echo "Updates are allowed only in MAINTENANCE mode."
+echo
+sudo /usr/local/sbin/wasalight-companion-update
+rc=$?
+echo
+if ((rc == 0)); then
+    echo "Companion update completed."
+else
+    echo "Companion update failed (exit $rc)."
+fi
+echo "Press Enter to close."
+read -r _
+exit "$rc"

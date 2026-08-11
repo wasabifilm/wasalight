@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ $EUID -eq 0 ]] || {
+    echo "Wasalight power control must be run through sudo." >&2
+    exit 1
+}
+
+case ${1:-} in
+    poweroff) exec systemctl poweroff ;;
+    reboot) exec systemctl reboot ;;
+    *) echo "Usage: wasalight-power-control poweroff|reboot" >&2; exit 2 ;;
+esac

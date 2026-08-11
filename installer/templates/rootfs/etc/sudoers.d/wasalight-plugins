@@ -1,0 +1,1 @@
+chamsys ALL=(root) NOPASSWD: /usr/local/sbin/wasalight-plugin-admin enable ssh, /usr/local/sbin/wasalight-plugin-admin disable ssh, /usr/local/sbin/wasalight-plugin-admin enable vnc, /usr/local/sbin/wasalight-plugin-admin disable vnc, /usr/local/sbin/wasalight-plugin-admin enable companion, /usr/local/sbin/wasalight-plugin-admin disable companion

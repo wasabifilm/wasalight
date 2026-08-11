@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+. /usr/local/libexec/wasalight-operation-lock.sh
+
 [[ $EUID -eq 0 ]] || { echo "Run through sudo." >&2; exit 1; }
+wasalight_acquire_operation_lock "backup o ripristino dati Wasalight"
 [[ $(findmnt -n -o FSTYPE / 2>/dev/null) != overlay ]] || {
     echo "Backup and restore require MAINTENANCE mode." >&2; exit 1;
 }

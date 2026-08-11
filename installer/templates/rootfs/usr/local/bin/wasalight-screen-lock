@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+[[ $(id -un) == chamsys ]] || {
+    echo "Run as the chamsys desktop user." >&2
+    exit 1
+}
+[[ -n ${DISPLAY:-} ]] || { echo "Xorg display is unavailable." >&2; exit 1; }
+command -v i3lock >/dev/null 2>&1 || { echo "i3lock is unavailable." >&2; exit 1; }
+
+/usr/local/bin/wasalight-dialog --question --width=560 \
+    --title="Blocca schermo · Wasalight" \
+    --text="<big><b>Bloccare lo schermo adesso?</b></big>\n\nLo sblocco richiede la password Linux di chamsys e una tastiera.\nIl display resterà acceso: sospensione, salvaschermo e DPMS rimangono disattivati." \
+    --ok-label="Blocca" --cancel-label="Annulla" || exit 0
+
+# The appliance never arms an idle locker. Reassert the no-blanking policy
+# immediately before and after this explicit, foreground-only lock.
+xset s off
+xset s noblank
+xset -dpms
+i3lock -n -c 080b10
+xset s off
+xset s noblank
+xset -dpms

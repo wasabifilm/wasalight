@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Companion Web UI
+Comment=Apre l'interfaccia locale Companion nel browser touch
+Exec=/usr/local/bin/wasalight-companion-browser
+Icon=/usr/local/share/icons/wasalight/companion-official.png
+TryExec=/usr/local/bin/wasalight-companion-browser
+StartupWMClass=Falkon
+X-Wasalight-Section=Applications
+X-Wasalight-Order=31
