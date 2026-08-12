@@ -248,7 +248,8 @@ sudo wasalight-update --without-ssh
 Senza queste opzioni viene conservato il flag persistente
 `/data/system/service-flags/ssh-autostart`, lo stesso gestito dal toggle
 **Avvio automatico** in Wasalight Control.
-La tastiera Onboard viene conservata automaticamente quando è già installata.
+La tastiera Onboard è parte dell’installazione standard: un aggiornamento la
+installa se manca e mantiene l’avvio esclusivamente manuale.
 
 Per installare Bitfocus Companion durante un aggiornamento Wasalight:
 

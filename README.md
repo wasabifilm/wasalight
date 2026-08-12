@@ -190,13 +190,10 @@ sudo ./install.sh \
   --with-ssh
 ```
 
-Per aggiungere la tastiera virtuale Onboard:
-
-```bash
-sudo ./install.sh \
-  --data-device LABEL=DATA \
-  --with-onscreen-keyboard
-```
+La tastiera virtuale touch Onboard è sempre installata. Rimane completamente
+chiusa finché non viene richiamata dal dock o da **Wasalight Control →
+Applicazioni**, quindi non occupa memoria durante il normale utilizzo di MagicQ.
+Lo stesso pulsante la apre e la chiude.
 
 Per installare anche Bitfocus Companion headless con configurazione persistente:
 

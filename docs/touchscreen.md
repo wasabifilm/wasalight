@@ -136,19 +136,20 @@ Se `/data` non è disponibile, viene usato il fallback
 `/home/chamsys/.config/wasalight-touch/config`; tale fallback non offre la stessa
 garanzia di persistenza con overlayroot attivo.
 
-## Tastiera virtuale opzionale
+## Tastiera virtuale
 
-Per installare Onboard aggiungere l'opzione durante l'installazione:
+Onboard è un componente standard di Wasalight. Non viene aperta automaticamente
+e non interferisce con quella di MagicQ: quando è chiusa non resta alcun processo
+residente. Il pulsante **Tastiera** nel dock e in **Wasalight Control →
+Applicazioni** funziona da interruttore: il primo tocco la apre sopra la barra
+inferiore, il secondo la chiude. Il comando equivalente è
+`wasalight-keyboard-toggle`.
 
-```bash
-sudo ./install.sh \
-  --data-device LABEL=DATA \
-  --with-onscreen-keyboard
-```
-
-La tastiera non viene aperta automaticamente e non interferisce con quella di
-MagicQ. Si avvia dal menu Openbox con **On-screen keyboard** oppure eseguendo
-`onboard` da terminale.
+La geometria viene calcolata dalla risoluzione corrente e occupa il 90% della
+larghezza e il 38% dell’altezza. Se il window manager non riesce a posizionarla,
+Onboard resta comunque disponibile usando la propria geometria salvata.
+Quando il tema Nightshade è presente viene selezionato automaticamente per
+integrarsi con l’interfaccia scura Wasalight.
 
 ## Limiti e criteri di sicurezza
 

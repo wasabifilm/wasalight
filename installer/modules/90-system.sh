@@ -294,6 +294,7 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-dialog
     bash -n /usr/local/sbin/wasalight-power-control
     bash -n /usr/local/bin/wasalight-desktop-status
+    bash -n /usr/local/bin/wasalight-keyboard-toggle
     bash -n /usr/local/bin/wasalight-vnc-toggle
     bash -n /usr/local/bin/wasalight-ssh-toggle
     bash -n /usr/local/sbin/wasalight-ssh-control
