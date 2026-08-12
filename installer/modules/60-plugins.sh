@@ -18,6 +18,11 @@ configure_plugins() {
         /usr/local/sbin/wasalight-plugin-admin
     install -o root -g root -m 0755 "$PROJECT_DIR/ui/wasalight-control-center.py" \
         /usr/local/libexec/wasalight-control-center.py
+    install -d -o root -g root -m 0755 /usr/local/libexec/wasalight_control
+    for source in "$PROJECT_DIR/ui/wasalight_control/"*.py; do
+        install -o root -g root -m 0644 "$source" \
+            "/usr/local/libexec/wasalight_control/${source##*/}"
+    done
 
     # Built-in management integrations are visible by default. Companion is
     # enabled on its first installation, while an explicit disabled state from

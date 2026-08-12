@@ -870,8 +870,13 @@ fi
 plugin_command="$PROJECT_DIR/libexec/wasalight-plugin"
 plugin_admin="$PROJECT_DIR/libexec/wasalight-plugin-admin"
 control_center="$PROJECT_DIR/ui/wasalight-control-center.py"
+control_core="$PROJECT_DIR/ui/wasalight_control"
 for python_tool in "$plugin_command" "$plugin_admin" "$control_center"; do
     [[ -s $python_tool ]] || fail "componente plugin mancante: $python_tool"
+    python3 -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' \
+        "$python_tool"
+done
+for python_tool in "$control_core"/*.py; do
     python3 -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' \
         "$python_tool"
 done
@@ -883,8 +888,8 @@ grep -Fq 'os.replace(temporary, os.path.join(STATE_ROOT, plugin_id))' "$plugin_a
     fail "lo stato plugin persistente non viene scritto atomicamente"
 grep -Fq 'except subprocess.TimeoutExpired:' "$plugin_command" || \
     fail "lo stato plugin non gestisce servizi lenti senza bloccare Control"
-grep -Fq 'PLUGIN_COMMAND = "/usr/local/bin/wasalight-plugin"' "$control_center" || \
-    fail "Wasalight Control non usa il registro plugin"
+grep -Fq 'plugin_command: str = "/usr/local/bin/wasalight-plugin"' \
+    "$control_core/models.py" || fail "Wasalight Control non usa il registro plugin"
 grep -Fq 'self.add_dashboard()' "$control_center" || \
     fail "Wasalight Control non espone la dashboard unificata"
 grep -Fq "foreground='#76bd22'" "$control_center" || \
@@ -917,7 +922,7 @@ grep -Fq 'fill="#76bd22"' "$INSTALLER" || \
 if grep -Fq '#8957e5' "$INSTALLER"; then
     fail "l'icona Wasalight Control usa ancora l'accento viola"
 fi
-grep -Fq 'mode_label = "Passa a MAINTENANCE" if mode == "SHOW" else "Passa a SHOW"' \
+grep -Fq 'mode_label = "Passa a MAINTENANCE" if identity.mode == "SHOW" else "Passa a SHOW"' \
     "$control_center" || fail "la home Control non mostra il cambio modalità contestuale"
 if grep -Fq '("File", ["pcmanfm", "/data"])' "$control_center"; then
     fail "la home Control contiene ancora il pulsante File"
@@ -970,7 +975,7 @@ grep -Fq 'installed the verified official Bitfocus Companion icon' "$INSTALLER" 
     fail "l'installer non registra l'uso dell'icona ufficiale Companion"
 grep -Fq 'PLUGIN_COMMAND, "install"' "$control_center" || \
     fail "Wasalight Control non permette di installare plugin disponibili"
-grep -Fq 'mode != "MAINTENANCE"' "$control_center" || \
+grep -Fq 'identity.mode != "MAINTENANCE"' "$control_center" || \
     fail "Wasalight Control consente modifiche plugin persistenti in SHOW"
 grep -Fq 'flock -n 9' "$tmp_dir/wasalight-control" || \
     fail "Wasalight Control non impedisce istanze multiple"
@@ -983,8 +988,10 @@ grep -Fq 'threading.Thread(target=self.refresh_worker, daemon=True).start()' \
     fail "Wasalight Control aggiorna ancora lo stato nel thread GTK"
 grep -Fq 'ThreadPoolExecutor(max_workers=3)' "$control_center" || \
     fail "Control esegue ancora in serie stato, plugin e MagicQ"
-grep -Fq 'timeout=20' "$control_center" || \
+grep -Fq 'timeout=20' "$control_core/system.py" || \
     fail "Control usa ancora un timeout troppo breve per i sistemi lenti"
+grep -Fq '/usr/local/libexec/wasalight_control' "$INSTALLER" || \
+    fail "l'installer non installa il core Python di Wasalight Control"
 grep -Fq 'timeout --signal=TERM 6 /usr/local/bin/wasalight-touch-status' \
     "$INSTALLER" || fail "lo stato touchscreen può bloccare il refresh Control"
 grep -Fq 'dialog.set_keep_above(True)' "$control_center" || \

@@ -27,4 +27,7 @@ for test_script in \
     fi
 done
 
+printf 'BEHAVIOR  %s\n' control-core.py
+python3 "$TEST_DIR/control-core.py"
+
 printf 'Test comportamentali Wasalight superati.\n'

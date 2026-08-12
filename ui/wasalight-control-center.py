@@ -1,15 +1,10 @@
 #!/usr/bin/env python3
 """Touch-first unified Wasalight desktop management interface."""
 
-import configparser
 import concurrent.futures
-import glob
-import json
 import os
 import re
 import shlex
-import shutil
-import subprocess
 import threading
 
 import gi
@@ -18,10 +13,15 @@ gi.require_version("Gdk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
 
+from wasalight_control.commands import CommandRunner
+from wasalight_control.launchers import installed_launchers
+from wasalight_control.models import ControlPaths
+from wasalight_control.system import magicq_state, mode_and_version, read_plugins, read_status
 
-PLUGIN_COMMAND = "/usr/local/bin/wasalight-plugin"
+PATHS = ControlPaths()
+COMMANDS = CommandRunner()
+PLUGIN_COMMAND = PATHS.plugin_command
 FIELD_CODE = re.compile(r"%[fFuUdDnNickvm]")
-COMPANION = re.compile(r"magicvis|magichd|magicq[ -]?remote|chamsys.*(?:remote|viewer|media)", re.I)
 PAGE_LABELS = {
     "Dashboard": "Stato",
     "MagicQ": "MagicQ",
@@ -33,67 +33,6 @@ PAGE_LABELS = {
 }
 CARD_WIDTH = 290
 CARD_HEIGHT = 280
-
-
-def desktop_bool(item, key, default=False):
-    try:
-        return item.getboolean(key, fallback=default)
-    except ValueError:
-        return default
-
-
-def read_launcher(path, forced_section=None):
-    parser = configparser.RawConfigParser(interpolation=None, strict=False)
-    try:
-        parser.read(path, encoding="utf-8")
-        item = parser["Desktop Entry"]
-    except (OSError, KeyError, configparser.Error):
-        return None
-    if item.get("Type", "Application") != "Application":
-        return None
-    if desktop_bool(item, "Hidden") or desktop_bool(item, "NoDisplay"):
-        return None
-    name = item.get("Name", "").strip()
-    command = item.get("Exec", "").strip()
-    try_exec = item.get("TryExec", "").strip()
-    if not name or not command:
-        return None
-    if try_exec and not (os.path.exists(try_exec) if os.path.isabs(try_exec) else shutil.which(try_exec)):
-        return None
-    section = forced_section or item.get("X-Wasalight-Section", "Applications")
-    try:
-        order = int(item.get("X-Wasalight-Order", "500"))
-    except ValueError:
-        order = 500
-    return {
-        "name": name,
-        "comment": item.get("Comment", ""),
-        "exec": command,
-        "icon": item.get("Icon", "application-x-executable"),
-        "terminal": desktop_bool(item, "Terminal"),
-        "path": item.get("Path", "").strip() or None,
-        "section": section if section in ("MagicQ", "Applications", "Support") else "Applications",
-        "order": order,
-    }
-
-
-def installed_launchers():
-    result, seen = [], set()
-    for pattern in ("/etc/wasalight/apps.d/*.desktop", "/data/system/apps.d/*.desktop"):
-        for path in sorted(glob.glob(pattern)):
-            launcher = read_launcher(path)
-            if launcher and (launcher["name"], launcher["exec"]) not in seen:
-                result.append(launcher)
-                seen.add((launcher["name"], launcher["exec"]))
-    for path in sorted(glob.glob("/usr/share/applications/*.desktop")):
-        launcher = read_launcher(path, "MagicQ")
-        if not launcher:
-            continue
-        searchable = " ".join((launcher["name"], launcher["exec"], launcher["comment"]))
-        if COMPANION.search(searchable) and (launcher["name"], launcher["exec"]) not in seen:
-            result.append(launcher)
-            seen.add((launcher["name"], launcher["exec"]))
-    return sorted(result, key=lambda value: (value["section"], value["order"], value["name"].lower()))
 
 
 def image_for(icon, size=64):
@@ -117,33 +56,6 @@ def image_for(icon, size=64):
     image = Gtk.Image.new_from_icon_name(icon or "application-x-executable", Gtk.IconSize.DIALOG)
     image.set_pixel_size(size)
     return image
-
-
-def mode_and_version():
-    version = "unknown"
-    try:
-        with open("/etc/wasalight/version", encoding="utf-8") as source:
-            version = source.read().strip()
-    except OSError:
-        pass
-    result = subprocess.run(
-        ["findmnt", "-n", "-o", "FSTYPE", "/"], text=True,
-        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
-    mode = "SHOW" if result.stdout.strip() == "overlay" else "MAINTENANCE"
-    return mode, version
-
-
-def magicq_state():
-    running = subprocess.run(
-        ["pgrep", "-x", "mqqt"], stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL, check=False).returncode == 0
-    automatic = False
-    try:
-        with open("/data/system/service-flags/magicq-autostart", encoding="utf-8") as source:
-            automatic = source.read().strip() == "enabled"
-    except OSError:
-        pass
-    return running, automatic
 
 
 class ControlCenter(Gtk.Window):
@@ -174,7 +86,7 @@ class ControlCenter(Gtk.Window):
         self.notebook.set_scrollable(True)
         outer.pack_start(self.notebook, True, True, 0)
         self.add_dashboard()
-        launchers = installed_launchers()
+        launchers = installed_launchers(PATHS)
         self.add_magicq_page(launchers)
         self.add_service_page()
         self.add_launcher_page("Applications", launchers)
@@ -202,7 +114,7 @@ class ControlCenter(Gtk.Window):
         Gtk.main_quit()
 
     def header(self):
-        mode, version = mode_and_version()
+        identity = mode_and_version(PATHS, COMMANDS)
         box = Gtk.Box(spacing=14)
         box.pack_start(image_for("/usr/local/share/icons/wasalight/hub.svg", 58), False, False, 0)
         title = Gtk.Label()
@@ -211,9 +123,9 @@ class ControlCenter(Gtk.Window):
                          "<span size='9500'>MagicQ · servizi · applicazioni · sistema</span>")
         box.pack_start(title, True, True, 0)
         state = Gtk.Label()
-        colour = "#76bd22" if mode == "SHOW" else "#f2cc60"
-        state.set_markup(f"<span foreground='{colour}' weight='bold'>{mode}</span>\n"
-                         f"<span size='8500'>Wasalight {GLib.markup_escape_text(version)}</span>")
+        colour = "#76bd22" if identity.mode == "SHOW" else "#f2cc60"
+        state.set_markup(f"<span foreground='{colour}' weight='bold'>{identity.mode}</span>\n"
+                         f"<span size='8500'>Wasalight {GLib.markup_escape_text(identity.version)}</span>")
         state.set_justify(Gtk.Justification.RIGHT)
         box.pack_start(state, False, False, 0)
         return box
@@ -221,11 +133,11 @@ class ControlCenter(Gtk.Window):
     def add_dashboard(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         controls = Gtk.Box(spacing=10)
-        mode, _version = mode_and_version()
-        mode_label = "Passa a MAINTENANCE" if mode == "SHOW" else "Passa a SHOW"
+        identity = mode_and_version(PATHS, COMMANDS)
+        mode_label = "Passa a MAINTENANCE" if identity.mode == "SHOW" else "Passa a SHOW"
         for label, command in (
-                ("Aggiorna", ["/usr/local/bin/wasalight-update-terminal"]),
-                (mode_label, ["/usr/local/bin/wasalight-mode-toggle"])):
+                ("Aggiorna", [PATHS.update_terminal]),
+                (mode_label, [PATHS.mode_toggle])):
             button = Gtk.Button(label=label)
             button.set_size_request(180, 64)
             button.connect("clicked", self.run_desktop_command, command)
@@ -314,16 +226,15 @@ class ControlCenter(Gtk.Window):
         magicq = self.software_button(
             "MagicQ", "Console luci principale",
             "/usr/share/pixmaps/magicq.png",
-            lambda button: self.run_desktop_command(
-                button, ["/usr/local/bin/magicq-start"]))
+            lambda button: self.run_desktop_command(button, [PATHS.magicq_start]))
         magicq.set_sensitive(os.path.exists("/opt/magicq"))
         flow.add(magicq)
 
-        companions = [item for item in launchers if item["section"] == "MagicQ"]
+        companions = [item for item in launchers if item.section == "MagicQ"]
         for item in companions:
             flow.add(self.software_button(
-                item["name"], item["comment"] or "Programma ChamSys",
-                item["icon"],
+                item.name, item.comment or "Programma ChamSys",
+                item.icon,
                 lambda button, selected=item: self.launch_application(button, selected)))
         page.pack_start(flow, False, False, 0)
 
@@ -339,7 +250,7 @@ class ControlCenter(Gtk.Window):
         flow.set_column_spacing(12)
         flow.set_max_children_per_line(5)
         flow.set_min_children_per_line(2)
-        items = [item for item in launchers if item["section"] == section]
+        items = [item for item in launchers if item.section == section]
         if not items:
             empty = Gtk.Label(label="Nessuna applicazione registrata")
             empty.set_margin_top(40)
@@ -347,10 +258,10 @@ class ControlCenter(Gtk.Window):
         for item in items:
             button = Gtk.Button()
             button.set_size_request(180, 132)
-            button.set_tooltip_text(item["comment"])
+            button.set_tooltip_text(item.comment)
             content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7)
-            content.pack_start(image_for(item["icon"], 58), True, True, 0)
-            label = Gtk.Label(label=item["name"])
+            content.pack_start(image_for(item.icon, 58), True, True, 0)
+            label = Gtk.Label(label=item.name)
             label.set_line_wrap(True)
             label.set_justify(Gtk.Justification.CENTER)
             content.pack_start(label, False, False, 0)
@@ -400,11 +311,11 @@ class ControlCenter(Gtk.Window):
         content.pack_start(
             image_for("/usr/share/plymouth/themes/wasalight/boot-logo.png", 190),
             False, False, 0)
-        _mode, version = mode_and_version()
+        identity = mode_and_version(PATHS, COMMANDS)
         title = Gtk.Label()
         title.set_markup(
             "<span foreground='#76bd22' size='17000' weight='bold'>Wasalight</span>\n"
-            f"<span size='9500'>Versione {GLib.markup_escape_text(version)}</span>")
+            f"<span size='9500'>Versione {GLib.markup_escape_text(identity.version)}</span>")
         title.set_justify(Gtk.Justification.CENTER)
         content.pack_start(title, False, False, 0)
 
@@ -548,22 +459,6 @@ class ControlCenter(Gtk.Window):
         for child in flow.get_children():
             flow.remove(child)
 
-    @staticmethod
-    def read_plugins():
-        result = subprocess.run(
-            [PLUGIN_COMMAND, "list", "--json"], text=True,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20, check=False)
-        if result.returncode:
-            raise RuntimeError(result.stderr.strip() or "Registro plugin non disponibile")
-        return json.loads(result.stdout)
-
-    @staticmethod
-    def read_status():
-        result = subprocess.run(
-            ["/usr/local/bin/wasalight-status"], text=True,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=20, check=False)
-        return result.stdout.strip() or "Stato non disponibile"
-
     def apply_refresh(self, status, plugins, magicq, error):
         self.refresh_running = False
         if self.destroyed:
@@ -572,13 +467,12 @@ class ControlCenter(Gtk.Window):
             status = f"{status}\n\nCONTROL:    avviso aggiornamento: {error}"
         self.status_view.get_buffer().set_text(status)
         if magicq is not None:
-            running, automatic = magicq
             self.magicq_state_label.set_markup(
-                f"<span foreground='{'#76bd22' if running else '#f2cc60'}' weight='bold'>"
-                f"{'APERTO' if running else 'CHIUSO'}</span> · "
-                f"{'AUTO' if automatic else 'MANUALE'}")
+                f"<span foreground='{'#76bd22' if magicq.running else '#f2cc60'}' weight='bold'>"
+                f"{'APERTO' if magicq.running else 'CHIUSO'}</span> · "
+                f"{'AUTO' if magicq.automatic else 'MANUALE'}")
             self.magicq_auto_switch.handler_block(self.magicq_auto_handler)
-            self.magicq_auto_switch.set_active(automatic)
+            self.magicq_auto_switch.set_active(magicq.automatic)
             self.magicq_auto_switch.handler_unblock(self.magicq_auto_handler)
         if plugins is not None and plugins != self.plugins:
             self.plugins = plugins
@@ -601,9 +495,9 @@ class ControlCenter(Gtk.Window):
         # These probes are independent. Running them concurrently prevents a
         # slow XInput scan from consuming the whole Control refresh budget.
         tasks = {
-            "stato": self.read_status,
-            "plugins": self.read_plugins,
-            "MagicQ": magicq_state,
+            "stato": lambda: read_status(PATHS, COMMANDS),
+            "plugins": lambda: read_plugins(PATHS, COMMANDS),
+            "MagicQ": lambda: magicq_state(PATHS, COMMANDS),
         }
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             futures = {name: executor.submit(task) for name, task in tasks.items()}
@@ -634,22 +528,22 @@ class ControlCenter(Gtk.Window):
 
     def run_desktop_command(self, _button, command):
         try:
-            subprocess.Popen(command, start_new_session=True)
+            COMMANDS.spawn(command)
         except OSError as error:
             self.show_error("Impossibile avviare il comando", str(error))
 
     def launch_application(self, _button, item):
-        command = FIELD_CODE.sub("", item["exec"])
+        command = FIELD_CODE.sub("", item.command)
         try:
             arguments = shlex.split(command)
             executable = os.path.basename(arguments[0]) if arguments else ""
             companion = {"runmagichd.sh": "magichd", "mqhd": "magichd",
                          "runmagicvis.sh": "magicvis", "mqvis": "magicvis"}.get(executable)
             if companion:
-                arguments = ["sudo", "-n", "/usr/local/sbin/wasalight-companion-launcher", companion]
-            if item["terminal"]:
+                arguments = ["sudo", "-n", PATHS.companion_launcher, companion]
+            if item.terminal:
                 arguments = ["lxterminal", "-e"] + arguments
-            subprocess.Popen(arguments, cwd=item["path"], start_new_session=True)
+            COMMANDS.spawn(arguments, cwd=item.working_directory)
         except (OSError, ValueError) as error:
             self.show_error("Impossibile avviare l'applicazione", str(error))
 
@@ -681,15 +575,14 @@ class ControlCenter(Gtk.Window):
         switch.set_sensitive(False)
         operation = "enable" if desired else "disable"
         self.background_command(
-            ["sudo", "-n", "/usr/local/sbin/wasalight-remote-persistence",
-             "magicq", operation],
+            ["sudo", "-n", PATHS.remote_persistence, "magicq", operation],
             "MagicQ · Avvio automatico",
             lambda success: switch.set_sensitive(True))
         return True
 
     def change_plugin_state(self, _button, item, enable):
-        mode, _version = mode_and_version()
-        if mode != "MAINTENANCE":
+        identity = mode_and_version(PATHS, COMMANDS)
+        if identity.mode != "MAINTENANCE":
             self.show_error("Modalità MAINTENANCE richiesta",
                             "Riavvia in MAINTENANCE per abilitare o disabilitare plugin persistenti.")
             return
@@ -699,22 +592,20 @@ class ControlCenter(Gtk.Window):
                                 f"{operation_title} {item['name']}")
 
     def install_plugin(self, _button, item):
-        mode, _version = mode_and_version()
-        if mode != "MAINTENANCE":
+        identity = mode_and_version(PATHS, COMMANDS)
+        if identity.mode != "MAINTENANCE":
             self.show_error("Modalità MAINTENANCE richiesta",
                             "Riavvia in MAINTENANCE per installare un plugin.")
             return
         try:
-            subprocess.Popen([PLUGIN_COMMAND, "install", item["id"]], start_new_session=True)
+            COMMANDS.spawn([PLUGIN_COMMAND, "install", item["id"]])
         except OSError as error:
             self.show_error("Impossibile avviare l'installazione del plugin", str(error))
 
     def background_command(self, command, title, callback=None):
         def worker():
             try:
-                result = subprocess.run(
-                    command, text=True, stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT, timeout=120, check=False)
+                result = COMMANDS.run(command, timeout=120, merge_stderr=True)
                 GLib.idle_add(self.command_finished, result.returncode, title,
                               result.stdout, callback)
             except Exception as error:
