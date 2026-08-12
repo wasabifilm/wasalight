@@ -27,9 +27,10 @@ codice.
 
 `release-manifest.ini` centralizza invece i valori della release che prima
 erano distribuiti negli script: Ubuntu supportato, architettura, repository e
-ramo Wasalight, URL del controllo versione, versione/commit/checksum di
-Companion e requisiti del pacchetto MagicQ. Il campo `VersionFile` collega il
-manifesto a `VERSION`, che resta l’unica sorgente del numero CalVer.
+ramo Wasalight, URL del controllo versione, basi Canonical dell'ISO Builder con
+nomi/dimensioni/checksum, versione/commit/checksum di Companion e requisiti del
+pacchetto MagicQ. I campi `VersionFile` collegano il manifesto ai rispettivi file
+di versione; `VERSION` alla radice resta l’unica sorgente del numero CalVer.
 
 ```bash
 ./install.sh --version

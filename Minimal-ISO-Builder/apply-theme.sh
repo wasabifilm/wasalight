@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-# Subiquity 24.04.4:
+# Subiquity della release Ubuntu configurata:
 # progress_complete -> neutral -> Linux basic color index 4 ("dark blue")
 # We keep every other console color untouched and replace only index 4.
 #

@@ -34,3 +34,21 @@ require_manifest_value() {
     }
     printf '%s\n' "$value"
 }
+
+require_manifest_value_matching() {
+    local manifest=$1 section=$2 key=$3 pattern=$4 description=$5 value
+    value=$(require_manifest_value "$manifest" "$section" "$key") || return 1
+    [[ $value =~ $pattern ]] || {
+        printf 'Invalid release manifest value: [%s] %s must be %s (got: %s)\n' \
+            "$section" "$key" "$description" "$value" >&2
+        return 1
+    }
+    printf '%s\n' "$value"
+}
+
+require_manifest_positive_integer() {
+    local manifest=$1 section=$2 key=$3 value
+    value=$(require_manifest_value_matching \
+        "$manifest" "$section" "$key" '^[1-9][0-9]*$' 'a positive integer') || return 1
+    printf '%s\n' "$value"
+}

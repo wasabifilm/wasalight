@@ -33,7 +33,7 @@ mount_mini_iso() {
 
 wasalight_step1() {
     mount_mini_iso
-    echo "WASALIGHT NETBOOT: preparo il download di Ubuntu Server 24.04.4..."
+    echo "WASALIGHT NETBOOT: preparo il download di Ubuntu Server __WASALIGHT_UBUNTU_POINT_RELEASE__..."
 
     memmap_size=$(/usr/lib/mini-iso-tools/get_memmap_directive "$MEDIA_SIZE") || {
         echo "RAM insufficiente. WASALIGHT NETBOOT richiede almeno 8 GiB."
@@ -57,7 +57,7 @@ wasalight_step2() {
     [ -e "$target" ] || panic "Memoria riservata /dev/pmem0 non disponibile"
     [ -n "${MEMMAP:-}" ] || panic "Direttiva memmap non disponibile"
 
-    echo "WASALIGHT NETBOOT: scarico Ubuntu Server 24.04.4..."
+    echo "WASALIGHT NETBOOT: scarico Ubuntu Server __WASALIGHT_UBUNTU_POINT_RELEASE__..."
     wget "$MEDIA_URL" -O "$target" || panic "Download Ubuntu non riuscito"
 
     echo "WASALIGHT NETBOOT: verifico SHA-256 Canonical..."

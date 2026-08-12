@@ -226,6 +226,7 @@ def render(tty: Any, spinner: str) -> None:
     keyboard = read_first_line("/run/wasalight-keyboard-label")
     variant = read_first_line("/run/wasalight-install-variant") or "INSTALL"
     title = f"WASALIGHT INSTALLER v{INSTALLER_VERSION} · {variant}"
+    ubuntu_title = "Ubuntu Server __WASALIGHT_UBUNTU_VERSION__ LTS"
     if variant == "FULL":
         network_note = "Ubuntu locale · Internet richiesto per Wasalight"
     else:
@@ -235,7 +236,7 @@ def render(tty: Any, spinner: str) -> None:
         CLEAR + HIDE_CURSOR,
         GREEN + "┌────────────────────────────────────────────────────────────┐" + RESET,
         GREEN + f"│{title:^60}│" + RESET,
-        GREEN + "│                 Ubuntu Server 24.04 LTS                    │" + RESET,
+        GREEN + f"│{ubuntu_title:^60}│" + RESET,
         GREEN + f"│{network_note:^60}│" + RESET,
         GREEN + "├────────────────────────────────────────────────────────────┤" + RESET,
         "│                                                            │",

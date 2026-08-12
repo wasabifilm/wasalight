@@ -81,12 +81,19 @@ installato viene sempre registrato.
 BASI CANONICAL VERIFICATE
 -------------------------
 
-- ubuntu-24.04.4-live-server-amd64.iso
-  SHA-256: e907d92eeec9df64163a7e454cbc8d7755e8ddc7ed42f99dbc80c40f1a138433
-- ubuntu-mini-iso-24.04.4-mini-iso-amd64.iso
-  SHA-256: 57bfe99e776698ae08358145cf3a58bfb74beafe8c8cf965ca86552233d2f53f
+Nella root del progetto, release-manifest.ini e' l'unica fonte per:
 
-Il builder rifiuta automaticamente immagini con checksum diverso.
+- repository e branch Wasalight;
+- versione e architettura Ubuntu;
+- nome, URL, dimensione e SHA-256 della Live Server ISO;
+- nome e SHA-256 della Mini ISO;
+- percorso del file VERSION dell'ISO Builder.
+
+I due builder caricano il manifest tramite lib/wasalight-release-manifest.sh e
+rifiutano valori mancanti o non validi. Il builder rifiuta inoltre immagini con
+checksum diverso da quello dichiarato. Una copia del manifest e del loader viene
+incorporata nella ISO e installata nel sistema: il first boot usa quella copia
+per repository e branch, senza valori Git duplicati nello script.
 
 BUILD
 -----
@@ -112,6 +119,8 @@ Il menu non ha un timeout distruttivo: occorre premere ENTER.
 Il numero dell'installer e' definito una sola volta nel file VERSION. Le ISO
 vengono create con un nome temporaneo nella cartella di destinazione e
 sostituiscono una build precedente soltanto dopo tutti i controlli finali.
+Per aggiornare una base Canonical occorre modificare soltanto la sezione
+[ISOBuilder] del release-manifest.ini centrale e rieseguire i controlli.
 
 CONTROLLO
 ---------
@@ -123,6 +132,8 @@ CONTROLLO
   sh -n Minimal-ISO-Builder/netboot-copy-seed.sh
   sh -n Minimal-ISO-Builder/select-disk.sh
   sh -n Minimal-ISO-Builder/select-keyboard.sh
+  bash Minimal-ISO-Builder/tests/verify-release-config.sh
+  ./tests/verify-project.sh
 
 Eseguire il test di installazione in una VM con disco vuoto e almeno 8 GiB di
 RAM. ISO, immagini Canonical, cache e pacchetti .deb sono esclusi da Git.

@@ -5,7 +5,23 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 umask 022
 
-readonly repository="https://github.com/wasabifilm/wasalight.git"
+readonly release_manifest="/etc/wasalight/release-manifest.ini"
+readonly manifest_library="/usr/local/libexec/wasalight-release-manifest.sh"
+[[ -r $release_manifest ]] || {
+    printf 'ERRORE: release manifest non trovato: %s\n' "$release_manifest" >&2
+    exit 1
+}
+[[ -r $manifest_library ]] || {
+    printf 'ERRORE: loader release manifest non trovato: %s\n' "$manifest_library" >&2
+    exit 1
+}
+# shellcheck source=../lib/wasalight-release-manifest.sh
+. "$manifest_library"
+repository=$(require_manifest_value_matching "$release_manifest" Wasalight Repository \
+    '^https://[A-Za-z0-9][A-Za-z0-9./_?&=%+~:@-]*$' 'a safe HTTPS URL') || exit 1
+branch=$(require_manifest_value_matching "$release_manifest" Wasalight Branch \
+    '^[A-Za-z0-9][A-Za-z0-9._/-]*$' 'a Git branch name') || exit 1
+readonly repository branch
 readonly checkout="/data/system/wasalight"
 readonly log_dir="/data/log"
 readonly log_file="$log_dir/wasalight-first-boot.log"
@@ -86,14 +102,14 @@ if [[ -d $checkout/.git ]]; then
     git -C "$checkout" diff --quiet || die "il checkout contiene modifiche locali"
     git -C "$checkout" diff --cached --quiet || die "l'indice Git contiene modifiche locali"
     git -C "$checkout" remote set-url origin "$repository"
-    git -C "$checkout" fetch origin main
+    git -C "$checkout" fetch origin "$branch"
     git -C "$checkout" merge --ff-only FETCH_HEAD
 else
     temporary_checkout="${checkout}.new.$$"
     cleanup() { rm -rf -- "$temporary_checkout"; }
     trap cleanup EXIT
-    echo "Scarico il branch main piu' recente..."
-    git clone --branch main --single-branch "$repository" "$temporary_checkout"
+    echo "Scarico il branch $branch piu' recente..."
+    git clone --branch "$branch" --single-branch "$repository" "$temporary_checkout"
     "$temporary_checkout/tests/verify-project.sh"
     mv "$temporary_checkout" "$checkout"
     trap - EXIT
@@ -106,8 +122,8 @@ echo "Verifico il progetto scaricato..."
 "$checkout/tests/verify-project.sh"
 commit=$(git -C "$checkout" rev-parse --verify HEAD)
 [[ $commit =~ ^[0-9a-f]{40}$ ]] || die "commit Git non valido: $commit"
-printf 'repository=%s\nbranch=main\ncommit=%s\ndownloaded_at=%s\n' \
-    "$repository" "$commit" "$(date --iso-8601=seconds)" >"$version_file"
+printf 'repository=%s\nbranch=%s\ncommit=%s\ndownloaded_at=%s\n' \
+    "$repository" "$branch" "$commit" "$(date --iso-8601=seconds)" >"$version_file"
 chown root:adm "$version_file" 2>/dev/null || chown root:root "$version_file"
 chmod 0640 "$version_file"
 
