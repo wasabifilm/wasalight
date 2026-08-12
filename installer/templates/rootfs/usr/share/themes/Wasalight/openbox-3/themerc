@@ -52,9 +52,9 @@ window.inactive.border.color: #20252d
 window.inactive.client.color: #0b0e12
 
 window.label.text.justify: left
-# Openbox derives the real button hit area from the title font height. The
-# installer raises that font to 28 and this smaller padding keeps the complete
-# title bar near 48 px without wasting most of it outside the clickable button.
+# Openbox derives part of the button hit area from the title font height. The
+# installer uses a compact 16 pt title while the 24 px close bitmap and padding
+# retain a clear, practical touch target.
 padding.width: 8
 padding.height: 6
 border.width: 1

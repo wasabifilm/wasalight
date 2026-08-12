@@ -206,13 +206,13 @@ class ControlCenter(Gtk.Window):
         box.pack_start(image_for("/usr/local/share/icons/wasalight/hub.svg", 58), False, False, 0)
         title = Gtk.Label()
         title.set_xalign(0)
-        title.set_markup("<span foreground='#76bd22' size='23000' weight='bold'>Wasalight Control</span>\n"
-                         "<span size='10500'>MagicQ · servizi · applicazioni · sistema</span>")
+        title.set_markup("<span foreground='#76bd22' size='20000' weight='bold'>Wasalight Control</span>\n"
+                         "<span size='9500'>MagicQ · servizi · applicazioni · sistema</span>")
         box.pack_start(title, True, True, 0)
         state = Gtk.Label()
         colour = "#76bd22" if mode == "SHOW" else "#f2cc60"
         state.set_markup(f"<span foreground='{colour}' weight='bold'>{mode}</span>\n"
-                         f"<span size='9500'>Wasalight {GLib.markup_escape_text(version)}</span>")
+                         f"<span size='8500'>Wasalight {GLib.markup_escape_text(version)}</span>")
         state.set_justify(Gtk.Justification.RIGHT)
         box.pack_start(state, False, False, 0)
         return box
@@ -245,7 +245,7 @@ class ControlCenter(Gtk.Window):
         title_label = Gtk.Label()
         title_label.set_xalign(0)
         title_label.set_markup(
-            f"<span size='18000' weight='bold'>{GLib.markup_escape_text(title)}</span>")
+            f"<span size='16000' weight='bold'>{GLib.markup_escape_text(title)}</span>")
         subtitle_label = Gtk.Label(label=subtitle)
         subtitle_label.set_xalign(0)
         subtitle_label.set_line_wrap(True)
@@ -276,7 +276,7 @@ class ControlCenter(Gtk.Window):
         content.pack_start(image_for(icon, 88), True, True, 0)
         label = Gtk.Label()
         label.set_markup(
-            f"<span size='15500' weight='bold'>{GLib.markup_escape_text(name)}</span>")
+            f"<span size='14000' weight='bold'>{GLib.markup_escape_text(name)}</span>")
         label.set_line_wrap(True)
         label.set_justify(Gtk.Justification.CENTER)
         content.pack_start(label, False, False, 0)
@@ -402,14 +402,14 @@ class ControlCenter(Gtk.Window):
         _mode, version = mode_and_version()
         title = Gtk.Label()
         title.set_markup(
-            "<span foreground='#76bd22' size='19000' weight='bold'>Wasalight</span>\n"
-            f"<span size='10500'>Versione {GLib.markup_escape_text(version)}</span>")
+            "<span foreground='#76bd22' size='17000' weight='bold'>Wasalight</span>\n"
+            f"<span size='9500'>Versione {GLib.markup_escape_text(version)}</span>")
         title.set_justify(Gtk.Justification.CENTER)
         content.pack_start(title, False, False, 0)
 
         author = Gtk.Label()
         author.set_markup(
-            "<span size='12500' weight='bold'>Creato da Michele Moser / "
+            "<span size='11000' weight='bold'>Creato da Michele Moser / "
             "Wasabi Lightbulbfarm</span>")
         author.set_line_wrap(True)
         author.set_justify(Gtk.Justification.CENTER)
@@ -462,7 +462,7 @@ class ControlCenter(Gtk.Window):
         shown_state = item["state_label"] if item["installed"] else "Non installato"
         if item["installed"] and not item["compatible"]:
             shown_state = f"Richiede Wasalight {item['minimum_wasalight']}"
-        text.set_markup(f"<span size='14500' weight='bold'>{GLib.markup_escape_text(item['name'])}</span>\n"
+        text.set_markup(f"<span size='13000' weight='bold'>{GLib.markup_escape_text(item['name'])}</span>\n"
                         f"<span foreground='{colour}'>{GLib.markup_escape_text(shown_state)}</span>")
         heading.pack_start(text, True, True, 0)
         box.pack_start(heading, False, False, 0)
@@ -740,7 +740,7 @@ class ControlCenter(Gtk.Window):
 CSS = b"""
 window { background-color: #080b10; color: #e6edf3; }
 button {
-    min-height: 44px; font-size: 17px; padding: 8px;
+    min-height: 44px; font-size: 15px; padding: 8px;
     background: #171c23; color: #e6edf3;
     border: 1px solid #343d48; border-radius: 7px;
 }
@@ -761,7 +761,7 @@ notebook, notebook > stack, scrolledwindow, viewport, flowbox {
 }
 notebook > header { background: #11151b; border-bottom: 1px solid #303842; }
 notebook > header tab {
-    min-height: 38px; padding: 8px 20px; font-size: 17px;
+    min-height: 38px; padding: 8px 20px; font-size: 15px;
     background: #151a21; color: #aeb7c2; border: 0;
 }
 notebook > header tab:hover { background: #202832; color: #e6edf3; }
@@ -770,9 +770,9 @@ notebook > header tab:checked {
     border-bottom: 3px solid #76bd22;
 }
 frame { background: #11151b; border: 1px solid #303842; border-radius: 7px; }
-textview, textview text { background: #0d1117; color: #e6edf3; font-size: 16px; }
-.section-subtitle { color: #aeb7c2; font-size: 15px; }
-.card-description { color: #aeb7c2; font-size: 14px; }
+textview, textview text { background: #0d1117; color: #e6edf3; font-size: 14px; }
+.section-subtitle { color: #aeb7c2; font-size: 13px; }
+.card-description { color: #aeb7c2; font-size: 13px; }
 """
 
 

@@ -17,8 +17,8 @@ class Scanner(Gtk.Window):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         box.set_border_width(16)
         title = Gtk.Label()
-        title.set_markup("<span size='21000' weight='bold'>IP Scanner</span>\n"
-                         "<span size='11000'>Dispositivi raggiungibili nella rete locale</span>")
+        title.set_markup("<span size='18000' weight='bold'>IP Scanner</span>\n"
+                         "<span size='10000'>Dispositivi raggiungibili nella rete locale</span>")
         title.set_xalign(0)
         box.pack_start(title, False, False, 0)
 
@@ -85,7 +85,7 @@ class Scanner(Gtk.Window):
 
 
 css = Gtk.CssProvider()
-css.load_from_data(b"button { font-size: 17px; padding: 10px; } treeview { font-size: 16px; }")
+css.load_from_data(b"button { font-size: 15px; padding: 10px; } treeview { font-size: 14px; }")
 Gtk.StyleContext.add_provider_for_screen(
     Gdk.Screen.get_default(),
     css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
