@@ -83,3 +83,8 @@ soli durante lo sviluppo:
 ```bash
 ./tests/behavior/run.sh
 ```
+
+La suite del lock simula intenzionalmente anche l’esecuzione dentro un updater
+che possiede già il descrittore globale. Il processo di test elimina soltanto la
+propria copia dello stato ereditato, senza rilasciare il lock dell’updater padre;
+questo evita falsi risultati rientranti durante la verifica di una nuova release.

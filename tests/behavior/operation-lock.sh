@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# verify-project.sh also runs this test from inside the updater, which already
+# owns the production operation lock.  Isolate the test process from that
+# inherited state while leaving the updater parent and its lock untouched.
+unset WASALIGHT_OPERATION_LOCK_HELD WASALIGHT_OPERATION_LOCK_FILE
+if { : <&9; } 2>/dev/null; then
+    exec 9>&-
+fi
+
 PROJECT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 tmp_dir=$(mktemp -d)
 holder_pid=
