@@ -183,7 +183,9 @@ required_patterns=(
     '$DATA_MOUNT/system/installed-version'
     '$DATA_MOUNT/system/installed-commit'
     "status_line \"\$blue\" 'VERSION'"
-    "status_line \"\$yellow\" 'UPDATE' \"READY · \$available_version\""
+    "status_line \"\$yellow\" 'UPDATE' \"READY · \$checked_version\""
+    'checked_version=$(cat /data/system/update-check/latest-version'
+    '${goto 150}'
     "status_line \"\$blue\" 'MAGICQ VER'"
     "status_line \"\$red\" 'MAGICQ VER' 'NOT INSTALLED'"
     "dpkg-query -W -f='\${db:Status-Abbrev}\\t\${Version}' magicq"
