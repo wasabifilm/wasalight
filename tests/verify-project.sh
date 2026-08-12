@@ -910,6 +910,10 @@ grep -Fq 'self.card_flow()' "$control_center" || \
 if grep -Fq '"Ferma MagicQ"' "$control_center"; then
     fail "Wasalight Control espone ancora il pulsante Ferma MagicQ"
 fi
+if grep -Fq '<item label="Avvia MagicQ">' "$INSTALLER" || \
+   grep -Fq '<item label="Ferma MagicQ">' "$INSTALLER"; then
+    fail "il menu contestuale Openbox espone ancora Avvia/Ferma MagicQ"
+fi
 grep -Fq 'self.magicq_auto_switch = Gtk.Switch()' "$control_center" || \
     fail "Wasalight Control non espone il toggle automatico MagicQ"
 grep -Fq 'magicq-autostart' "$INSTALLER" || \
