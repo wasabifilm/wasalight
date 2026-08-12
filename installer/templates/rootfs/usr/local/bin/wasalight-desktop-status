@@ -7,24 +7,35 @@ readonly red='#f85149'
 readonly blue='#58a6ff'
 
 status_line() {
-    printf '${color %s}%-13s${color white}%s\n' "$1" "$2" "$3"
+    printf '${font Sans:bold:size=11}${color %s}%s${goto 150}${font Sans:size=11}${color white}%s${font}\n' \
+        "$1" "$2" "$3"
 }
 
 installed_version=$(cat /etc/wasalight/version 2>/dev/null || echo UNKNOWN)
-available_version=$(cat /data/system/wasalight/VERSION 2>/dev/null || true)
+checked_version=$(cat /data/system/update-check/latest-version 2>/dev/null || true)
+checkout_version=$(cat /data/system/wasalight/VERSION 2>/dev/null || true)
 status_line "$blue" 'VERSION' "$installed_version"
-if [[ $available_version =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]]; then
-    if [[ $installed_version == "$available_version" ]]; then
-        status_line "$green" 'UPDATE' 'CODE MATCH'
+if [[ $checked_version =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]]; then
+    if [[ $installed_version == "$checked_version" ]]; then
+        status_line "$green" 'UPDATE' 'UP TO DATE'
     else
-        newest_version=$(printf '%s\n%s\n' "$installed_version" "$available_version" | \
+        newest_version=$(printf '%s\n%s\n' "$installed_version" "$checked_version" | \
             sort -V | tail -n 1)
         if [[ ! $installed_version =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]] || \
-           [[ $newest_version == "$available_version" ]]; then
-            status_line "$yellow" 'UPDATE' "READY · $available_version"
+           [[ $newest_version == "$checked_version" ]]; then
+            status_line "$yellow" 'UPDATE' "READY · $checked_version"
         else
-            status_line "$yellow" 'UPDATE' "CHECKOUT OLDER · $available_version"
+            status_line "$yellow" 'UPDATE' "REMOTE OLDER · $checked_version"
         fi
+    fi
+elif [[ $checkout_version =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]]; then
+    if [[ $installed_version == "$checkout_version" ]]; then
+        status_line "$green" 'UPDATE' 'CODE MATCH'
+    elif [[ ! $installed_version =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]] || \
+         [[ $(printf '%s\n%s\n' "$installed_version" "$checkout_version" | sort -V | tail -n 1) == "$checkout_version" ]]; then
+        status_line "$yellow" 'UPDATE' "READY · $checkout_version"
+    else
+        status_line "$yellow" 'UPDATE' "CHECKOUT OLDER · $checkout_version"
     fi
 else
     status_line "$yellow" 'UPDATE' 'NOT CHECKED'

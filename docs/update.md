@@ -137,8 +137,10 @@ mostrato una sola volta e l’installer non viene avviato.
 Ad ogni avvio grafico un controllo asincrono confronta la versione installata
 con `VERSION` pubblicato su GitHub. Non rallenta Openbox o MagicQ, non installa
 nulla e, in assenza di rete, termina senza finestre di errore. Quando trova una
-release nuova mostra una notifica discreta e la riga `UPDATE` di
-`wasalight-status` riporta la versione disponibile.
+release nuova mostra una notifica discreta. La riga `UPDATE` di
+`wasalight-status` e quella del pannello desktop leggono lo stesso risultato del
+controllo remoto e riportano la versione disponibile, anche prima che il checkout
+persistente venga aggiornato.
 
 Il refresh di Wasalight Control esegue in parallelo stato, registro plugin e
 stato MagicQ. Le sonde lente, come il rilevamento XInput del touchscreen, hanno
