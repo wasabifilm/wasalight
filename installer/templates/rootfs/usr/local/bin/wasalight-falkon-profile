@@ -154,6 +154,7 @@ if [[ ! -e $profile_marker ]]; then
 QWidget {
     background-color: #11151b;
     color: #f0f3f6;
+    font-size: 14px;
 }
 
 #navigationbar {
@@ -184,7 +185,7 @@ QWidget {
     border: 1px solid #3a424d;
     border-radius: 7px;
     color: #ffffff;
-    font-size: 16px;
+    font-size: 14px;
     min-height: 42px;
     selection-background-color: #76bd22;
     selection-color: #080b10;

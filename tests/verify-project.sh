@@ -284,7 +284,7 @@ required_patterns=(
     '<titleLayout>NLC</titleLayout>'
     '<font place="ActiveWindow">'
     '<font place="InactiveWindow">'
-    '<size>28</size>'
+    '<size>16</size>'
     'padding.width: 8'
     'padding.height: 6'
     'window.active.button.close.hover.bg.color: #b4232c'
@@ -852,6 +852,18 @@ grep -Fq 'notebook > header tab:checked {' "$control_center" || \
     fail "la scheda attiva di Control non ha una palette dedicata"
 grep -Fq 'background: #223016; color: #9bd95a;' "$control_center" || \
     fail "la scheda attiva di Control non usa il verde Wasabi bilanciato"
+grep -Fq 'min-height: 44px; font-size: 15px;' "$control_center" || \
+    fail "i font dei pulsanti Control non usano la misura compatta touch"
+grep -Fq "size='20000' weight='bold'>Wasalight Control" "$control_center" || \
+    fail "il titolo Control non usa la misura compatta"
+grep -Fq 'desktop_font=Sans 12' "$INSTALLER" || \
+    fail "il desktop non usa il font compatto"
+grep -Fq 'gtk-font-name=Sans 10' "$INSTALLER" || \
+    fail "GTK non usa un font prevedibile tra monitor diversi"
+grep -Fq '<size>16</size>' "$INSTALLER" || \
+    fail "i titoli Openbox non usano la misura compatta"
+grep -Fq 'task_font = Sans 11' "$INSTALLER" || \
+    fail "la barra applicazioni non usa il font compatto"
 grep -Fq 'notebook, notebook > stack, scrolledwindow, viewport, flowbox {' \
     "$control_center" || fail "le pagine Control non impongono il fondo scuro"
 grep -Fq 'gi.require_version("Gdk", "3.0")' "$control_center" || \

@@ -17,13 +17,13 @@ EOF
     sed -i \
         -e '0,/<name>.*<\/name>/s//<name>Wasalight<\/name>/' \
         -e 's#<titleLayout>.*</titleLayout>#<titleLayout>NLC</titleLayout>#' \
-        -e '/<font place="ActiveWindow">/,/<\/font>/s#<size>.*</size>#<size>28</size>#' \
-        -e '/<font place="InactiveWindow">/,/<\/font>/s#<size>.*</size>#<size>28</size>#' \
+        -e '/<font place="ActiveWindow">/,/<\/font>/s#<size>.*</size>#<size>16</size>#' \
+        -e '/<font place="InactiveWindow">/,/<\/font>/s#<size>.*</size>#<size>16</size>#' \
         "$TARGET_HOME/.config/openbox/rc.xml"
     grep -A8 '<font place="ActiveWindow">' "$TARGET_HOME/.config/openbox/rc.xml" | \
-        grep -q '<size>28</size>' || die "Openbox active title font was not enlarged"
+        grep -q '<size>16</size>' || die "Openbox active title font was not configured"
     grep -A8 '<font place="InactiveWindow">' "$TARGET_HOME/.config/openbox/rc.xml" | \
-        grep -q '<size>28</size>' || die "Openbox inactive title font was not enlarged"
+        grep -q '<size>16</size>' || die "Openbox inactive title font was not configured"
     grep -q '</applications>' "$TARGET_HOME/.config/openbox/rc.xml" || \
         die "Openbox applications section is unavailable"
     sed -i '/<\/applications>/i\
@@ -58,13 +58,20 @@ wallpapers_configured=1
 desktop_bg=#080b10
 desktop_fg=#ffffff
 desktop_shadow=#000000
-desktop_font=Sans 14
+desktop_font=Sans 12
 desktop_icon_size=64
 show_wm_menu=1
 sort=name;ascending;
 show_documents=0
 show_trash=0
 show_mounts=0
+EOF
+
+    # Keep GTK text predictable across displays without forcing a monitor DPI.
+    # Touch targets remain large and are controlled independently by CSS.
+    write_file "$TARGET_HOME/.config/gtk-3.0/settings.ini" 0644 <<'EOF'
+[Settings]
+gtk-font-name=Sans 10
 EOF
 
     write_file "$TARGET_HOME/.config/libfm/libfm.conf" 0644 <<'EOF'
@@ -290,7 +297,7 @@ task_text = 1
 task_centered = 1
 task_maximum_size = 220 52
 task_padding = 10 4 10
-task_font = Sans 12
+task_font = Sans 11
 task_font_color = #ffffff 100
 task_active_font_color = #ffffff 100
 task_background_id = 0
@@ -301,7 +308,7 @@ systray_icon_size = 30
 systray_icon_asb = 100 0 0
 
 time1_format = %H:%M
-time1_font = Sans Bold 13
+time1_font = Sans Bold 12
 clock_font_color = #ffffff 100
 clock_padding = 12 0
 clock_background_id = 0
