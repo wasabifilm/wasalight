@@ -1,5 +1,4 @@
 *.iso
 *.deb
-.DS_Store
 __pycache__/
 work/
