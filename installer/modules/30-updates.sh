@@ -1,5 +1,6 @@
 configure_update() {
     install -d -m 0755 /etc/wasalight /usr/local/libexec
+    install -d -m 0755 /usr/share/polkit-1/actions
     install -o root -g root -m 0644 "$RELEASE_MANIFEST" \
         /etc/wasalight/release-manifest.ini
     install -o root -g root -m 0755 \
@@ -17,6 +18,10 @@ configure_update() {
     install_template /usr/local/bin/wasalight-update-terminal 0755
 
     install_template /usr/local/bin/wasalight-update-check 0755
+
+    # pkexec selects these narrowly scoped actions from their executable-path
+    # annotations and delegates the password prompt to the graphical agent.
+    install_template /usr/share/polkit-1/actions/com.wasalight.updates.policy 0644
 
     if mountpoint -q "$DATA_MOUNT" && [[ ! -d $UPDATE_CHECKOUT/.git ]]; then
         log "initializing the persistent Wasalight update checkout"

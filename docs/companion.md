@@ -72,7 +72,9 @@ Nella scheda **Plugin**, Companion può essere installato, disabilitato o
 riabilitato persistentemente. Quando è installato e abilitato compare anche il
 pulsante **Aggiorna**: è utilizzabile in MAINTENANCE, crea prima un backup e
 installa esclusivamente la versione Companion approvata dalla release
-Wasalight corrente. In SHOW il pulsante resta visibile ma disabilitato.
+Wasalight corrente. L’autorizzazione viene chiesta dalla finestra grafica
+Polkit, mentre il terminale mostra avanzamento ed errori. In SHOW il pulsante
+resta visibile ma disabilitato.
 
 La voce separata **Companion Web UI** apre `http://127.0.0.1:8000` in Falkon.
 Se il servizio è fermo, propone di avviarlo per la sessione. La finestra viene
@@ -154,6 +156,10 @@ del runtime. Il metadata SemVer aggiunto da Bitfocus, per esempio
 invece trattata come errore e non aggiorna la versione registrata. Un cambio
 della versione target deve quindi passare da una nuova build Wasalight e dai
 relativi test.
+
+La policy Polkit accetta l’autenticazione amministrativa soltanto dalla sessione
+grafica attiva ed è vincolata al percorso esatto degli updater. Non autorizza
+una shell, `systemctl` generico o altri comandi eseguiti come root.
 
 La web UI sulla porta `8000` deve essere esposta soltanto su una LAN show
 fidata. Le azioni amministrative di Wasalight Control passano attraverso wrapper con

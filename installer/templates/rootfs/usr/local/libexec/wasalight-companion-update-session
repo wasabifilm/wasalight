@@ -2,16 +2,19 @@
 set -u
 clear
 echo "BITFOCUS COMPANION UPDATE"
-echo "Updates are allowed only in MAINTENANCE mode."
+echo "Gli aggiornamenti sono consentiti solo in modalità MAINTENANCE."
+echo "Autorizza l’operazione nella finestra grafica con la password di chamsys."
 echo
-sudo /usr/local/sbin/wasalight-companion-update
+pkexec /usr/local/sbin/wasalight-companion-update
 rc=$?
 echo
 if ((rc == 0)); then
-    echo "Companion update completed."
+    echo "Aggiornamento Companion completato."
+elif ((rc == 126)); then
+    echo "Autenticazione annullata: Companion non è stato modificato."
 else
-    echo "Companion update failed (exit $rc)."
+    echo "Aggiornamento Companion non riuscito (codice $rc)."
 fi
-echo "Press Enter to close."
+echo "Premi Invio per chiudere."
 read -r _
 exit "$rc"

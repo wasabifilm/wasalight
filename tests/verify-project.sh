@@ -744,8 +744,13 @@ grep -Fq 'WASALIGHT_UPDATE_PLUGIN' "$tmp_dir/wasalight-update-terminal" || \
 grep -Fq 'update_args+=(--plugin "$WASALIGHT_UPDATE_PLUGIN")' \
     "$tmp_dir/wasalight-update-session" || \
     fail "la sessione Update non inoltra il plugin selezionato"
-grep -Fq 'sudo /usr/local/sbin/wasalight-update' "$tmp_dir/wasalight-update-session" || \
-    fail "la sessione guidata non esegue l'aggiornamento"
+grep -Fq 'pkexec /usr/local/sbin/wasalight-update' "$tmp_dir/wasalight-update-session" || \
+    fail "la sessione guidata non usa l'autenticazione grafica Polkit"
+if grep -Fq 'sudo /usr/local/sbin/wasalight-update' "$tmp_dir/wasalight-update-session"; then
+    fail "la sessione guidata richiede ancora la password nel terminale"
+fi
+grep -Fq 'rc == 126' "$tmp_dir/wasalight-update-session" || \
+    fail "la sessione guidata non distingue l'annullamento dell'autenticazione"
 grep -Fq 'wasalight-power-control reboot' "$tmp_dir/wasalight-update-session" || \
     fail "la sessione guidata non offre il riavvio finale"
 grep -Fq -- '--reboot' "$tmp_dir/wasalight-update" || \
@@ -1043,6 +1048,7 @@ for embedded in \
     'companion-control:/usr/local/sbin/wasalight-companion-control' \
     'companion-backup:/usr/local/sbin/wasalight-companion-backup' \
     'companion-update:/usr/local/sbin/wasalight-companion-update' \
+    'companion-update-session:/usr/local/libexec/wasalight-companion-update-session' \
     'companion-panel:/usr/local/bin/wasalight-companion-panel' \
     'companion-browser:/usr/local/bin/wasalight-companion-browser' \
     'falkon-profile:/usr/local/bin/wasalight-falkon-profile'; do
@@ -1052,6 +1058,13 @@ for embedded in \
     [[ -s $tmp_dir/$output ]] || fail "strumento Companion non estraibile: $output"
     bash -n "$tmp_dir/$output"
 done
+grep -Fq 'pkexec /usr/local/sbin/wasalight-companion-update' \
+    "$tmp_dir/companion-update-session" || \
+    fail "l'aggiornamento Companion non usa l'autenticazione grafica Polkit"
+if grep -Fq 'sudo /usr/local/sbin/wasalight-companion-update' \
+    "$tmp_dir/companion-update-session"; then
+    fail "l'aggiornamento Companion richiede ancora la password nel terminale"
+fi
 grep -Fq '!= overlay' "$tmp_dir/companion-backup" || \
     fail "il backup Companion non è limitato alla modalità MAINTENANCE"
 grep -Fq '!= overlay' "$tmp_dir/companion-update" || \
@@ -1062,6 +1075,33 @@ grep -Fq '/opt/companion/BUILD' "$tmp_dir/companion-update" || \
     fail "l'aggiornamento Companion non verifica la versione realmente installata"
 grep -Fq 'actual=${actual%%+*}' "$tmp_dir/companion-update" || \
     fail "l'aggiornamento Companion non ignora correttamente i metadata SemVer"
+
+update_policy="$INSTALLER_TEMPLATE_ROOT/usr/share/polkit-1/actions/com.wasalight.updates.policy"
+[[ -s $update_policy ]] || fail "policy Polkit degli aggiornamenti mancante"
+python3 - "$update_policy" <<'PY' || fail "policy Polkit degli aggiornamenti non valida"
+import sys
+import xml.etree.ElementTree as ET
+
+root = ET.parse(sys.argv[1]).getroot()
+expected = {
+    "com.wasalight.update": "/usr/local/sbin/wasalight-update",
+    "com.wasalight.companion.update": "/usr/local/sbin/wasalight-companion-update",
+}
+actions = {action.attrib.get("id"): action for action in root.findall("action")}
+for action_id, executable in expected.items():
+    action = actions.get(action_id)
+    if action is None:
+        raise SystemExit(f"azione mancante: {action_id}")
+    defaults = action.find("defaults")
+    if defaults is None or defaults.findtext("allow_active") != "auth_admin":
+        raise SystemExit(f"autenticazione amministratore mancante: {action_id}")
+    if defaults.findtext("allow_any") != "no" or defaults.findtext("allow_inactive") != "no":
+        raise SystemExit(f"policy troppo permissiva: {action_id}")
+    paths = [node.text for node in action.findall("annotate")
+             if node.attrib.get("key") == "org.freedesktop.policykit.exec.path"]
+    if paths != [executable]:
+        raise SystemExit(f"eseguibile non vincolato: {action_id}")
+PY
 companion_build='5.0.3+9703-stable-2daa0d7670'
 companion_core=${companion_build#[vV]}
 companion_core=${companion_core%%+*}
