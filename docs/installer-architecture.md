@@ -72,3 +72,12 @@ La suite controlla sintassi dei moduli, presenza e contenuto del manifesto,
 template eseguibili, ordine delle fasi e invarianti di installazione. Una nuova
 fase deve essere aggiunta come modulo quando è indipendente; un nuovo file
 statico destinato al sistema deve essere un template, non un heredoc.
+
+I test autonomi in `tests/behavior` verificano eseguendo il codice reale il lock
+globale, il parser del manifesto e la politica di retry Git dell'updater. Vengono
+richiamati automaticamente da `verify-project.sh` e possono essere eseguiti da
+soli durante lo sviluppo:
+
+```bash
+./tests/behavior/run.sh
+```

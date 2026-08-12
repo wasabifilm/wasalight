@@ -25,6 +25,8 @@ fail() {
     exit 1
 }
 
+"$PROJECT_DIR/tests/behavior/run.sh"
+
 [[ -x "$INSTALLER" ]] || fail "installer mancante o non eseguibile"
 [[ -x "$ENTRYPOINT" ]] || fail "install.sh mancante o non eseguibile"
 [[ -s "$VERSION_FILE" ]] || fail "file VERSION mancante"
@@ -101,9 +103,6 @@ done
 
 lock_library="$PROJECT_DIR/lib/wasalight-operation-lock.sh"
 [[ -s $lock_library ]] || fail "libreria lock globale mancante"
-grep -Fq 'flock -n 9' "$lock_library" || fail "il lock globale non usa flock non bloccante"
-grep -Fq 'Operazione Wasalight già in corso' "$lock_library" || \
-    fail "il lock globale non mostra un errore comprensibile"
 grep -Fq 'wasalight_acquire_operation_lock "installazione Wasalight"' "$ENTRYPOINT" || \
     fail "install.sh non acquisisce il lock globale"
 for locked_tool in \
