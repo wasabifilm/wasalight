@@ -108,7 +108,12 @@ sudo wasalight-update
 Dal desktop non serve aprire manualmente il terminale: clic destro →
 **Aggiorna Wasalight**, oppure **Wasalight Control → Stato → Aggiorna**.
 Si apre una finestra con quattro fasi leggibili: controllo del pacchetto MagicQ,
-download, verifica e installazione. Al termine compare un grande pulsante
+download, verifica e installazione. Prima di modificare il sistema, l’agente
+grafico Polkit mostra una finestra centrata per la password amministrativa di
+`chamsys`; la password non viene digitata nel terminale e non viene salvata.
+Il terminale resta visibile esclusivamente per avanzamento e diagnostica. Se
+l’autenticazione viene annullata, l’aggiornamento termina senza modificare il
+sistema. Al termine compare un grande pulsante
 **Riavvia ora**; scegliendo **Più tardi** l’aggiornamento resta installato e viene
 ricordato che il riavvio è ancora necessario. Non occorre più premere Invio per
 chiudere la finestra, quindi il flusso è utilizzabile interamente al touch.
@@ -277,6 +282,8 @@ sudo wasalight-update --help
   l’aggiornamento, anche quando hanno nomi differenti.
 - I file trovati sulle USB sono soltanto letti e copiati, mai rimossi.
 - Il codice scaricato viene verificato prima di eseguire l’installer.
+- L’interfaccia usa `pkexec` con due azioni Polkit vincolate agli updater
+  Wasalight e Companion; non concede un comando root generico o `NOPASSWD`.
 - Il commit installato deve coincidere con `refs/heads/main` letto dal remoto.
 - Lo stesso numero di versione non può indicare due commit differenti.
 - Lo snapshot precedente viene verificato con SHA-256 prima del ripristino.

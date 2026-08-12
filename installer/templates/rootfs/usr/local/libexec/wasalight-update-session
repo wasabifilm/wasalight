@@ -14,9 +14,10 @@ fi
 clear
 printf '\n  WASALIGHT UPDATE\n'
 printf '  Scarico, verifico e installo l’ultima versione.\n'
+printf '  Autorizza l’operazione nella finestra grafica.\n'
 printf '  La password richiesta è quella Linux di chamsys.\n\n'
 
-sudo /usr/local/sbin/wasalight-update "${update_args[@]}"
+pkexec /usr/local/sbin/wasalight-update "${update_args[@]}"
 rc=$?
 if ((rc == 0)); then
     echo
@@ -39,6 +40,15 @@ if ((rc == 0)); then
         --text="Aggiornamento installato.\n\nRicordati di riavviare prima del prossimo utilizzo." \
         --ok-label="Chiudi"
     exit 0
+fi
+
+if ((rc == 126)); then
+    echo
+    echo "Autenticazione annullata: Wasalight non è stato modificato."
+    /usr/local/bin/wasalight-dialog --info --width=500 --title="Aggiornamento annullato" \
+        --text="L’autenticazione è stata annullata.\n\nWasalight non è stato modificato." \
+        --ok-label="Chiudi" 2>/dev/null || true
+    exit 126
 fi
 
 echo
