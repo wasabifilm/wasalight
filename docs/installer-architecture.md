@@ -46,9 +46,11 @@ Gli script statici vengono controllati direttamente da `verify-project.sh`.
 
 `release-manifest.ini` è dichiarativo e non viene eseguito come codice shell.
 La libreria `lib/wasalight-release-manifest.sh` legge una chiave per sezione e
-rifiuta campi mancanti o vuoti. Una copia viene installata in
-`/etc/wasalight/release-manifest.ini`, così updater e Companion usano gli stessi
-valori verificati dall’installer.
+rifiuta campi mancanti o vuoti; i consumatori possono inoltre imporre formato e
+tipo. Anche l'ISO Builder usa questo loader per release Ubuntu, immagini
+Canonical, repository e branch. Una copia viene incorporata nelle ISO e
+installata in `/etc/wasalight/release-manifest.ini`, così first boot, updater e
+Companion usano gli stessi valori verificati.
 
 ## Lock delle operazioni
 

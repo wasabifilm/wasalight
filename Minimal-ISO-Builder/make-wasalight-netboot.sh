@@ -7,26 +7,54 @@ die() { printf '\nERRORE: %s\n' "$*" >&2; exit 1; }
 info() { printf '%s\n' "$*"; }
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-VERSION_FILE="$SCRIPT_DIR/VERSION"
+PROJECT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
+RELEASE_MANIFEST="$PROJECT_DIR/release-manifest.ini"
+MANIFEST_LIBRARY="$PROJECT_DIR/lib/wasalight-release-manifest.sh"
+[[ -r "$RELEASE_MANIFEST" ]] || die "release-manifest.ini non trovato: $RELEASE_MANIFEST"
+[[ -r "$MANIFEST_LIBRARY" ]] || die "loader manifest non trovato: $MANIFEST_LIBRARY"
+# shellcheck source=../lib/wasalight-release-manifest.sh
+. "$MANIFEST_LIBRARY"
+
+VERSION_FILE_NAME="$(require_manifest_value_matching "$RELEASE_MANIFEST" ISOBuilder VersionFile \
+  '^Minimal-ISO-Builder/[A-Za-z0-9][A-Za-z0-9._-]*$' 'a path below Minimal-ISO-Builder')" || exit 1
+UBUNTU_VERSION="$(require_manifest_value_matching "$RELEASE_MANIFEST" Platform UbuntuVersion \
+  '^[0-9]+\.[0-9]+$' 'a major.minor version')" || exit 1
+UBUNTU_POINT_RELEASE="$(require_manifest_value_matching "$RELEASE_MANIFEST" ISOBuilder UbuntuPointRelease \
+  '^[0-9]+\.[0-9]+\.[0-9]+$' 'a major.minor.patch version')" || exit 1
+TARGET_ARCHITECTURE="$(require_manifest_value_matching "$RELEASE_MANIFEST" Platform Architecture \
+  '^[A-Za-z0-9][A-Za-z0-9._-]*$' 'an architecture name')" || exit 1
+MINI_ISO_FILE="$(require_manifest_value_matching "$RELEASE_MANIFEST" ISOBuilder MiniISOFile \
+  '^[A-Za-z0-9][A-Za-z0-9._+-]*\.iso$' 'an ISO file name')" || exit 1
+MINI_SHA256="$(require_manifest_value_matching "$RELEASE_MANIFEST" ISOBuilder MiniISOSHA256 \
+  '^[0-9a-fA-F]{64}$' 'a SHA-256 digest')" || exit 1
+SERVER_SHA256="$(require_manifest_value_matching "$RELEASE_MANIFEST" ISOBuilder LiveISOSHA256 \
+  '^[0-9a-fA-F]{64}$' 'a SHA-256 digest')" || exit 1
+SERVER_SIZE="$(require_manifest_positive_integer "$RELEASE_MANIFEST" ISOBuilder LiveISOSize)" || exit 1
+SERVER_URL="$(require_manifest_value_matching "$RELEASE_MANIFEST" ISOBuilder LiveISOURL \
+  '^https://[A-Za-z0-9][A-Za-z0-9./_?&=%+~:@-]*$' 'a safe HTTPS URL')" || exit 1
+WASALIGHT_REPOSITORY="$(require_manifest_value_matching "$RELEASE_MANIFEST" Wasalight Repository \
+  '^https://[A-Za-z0-9][A-Za-z0-9./_?&=%+~:@-]*$' 'a safe HTTPS URL')" || exit 1
+WASALIGHT_BRANCH="$(require_manifest_value_matching "$RELEASE_MANIFEST" Wasalight Branch \
+  '^[A-Za-z0-9][A-Za-z0-9._/-]*$' 'a Git branch name')" || exit 1
+VERSION_FILE="$PROJECT_DIR/$VERSION_FILE_NAME"
 [[ -r "$VERSION_FILE" ]] || die "VERSION non trovato: $VERSION_FILE"
 INSTALLER_VERSION="$(tr -d '[:space:]' <"$VERSION_FILE")"
 [[ $INSTALLER_VERSION =~ ^[0-9]+$ ]] || die "VERSION non valido: $INSTALLER_VERSION"
-readonly VERSION_FILE INSTALLER_VERSION
-readonly MINI_SHA256=57bfe99e776698ae08358145cf3a58bfb74beafe8c8cf965ca86552233d2f53f
-readonly SERVER_SHA256=e907d92eeec9df64163a7e454cbc8d7755e8ddc7ed42f99dbc80c40f1a138433
-readonly SERVER_SIZE=3405469696
-readonly SERVER_URL=https://releases.ubuntu.com/noble/ubuntu-24.04.4-live-server-amd64.iso
+readonly PROJECT_DIR RELEASE_MANIFEST MANIFEST_LIBRARY VERSION_FILE_NAME VERSION_FILE
+readonly UBUNTU_VERSION UBUNTU_POINT_RELEASE TARGET_ARCHITECTURE MINI_ISO_FILE
+readonly MINI_SHA256 SERVER_SHA256 SERVER_SIZE SERVER_URL
+readonly WASALIGHT_REPOSITORY WASALIGHT_BRANCH INSTALLER_VERSION
 
-MINI_ISO="${1:-$SCRIPT_DIR/ubuntu-mini-iso-24.04.4-mini-iso-amd64.iso}"
+MINI_ISO="${1:-$SCRIPT_DIR/$MINI_ISO_FILE}"
 AUTOINSTALL="${2:-$SCRIPT_DIR/autoinstall.yaml}"
-OUTPUT_ISO="${3:-$SCRIPT_DIR/WASALIGHT-Installer-24.04-Minimal-Netboot-v${INSTALLER_VERSION}.iso}"
+OUTPUT_ISO="${3:-$SCRIPT_DIR/WASALIGHT-Installer-${UBUNTU_VERSION}-Minimal-Netboot-v${INSTALLER_VERSION}.iso}"
 LOADER="$SCRIPT_DIR/netboot-iso-loader.sh"
 COPY_SEED="$SCRIPT_DIR/netboot-copy-seed.sh"
 
 DISK_SELECTOR="$SCRIPT_DIR/select-disk.sh"
 KEYBOARD_SELECTOR="$SCRIPT_DIR/select-keyboard.sh"
 THEME_SCRIPT="$SCRIPT_DIR/apply-theme.sh"
-UI_SCRIPT="$SCRIPT_DIR/install-ui.sh"
+UI_TEMPLATE="$SCRIPT_DIR/install-ui.sh"
 FIRST_BOOT_SCRIPT="$SCRIPT_DIR/wasalight-first-boot.sh"
 FIRST_BOOT_SERVICE="$SCRIPT_DIR/wasalight-first-boot.service"
 
@@ -55,8 +83,8 @@ for dependency in xorriso cpio; do
   command -v "$dependency" >/dev/null 2>&1 || die "Manca $dependency."
 done
 for source in "$MINI_ISO" "$AUTOINSTALL" "$LOADER" "$COPY_SEED" \
-  "$DISK_SELECTOR" "$KEYBOARD_SELECTOR" "$THEME_SCRIPT" "$UI_SCRIPT" \
-  "$FIRST_BOOT_SCRIPT" "$FIRST_BOOT_SERVICE"; do
+  "$DISK_SELECTOR" "$KEYBOARD_SELECTOR" "$THEME_SCRIPT" "$UI_TEMPLATE" \
+  "$FIRST_BOOT_SCRIPT" "$FIRST_BOOT_SERVICE" "$RELEASE_MANIFEST" "$MANIFEST_LIBRARY"; do
   [[ -f $source ]] || die "File richiesto non trovato: $source"
 done
 
@@ -90,7 +118,7 @@ bash -n "$FIRST_BOOT_SCRIPT"
 sh -n "$DISK_SELECTOR"
 sh -n "$KEYBOARD_SELECTOR"
 sh -n "$THEME_SCRIPT"
-python3 -c 'compile(open(__import__("sys").argv[1], encoding="utf-8").read(), __import__("sys").argv[1], "exec")' "$UI_SCRIPT"
+python3 -c 'compile(open(__import__("sys").argv[1], encoding="utf-8").read(), __import__("sys").argv[1], "exec")' "$UI_TEMPLATE"
 
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/wasalight-netboot.XXXXXX")"
 PARTIAL_OUTPUT=""
@@ -100,6 +128,12 @@ cleanup() {
   rm -rf "$TMP"
 }
 trap cleanup EXIT INT TERM
+
+UI_SCRIPT="$TMP/install-ui.sh"
+sed "s|__WASALIGHT_UBUNTU_VERSION__|$UBUNTU_VERSION|g" "$UI_TEMPLATE" >"$UI_SCRIPT"
+grep -Fq '__WASALIGHT_UBUNTU_VERSION__' "$UI_SCRIPT" && \
+  die "Versione Ubuntu non risolta nella UI."
+python3 -c 'compile(open(__import__("sys").argv[1], encoding="utf-8").read(), __import__("sys").argv[1], "exec")' "$UI_SCRIPT"
 
 info "============================================================"
 info " WASALIGHT Mini ISO Builder v${INSTALLER_VERSION} · NETBOOT"
@@ -141,6 +175,8 @@ install -m 0755 "$KEYBOARD_SELECTOR" "$FINAL_ROOT/wasalight/select-keyboard.sh"
 install -m 0755 "$THEME_SCRIPT" "$FINAL_ROOT/wasalight/apply-theme.sh"
 install -m 0755 "$UI_SCRIPT" "$FINAL_ROOT/wasalight/install-ui.sh"
 install -m 0644 "$VERSION_FILE" "$FINAL_ROOT/wasalight/VERSION"
+install -m 0644 "$RELEASE_MANIFEST" "$FINAL_ROOT/wasalight/release-manifest.ini"
+install -m 0644 "$MANIFEST_LIBRARY" "$FINAL_ROOT/wasalight/wasalight-release-manifest.sh"
 install -m 0755 "$FIRST_BOOT_SCRIPT" "$FINAL_ROOT/wasalight/wasalight-first-boot.sh"
 install -m 0644 "$FIRST_BOOT_SERVICE" "$FINAL_ROOT/wasalight/wasalight-first-boot.service"
 install -m 0755 "$COPY_SEED" "$FINAL_ROOT/scripts/casper-bottom/62wasalight-seed"
@@ -151,6 +187,7 @@ sed \
   -e "s|__WASALIGHT_SERVER_ISO_URL__|$SERVER_URL|g" \
   -e "s|__WASALIGHT_SERVER_ISO_SIZE__|$SERVER_SIZE|g" \
   -e "s|__WASALIGHT_SERVER_ISO_SHA256__|$SERVER_SHA256|g" \
+  -e "s|__WASALIGHT_UBUNTU_POINT_RELEASE__|$UBUNTU_POINT_RELEASE|g" \
   "$LOADER" >"$TMP/30mini-iso-menu"
 chmod 0755 "$TMP/30mini-iso-menu"
 
@@ -174,7 +211,7 @@ set menu_color_highlight=black/green
 menuentry 'INSTALLA WASALIGHT NETBOOT v${INSTALLER_VERSION}' {
     set gfxpayload=keep
     echo 'WASALIGHT NETBOOT v${INSTALLER_VERSION}'
-    echo 'Scaricamento verificato di Ubuntu Server 24.04.4'
+    echo 'Scaricamento verificato di Ubuntu Server ${UBUNTU_POINT_RELEASE}'
     linux /casper/vmlinuz wasalight-netboot ip=dhcp ---
     initrd /casper/initrd
 }

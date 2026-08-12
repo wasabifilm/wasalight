@@ -10,6 +10,7 @@ INSTALLER_TEMPLATE_ROOT="$PROJECT_DIR/installer/templates/rootfs"
 ENTRYPOINT="$PROJECT_DIR/install.sh"
 VERSION_FILE="$PROJECT_DIR/VERSION"
 RELEASE_MANIFEST="$PROJECT_DIR/release-manifest.ini"
+ISO_BUILDER_RELEASE_TEST="$PROJECT_DIR/Minimal-ISO-Builder/tests/verify-release-config.sh"
 tmp_dir=$(mktemp -d)
 vnc_test_pid=
 cleanup() {
@@ -95,11 +96,21 @@ for declaration in \
     'Repository=https://github.com/wasabifilm/wasalight.git' 'Branch=main' \
     'VersionURL=https://raw.githubusercontent.com/wasabifilm/wasalight/main/VERSION' \
     '[Platform]' 'UbuntuVersion=24.04' 'Architecture=amd64' \
+    '[ISOBuilder]' 'VersionFile=Minimal-ISO-Builder/VERSION' \
+    'UbuntuPointRelease=24.04.4' \
+    'LiveISOFile=ubuntu-24.04.4-live-server-amd64.iso' \
+    'LiveISOURL=https://releases.ubuntu.com/noble/ubuntu-24.04.4-live-server-amd64.iso' \
+    'LiveISOSize=3405469696' \
+    'LiveISOSHA256=e907d92eeec9df64163a7e454cbc8d7755e8ddc7ed42f99dbc80c40f1a138433' \
+    'MiniISOFile=ubuntu-mini-iso-24.04.4-mini-iso-amd64.iso' \
+    'MiniISOSHA256=57bfe99e776698ae08358145cf3a58bfb74beafe8c8cf965ca86552233d2f53f' \
     '[Companion]' 'Version=5.0.3' \
     'Commit=07024263dbb54512f3acdc705eca70cd74dbae43'; do
     grep -Fqx "$declaration" "$RELEASE_MANIFEST" || \
         fail "valore release centralizzato mancante: $declaration"
 done
+[[ -s $ISO_BUILDER_RELEASE_TEST ]] || fail "test configurazione ISO Builder mancante"
+bash "$ISO_BUILDER_RELEASE_TEST"
 
 lock_library="$PROJECT_DIR/lib/wasalight-operation-lock.sh"
 [[ -s $lock_library ]] || fail "libreria lock globale mancante"

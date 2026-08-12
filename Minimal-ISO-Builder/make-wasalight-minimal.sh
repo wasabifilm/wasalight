@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 # WASALIGHT Ubuntu Minimal ISO Builder
-# Ubuntu Server 24.04 LTS - Linux + macOS
+# Ubuntu Server LTS - Linux + macOS
 #
 # Uso: crea entrambe le varianti.
 #   ./make-wasalight-minimal.sh [SOURCE-LIVE.iso [AUTOINSTALL.yaml]]
@@ -25,7 +25,8 @@ Uso:
   ./make-wasalight-minimal.sh --variant full|netboot \
     [SOURCE.iso [AUTOINSTALL.yaml [OUTPUT.iso]]]
 
-Senza SOURCE.iso il builder usa le basi ufficiali Live Server e Mini ISO 24.04.4
+Senza SOURCE.iso il builder usa le basi ufficiali Live Server e Mini ISO
+configurate nel release-manifest.ini centrale
 presenti nella propria cartella.
 
 Senza --variant vengono create entrambe le immagini:
@@ -46,11 +47,37 @@ iso_has_path() {
 }
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-VERSION_FILE="$SCRIPT_DIR/VERSION"
+PROJECT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
+RELEASE_MANIFEST="$PROJECT_DIR/release-manifest.ini"
+MANIFEST_LIBRARY="$PROJECT_DIR/lib/wasalight-release-manifest.sh"
+[[ -r "$RELEASE_MANIFEST" ]] || die "release-manifest.ini non trovato: $RELEASE_MANIFEST"
+[[ -r "$MANIFEST_LIBRARY" ]] || die "loader manifest non trovato: $MANIFEST_LIBRARY"
+# shellcheck source=../lib/wasalight-release-manifest.sh
+. "$MANIFEST_LIBRARY"
+
+VERSION_FILE_NAME="$(require_manifest_value_matching "$RELEASE_MANIFEST" ISOBuilder VersionFile \
+  '^Minimal-ISO-Builder/[A-Za-z0-9][A-Za-z0-9._-]*$' 'a path below Minimal-ISO-Builder')" || exit 1
+UBUNTU_VERSION="$(require_manifest_value_matching "$RELEASE_MANIFEST" Platform UbuntuVersion \
+  '^[0-9]+\.[0-9]+$' 'a major.minor version')" || exit 1
+UBUNTU_POINT_RELEASE="$(require_manifest_value_matching "$RELEASE_MANIFEST" ISOBuilder UbuntuPointRelease \
+  '^[0-9]+\.[0-9]+\.[0-9]+$' 'a major.minor.patch version')" || exit 1
+TARGET_ARCHITECTURE="$(require_manifest_value_matching "$RELEASE_MANIFEST" Platform Architecture \
+  '^[A-Za-z0-9][A-Za-z0-9._-]*$' 'an architecture name')" || exit 1
+LIVE_ISO_FILE="$(require_manifest_value_matching "$RELEASE_MANIFEST" ISOBuilder LiveISOFile \
+  '^[A-Za-z0-9][A-Za-z0-9._+-]*\.iso$' 'an ISO file name')" || exit 1
+LIVE_ISO_SHA256="$(require_manifest_value_matching "$RELEASE_MANIFEST" ISOBuilder LiveISOSHA256 \
+  '^[0-9a-fA-F]{64}$' 'a SHA-256 digest')" || exit 1
+WASALIGHT_REPOSITORY="$(require_manifest_value_matching "$RELEASE_MANIFEST" Wasalight Repository \
+  '^https://[A-Za-z0-9][A-Za-z0-9./_?&=%+~:@-]*$' 'a safe HTTPS URL')" || exit 1
+WASALIGHT_BRANCH="$(require_manifest_value_matching "$RELEASE_MANIFEST" Wasalight Branch \
+  '^[A-Za-z0-9][A-Za-z0-9._/-]*$' 'a Git branch name')" || exit 1
+VERSION_FILE="$PROJECT_DIR/$VERSION_FILE_NAME"
 [[ -r "$VERSION_FILE" ]] || die "VERSION non trovato: $VERSION_FILE"
 INSTALLER_VERSION="$(tr -d '[:space:]' <"$VERSION_FILE")"
 [[ $INSTALLER_VERSION =~ ^[0-9]+$ ]] || die "VERSION non valido: $INSTALLER_VERSION"
-readonly VERSION_FILE INSTALLER_VERSION
+readonly PROJECT_DIR RELEASE_MANIFEST MANIFEST_LIBRARY VERSION_FILE_NAME VERSION_FILE
+readonly UBUNTU_VERSION UBUNTU_POINT_RELEASE TARGET_ARCHITECTURE LIVE_ISO_FILE
+readonly LIVE_ISO_SHA256 WASALIGHT_REPOSITORY WASALIGHT_BRANCH INSTALLER_VERSION
 
 case "${1:-}" in
   -h|--help) usage; exit 0 ;;
@@ -80,7 +107,7 @@ case "$BUILD_VARIANT" in
     VARIANT_LABEL=FULL
     PACKAGES_VALUE='[git]'
     NETWORK_PRELOAD_VALUE="sh -c 'true'"
-    DEFAULT_OUTPUT="$SCRIPT_DIR/WASALIGHT-Installer-24.04-Minimal-Full-v${INSTALLER_VERSION}.iso"
+    DEFAULT_OUTPUT="$SCRIPT_DIR/WASALIGHT-Installer-${UBUNTU_VERSION}-Minimal-Full-v${INSTALLER_VERSION}.iso"
     ;;
   netboot)
     exec bash "$SCRIPT_DIR/make-wasalight-netboot.sh" "$@"
@@ -93,16 +120,13 @@ AUTOINSTALL="${2:-$SCRIPT_DIR/autoinstall.yaml}"
 DISK_SELECTOR="$SCRIPT_DIR/select-disk.sh"
 KEYBOARD_SELECTOR="$SCRIPT_DIR/select-keyboard.sh"
 THEME_SCRIPT="$SCRIPT_DIR/apply-theme.sh"
-UI_SCRIPT="$SCRIPT_DIR/install-ui.sh"
+UI_TEMPLATE="$SCRIPT_DIR/install-ui.sh"
 FIRST_BOOT_SCRIPT="$SCRIPT_DIR/wasalight-first-boot.sh"
 FIRST_BOOT_SERVICE="$SCRIPT_DIR/wasalight-first-boot.service"
 OUTPUT_ISO="${3:-$DEFAULT_OUTPUT}"
 
-# Checksum pubblicato da Canonical per ubuntu-24.04.4-live-server-amd64.iso.
-readonly UBUNTU_24044_AMD64_SHA256="e907d92eeec9df64163a7e454cbc8d7755e8ddc7ed42f99dbc80c40f1a138433"
-
 # Se non viene specificata una ISO, cercala automaticamente nella cartella.
-# Il checksum approvato più sotto limita comunque il build alla base 24.04.4.
+# Il checksum approvato nel manifest limita comunque il build alla release scelta.
 if [[ -z "$SOURCE_ISO" ]]; then
   ISO_CANDIDATES=()
 
@@ -110,13 +134,14 @@ if [[ -z "$SOURCE_ISO" ]]; then
     ISO_CANDIDATES+=("$iso")
   done < <(
     find "$SCRIPT_DIR" -maxdepth 1 -type f \
-      \( -name 'ubuntu-24.04*-live-server-amd64.iso' -o -name 'ubuntu-24.04*-server-amd64.iso' \) \
+      \( -name "ubuntu-${UBUNTU_VERSION}*-live-server-${TARGET_ARCHITECTURE}.iso" \
+         -o -name "ubuntu-${UBUNTU_VERSION}*-server-${TARGET_ARCHITECTURE}.iso" \) \
       -print | sort
   )
 
   case "${#ISO_CANDIDATES[@]}" in
     0)
-      die "Nessuna ISO Ubuntu Server 24.04 amd64 trovata nella cartella: $SCRIPT_DIR"
+      die "Nessuna ISO Ubuntu Server ${UBUNTU_VERSION} ${TARGET_ARCHITECTURE} trovata nella cartella: $SCRIPT_DIR"
       ;;
     1)
       SOURCE_ISO="${ISO_CANDIDATES[0]}"
@@ -158,9 +183,11 @@ sha256sum_file() {
 [[ -f "$DISK_SELECTOR" ]] || die "select-disk.sh non trovato: $DISK_SELECTOR"
 [[ -f "$KEYBOARD_SELECTOR" ]] || die "select-keyboard.sh non trovato: $KEYBOARD_SELECTOR"
 [[ -f "$THEME_SCRIPT" ]] || die "apply-theme.sh non trovato: $THEME_SCRIPT"
-[[ -f "$UI_SCRIPT" ]] || die "install-ui.sh non trovato: $UI_SCRIPT"
+[[ -f "$UI_TEMPLATE" ]] || die "install-ui.sh non trovato: $UI_TEMPLATE"
 [[ -f "$FIRST_BOOT_SCRIPT" ]] || die "wasalight-first-boot.sh non trovato: $FIRST_BOOT_SCRIPT"
 [[ -f "$FIRST_BOOT_SERVICE" ]] || die "wasalight-first-boot.service non trovato: $FIRST_BOOT_SERVICE"
+[[ -f "$RELEASE_MANIFEST" ]] || die "release-manifest.ini non trovato: $RELEASE_MANIFEST"
+[[ -f "$MANIFEST_LIBRARY" ]] || die "loader manifest non trovato: $MANIFEST_LIBRARY"
 
 source_real="$(CDPATH= cd -- "$(dirname -- "$SOURCE_ISO")" && pwd)/$(basename -- "$SOURCE_ISO")"
 output_parent="$(dirname -- "$OUTPUT_ISO")"
@@ -196,7 +223,7 @@ done
 bash -n "$FIRST_BOOT_SCRIPT" || die "Errore di sintassi in: $FIRST_BOOT_SCRIPT"
 command -v python3 >/dev/null 2>&1 || die "Manca python3 per validare la UI."
 python3 -c 'compile(open(__import__("sys").argv[1], encoding="utf-8").read(), __import__("sys").argv[1], "exec")' \
-  "$UI_SCRIPT" || die "Errore di sintassi Python in: $UI_SCRIPT"
+  "$UI_TEMPLATE" || die "Errore di sintassi Python in: $UI_TEMPLATE"
 
 if ! command -v xorriso >/dev/null 2>&1; then
   case "$(uname -s)" in
@@ -214,6 +241,14 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+UI_SCRIPT="$TMP/install-ui.sh"
+sed "s|__WASALIGHT_UBUNTU_VERSION__|$UBUNTU_VERSION|g" "$UI_TEMPLATE" >"$UI_SCRIPT"
+if grep -Fq '__WASALIGHT_UBUNTU_VERSION__' "$UI_SCRIPT"; then
+  die "Versione Ubuntu non risolta nella UI."
+fi
+python3 -c 'compile(open(__import__("sys").argv[1], encoding="utf-8").read(), __import__("sys").argv[1], "exec")' \
+  "$UI_SCRIPT" || die "Errore di sintassi Python nella UI generata."
+
 info "============================================================"
 info " WASALIGHT Minimal ISO Builder v${INSTALLER_VERSION} · ${VARIANT_LABEL}"
 info "============================================================"
@@ -227,9 +262,9 @@ info
 info "[1/7] Controllo la ISO Ubuntu..."
 
 source_sha256=$(sha256sum_file "$SOURCE_ISO")
-if [[ "$source_sha256" != "$UBUNTU_24044_AMD64_SHA256" ]]; then
-  die "$(printf 'Checksum ISO non riconosciuto. Atteso Ubuntu Server 24.04.4 amd64 ufficiale.\n  atteso: %s\n  trovato: %s' \
-    "$UBUNTU_24044_AMD64_SHA256" "$source_sha256")"
+if [[ "$source_sha256" != "$LIVE_ISO_SHA256" ]]; then
+  die "$(printf 'Checksum ISO non riconosciuto. Atteso Ubuntu Server %s %s ufficiale (%s).\n  atteso: %s\n  trovato: %s' \
+    "$UBUNTU_POINT_RELEASE" "$TARGET_ARCHITECTURE" "$LIVE_ISO_FILE" "$LIVE_ISO_SHA256" "$source_sha256")"
 fi
 info "    SHA-256 Canonical verificato: $source_sha256"
 
@@ -243,7 +278,7 @@ iso_has_path "$SOURCE_ISO" /casper/initrd || \
 
 info "    verifico /casper/install-sources.yaml"
 iso_has_path "$SOURCE_ISO" /casper/install-sources.yaml || \
-  die "Manca /casper/install-sources.yaml. Usa una ISO Ubuntu Server 24.04 LTS ufficiale."
+  die "Manca /casper/install-sources.yaml. Usa la ISO Ubuntu Server ${UBUNTU_POINT_RELEASE} ufficiale."
 
 info "    ISO valida."
 
@@ -407,6 +442,8 @@ if iso_has_path "$SOURCE_ISO" /md5sum.txt; then
     "./wasalight/apply-theme.sh" \
     "./wasalight/install-ui.sh" \
     "./wasalight/VERSION" \
+    "./wasalight/release-manifest.ini" \
+    "./wasalight/wasalight-release-manifest.sh" \
     "./wasalight/wasalight-first-boot.sh" \
     "./wasalight/wasalight-first-boot.service"
   do
@@ -430,6 +467,8 @@ if iso_has_path "$SOURCE_ISO" /md5sum.txt; then
     printf '%s  ./wasalight/apply-theme.sh\n' "$(md5sum_file "$THEME_SCRIPT")"
     printf '%s  ./wasalight/install-ui.sh\n' "$(md5sum_file "$UI_SCRIPT")"
     printf '%s  ./wasalight/VERSION\n' "$(md5sum_file "$VERSION_FILE")"
+    printf '%s  ./wasalight/release-manifest.ini\n' "$(md5sum_file "$RELEASE_MANIFEST")"
+    printf '%s  ./wasalight/wasalight-release-manifest.sh\n' "$(md5sum_file "$MANIFEST_LIBRARY")"
     printf '%s  ./wasalight/wasalight-first-boot.sh\n' "$(md5sum_file "$FIRST_BOOT_SCRIPT")"
     printf '%s  ./wasalight/wasalight-first-boot.service\n' "$(md5sum_file "$FIRST_BOOT_SERVICE")"
   } > "$TMP/md5sum.txt"
@@ -452,6 +491,8 @@ ARGS+=(
   -map "$THEME_SCRIPT" /wasalight/apply-theme.sh
   -map "$UI_SCRIPT" /wasalight/install-ui.sh
   -map "$VERSION_FILE" /wasalight/VERSION
+  -map "$RELEASE_MANIFEST" /wasalight/release-manifest.ini
+  -map "$MANIFEST_LIBRARY" /wasalight/wasalight-release-manifest.sh
   -map "$FIRST_BOOT_SCRIPT" /wasalight/wasalight-first-boot.sh
   -map "$FIRST_BOOT_SERVICE" /wasalight/wasalight-first-boot.service
   -map "$TMP/grub.cfg" /boot/grub/grub.cfg
@@ -488,6 +529,10 @@ iso_has_path "$PARTIAL_OUTPUT" /wasalight/install-ui.sh || \
   die "install-ui.sh manca nella ISO finale."
 iso_has_path "$PARTIAL_OUTPUT" /wasalight/VERSION || \
   die "VERSION manca nella ISO finale."
+iso_has_path "$PARTIAL_OUTPUT" /wasalight/release-manifest.ini || \
+  die "release-manifest.ini manca nella ISO finale."
+iso_has_path "$PARTIAL_OUTPUT" /wasalight/wasalight-release-manifest.sh || \
+  die "loader manifest manca nella ISO finale."
 iso_has_path "$PARTIAL_OUTPUT" /wasalight/wasalight-first-boot.sh || \
   die "wasalight-first-boot.sh manca nella ISO finale."
 iso_has_path "$PARTIAL_OUTPUT" /wasalight/wasalight-first-boot.service || \
@@ -505,6 +550,8 @@ xorriso -osirrox on -indev "$PARTIAL_OUTPUT" \
   -extract /wasalight/apply-theme.sh "$TMP/verify/apply-theme.sh" \
   -extract /wasalight/install-ui.sh "$TMP/verify/install-ui.sh" \
   -extract /wasalight/VERSION "$TMP/verify/VERSION" \
+  -extract /wasalight/release-manifest.ini "$TMP/verify/release-manifest.ini" \
+  -extract /wasalight/wasalight-release-manifest.sh "$TMP/verify/wasalight-release-manifest.sh" \
   -extract /wasalight/wasalight-first-boot.sh "$TMP/verify/wasalight-first-boot.sh" \
   -extract /wasalight/wasalight-first-boot.service "$TMP/verify/wasalight-first-boot.service" \
   >/dev/null 2>&1
@@ -520,6 +567,10 @@ cmp -s "$UI_SCRIPT" "$TMP/verify/install-ui.sh" || \
   die "install-ui.sh incorporato non corrisponde al sorgente."
 cmp -s "$VERSION_FILE" "$TMP/verify/VERSION" || \
   die "VERSION incorporato non corrisponde al sorgente."
+cmp -s "$RELEASE_MANIFEST" "$TMP/verify/release-manifest.ini" || \
+  die "release-manifest.ini incorporato non corrisponde al sorgente."
+cmp -s "$MANIFEST_LIBRARY" "$TMP/verify/wasalight-release-manifest.sh" || \
+  die "loader manifest incorporato non corrisponde al sorgente."
 cmp -s "$FIRST_BOOT_SCRIPT" "$TMP/verify/wasalight-first-boot.sh" || \
   die "wasalight-first-boot.sh incorporato non corrisponde al sorgente."
 cmp -s "$FIRST_BOOT_SERVICE" "$TMP/verify/wasalight-first-boot.service" || \
@@ -540,7 +591,7 @@ info "============================================================"
 info "File: $OUTPUT_ISO"
 info
 info "Caratteristiche:"
-info "  - Ubuntu Server 24.04 LTS"
+info "  - Ubuntu Server ${UBUNTU_VERSION} LTS"
 info "  - ubuntu-server-minimal come unica sorgente installabile"
 info "  - layer Casper originali preservati"
 if [[ $BUILD_VARIANT == full ]]; then
@@ -551,7 +602,7 @@ else
   info "  - checkout Wasalight verificato e preparato durante l'autoinstall"
 fi
 info "  - Git installato dai repository Ubuntu"
-info "  - Wasalight main installato automaticamente al primo avvio con rete"
+info "  - Wasalight ${WASALIGHT_BRANCH} installato automaticamente al primo avvio con rete"
 info "  - autoinstall.yaml incluso"
 info "  - password chamsys scelta durante l'installazione"
 info "  - SSH non installato e accesso password SSH disabilitato"

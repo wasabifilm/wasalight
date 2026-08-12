@@ -140,6 +140,8 @@ autoinstall:
   late-commands:
   - install -D -m 0755 /cdrom/wasalight/wasalight-first-boot.sh /target/usr/local/sbin/wasalight-first-boot
   - install -D -m 0644 /cdrom/wasalight/wasalight-first-boot.service /target/etc/systemd/system/wasalight-first-boot.service
+  - install -D -m 0644 /cdrom/wasalight/release-manifest.ini /target/etc/wasalight/release-manifest.ini
+  - install -D -m 0644 /cdrom/wasalight/wasalight-release-manifest.sh /target/usr/local/libexec/wasalight-release-manifest.sh
   - __WASALIGHT_NETWORK_PRELOAD__
   - curtin in-target --target=/target -- systemctl enable wasalight-first-boot.service
   - touch /run/wasalight-install-success
