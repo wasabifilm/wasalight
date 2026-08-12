@@ -374,9 +374,6 @@ EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <openbox_menu xmlns="http://openbox.org/3.4/menu">
   <menu id="root-menu" label="Wasalight">
-    <item label="Avvia MagicQ"><action name="Execute"><command>/usr/local/bin/magicq-start</command></action></item>
-    <item label="Ferma MagicQ"><action name="Execute"><command>/usr/local/bin/magicq-stop</command></action></item>
-    <separator />
     <item label="Wasalight Control"><action name="Execute"><command>/usr/local/bin/wasalight-control</command></action></item>
     <item label="File"><action name="Execute"><command>pcmanfm /data</command></action></item>
     <item label="Terminal"><action name="Execute"><command>lxterminal</command></action></item>
