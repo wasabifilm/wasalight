@@ -221,6 +221,7 @@ required_patterns=(
     'libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0'
     'libasound2-data alsa-utils'
     'openbox tint2 picom pcmanfm lxterminal lxrandr lxtask x11vnc procps wmctrl x11-utils'
+    'galculator i3lock mousepad onboard'
     'conky-all zenity libnotify-bin libglib2.0-bin desktop-file-utils librsvg2-common'
     'python3 python3-gi gir1.2-gtk-3.0'
     'arp-scan iproute2'
@@ -237,7 +238,6 @@ required_patterns=(
     'MagicQ has unresolved runtime libraries'
     'MagicQ Qt xcb platform plugin has unresolved runtime libraries'
     'MagicQ audio runtime check failed: /usr/share/alsa/alsa.conf is unavailable'
-    '--with-onscreen-keyboard'
     '--allow-missing-magicq'
     'MagicQ is not installed and no valid .deb was found locally or on USB.'
     '--reset-chamsys-password'
@@ -262,6 +262,7 @@ required_patterns=(
     'pcmanfm --desktop --profile=default'
     '$TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop'
     '$TARGET_HOME/.config/wasalight/dock/Files.desktop'
+    '$TARGET_HOME/.config/wasalight/dock/Keyboard.desktop'
     '$TARGET_HOME/Desktop/MagicQ.desktop'
     '$TARGET_HOME/Desktop/Power-Off.desktop'
     '$TARGET_HOME/Desktop/Reboot.desktop'
@@ -271,6 +272,7 @@ required_patterns=(
     'Icon=/usr/local/share/icons/wasalight/reboot.svg'
     'conky --config="$HOME/.config/conky/wasalight.conf"'
     'wasalight-desktop-status'
+    'wasalight-keyboard-toggle'
     'wasalight-power-control poweroff'
     'wasalight-vnc-toggle'
     'wasalight-ssh-toggle'
@@ -287,6 +289,7 @@ required_patterns=(
     'strut_policy = follow_size'
     'launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop'
     'launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Files.desktop'
+    'launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Keyboard.desktop'
     'quick_exec=1'
     'chown -R root:root "$TARGET_HOME/Desktop"'
     '-exec chmod 0444 {} +'
@@ -308,6 +311,7 @@ required_patterns=(
     'own_window_argb_value = 165'
     'border_inner_margin = 16'
     '/etc/wasalight/apps.d/ip-scanner.desktop'
+    '/etc/wasalight/apps.d/keyboard.desktop'
     '/etc/wasalight/apps.d/artnet-monitor.desktop'
     '/etc/wasalight/apps.d/system-monitor.desktop'
     'TryExec=lxtask'
@@ -435,6 +439,11 @@ for pattern in "${required_patterns[@]}"; do
     grep -Fq -- "$pattern" "$INSTALLER" || fail "funzione richiesta non trovata: $pattern"
 done
 
+if grep -Fq -- '--with-onscreen-keyboard' "$INSTALLER" || \
+   grep -Fq 'ENABLE_ONSCREEN_KEYBOARD' "$INSTALLER"; then
+    fail "l'installer espone ancora il vecchio flag della tastiera virtuale"
+fi
+
 if grep -Fq 'SESSION:    $session' "$INSTALLER" || \
    grep -Eq "status_line .*'SESSION'" "$INSTALLER"; then
     fail "lo stato operatore mostra ancora la sessione tecnica MagicQ"
@@ -553,6 +562,7 @@ helpers=(
     /usr/local/sbin/wasalight-power-control
     /usr/local/bin/wasalight-desktop-status
     /usr/local/bin/wasalight-desktop-wallpaper
+    /usr/local/bin/wasalight-keyboard-toggle
     /usr/local/bin/wasalight-vnc-toggle
     /usr/local/bin/wasalight-ssh-toggle
     /usr/local/sbin/wasalight-ssh-control
@@ -587,6 +597,17 @@ done
 
 if grep -Eq '(^|[[:space:]])(xss-lock|xautolock)([[:space:]]|$)' "$INSTALLER"; then
     fail "il blocco schermo non deve essere armato automaticamente"
+fi
+
+keyboard_toggle="$tmp_dir/wasalight-keyboard-toggle"
+grep -Fq 'pgrep -u "$(id -u)" -x onboard' "$keyboard_toggle" || \
+    fail "il pulsante Tastiera non rileva un'istanza Onboard esistente"
+grep -Fq 'pkill -TERM -u "$(id -u)" -x onboard' "$keyboard_toggle" || \
+    fail "il pulsante Tastiera non permette di chiudere Onboard"
+grep -Fq 'wmctrl -i -r "$window_id" -b add,above,sticky' "$keyboard_toggle" || \
+    fail "la tastiera virtuale non viene mantenuta visibile sul desktop touch"
+if grep -Fq 'wasalight-keyboard-toggle &' "$INSTALLER"; then
+    fail "la tastiera virtuale viene avviata automaticamente"
 fi
 
 wallpaper_python="$tmp_dir/wasalight-desktop-wallpaper.py"

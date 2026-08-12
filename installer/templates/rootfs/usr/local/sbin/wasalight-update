@@ -314,7 +314,6 @@ if [[ $ssh_mode == enabled ]]; then
 else
     installer_args+=(--without-ssh)
 fi
-command -v onboard >/dev/null 2>&1 && installer_args+=(--with-onscreen-keyboard)
 ((with_companion)) && installer_args+=(--with-companion)
 # Preserve the plugin selection recorded on /data. Disabled plugins remain
 # installed but are not silently re-enabled by an ordinary Wasalight update.

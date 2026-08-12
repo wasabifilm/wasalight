@@ -36,8 +36,6 @@ Options:
                        device path, UUID=..., or LABEL=.... It is never formatted.
   --with-ssh           Persistently enable OpenSSH after every reboot.
   --without-ssh        Persistently disable automatic OpenSSH startup.
-  --with-onscreen-keyboard
-                       Install Onboard and add it to the Openbox menu.
   --with-companion     Install the pinned Bitfocus Companion headless build,
                        persist its configuration in /data and enable its service.
   --plugin ID          Enable a Wasalight plugin. May be repeated. Built-in IDs:
@@ -69,7 +67,6 @@ parse_args() {
                 ;;
             --with-ssh) SSH_AUTOSTART_MODE=enabled; shift ;;
             --without-ssh) SSH_AUTOSTART_MODE=disabled; shift ;;
-            --with-onscreen-keyboard) ENABLE_ONSCREEN_KEYBOARD=1; shift ;;
             --with-companion) ENABLE_COMPANION=1; shift ;;
             --plugin)
                 (($# >= 2)) || die "--plugin requires an id"

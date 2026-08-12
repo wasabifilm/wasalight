@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -u
+
+readonly runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+readonly lock_file="$runtime_dir/wasalight-keyboard.lock"
+
+command -v onboard >/dev/null 2>&1 || {
+    command -v notify-send >/dev/null 2>&1 && notify-send \
+        --app-name=Wasalight --icon=input-keyboard \
+        "Tastiera virtuale non disponibile" "Il pacchetto Onboard non è installato." || true
+    exit 1
+}
+
+install -d -m 0700 "$runtime_dir"
+exec 9>"$lock_file"
+flock -n 9 || exit 0
+
+if pgrep -u "$(id -u)" -x onboard >/dev/null 2>&1; then
+    pkill -TERM -u "$(id -u)" -x onboard
+    exit 0
+fi
+
+onboard_args=()
+[[ ! -r /usr/share/onboard/themes/Nightshade.theme ]] || \
+    onboard_args+=(--theme=Nightshade)
+onboard "${onboard_args[@]}" >/dev/null 2>&1 &
+
+# Place the keyboard above the always-visible dock. Failure to position the
+# window is harmless: Onboard remains usable with its own saved geometry.
+for _ in $(seq 1 30); do
+    window_id=$(wmctrl -lx 2>/dev/null | \
+        awk 'tolower($0) ~ /onboard/ { print $1; exit }')
+    if [[ -n ${window_id:-} ]]; then
+        read -r screen_width screen_height < <(
+            xdpyinfo 2>/dev/null | awk '
+                /dimensions:/ {
+                    split($2, size, "x")
+                    print size[1], size[2]
+                    exit
+                }'
+        )
+        if [[ ${screen_width:-} =~ ^[0-9]+$ && ${screen_height:-} =~ ^[0-9]+$ ]]; then
+            width=$((screen_width * 90 / 100))
+            height=$((screen_height * 38 / 100))
+            x=$((screen_width * 5 / 100))
+            y=$((screen_height - height - 64))
+            ((y < 0)) && y=0
+            wmctrl -i -r "$window_id" -e "0,$x,$y,$width,$height" || true
+            wmctrl -i -r "$window_id" -b add,above,sticky || true
+        fi
+        exit 0
+    fi
+    sleep 0.1
+done
+
+exit 0

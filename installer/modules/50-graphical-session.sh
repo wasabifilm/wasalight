@@ -120,6 +120,17 @@ Terminal=false
 StartupNotify=true
 EOF
 
+    write_file "$TARGET_HOME/.config/wasalight/dock/Keyboard.desktop" 0644 <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Tastiera
+Comment=Apre o chiude la tastiera virtuale touch
+Exec=/usr/local/bin/wasalight-keyboard-toggle
+Icon=input-keyboard
+Terminal=false
+StartupNotify=false
+EOF
+
     write_file "$TARGET_HOME/Desktop/MagicQ.desktop" 0755 <<'EOF'
 [Desktop Entry]
 Type=Application
@@ -168,6 +179,8 @@ EOF
     install_template /usr/local/sbin/wasalight-power-control 0755
 
     install_template /usr/local/bin/wasalight-desktop-status 0755
+
+    install_template /usr/local/bin/wasalight-keyboard-toggle 0755
 
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/picom"
     write_file "$TARGET_HOME/.config/picom/wasalight.conf" 0644 <<'EOF'
@@ -245,6 +258,7 @@ EOF
     install_template /etc/wasalight/apps.d/system-monitor.desktop 0644
     install_template /etc/wasalight/apps.d/terminal.desktop 0644
     install_template /etc/wasalight/apps.d/status.desktop 0644
+    install_template /etc/wasalight/apps.d/keyboard.desktop 0644
     # SSH and VNC are managed only in the Services page; keep apps.d free from
     # duplicate controls when the installer is run repeatedly.
     rm -f /etc/wasalight/apps.d/vnc.desktop /etc/wasalight/apps.d/ssh.desktop
@@ -283,6 +297,7 @@ launcher_icon_background_id = 0
 launcher_icon_size = 46
 launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop
 launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Files.desktop
+launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Keyboard.desktop
 
 taskbar_mode = single_desktop
 taskbar_padding = 4 0 4
@@ -365,11 +380,6 @@ else
 fi
 EOF
 
-    if ((ENABLE_ONSCREEN_KEYBOARD)); then
-        install_template /etc/wasalight/apps.d/keyboard.desktop 0644
-    else
-        rm -f /etc/wasalight/apps.d/keyboard.desktop
-    fi
     write_file "$TARGET_HOME/.config/openbox/menu.xml" 0644 <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <openbox_menu xmlns="http://openbox.org/3.4/menu">

@@ -1,9 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=On-screen keyboard
-Comment=Apre la tastiera touch Onboard
-Exec=onboard
+Name=Tastiera
+Comment=Apre o chiude la tastiera virtuale touch
+Exec=/usr/local/bin/wasalight-keyboard-toggle
 Icon=input-keyboard
-TryExec=onboard
-X-Wasalight-Section=Support
-X-Wasalight-Order=110
+TryExec=/usr/local/bin/wasalight-keyboard-toggle
+X-Wasalight-Section=Applications
+X-Wasalight-Order=50
