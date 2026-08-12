@@ -931,9 +931,9 @@ grep -Fq 'self.add_magicq_page(launchers)' "$control_center" || \
     fail "Wasalight Control non espone il pannello MagicQ dedicato"
 grep -Fq '"/usr/share/pixmaps/magicq.png",' "$control_center" || \
     fail "Wasalight Control non usa l'icona originale MagicQ"
-grep -Fq 'CARD_WIDTH = 290' "$control_center" || \
+grep -Fq 'CARD_WIDTH = 290' "$control_core/widgets.py" || \
     fail "le schede software e servizi di Control non hanno una misura comune"
-grep -Fq 'self.card_flow()' "$control_center" || \
+grep -Fq 'def card_flow()' "$control_core/widgets.py" || \
     fail "MagicQ e Servizi non condividono la griglia Control"
 if grep -Fq '"Ferma MagicQ"' "$control_center"; then
     fail "Wasalight Control espone ancora il pulsante Ferma MagicQ"
@@ -954,7 +954,8 @@ grep -Fq 'def plugin_control_changed' "$control_center" || \
     fail "Wasalight Control non gestisce i toggle servizio dichiarativi"
 grep -Fq 'switch:checked { background: #76bd22;' "$control_center" || \
     fail "i toggle Control non usano il verde Wasabi"
-grep -Fq 'if action["management"] or action.get("control")' "$control_center" || \
+grep -Fq 'if action["management"] or action.get("control")' \
+    "$control_core/widgets.py" || \
     fail "le azioni collegate ai toggle sono ancora duplicate come pulsanti"
 grep -Fq 'self.add_service_page()' "$control_center" || \
     fail "Wasalight Control non espone la gestione servizi"
@@ -994,11 +995,12 @@ grep -Fq '/usr/local/libexec/wasalight_control' "$INSTALLER" || \
     fail "l'installer non installa il core Python di Wasalight Control"
 grep -Fq 'timeout --signal=TERM 6 /usr/local/bin/wasalight-touch-status' \
     "$INSTALLER" || fail "lo stato touchscreen può bloccare il refresh Control"
-grep -Fq 'dialog.set_keep_above(True)' "$control_center" || \
+grep -Fq 'dialog.set_keep_above(True)' "$control_core/widgets.py" || \
     fail "i dialoghi GTK di Control non restano in primo piano"
 grep -Fq 'if item["optional"]:' "$control_center" || \
     fail "la scheda Plugin mostra ancora i servizi fondamentali"
-grep -Fq 'if action["management"] or action.get("control"):' "$control_center" || \
+grep -Fq 'if action["management"] or action.get("control"):' \
+    "$control_core/widgets.py" || \
     fail "Control non separa le azioni operative da quelle di gestione"
 grep -Fq 'if not optional:' "$plugin_admin" || \
     fail "il gestore permette di disabilitare servizi fondamentali"

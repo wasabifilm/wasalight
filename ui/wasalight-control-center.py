@@ -10,13 +10,16 @@ import threading
 import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
-gi.require_version("GdkPixbuf", "2.0")
-from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
+from gi.repository import Gdk, GLib, Gtk
 
 from wasalight_control.commands import CommandRunner
 from wasalight_control.launchers import installed_launchers
 from wasalight_control.models import ControlPaths
 from wasalight_control.system import magicq_state, mode_and_version, read_plugins, read_status
+from wasalight_control.widgets import (
+    card_flow, clear_flow, image_for, plugin_card, prepare_dialog,
+    section_heading, software_button, toggle_row,
+)
 
 PATHS = ControlPaths()
 COMMANDS = CommandRunner()
@@ -31,33 +34,6 @@ PAGE_LABELS = {
     "Plugins": "Plugin",
     "Credits": "Crediti",
 }
-CARD_WIDTH = 290
-CARD_HEIGHT = 280
-
-
-def image_for(icon, size=64):
-    if os.path.isabs(icon) and os.path.isfile(icon):
-        try:
-            pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(icon, size, size, True)
-            return Gtk.Image.new_from_pixbuf(pixbuf)
-        except Exception:
-            pass
-    if os.path.basename(icon) == "companion-official.png":
-        fallback = "/usr/local/share/icons/wasalight/companion.svg"
-        if os.path.isfile(fallback):
-            try:
-                pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-                    fallback, size, size, True)
-                return Gtk.Image.new_from_pixbuf(pixbuf)
-            except Exception:
-                pass
-    if os.path.isabs(icon):
-        icon = "application-x-executable"
-    image = Gtk.Image.new_from_icon_name(icon or "application-x-executable", Gtk.IconSize.DIALOG)
-    image.set_pixel_size(size)
-    return image
-
-
 class ControlCenter(Gtk.Window):
     def __init__(self):
         super().__init__(title="Wasalight Control Center")
@@ -152,60 +128,10 @@ class ControlCenter(Gtk.Window):
         box.pack_start(scroll, True, True, 0)
         self.notebook.append_page(box, Gtk.Label(label=PAGE_LABELS["Dashboard"]))
 
-    @staticmethod
-    def section_heading(title, subtitle):
-        heading = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
-        title_label = Gtk.Label()
-        title_label.set_xalign(0)
-        title_label.set_markup(
-            f"<span size='16000' weight='bold'>{GLib.markup_escape_text(title)}</span>")
-        subtitle_label = Gtk.Label(label=subtitle)
-        subtitle_label.set_xalign(0)
-        subtitle_label.set_line_wrap(True)
-        subtitle_label.get_style_context().add_class("section-subtitle")
-        heading.pack_start(title_label, False, False, 0)
-        heading.pack_start(subtitle_label, False, False, 0)
-        return heading
-
-    @staticmethod
-    def card_flow():
-        flow = Gtk.FlowBox()
-        flow.set_selection_mode(Gtk.SelectionMode.NONE)
-        flow.set_row_spacing(14)
-        flow.set_column_spacing(14)
-        flow.set_min_children_per_line(1)
-        flow.set_max_children_per_line(3)
-        flow.set_homogeneous(True)
-        flow.set_halign(Gtk.Align.CENTER)
-        return flow
-
-    @staticmethod
-    def software_button(name, comment, icon, callback):
-        button = Gtk.Button()
-        button.set_size_request(CARD_WIDTH, CARD_HEIGHT)
-        button.set_tooltip_text(comment)
-        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        content.set_border_width(14)
-        content.pack_start(image_for(icon, 88), True, True, 0)
-        label = Gtk.Label()
-        label.set_markup(
-            f"<span size='14000' weight='bold'>{GLib.markup_escape_text(name)}</span>")
-        label.set_line_wrap(True)
-        label.set_justify(Gtk.Justification.CENTER)
-        content.pack_start(label, False, False, 0)
-        description = Gtk.Label(label=comment)
-        description.set_line_wrap(True)
-        description.set_justify(Gtk.Justification.CENTER)
-        description.get_style_context().add_class("card-description")
-        content.pack_start(description, False, False, 0)
-        button.add(content)
-        button.connect("clicked", callback)
-        return button
-
     def add_magicq_page(self, launchers):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         page.set_border_width(14)
-        page.pack_start(self.section_heading(
+        page.pack_start(section_heading(
             "Software ChamSys",
             "Avvio rapido dei programmi installati e controllo dell’avvio automatico di MagicQ."),
             False, False, 0)
@@ -215,15 +141,15 @@ class ControlCenter(Gtk.Window):
         status_row.set_border_width(14)
         self.magicq_state_label.set_xalign(0)
         status_row.pack_start(self.magicq_state_label, True, True, 0)
-        auto_row = self.toggle_row("Avvio automatico", self.magicq_auto_switch)
+        auto_row = toggle_row("Avvio automatico", self.magicq_auto_switch)
         self.magicq_auto_handler = self.magicq_auto_switch.connect(
             "state-set", self.magicq_auto_changed)
         status_row.pack_start(auto_row, False, False, 0)
         status_card.add(status_row)
         page.pack_start(status_card, False, False, 0)
 
-        flow = self.card_flow()
-        magicq = self.software_button(
+        flow = card_flow()
+        magicq = software_button(
             "MagicQ", "Console luci principale",
             "/usr/share/pixmaps/magicq.png",
             lambda button: self.run_desktop_command(button, [PATHS.magicq_start]))
@@ -232,7 +158,7 @@ class ControlCenter(Gtk.Window):
 
         companions = [item for item in launchers if item.section == "MagicQ"]
         for item in companions:
-            flow.add(self.software_button(
+            flow.add(software_button(
                 item.name, item.comment or "Programma ChamSys",
                 item.icon,
                 lambda button, selected=item: self.launch_application(button, selected)))
@@ -276,11 +202,11 @@ class ControlCenter(Gtk.Window):
     def add_service_page(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         page.set_border_width(14)
-        page.pack_start(self.section_heading(
+        page.pack_start(section_heading(
             "Servizi",
             "Controllo uniforme dello stato corrente e della persistenza dei servizi Wasalight."),
             False, False, 0)
-        self.service_cards = self.card_flow()
+        self.service_cards = card_flow()
         page.pack_start(self.service_cards, False, False, 0)
         scroll = Gtk.ScrolledWindow()
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -301,7 +227,7 @@ class ControlCenter(Gtk.Window):
     def add_credits_page(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         page.set_border_width(14)
-        page.pack_start(self.section_heading(
+        page.pack_start(section_heading(
             "Crediti",
             "Autori, licenza e riconoscimenti del progetto."), False, False, 0)
 
@@ -358,107 +284,6 @@ class ControlCenter(Gtk.Window):
         scroll.add(page)
         self.notebook.append_page(scroll, Gtk.Label(label=PAGE_LABELS["Credits"]))
 
-    def plugin_card(self, item, management=False):
-        frame = Gtk.Frame()
-        frame.set_size_request(CARD_WIDTH, CARD_HEIGHT if not management else 300)
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7)
-        box.set_border_width(12)
-        heading = Gtk.Box(spacing=10)
-        heading.pack_start(image_for(item["icon"], 48), False, False, 0)
-        text = Gtk.Label()
-        text.set_xalign(0)
-        text.set_line_wrap(True)
-        colour = "#76bd22" if item["active"] else "#f2cc60"
-        if not item["installed"] or not item["compatible"]:
-            colour = "#f85149"
-        shown_state = item["state_label"] if item["installed"] else "Non installato"
-        if item["installed"] and not item["compatible"]:
-            shown_state = f"Richiede Wasalight {item['minimum_wasalight']}"
-        text.set_markup(f"<span size='13000' weight='bold'>{GLib.markup_escape_text(item['name'])}</span>\n"
-                        f"<span foreground='{colour}'>{GLib.markup_escape_text(shown_state)}</span>")
-        heading.pack_start(text, True, True, 0)
-        box.pack_start(heading, False, False, 0)
-        description = Gtk.Label(label=item["description"])
-        description.set_xalign(0)
-        description.set_line_wrap(True)
-        box.pack_start(description, True, True, 0)
-        actions = Gtk.Grid()
-        actions.set_row_spacing(7)
-        actions.set_column_spacing(7)
-        action_row = 0
-        action_column = 0
-
-        def add_action(widget, full_width=False):
-            nonlocal action_row, action_column
-            widget.set_hexpand(True)
-            if isinstance(widget, Gtk.Button):
-                widget.set_size_request(-1, 46)
-            if full_width:
-                if action_column:
-                    action_row += 1
-                    action_column = 0
-                actions.attach(widget, 0, action_row, 2, 1)
-                action_row += 1
-                return
-            actions.attach(widget, action_column, action_row, 1, 1)
-            action_column += 1
-            if action_column == 2:
-                action_row += 1
-                action_column = 0
-
-        if management:
-            label = "Installa con Update" if not item["installed"] else (
-                "Disabilita" if item["enabled"] else "Abilita")
-            button = Gtk.Button(label=label)
-            if item["installed"]:
-                button.set_sensitive(item["compatible"] or item["enabled"])
-                button.connect("clicked", self.change_plugin_state, item, not item["enabled"])
-            else:
-                button.connect("clicked", self.install_plugin, item)
-            add_action(button, True)
-            if item["installed"] and item["enabled"]:
-                for action in item["actions"]:
-                    if not action["management"]:
-                        continue
-                    button = Gtk.Button(label=action["label"])
-                    button.set_sensitive(action["available"])
-                    button.connect("clicked", self.plugin_action, item, action)
-                    add_action(button)
-        elif item["enabled"] and item["installed"] and item["compatible"]:
-            for control in item.get("controls", []):
-                switch = Gtk.Switch()
-                switch.set_active(control["checked"])
-                switch.set_sensitive(control["available"])
-                switch.connect("state-set", self.plugin_control_changed,
-                               item, control)
-                add_action(self.toggle_row(control["label"], switch), True)
-            for action in item["actions"]:
-                if action["management"] or action.get("control"):
-                    continue
-                button = Gtk.Button(label=action["label"])
-                button.set_sensitive(action["available"])
-                button.connect("clicked", self.plugin_action, item, action)
-                add_action(button)
-        if not item["enabled"] and not management:
-            add_action(Gtk.Label(label="Plugin disabilitato"), True)
-        box.pack_start(actions, False, False, 0)
-        frame.add(box)
-        return frame
-
-    @staticmethod
-    def toggle_row(label, switch):
-        row = Gtk.Box(spacing=12)
-        text = Gtk.Label(label=label)
-        text.set_xalign(0)
-        row.pack_start(text, True, True, 0)
-        row.pack_start(switch, False, False, 0)
-        return row
-
-    @staticmethod
-    def clear_flow(flow):
-        for child in flow.get_children():
-            flow.remove(child)
-
     def apply_refresh(self, status, plugins, magicq, error):
         self.refresh_running = False
         if self.destroyed:
@@ -476,16 +301,26 @@ class ControlCenter(Gtk.Window):
             self.magicq_auto_switch.handler_unblock(self.magicq_auto_handler)
         if plugins is not None and plugins != self.plugins:
             self.plugins = plugins
-            self.clear_flow(self.service_cards)
-            self.clear_flow(self.plugin_cards)
+            clear_flow(self.service_cards)
+            clear_flow(self.plugin_cards)
             for item in self.plugins:
                 if item["category"] == "Services" and item["enabled"]:
-                    self.service_cards.add(self.plugin_card(item))
+                    self.service_cards.add(self.make_plugin_card(item))
                 if item["optional"]:
-                    self.plugin_cards.add(self.plugin_card(item, management=True))
+                    self.plugin_cards.add(self.make_plugin_card(item, management=True))
             self.service_cards.show_all()
             self.plugin_cards.show_all()
         return False
+
+    def make_plugin_card(self, item, management=False):
+        return plugin_card(
+            item,
+            management=management,
+            change_state=self.change_plugin_state,
+            install=self.install_plugin,
+            run_action=self.plugin_action,
+            control_changed=self.plugin_control_changed,
+        )
 
     def refresh_worker(self):
         status = "Stato non disponibile"
@@ -553,7 +388,7 @@ class ControlCenter(Gtk.Window):
                 transient_for=self, modal=True, destroy_with_parent=True,
                 message_type=Gtk.MessageType.QUESTION,
                 buttons=Gtk.ButtonsType.OK_CANCEL, text=action["confirm"])
-            self.prepare_dialog(dialog)
+            prepare_dialog(dialog, self)
             accepted = dialog.run() == Gtk.ResponseType.OK
             dialog.destroy()
             if not accepted:
@@ -626,15 +461,9 @@ class ControlCenter(Gtk.Window):
             message_type=Gtk.MessageType.ERROR,
             buttons=Gtk.ButtonsType.CLOSE, text=title)
         dialog.format_secondary_text(details)
-        self.prepare_dialog(dialog)
+        prepare_dialog(dialog, self)
         dialog.run()
         dialog.destroy()
-
-    def prepare_dialog(self, dialog):
-        dialog.set_transient_for(self)
-        dialog.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
-        dialog.set_keep_above(True)
-        dialog.present()
 
 
 CSS = b"""
