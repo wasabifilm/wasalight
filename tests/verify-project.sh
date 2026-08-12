@@ -858,6 +858,8 @@ grep -Fq '["pkill", "-u", user, "-x", process]' "$plugin_admin" || \
     fail "disabilitare un plugin di sessione non ferma il processo"
 grep -Fq 'os.replace(temporary, os.path.join(STATE_ROOT, plugin_id))' "$plugin_admin" || \
     fail "lo stato plugin persistente non viene scritto atomicamente"
+grep -Fq 'except subprocess.TimeoutExpired:' "$plugin_command" || \
+    fail "lo stato plugin non gestisce servizi lenti senza bloccare Control"
 grep -Fq 'PLUGIN_COMMAND = "/usr/local/bin/wasalight-plugin"' "$control_center" || \
     fail "Wasalight Control non usa il registro plugin"
 grep -Fq 'self.add_dashboard()' "$control_center" || \
@@ -952,6 +954,12 @@ grep -Fq 'wasalight-control.log' "$tmp_dir/wasalight-control" || \
 grep -Fq 'threading.Thread(target=self.refresh_worker, daemon=True).start()' \
     "$control_center" || \
     fail "Wasalight Control aggiorna ancora lo stato nel thread GTK"
+grep -Fq 'ThreadPoolExecutor(max_workers=3)' "$control_center" || \
+    fail "Control esegue ancora in serie stato, plugin e MagicQ"
+grep -Fq 'timeout=20' "$control_center" || \
+    fail "Control usa ancora un timeout troppo breve per i sistemi lenti"
+grep -Fq 'timeout --signal=TERM 6 /usr/local/bin/wasalight-touch-status' \
+    "$INSTALLER" || fail "lo stato touchscreen può bloccare il refresh Control"
 grep -Fq 'dialog.set_keep_above(True)' "$control_center" || \
     fail "i dialoghi GTK di Control non restano in primo piano"
 grep -Fq 'if item["optional"]:' "$control_center" || \

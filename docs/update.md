@@ -140,6 +140,12 @@ nulla e, in assenza di rete, termina senza finestre di errore. Quando trova una
 release nuova mostra una notifica discreta e la riga `UPDATE` di
 `wasalight-status` riporta la versione disponibile.
 
+Il refresh di Wasalight Control esegue in parallelo stato, registro plugin e
+stato MagicQ. Le sonde lente, come il rilevamento XInput del touchscreen, hanno
+un limite proprio e non possono più consumare l’intero tempo del pannello. La
+soglia del Control resta più ampia per tollerare hardware o VM momentaneamente
+occupati senza mostrare un falso errore di timeout.
+
 Ad ogni utilizzo il comando:
 
 1. cerca MagicQ nella root e in `packages/` di ogni USB montata;

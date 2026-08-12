@@ -107,10 +107,13 @@ def runtime_state(parser, installed):
         unit = runtime.get("Unit", "")
         if not unit or not shutil.which("systemctl"):
             return False
-        return subprocess.run(
-            ["systemctl", "is-active", "--quiet", unit],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            check=False).returncode == 0
+        try:
+            return subprocess.run(
+                ["systemctl", "is-active", "--quiet", unit],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                timeout=5, check=False).returncode == 0
+        except subprocess.TimeoutExpired:
+            return False
     if runtime_type == "process":
         if not shutil.which("pgrep"):
             return False
@@ -119,9 +122,12 @@ def runtime_state(parser, installed):
         if user:
             command.extend(["-u", user])
         command.extend(["-x", runtime.get("Process", "")])
-        return subprocess.run(
-            command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            check=False).returncode == 0
+        try:
+            return subprocess.run(
+                command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                timeout=5, check=False).returncode == 0
+        except subprocess.TimeoutExpired:
+            return False
     return False
 
 

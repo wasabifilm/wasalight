@@ -2,6 +2,7 @@
 """Touch-first unified Wasalight desktop management interface."""
 
 import configparser
+import concurrent.futures
 import glob
 import json
 import os
@@ -551,7 +552,7 @@ class ControlCenter(Gtk.Window):
     def read_plugins():
         result = subprocess.run(
             [PLUGIN_COMMAND, "list", "--json"], text=True,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10, check=False)
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20, check=False)
         if result.returncode:
             raise RuntimeError(result.stderr.strip() or "Registro plugin non disponibile")
         return json.loads(result.stdout)
@@ -560,7 +561,7 @@ class ControlCenter(Gtk.Window):
     def read_status():
         result = subprocess.run(
             ["/usr/local/bin/wasalight-status"], text=True,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=10, check=False)
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=20, check=False)
         return result.stdout.strip() or "Stato non disponibile"
 
     def apply_refresh(self, status, plugins, magicq, error):
@@ -597,18 +598,26 @@ class ControlCenter(Gtk.Window):
         plugins = None
         magicq = None
         errors = []
-        try:
-            status = self.read_status()
-        except Exception as error:
-            errors.append(f"stato: {error}")
-        try:
-            plugins = self.read_plugins()
-        except Exception as error:
-            errors.append(f"plugins: {error}")
-        try:
-            magicq = magicq_state()
-        except Exception as error:
-            errors.append(f"MagicQ: {error}")
+        # These probes are independent. Running them concurrently prevents a
+        # slow XInput scan from consuming the whole Control refresh budget.
+        tasks = {
+            "stato": self.read_status,
+            "plugins": self.read_plugins,
+            "MagicQ": magicq_state,
+        }
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {name: executor.submit(task) for name, task in tasks.items()}
+            for name, future in futures.items():
+                try:
+                    value = future.result()
+                    if name == "stato":
+                        status = value
+                    elif name == "plugins":
+                        plugins = value
+                    else:
+                        magicq = value
+                except Exception as error:
+                    errors.append(f"{name}: {error}")
         GLib.idle_add(self.apply_refresh, status, plugins, magicq, "; ".join(errors))
 
     def refresh_all(self):

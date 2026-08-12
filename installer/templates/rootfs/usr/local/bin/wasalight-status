@@ -37,7 +37,8 @@ else
 fi
 touch="unavailable"
 [[ -x /usr/local/bin/wasalight-touch-status ]] && \
-    touch=$(/usr/local/bin/wasalight-touch-status --summary 2>/dev/null || echo unavailable)
+    touch=$(timeout --signal=TERM 6 /usr/local/bin/wasalight-touch-status \
+        --summary 2>/dev/null || echo unavailable)
 vnc_mode="manual"
 [[ -r /data/system/service-flags/vnc-autostart && \
    $(</data/system/service-flags/vnc-autostart) == enabled ]] && vnc_mode="automatic"
