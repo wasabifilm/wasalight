@@ -92,9 +92,10 @@ al touch.
 
 Il profilo dedicato viene inizializzato con un'interfaccia scura e semplificata
 per il touch: barra di navigazione alta, pulsanti grandi per indietro/avanti,
-ricarica e home, campo indirizzo sempre visibile, barra dei preferiti e barra di
-stato nascoste. Anche il comando bookmark e la freccia della cronologia interna
-al campo indirizzo sono nascosti nel profilo dedicato. La barra delle schede
+ricarica, home e menu. Falkon ripristina internamente il campo indirizzo anche
+quando non è presente nel layout; il tema Wasalight lo comprime quindi a zero,
+insieme a bookmark e freccia della cronologia. Anche
+barra dei preferiti e barra di stato sono nascoste. La barra delle schede
 scompare quando ne è aperta una sola. Home
 e nuova scheda puntano all'interfaccia Companion locale; all'avvio non viene
 ripristinata la sessione precedente. Lo zoom predefinito è 120%, il livello
