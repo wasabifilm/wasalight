@@ -1,3 +1,5 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 """Semantic state derived from the human-readable appliance status report."""
 
 from dataclasses import dataclass
@@ -14,6 +16,7 @@ class OverviewSnapshot:
     magicq_detail: str
     network_level: str
     network_detail: str
+    network_ip: str
     ssh_running: bool
     vnc_running: bool
     remote_detail: str
@@ -34,6 +37,7 @@ def parse_status_report(report: str,
     data = fields.get("DATA", "unknown")
     magicq_detail = fields.get("MAGICQ", "unknown")
     network_detail = fields.get("NETWORK", "unknown")
+    network_ip = fields.get("IP", "")
     ssh_detail = fields.get("SSH", "unknown")
     vnc_detail = fields.get("VNC", "unknown")
     update_detail = fields.get("UPDATE", "not checked")
@@ -84,6 +88,7 @@ def parse_status_report(report: str,
         magicq_detail=magicq_detail,
         network_level=network_level,
         network_detail=network_detail,
+        network_ip=network_ip,
         ssh_running=ssh_running,
         vnc_running=vnc_running,
         remote_detail=" · ".join(remote_parts),

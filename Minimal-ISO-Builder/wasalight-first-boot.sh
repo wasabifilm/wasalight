@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 # Complete the Wasalight appliance setup on the first real Ubuntu boot.
 
 set -Eeuo pipefail

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 set -u
 version=$(cat /etc/wasalight/version 2>/dev/null || echo unknown)
 os=$(. /etc/os-release 2>/dev/null; printf '%s' "${PRETTY_NAME:-unknown}")
@@ -35,6 +37,7 @@ if [[ -n $unmanaged_devices ]]; then
 else
     network="$network; managed"
 fi
+ip_address=$(hostname -I 2>/dev/null | awk '{for (i=1; i<=NF; i++) if ($i !~ /:/ && $i !~ /^127\./) {print $i; exit}}')
 touch="unavailable"
 [[ -x /usr/local/bin/wasalight-touch-status ]] && \
     touch=$(timeout --signal=TERM 6 /usr/local/bin/wasalight-touch-status \
@@ -86,6 +89,7 @@ ROOT:       $root_fs
 DATA:       $data
 MAGICQ:     $magicq
 NETWORK:    $network
+IP:         ${ip_address:-unavailable}
 TOUCH:      $touch
 VNC:        $vnc
 SSH:        $ssh

@@ -1,4 +1,6 @@
 #!/bin/sh
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 # Copy the Wasalight seed from initramfs into the downloaded live system.
 
 PREREQ=""

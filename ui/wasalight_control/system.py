@@ -1,3 +1,5 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 """Read-only appliance probes used by the GTK interface."""
 
 import json

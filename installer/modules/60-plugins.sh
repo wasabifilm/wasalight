@@ -1,3 +1,6 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+
 configure_plugins() {
     local plugin source manifest state_file requested locale po_file
     install -d -m 0755 /usr/lib/wasalight/plugins
@@ -38,6 +41,11 @@ configure_plugins() {
         install -o root -g root -m 0644 "$source" \
             "/usr/local/libexec/wasalight_control/pages/${source##*/}"
     done
+    install -d -o root -g root -m 0755 \
+        /usr/local/share/wasalight-control/themes
+    install -o root -g root -m 0644 \
+        "$PROJECT_DIR/ui/themes/console-dark.ini" \
+        /usr/local/share/wasalight-control/themes/console-dark.ini
     for po_file in "$PROJECT_DIR/ui/locale/"*/LC_MESSAGES/wasalight-control.po; do
         locale=${po_file#"$PROJECT_DIR/ui/locale/"}
         locale=${locale%%/*}

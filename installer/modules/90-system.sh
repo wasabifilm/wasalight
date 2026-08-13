@@ -1,3 +1,6 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+
 configure_volatile_runtime() {
     install -d -m 0755 /etc/systemd/journald.conf.d
     install_template /etc/systemd/journald.conf.d/10-wasalight-volatile.conf 0644
@@ -10,6 +13,17 @@ configure_volatile_runtime() {
     install -d -m 0755 /etc/systemd/logind.conf.d
     install_template /etc/systemd/logind.conf.d/10-wasalight-no-sleep.conf 0644
     systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+}
+
+install_wasalight_legal_notices() {
+    local document
+    install -d -o root -g root -m 0755 /usr/share/doc/wasalight
+    for document in LICENSE NOTICE CONTACT.md TRADEMARKS.md CITATION.cff; do
+        install -o root -g root -m 0644 "$PROJECT_DIR/$document" \
+            "/usr/share/doc/wasalight/$document"
+    done
+    install -o root -g root -m 0644 "$PROJECT_DIR/assets/branding/LICENSE" \
+        /usr/share/doc/wasalight/BRANDING-LICENSE
 }
 
 disable_service_if_present() {
@@ -372,6 +386,11 @@ final_checks() {
         die "Wasalight is not the active Plymouth theme"
     [[ -r /etc/default/grub.d/99-wasalight.cfg ]] || \
         die "Wasalight quiet GRUB configuration is unavailable"
+    for legal_document in LICENSE NOTICE CONTACT.md TRADEMARKS.md CITATION.cff \
+                          BRANDING-LICENSE; do
+        [[ -s /usr/share/doc/wasalight/$legal_document ]] || \
+            die "Wasalight legal notice is unavailable: $legal_document"
+    done
     [[ -r /etc/initramfs-tools/conf.d/wasalight-framebuffer ]] || \
         die "Wasalight early framebuffer configuration is unavailable"
     [[ -s /boot/grub/wasalight-background.png ]] || \

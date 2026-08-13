@@ -1,3 +1,5 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 """Persistent plugin management page."""
 
 import gi
@@ -14,8 +16,8 @@ class MaintenancePage:
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         page.set_border_width(16)
         page.pack_start(section_heading(
-            _("Maintenance"),
-            _("Persistent components and operations reserved for maintenance.")),
+            _("Optional components"),
+            _("Install and manage additional Wasalight components.")),
             False, False, 0)
         self.plugin_cards = Gtk.FlowBox()
         self.plugin_cards.set_selection_mode(Gtk.SelectionMode.NONE)

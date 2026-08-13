@@ -6,7 +6,10 @@ message: >-
 authors:
   - family-names: Moser
     given-names: Michele
+    email: info@wasabi.eu
+    affiliation: Wasabi Lightbulbfarm
 title: Wasalight
 type: software
 repository-code: https://github.com/wasabifilm/wasalight
+url: https://www.wasabi.eu/
 license: Apache-2.0

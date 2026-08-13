@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 set -u
 
 readonly runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"

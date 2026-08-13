@@ -1,3 +1,5 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 """Parsing and discovery of applications exposed by Wasalight Control."""
 
 import configparser

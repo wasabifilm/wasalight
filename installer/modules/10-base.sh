@@ -1,3 +1,6 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+
 configure_data_mount() {
     install -d -m 0755 "$DATA_MOUNT"
 

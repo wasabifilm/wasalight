@@ -9,6 +9,10 @@ Progetto realizzato da **Michele Moser** e **Wasabi Lightbulbfarm**.
 Citazione del progetto: **“Wasalight — created by Michele Moser / Wasabi
 Lightbulbfarm.”** Instagram: **[@wasabi_lightbulbfarm](https://www.instagram.com/wasabi_lightbulbfarm/)**.
 
+Contatti ufficiali: [www.wasabi.eu](https://www.wasabi.eu/) ·
+[info@wasabi.eu](mailto:info@wasabi.eu) · Viale Verona 190/11, 38123 Trento,
+Italy. Tutti i riferimenti sono raccolti in [`CONTACT.md`](CONTACT.md).
+
 ## Contenuto
 
 ```text
@@ -16,6 +20,8 @@ magicq-ubuntu-appliance/
 ├── install.sh                         avvio principale
 ├── LICENSE                            Apache License 2.0
 ├── NOTICE                             attribuzione da conservare
+├── CONTACT.md                         contatti e canali ufficiali
+├── TRADEMARKS.md                      uso di nome, logo e distribuzioni ufficiali
 ├── CITATION.cff                       citazione standard del progetto
 ├── VERSION                            versione CalVer dell’installer
 ├── release-manifest.ini               piattaforma, repository e versioni esterne
@@ -52,14 +58,23 @@ magicq-ubuntu-appliance/
 ## Licenza e attribuzione
 
 Codice e documentazione sono open source con licenza **Apache License 2.0**.
-Chi ridistribuisce Wasalight o una sua derivazione deve conservare la licenza e
-l’attribuzione contenuta in `NOTICE`, secondo i termini della licenza.
+Il copyright resta di Michele Moser, che può usare e vendere il proprio lavoro
+anche come appliance, installazione, assistenza o servizio commerciale. La
+licenza consente anche a terzi uso, modifica e distribuzione commerciale: chi
+ridistribuisce Wasalight o una sua derivazione deve rispettarne le condizioni,
+conservare la licenza e includere l’attribuzione contenuta in `NOTICE` quando
+pertinente.
+
+La licenza software non concede il diritto di presentare fork, appliance o
+servizi di terzi come prodotti ufficiali o certificati Wasalight. I nomi
+Wasalight e Wasabi Lightbulbfarm e i relativi segni distintivi sono disciplinati
+dalla [policy sul marchio](TRADEMARKS.md).
 
 I file `assets/branding/wasabi-logo.png` e `boot-logo.png` sono esclusi dalla
 licenza Apache e restano proprietà di Michele Moser / Wasabi Lightbulbfarm. È
-permesso mantenerli invariati in una distribuzione ufficiale Wasalight non
-modificata; per derivazioni, rebranding o altri usi devono essere rimossi,
-sostituiti oppure autorizzati per iscritto. I dettagli sono in
+permesso mantenerli invariati in una copia ufficiale integra e non modificata;
+per derivazioni, rebranding o altri usi devono essere rimossi, sostituiti oppure
+autorizzati per iscritto. I dettagli sono in
 [`assets/branding/LICENSE`](assets/branding/LICENSE).
 
 Quando il progetto viene mostrato sui social, il tag Instagram
@@ -601,13 +616,14 @@ e verificabile di Bitfocus Companion. Il servizio usa l'utente dedicato
 `companion`, parte automaticamente dopo la rete e mantiene home, configurazione,
 moduli, log e backup sotto `/data/companion`.
 
-Il pannello Conky e `wasalight-status` mostrano lo stato Companion. La voce
-**Bitfocus Companion** in Wasalight Control offre avvio, arresto, riavvio, backup e aggiornamento e
-indica l'interfaccia web `http://INDIRIZZO:8000`. Backup e aggiornamento sono
+Il pannello Conky e `wasalight-status` mostrano lo stato Companion. La scheda
+Companion di Wasalight Control offre avvio, arresto e riavvio; in **Plugin**
+mostra la versione installata e offre backup e aggiornamento. In **Sistema**
+indica l'interfaccia web come `INDIRIZZO:8000`. Backup e aggiornamento sono
 consentiti solo in MAINTENANCE; in SHOW la configurazione rimane persistente ma
 il runtime protetto non viene modificato.
 
-La voce **Companion Web UI** apre l'interfaccia locale in Falkon, massimizzata
+La voce **Companion** in Applicazioni apre l'interfaccia locale in Falkon, massimizzata
 ma con la barra Tint2 ancora accessibile al touch. Profilo e preferenze sono
 persistenti in `/data/companion/browser`, mentre la cache resta temporanea.
 

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 
 set -Eeuo pipefail
 
@@ -156,6 +158,10 @@ grep -Fq 'Icon=/usr/local/share/icons/wasalight/companion-official.png' \
     "$companion_web_launcher" || fail "Falkon Companion non usa l’icona ufficiale"
 grep -Fq 'StartupWMClass=WasalightCompanion' "$companion_web_launcher" || \
     fail "il launcher Companion non usa una classe finestra dedicata"
+grep -Fq 'Name=Companion' "$companion_web_launcher" || \
+    fail "il launcher operativo Companion non usa il nome compatto"
+[[ ! -e $INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/companion.desktop ]] || \
+    fail "il vecchio launcher tecnico Companion duplica ancora il Control Center"
 
 management_helpers=(
     wasalight-health wasalight-health-monitor wasalight-support-bundle wasalight-data-transfer
@@ -379,7 +385,7 @@ required_patterns=(
     'Companion updates require MAINTENANCE mode.'
     'COMPANION:  $companion'
     "status_line \"\$green\" 'COMPANION'"
-    '/etc/wasalight/apps.d/companion.desktop'
+    'rm -f /etc/wasalight/apps.d/companion.desktop'
     'Icon=/usr/local/share/icons/wasalight/companion-official.png'
     'readonly COMPANION_ICON_SHA256='
     '/etc/wasalight/apps.d/companion-web.desktop'
@@ -905,13 +911,24 @@ grep -Fq 'class OverviewSnapshot:' "$control_core/overview_state.py" || \
 grep -Fq 'Gtk.Expander(label=_("Technical details"))' \
     "$control_core/pages/overview.py" || \
     fail "la Panoramica Control mostra sempre i dettagli tecnici"
-grep -Fq "foreground='#76bd22'" "$control_core/shell.py" || \
-    fail "il titolo di Wasalight Control non usa il verde Wasabi"
+grep -Fq '"good": _("Configured"), "error": _("To configure")' \
+    "$control_core/pages/overview.py" || \
+    fail "la rete Control usa ancora stati tecnici"
+grep -Fq 'IP address: {address}' "$control_core/pages/overview.py" || \
+    fail "la Panoramica Control non mostra l'indirizzo IP"
+grep -Fq 'title.get_style_context().add_class("brand-title")' \
+    "$control_core/shell.py" || fail "il titolo di Control non usa il colore tema del marchio"
+grep -Fq 'self.set_decorated(False)' "$control_center" || \
+    fail "Control mostra ancora la barra titolo nativa duplicata"
+if grep -Fq 'mode = Gtk.Label(label=identity.mode)' "$control_core/shell.py"; then
+    fail "la modalità è ancora duplicata nell'intestazione Control"
+fi
 grep -Fq '.navigation-button:checked {' "$control_core/style.py" || \
     fail "la sezione attiva di Control non ha una palette dedicata"
-grep -Fq 'background: #223016; color: #9bd95a;' "$control_core/style.py" || \
-    fail "la sezione attiva di Control non usa il verde Wasabi bilanciato"
-grep -Fq 'min-height: 44px; font-size: 15px;' "$control_core/style.py" || \
+grep -Fq "background: {palette['brand']}; color: {palette['brand_text']};" \
+    "$control_core/style.py" || fail "la sezione attiva non usa i token del marchio"
+grep -Fq 'min-height: 44px; padding: 8px 12px; font-size: 15px;' \
+    "$control_core/style.py" || \
     fail "i font dei pulsanti Control non usano la misura compatta touch"
 grep -Fq "size='20000' weight='bold'>Wasalight Control" "$control_core/shell.py" || \
     fail "il titolo Control non usa la misura compatta"
@@ -937,6 +954,12 @@ if grep -Fq '#8957e5' "$INSTALLER"; then
 fi
 grep -Fq 'mode_label = _("Switch to MAINTENANCE") if identity.mode == "SHOW" else _("Switch to SHOW")' \
     "$control_core/pages/overview.py" || fail "la home Control non mostra il cambio modalità contestuale"
+if grep -Fq 'self.summary_state' "$control_core/pages/overview.py"; then
+    fail "la home Control duplica ancora la modalità nella stessa scheda"
+fi
+grep -Fq '_("Updates"), lambda _button: open_page("tools")' \
+    "$control_core/pages/overview.py" || \
+    fail "la scheda Aggiornamenti non apre gli strumenti dedicati"
 if grep -Fq '("File", ["pcmanfm", "/data"])' "$control_center"; then
     fail "la home Control contiene ancora il pulsante File"
 fi
@@ -956,7 +979,7 @@ if grep -Fq '<item label="Avvia MagicQ">' "$INSTALLER" || \
     fail "il menu contestuale Openbox espone ancora Avvia/Ferma MagicQ"
 fi
 grep -Fq 'self.magicq_auto_switch = Gtk.Switch()' \
-    "$control_core/pages/applications.py" || \
+    "$control_core/pages/overview.py" || \
     fail "Wasalight Control non espone il toggle automatico MagicQ"
 grep -Fq 'magicq-autostart' "$INSTALLER" || \
     fail "l'avvio automatico MagicQ non ha un flag persistente"
@@ -966,26 +989,39 @@ grep -Fq 'magicq_auto=enabled' "$INSTALLER" || \
     fail "l'autostart SHOW di MagicQ non legge il flag persistente"
 grep -Fq 'def plugin_control_changed' "$control_center" || \
     fail "Wasalight Control non gestisce i toggle servizio dichiarativi"
-grep -Fq 'switch:checked { background: #76bd22;' "$control_core/style.py" || \
-    fail "i toggle Control non usano il verde Wasabi"
+grep -Fq "background: {palette['brand']}; border-color: {palette['brand']};" \
+    "$control_core/style.py" || fail "i toggle Control non usano il token verde Wasabi"
 grep -Fq '.flat-card {' "$control_core/style.py" || \
     fail "Control non espone il nuovo componente card flat"
 grep -Fq '.text-button {' "$control_core/style.py" || \
     fail "Control non espone le azioni testuali flat"
-if grep -Fq 'box-shadow' "$control_core/style.py"; then
-    fail "i pulsanti Control usano ancora ombre"
+grep -Fq 'background-image: none; box-shadow: none; text-shadow: none;' \
+    "$control_core/style.py" || fail "Control non azzera effetti e ombre GTK native"
+grep -Fq 'border: 0 solid transparent; box-shadow: none; font-weight: bold;' \
+    "$control_core/style.py" || fail "la navigazione attiva conserva bordi GTK"
+grep -Fq "border: 1px solid {palette['separator']}; border-radius: 2px;" \
+    "$control_core/style.py" || fail "i pulsanti Control non hanno un bordo tema uniforme"
+grep -Fq 'self.shell.configure_language_button(self.show_language_dialog)' \
+    "$control_center" || fail "la lingua Control non è separata dalle pagine operative"
+grep -Fq 'def show_language_dialog(self):' "$control_center" || \
+    fail "la lingua Control non usa un dialogo affidabile"
+if grep -Fq 'Gtk.MenuButton' "$control_core/shell.py"; then
+    fail "la lingua Control usa ancora il popover non funzionante"
 fi
-grep -Fq 'border: 1px solid #303842; border-radius: 6px;' \
-    "$control_core/style.py" || fail "i pulsanti Control non hanno un bordo uniforme"
-grep -Fq 'self.shell.configure_language_menu(self.language_saved)' "$control_center" || \
-    fail "la lingua Control non è separata dalle pagine operative"
-grep -Fq 'def configure_language_menu(self, save_language):' \
-    "$control_core/shell.py" || fail "la shell Control non espone il menu lingua"
+if grep -Fq 'Theme' "$control_core/shell.py" || \
+   grep -Fq 'theme_saved' "$control_center"; then
+    fail "Control espone ancora un selettore tema"
+fi
+if grep -Fq '_("Applications")' "$control_core/pages/applications.py" || \
+   grep -Fq '_("System")' "$control_core/pages/system.py" || \
+   grep -Fq '_("Tools")' "$control_core/pages/tools.py"; then
+    fail "le pagine Control ripetono ancora il titolo della navigazione"
+fi
 if grep -Fq 'Gtk.ComboBoxText()' "$control_core/pages/system.py"; then
     fail "la lingua Control è ancora incorporata nella pagina Sistema"
 fi
-grep -Fq 'auto_row = toggle_row(_("Automatic startup"), self.magicq_auto_switch)' \
-    "$control_core/pages/applications.py" || \
+grep -Fq 'toggle_row(_("Automatic startup"), self.magicq_auto_switch)' \
+    "$control_core/pages/overview.py" || \
     fail "MagicQ non usa la riga di avvio automatico comune"
 grep -Fq 'if action["management"] or action.get("control")' \
     "$control_core/widgets.py" || \
@@ -1001,6 +1037,14 @@ grep -Fq 'https://github.com/wasabifilm/wasalight' "$control_core/pages/about.py
 grep -Fq 'https://www.instagram.com/wasabi_lightbulbfarm/' \
     "$control_core/pages/about.py" || \
     fail "la pagina Crediti non collega Instagram"
+for about_contact in \
+    'Viale Verona 190/11' '38123 Trento' 'mailto:info@wasabi.eu' \
+    'https://www.wasabi.eu/' 'https://www.facebook.com/wasabilightbulbfarm' \
+    'https://www.youtube.com/@Wasabi_lightbulbfarm' \
+    'https://www.linkedin.com/company/wasabi-lightbulbfarm/'; do
+    grep -Fq "$about_contact" "$control_core/pages/about.py" || \
+        fail "contatto mancante dalla pagina Crediti: $about_contact"
+done
 for launcher in files ip-scanner artnet-monitor; do
     launcher_body=$(cat "$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/$launcher.desktop")
     grep -Fq 'X-Wasalight-Section=Applications' <<<"$launcher_body" || \
@@ -1033,6 +1077,8 @@ grep -Fq 'msgfmt --check' "$INSTALLER" || \
     fail "l'installer non compila i cataloghi di Wasalight Control"
 grep -Fq "printf 'it\\n' >\"\$DATA_MOUNT/system/control/language\"" "$INSTALLER" || \
     fail "l'installer non preserva l'italiano come lingua Control iniziale"
+grep -Fq '/usr/local/share/wasalight-control/themes/console-dark.ini' "$INSTALLER" || \
+    fail "l'installer non installa le palette Control"
 grep -Fq 'wasalight_control/pages/' "$INSTALLER" || \
     fail "l'installer non installa i moduli pagina di Wasalight Control"
 for locale in en it; do
@@ -1043,12 +1089,21 @@ for locale in en it; do
 done
 grep -Fq 'control_language_file: str = "/data/system/control/language"' \
     "$control_core/models.py" || fail "la lingua Control non è persistente su /data"
-grep -Fq 'from wasalight_control.i18n import _, configure' "$control_center" || \
+grep -Fq 'control_theme_path: str = "/usr/local/share/wasalight-control/themes/console-dark.ini"' \
+    "$control_core/models.py" || fail "Control non usa la palette esterna fissa"
+grep -Fq 'DEFAULT_PALETTE = {' "$control_core/theme.py" || \
+    fail "Control non dispone del fallback tema incorporato"
+grep -Fq 'COLOUR.fullmatch(value)' "$control_core/theme.py" || \
+    fail "Control non valida i colori dei temi"
+grep -Fq 'from wasalight_control.i18n import (' "$control_center" || \
     fail "Wasalight Control non inizializza la localizzazione"
 grep -Fq 'timeout --signal=TERM 6 /usr/local/bin/wasalight-touch-status' \
     "$INSTALLER" || fail "lo stato touchscreen può bloccare il refresh Control"
 grep -Fq 'dialog.set_keep_above(True)' "$control_core/widgets.py" || \
     fail "i dialoghi GTK di Control non restano in primo piano"
+grep -Fq 'Icon=utilities-system-monitor-symbolic' \
+    "$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/system-monitor.desktop" || \
+    fail "Monitor sistema non usa un'icona riconoscibile"
 
 date_time_ui="$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-date-time"
 time_control="$INSTALLER_TEMPLATE_ROOT/usr/local/sbin/wasalight-time-control"
@@ -1098,6 +1153,7 @@ cp -R "$PROJECT_DIR/plugins/." "$plugin_fixture/"
 printf 'disabled\n' >"$plugin_state_fixture/ssh"
 printf 'enabled\n' >"$service_flag_fixture/ssh-autostart"
 printf 'disabled\n' >"$service_flag_fixture/vnc-autostart"
+printf 'enabled\n' >"$service_flag_fixture/companion-autostart"
 plugin_json=$(WASALIGHT_PLUGIN_ROOT="$plugin_fixture" \
     WASALIGHT_PLUGIN_STATE_ROOT="$plugin_state_fixture" \
     WASALIGHT_SERVICE_FLAG_ROOT="$service_flag_fixture" \
@@ -1118,9 +1174,10 @@ assert plugins["companion"]["category"] == "Services"
 assert plugins["companion"]["compatible"] is True
 assert plugins["ssh"]["persistent"] is True
 assert plugins["vnc"]["persistent"] is False
+assert plugins["companion"]["persistent"] is True
 assert plugins["ssh"]["state_label"].endswith("AUTO")
 assert plugins["vnc"]["state_label"].endswith("MANUALE")
-for plugin_id in ("ssh", "vnc"):
+for plugin_id in ("ssh", "vnc", "companion"):
     controls = {control["id"]: control for control in plugins[plugin_id]["controls"]}
     assert set(controls) == {"runtime", "automatic"}
     assert controls["runtime"]["label"] == "Servizio attivo"
@@ -1133,6 +1190,12 @@ for plugin_id in ("ssh", "vnc"):
 assert any(action["id"] == "open" for action in plugins["companion"]["actions"])
 assert any(action["id"] == "update" and action["management"]
            for action in plugins["companion"]["actions"])
+backup = next(action for action in plugins["companion"]["actions"]
+              if action["id"] == "backup")
+assert backup["management"] is True
+assert backup["show_output"] is True
+assert plugins["companion"]["installed_version"] == ""
+assert plugins["companion"]["endpoint"] == ""
 PY
 if WASALIGHT_PLUGIN_ROOT="$plugin_fixture" \
    WASALIGHT_PLUGIN_STATE_ROOT="$plugin_state_fixture" \
@@ -1152,14 +1215,25 @@ grep -Fq 'Key=ssh-autostart' "$PROJECT_DIR/plugins/ssh/manifest.ini" || \
     fail "il manifest SSH non dichiara il flag persistente"
 grep -Fq 'Key=vnc-autostart' "$PROJECT_DIR/plugins/vnc/manifest.ini" || \
     fail "il manifest VNC non dichiara il flag persistente"
+grep -Fq 'Key=companion-autostart' "$PROJECT_DIR/plugins/companion/manifest.ini" || \
+    fail "il manifest Companion non dichiara il flag persistente"
 for manifest in "$PROJECT_DIR/plugins/ssh/manifest.ini" \
-                "$PROJECT_DIR/plugins/vnc/manifest.ini"; do
+                "$PROJECT_DIR/plugins/vnc/manifest.ini" \
+                "$PROJECT_DIR/plugins/companion/manifest.ini"; do
     grep -Fq '[Control runtime]' "$manifest" || fail "toggle runtime mancante: $manifest"
     grep -Fq '[Control automatic]' "$manifest" || fail "toggle automatico mancante: $manifest"
 done
 grep -Fq 'Command=/usr/local/bin/wasalight-companion-update-terminal' \
     "$PROJECT_DIR/plugins/companion/manifest.ini" || \
     fail "Companion non espone l'aggiornamento dal Control Center"
+grep -Fq 'Command=/usr/local/sbin/wasalight-companion-backup' \
+    "$PROJECT_DIR/plugins/companion/manifest.ini" || \
+    fail "Companion non espone il backup dal Control Center"
+grep -Fq 'InstalledVersionFile=/data/companion/installed-version' \
+    "$PROJECT_DIR/plugins/companion/manifest.ini" || \
+    fail "Companion non espone la versione installata"
+grep -Fq 'Port=8000' "$PROJECT_DIR/plugins/companion/manifest.ini" || \
+    fail "Companion non espone la porta per l'indirizzo di Sistema"
 
 for embedded in \
     'wasalight-ip-scanner.py:/usr/local/libexec/wasalight-ip-scanner.py' \
@@ -1338,14 +1412,47 @@ grep -Fq '## Bitfocus Companion opzionale' "$PROJECT_DIR/docs/hardware-test-chec
 grep -Fq 'Apache License' "$PROJECT_DIR/LICENSE" || fail "testo licenza Apache non valido"
 grep -Fq 'Version 2.0, January 2004' "$PROJECT_DIR/LICENSE" || \
     fail "versione della licenza Apache non valida"
+while IFS= read -r source_file; do
+    grep -Fq 'Copyright 2026 Michele Moser' "$source_file" || \
+        fail "copyright mancante dal sorgente: ${source_file#"$PROJECT_DIR/"}"
+    grep -Fq 'SPDX-License-Identifier: Apache-2.0' "$source_file" || \
+        fail "identificatore SPDX mancante dal sorgente: ${source_file#"$PROJECT_DIR/"}"
+    first_line=$(sed -n '1p' "$source_file")
+    if [[ $first_line == '#!'* ]]; then
+        [[ $(sed -n '2p' "$source_file") == '# Copyright 2026 Michele Moser' ]] || \
+            fail "copyright non immediatamente dopo shebang: ${source_file#"$PROJECT_DIR/"}"
+    else
+        [[ $first_line == '# Copyright 2026 Michele Moser' ]] || \
+            fail "copyright non in testa al sorgente: ${source_file#"$PROJECT_DIR/"}"
+    fi
+done < <(find "$PROJECT_DIR" -path "$PROJECT_DIR/.git" -prune -o -type f \
+    \( -name '*.sh' -o -name '*.py' -o -perm -111 \) -print | sort)
 [[ -s "$PROJECT_DIR/NOTICE" ]] || fail "NOTICE di attribuzione mancante"
 grep -Fq 'Wasalight — created by Michele Moser / Wasabi Lightbulbfarm.' \
     "$PROJECT_DIR/NOTICE" || fail "citazione Wasalight mancante dal NOTICE"
 grep -Fq '@wasabi_lightbulbfarm' "$PROJECT_DIR/NOTICE" || \
     fail "account Instagram mancante dal NOTICE"
+[[ -s "$PROJECT_DIR/CONTACT.md" ]] || fail "contatti ufficiali mancanti"
+for contact_value in \
+    'Viale Verona 190/11' '38123 Trento' 'info@wasabi.eu' \
+    'https://www.wasabi.eu/' 'https://www.facebook.com/wasabilightbulbfarm' \
+    'https://www.youtube.com/@Wasabi_lightbulbfarm' \
+    'https://www.linkedin.com/company/wasabi-lightbulbfarm/'; do
+    grep -Fq "$contact_value" "$PROJECT_DIR/CONTACT.md" || \
+        fail "contatto ufficiale mancante: $contact_value"
+done
+[[ -s "$PROJECT_DIR/TRADEMARKS.md" ]] || fail "policy sul marchio mancante"
+grep -Fq 'non è una distribuzione ufficiale Wasalight' \
+    "$PROJECT_DIR/TRADEMARKS.md" || fail "regola per derivazioni non ufficiali mancante"
 [[ -s "$PROJECT_DIR/CITATION.cff" ]] || fail "metadati di citazione mancanti"
 grep -Fq 'license: Apache-2.0' "$PROJECT_DIR/CITATION.cff" || \
     fail "licenza mancante dai metadati di citazione"
+grep -Fq 'install_wasalight_legal_notices' "$INSTALLER" || \
+    fail "l'installer non conserva gli avvisi legali nell'appliance"
+grep -Fq 'for document in LICENSE NOTICE CONTACT.md TRADEMARKS.md CITATION.cff' \
+    "$INSTALLER" || fail "insieme degli avvisi legali installati incompleto"
+grep -Fq '/usr/share/doc/wasalight/$document' "$INSTALLER" || \
+    fail "destinazione degli avvisi legali non valida"
 [[ -s "$PROJECT_DIR/assets/branding/LICENSE" ]] || fail "licenza separata del logo mancante"
 grep -Fq 'excluded from the Apache' "$PROJECT_DIR/assets/branding/LICENSE" || \
     fail "esclusione del logo dalla licenza Apache non documentata"
@@ -1374,7 +1481,7 @@ for label in '("overview", _("Overview"), self.overview_page)' \
     '("applications", _("Applications"), self.applications_page.widget)' \
     '("system", _("System"), self.system_page.widget)' \
     '("tools", _("Tools"), self.tools_page.widget)' \
-    '("maintenance", _("Maintenance"), self.maintenance_page.widget)' \
+    '("maintenance", _("Plugins"), self.maintenance_page.widget)' \
     '("about", _("About"), self.about_page.widget)' \
     'ApplicationShell(identity, pages, self.destroy)'; do
     grep -Fq "$label" "$control_center" || \

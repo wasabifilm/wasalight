@@ -7,6 +7,13 @@ approvata OSI. Il testo completo è nel file `LICENSE` alla radice del
 repository. La licenza consente uso, modifica e distribuzione, anche
 commerciale, nel rispetto delle sue condizioni.
 
+Michele Moser conserva il copyright sul codice originale. Pubblicare il
+progetto con una licenza open source non trasferisce la titolarità e non
+impedisce al titolare di vendere copie, appliance, installazione, assistenza,
+garanzia, aggiornamenti o altri servizi. Anche i destinatari possono usare e
+ridistribuire commercialmente il software: il diritto esclusivo di essere
+l'unico venditore non è compatibile con la normale definizione di open source.
+
 Le distribuzioni e le opere derivate devono conservare una copia della licenza,
 indicare i file modificati e includere in forma leggibile le attribuzioni del
 file `NOTICE` quando pertinenti. La citazione ufficiale è:
@@ -15,6 +22,18 @@ file `NOTICE` quando pertinenti. La citazione ufficiale è:
 
 Il file `CITATION.cff` contiene gli stessi dati in formato riconosciuto da
 GitHub e dagli strumenti bibliografici.
+
+## Nome, marchio e distribuzioni ufficiali
+
+La sezione 6 della licenza Apache 2.0 non concede diritti sui marchi, salvo il
+normale uso necessario a descrivere l'origine del software. Le regole per i
+nomi Wasalight e Wasabi Lightbulbfarm, i fork, le appliance e le espressioni
+“ufficiale” o “certificato” sono definite in [`TRADEMARKS.md`](../TRADEMARKS.md).
+
+In sintesi, è sempre possibile citare correttamente Wasalight e dichiarare che
+un prodotto deriva dal progetto. Una versione modificata deve però avere nome e
+identità grafica distinti, non può suggerire approvazione o assistenza del
+titolare e deve dichiarare di non essere una distribuzione ufficiale.
 
 ## Logo Wasabi Lightbulbfarm
 
@@ -26,6 +45,38 @@ distribuzione ufficiale Wasalight non modificata.
 Una derivazione o una versione rinominata deve rimuovere o sostituire quei file,
 oppure ottenere un’autorizzazione scritta. Il software continua a funzionare con
 un logo PNG sostitutivo seguendo `docs/boot-branding.md`.
+
+Una copia ufficiale integra può conservare il branding incorporato nei limiti
+di `assets/branding/LICENSE`, ma il rivenditore non acquisisce per questo una
+qualifica di distributore autorizzato, partner o centro assistenza.
+
+## Vendita e servizi commerciali
+
+Il titolare può vendere, tra l'altro:
+
+- hardware con Wasalight preinstallato e collaudato;
+- immagini e procedure ufficiali, installazione e configurazione;
+- assistenza, manutenzione, garanzia e aggiornamenti gestiti;
+- certificazione e autorizzazioni commerciali separate per il branding.
+
+La licenza Apache 2.0 resta applicabile al codice incluso. Contratti di vendita,
+supporto o garanzia possono regolare separatamente il servizio offerto, senza
+ridurre i diritti che la licenza open source concede sulle copie del software
+già ricevute.
+
+## Contatti del titolare
+
+I contatti pubblici per attribuzione, autorizzazioni sul branding e richieste
+commerciali sono:
+
+> Wasabi sas di Michele Moser & C.<br>
+> Viale Verona 190/11, 38123 Trento, Italy<br>
+> P. IVA IT02274000229<br>
+> [www.wasabi.eu](https://www.wasabi.eu/) ·
+> [info@wasabi.eu](mailto:info@wasabi.eu)
+
+Social e collegamenti ufficiali aggiornati sono raccolti in
+[`CONTACT.md`](../CONTACT.md).
 
 ## Instagram
 

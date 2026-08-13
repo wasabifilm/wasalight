@@ -1,4 +1,6 @@
 #!/bin/sh
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 # Casper hook for the Wasalight Mini ISO two-stage network loader.
 
 PREREQ=""

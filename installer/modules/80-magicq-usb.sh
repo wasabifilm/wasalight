@@ -1,3 +1,6 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+
 configure_usb() {
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0755 "$USB_MOUNT"
 

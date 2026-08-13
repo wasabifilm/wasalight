@@ -1,3 +1,6 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+
 configure_persistent_logs() {
     local log_file
     if mountpoint -q "$DATA_MOUNT"; then
