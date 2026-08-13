@@ -89,7 +89,8 @@ class OverviewPage(Gtk.Box):
         self.remote_card = self._status_card(
             _("Remote access"), lambda _button: open_page("system"))
         self.update_card = self._status_card(
-            _("Updates"), lambda _button: open_page("tools"))
+            _("Updates"),
+            lambda button: run_command(button, [paths.update_terminal]))
         for card in (self.network_card, self.remote_card, self.update_card):
             cards.pack_start(card[0], True, True, 0)
         self.pack_start(cards, False, False, 0)
