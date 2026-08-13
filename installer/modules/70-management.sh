@@ -30,6 +30,8 @@ configure_management_tools() {
 
     install_template /usr/local/bin/wasalight-screen-lock 0755
     install_template /usr/local/bin/wasalight-rollback-ui 0755
+    install_template /usr/local/bin/wasalight-date-time 0755
+    install_template /usr/local/sbin/wasalight-time-control 0755
 
     install_template /etc/wasalight/apps.d/health.desktop 0644
     install_template /etc/wasalight/apps.d/support-bundle.desktop 0644
@@ -44,6 +46,10 @@ configure_management_tools() {
 
     install_template /etc/wasalight/apps.d/screen-lock.desktop 0644
     install_template /etc/wasalight/apps.d/rollback.desktop 0644
+    install_template /etc/wasalight/apps.d/date-time.desktop 0644
+
+    install -d -m 0755 /usr/share/polkit-1/actions
+    install_template /usr/share/polkit-1/actions/com.wasalight.time.policy 0644
 
     install_template /etc/sudoers.d/wasalight-management 0440
     visudo -cf /etc/sudoers.d/wasalight-management >/dev/null

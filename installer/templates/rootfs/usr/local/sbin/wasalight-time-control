@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+usage() {
+    cat <<'EOF'
+Usage:
+  wasalight-time-control sync
+  wasalight-time-control automatic
+  wasalight-time-control timezone AREA/CITY
+  wasalight-time-control manual "YYYY-MM-DD HH:MM:SS"
+EOF
+}
+
+[[ $EUID -eq 0 ]] || { echo "Questo comando richiede privilegi amministrativi." >&2; exit 1; }
+(($# >= 1)) || { usage >&2; exit 2; }
+
+sync_clock() {
+    timedatectl set-ntp true
+    systemctl enable --now chrony.service
+    chronyc -a online >/dev/null
+    chronyc -a burst 4/4 >/dev/null 2>&1 || true
+    sleep 2
+    chronyc -a makestep
+    timeout 25 chronyc waitsync 25 1 >/dev/null || {
+        echo "Chrony non riesce a sincronizzare l’orologio. Controlla rete e sorgenti NTP." >&2
+        return 1
+    }
+    hwclock --systohc 2>/dev/null || true
+}
+
+case $1 in
+    sync|automatic)
+        (($# == 1)) || { usage >&2; exit 2; }
+        sync_clock
+        ;;
+    timezone)
+        (($# == 2)) || { usage >&2; exit 2; }
+        timedatectl list-timezones | grep -Fqx -- "$2" || {
+            echo "Fuso orario non valido: $2" >&2
+            exit 2
+        }
+        timedatectl set-timezone "$2"
+        ;;
+    manual)
+        (($# == 2)) || { usage >&2; exit 2; }
+        [[ $2 =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}$ ]] || {
+            echo "Data non valida. Formato richiesto: YYYY-MM-DD HH:MM:SS" >&2
+            exit 2
+        }
+        canonical=$(date --date="$2" '+%Y-%m-%d %H:%M:%S') || {
+            echo "Data o ora non valida: $2" >&2
+            exit 2
+        }
+        [[ $canonical == "$2" ]] || {
+            echo "Data o ora non valida: $2" >&2
+            exit 2
+        }
+        timedatectl set-ntp false
+        systemctl disable --now chrony.service
+        timedatectl set-time "$2"
+        hwclock --systohc 2>/dev/null || true
+        ;;
+    -h|--help)
+        usage
+        ;;
+    *)
+        usage >&2
+        exit 2
+        ;;
+esac

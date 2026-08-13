@@ -318,6 +318,8 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-data-transfer-terminal
     bash -n /usr/local/bin/wasalight-plugin-bundle-terminal
     bash -n /usr/local/bin/wasalight-screen-lock
+    bash -n /usr/local/sbin/wasalight-time-control
+    python3 -m py_compile /usr/local/bin/wasalight-date-time
     bash -n /usr/local/sbin/wasalight-ip-scan
     bash -n /usr/local/bin/wasalight-ip-scanner
     bash -n /usr/local/bin/wasalight-artnet-monitor
