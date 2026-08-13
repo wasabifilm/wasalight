@@ -1157,6 +1157,15 @@ plugin_state_fixture="$tmp_dir/plugin-state"
 service_flag_fixture="$tmp_dir/service-flags"
 mkdir -p "$plugin_fixture" "$plugin_state_fixture" "$service_flag_fixture"
 cp -R "$PROJECT_DIR/plugins/." "$plugin_fixture/"
+# Keep this fixture independent from Companion installed on the host running
+# the verifier. Absolute production paths such as /opt/companion and
+# /data/companion/installed-version must not affect static project tests.
+companion_fixture_manifest="$plugin_fixture/companion/manifest.ini"
+sed -i.bak \
+    -e "s|^InstalledVersionFile=.*|InstalledVersionFile=$tmp_dir/missing-companion-version|" \
+    -e "s|^InstalledCheck=.*|InstalledCheck=$tmp_dir/missing-companion-runtime|" \
+    "$companion_fixture_manifest"
+rm -f "$companion_fixture_manifest.bak"
 printf 'disabled\n' >"$plugin_state_fixture/ssh"
 printf 'enabled\n' >"$service_flag_fixture/ssh-autostart"
 printf 'disabled\n' >"$service_flag_fixture/vnc-autostart"
