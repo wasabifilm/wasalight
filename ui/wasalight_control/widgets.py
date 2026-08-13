@@ -10,7 +10,7 @@ from gi.repository import GdkPixbuf, GLib, Gtk
 from .i18n import _
 
 CARD_WIDTH = 290
-CARD_HEIGHT = 280
+CARD_HEIGHT = 224
 
 
 def image_for(icon, size=64):
@@ -66,11 +66,12 @@ def card_flow():
 
 def software_button(name, comment, icon, callback):
     button = Gtk.Button()
+    button.get_style_context().add_class("software-tile")
     button.set_size_request(CARD_WIDTH, CARD_HEIGHT)
     button.set_tooltip_text(comment)
     content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
     content.set_border_width(14)
-    content.pack_start(image_for(icon, 88), True, True, 0)
+    content.pack_start(image_for(icon, 72), True, True, 0)
     label = Gtk.Label()
     label.set_markup(
         f"<span size='14000' weight='bold'>{GLib.markup_escape_text(name)}</span>")
@@ -89,6 +90,7 @@ def software_button(name, comment, icon, callback):
 
 def toggle_row(label, switch):
     row = Gtk.Box(spacing=12)
+    row.get_style_context().add_class("control-row")
     text = Gtk.Label(label=label)
     text.set_xalign(0)
     row.pack_start(text, True, True, 0)
@@ -111,25 +113,34 @@ def prepare_dialog(dialog, parent):
 def plugin_card(item, *, management, change_state, install, run_action,
                 control_changed):
     frame = Gtk.Frame()
+    frame.get_style_context().add_class("flat-card")
     frame.set_size_request(CARD_WIDTH, CARD_HEIGHT if not management else 300)
     box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7)
     box.set_border_width(12)
     heading = Gtk.Box(spacing=10)
     heading.pack_start(image_for(item["icon"], 48), False, False, 0)
-    text = Gtk.Label()
-    text.set_xalign(0)
-    text.set_line_wrap(True)
-    colour = "#76bd22" if item["active"] else "#f2cc60"
-    if not item["installed"] or not item["compatible"]:
-        colour = "#f85149"
+    heading_text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+    title = Gtk.Label()
+    title.set_xalign(0)
+    title.set_line_wrap(True)
     shown_state = _(item["state_label"]) if item["installed"] else _("Not installed")
     if item["installed"] and not item["compatible"]:
         shown_state = _("Requires Wasalight {version}").format(
             version=item["minimum_wasalight"])
-    text.set_markup(
-        f"<span size='13000' weight='bold'>{GLib.markup_escape_text(_(item['name']))}</span>\n"
-        f"<span foreground='{colour}'>{GLib.markup_escape_text(shown_state)}</span>")
-    heading.pack_start(text, True, True, 0)
+    title.set_markup(
+        f"<span size='13000' weight='bold'>{GLib.markup_escape_text(_(item['name']))}</span>")
+    state = Gtk.Label(label=f"●  {shown_state}")
+    state.set_xalign(0)
+    state.get_style_context().add_class("status-pill")
+    if not item["installed"] or not item["compatible"]:
+        state.get_style_context().add_class("status-error")
+    elif item["active"]:
+        state.get_style_context().add_class("status-good")
+    else:
+        state.get_style_context().add_class("status-neutral")
+    heading_text.pack_start(title, False, False, 0)
+    heading_text.pack_start(state, False, False, 0)
+    heading.pack_start(heading_text, True, True, 0)
     box.pack_start(heading, False, False, 0)
     description = Gtk.Label(label=_(item["description"]))
     description.set_xalign(0)
@@ -163,6 +174,7 @@ def plugin_card(item, *, management, change_state, install, run_action,
         label = _("Install with Update") if not item["installed"] else (
             _("Disable") if item["enabled"] else _("Enable"))
         button = Gtk.Button(label=label)
+        button.get_style_context().add_class("primary-button")
         if item["installed"]:
             button.set_sensitive(item["compatible"] or item["enabled"])
             button.connect("clicked", change_state, item, not item["enabled"])
@@ -188,6 +200,7 @@ def plugin_card(item, *, management, change_state, install, run_action,
             if action["management"] or action.get("control"):
                 continue
             button = Gtk.Button(label=_(action["label"]))
+            button.get_style_context().add_class("secondary-button")
             button.set_sensitive(action["available"])
             button.connect("clicked", run_action, item, action)
             add_action(button)

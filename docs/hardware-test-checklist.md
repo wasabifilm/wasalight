@@ -37,8 +37,9 @@ uno spettacolo.
 - [ ] Senza MagicQ installato e senza `.deb`, l’installer si ferma mostrando
       `--allow-missing-magicq`; ripetendo con l’opzione prosegue consapevolmente.
 - [ ] `./install.sh -help` e `wasalight-update -help` mostrano tutte le opzioni.
-- [ ] La riga `MAGICQ VER` del pannello e di `wasalight-status` coincide con
-      `dpkg-query -W -f='${Version}\n' magicq` (per esempio `1.9.8.3`).
+- [ ] La versione nella riga `MAGICQ` del pannello e di `wasalight-status`
+      coincide con `dpkg-query -W -f='${Version}\n' magicq` (per esempio
+      `1.9.8.3`).
 - [ ] Autologin dell’utente `chamsys` e avvio automatico di X/Openbox.
 - [ ] Chiudendo MagicQ, l'applicazione resta chiusa e non viene riavviata.
 - [ ] `magicq-stop` ferma applicazione e sessione di lancio; MagicQ resta chiuso.

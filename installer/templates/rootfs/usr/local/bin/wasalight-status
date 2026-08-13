@@ -15,15 +15,15 @@ mountpoint -q /data && data="$(findmnt -n -o SOURCE,FSTYPE,OPTIONS -M /data)"
 usb=$(findmnt -rn -o SOURCE,TARGET,FSTYPE,OPTIONS 2>/dev/null | \
     awk '$2 ~ "^/stick/"' || true)
 [[ -n $usb ]] || usb="empty"
-magicq="missing"
+magicq="NOT INSTALLED"
 magicq_mode="manual"
 [[ -r /data/system/service-flags/magicq-autostart && \
    $(</data/system/service-flags/magicq-autostart) == enabled ]] && magicq_mode="automatic"
 magicq_pid=$(pgrep -o -x mqqt 2>/dev/null || true)
 if [[ $magicq_pid =~ ^[0-9]+$ ]]; then
-    magicq="running as $(ps -o user= -p "$magicq_pid" | tr -d ' ') ($magicq_mode)"
+    magicq="RUNNING · $magicq_version · ${magicq_mode^^}"
 elif [[ -x /opt/magicq/runmagicq.sh || -x /opt/magicq/bin/mqqt ]]; then
-    magicq="installed, stopped ($magicq_mode)"
+    magicq="READY · $magicq_version · ${magicq_mode^^}"
 fi
 network="volatile"
 mountpoint -q /etc/NetworkManager/system-connections && network="persistent bind"
@@ -84,7 +84,6 @@ OS:         $os
 MODE:       $mode
 ROOT:       $root_fs
 DATA:       $data
-MAGICQ VER: $magicq_version
 MAGICQ:     $magicq
 NETWORK:    $network
 TOUCH:      $touch

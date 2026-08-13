@@ -56,8 +56,9 @@ che una release venga modificata senza incrementarne `VERSION`.
 Il pannello mostra:
 
 - `VERSION`: versione realmente installata;
-- `MAGICQ VER`: versione del pacchetto MagicQ realmente installato, letta dal
-  database `dpkg` (è indipendente dalla versione Wasalight);
+- `MAGICQ`: stato, versione del pacchetto MagicQ letta dal database `dpkg` e
+  modalità di avvio, per esempio `READY · 1.9.8.3 · AUTO` (è indipendente dalla
+  versione Wasalight);
 - `UPDATE CODE MATCH`: versione installata uguale al checkout in
   `/data/system/wasalight`;
 - `UPDATE READY`: checkout persistente più recente del sistema installato;
@@ -68,9 +69,9 @@ Il pannello mostra:
 continuamente GitHub. Eseguire `sudo wasalight-update` per aggiornare il checkout,
 verificare la versione disponibile e installarla.
 
-Anche `wasalight-status` riporta la versione installata alla voce `MAGICQ VER`. Se
-il pacchetto non è installato, il pannello mostra `NOT INSTALLED` invece di
-dedurre una versione dal nome del file `.deb`.
+Anche `wasalight-status` riporta stato, versione e modalità in una sola voce
+`MAGICQ`. Se il pacchetto non è installato, il pannello mostra `NOT INSTALLED`
+invece di dedurre una versione dal nome del file `.deb`.
 
 ## Pubblicare una build
 

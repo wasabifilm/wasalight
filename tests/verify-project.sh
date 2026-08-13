@@ -186,11 +186,12 @@ required_patterns=(
     "status_line \"\$yellow\" 'UPDATE' \"READY · \$checked_version\""
     'checked_version=$(cat /data/system/update-check/latest-version'
     '${goto 150}'
-    "status_line \"\$blue\" 'MAGICQ VER'"
-    "status_line \"\$red\" 'MAGICQ VER' 'NOT INSTALLED'"
+    "status_line \"\$green\" 'MAGICQ' \"RUNNING · \$magicq_version · \$magicq_mode\""
+    "status_line \"\$yellow\" 'MAGICQ' \"READY · \$magicq_version · \$magicq_mode\""
+    "status_line \"\$red\" 'MAGICQ' 'NOT INSTALLED'"
     "dpkg-query -W -f='\${db:Status-Abbrev}\\t\${Version}' magicq"
     'WASALIGHT:  $version'
-    'MAGICQ VER: $magicq_version'
+    'magicq="READY · $magicq_version · ${magicq_mode^^}"'
     'record_installed_version'
     'add-apt-repository -y universe'
     'overlayroot="tmpfs:swap=0,recurse=0"'
@@ -262,7 +263,6 @@ required_patterns=(
     'pcmanfm --desktop --profile=default'
     '$TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop'
     '$TARGET_HOME/.config/wasalight/dock/Files.desktop'
-    '$TARGET_HOME/.config/wasalight/dock/Keyboard.desktop'
     '$TARGET_HOME/Desktop/MagicQ.desktop'
     '$TARGET_HOME/Desktop/Power-Off.desktop'
     '$TARGET_HOME/Desktop/Reboot.desktop'
@@ -289,7 +289,8 @@ required_patterns=(
     'strut_policy = follow_size'
     'launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop'
     'launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Files.desktop'
-    'launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Keyboard.desktop'
+    'panel_items = LTSBC'
+    'button_lclick_command = /usr/local/bin/wasalight-keyboard-toggle'
     'quick_exec=1'
     'chown -R root:root "$TARGET_HOME/Desktop"'
     '-exec chmod 0444 {} +'
@@ -967,6 +968,25 @@ grep -Fq 'def plugin_control_changed' "$control_center" || \
     fail "Wasalight Control non gestisce i toggle servizio dichiarativi"
 grep -Fq 'switch:checked { background: #76bd22;' "$control_core/style.py" || \
     fail "i toggle Control non usano il verde Wasabi"
+grep -Fq '.flat-card {' "$control_core/style.py" || \
+    fail "Control non espone il nuovo componente card flat"
+grep -Fq '.text-button {' "$control_core/style.py" || \
+    fail "Control non espone le azioni testuali flat"
+if grep -Fq 'box-shadow' "$control_core/style.py"; then
+    fail "i pulsanti Control usano ancora ombre"
+fi
+grep -Fq 'border: 1px solid #303842; border-radius: 6px;' \
+    "$control_core/style.py" || fail "i pulsanti Control non hanno un bordo uniforme"
+grep -Fq 'self.shell.configure_language_menu(self.language_saved)' "$control_center" || \
+    fail "la lingua Control non è separata dalle pagine operative"
+grep -Fq 'def configure_language_menu(self, save_language):' \
+    "$control_core/shell.py" || fail "la shell Control non espone il menu lingua"
+if grep -Fq 'Gtk.ComboBoxText()' "$control_core/pages/system.py"; then
+    fail "la lingua Control è ancora incorporata nella pagina Sistema"
+fi
+grep -Fq 'auto_row = toggle_row(_("Automatic startup"), self.magicq_auto_switch)' \
+    "$control_core/pages/applications.py" || \
+    fail "MagicQ non usa la riga di avvio automatico comune"
 grep -Fq 'if action["management"] or action.get("control")' \
     "$control_core/widgets.py" || \
     fail "le azioni collegate ai toggle sono ancora duplicate come pulsanti"

@@ -88,9 +88,10 @@ centralizzati in `release-manifest.ini`. L’architettura modulare e le regole p
 aggiungere una fase o un template sono descritte in
 [architettura installer](docs/installer-architecture.md).
 
-La riga `MAGICQ VER` mostra invece la versione del pacchetto MagicQ realmente
-installato secondo `dpkg`, per esempio `1.9.8.3`; non viene ricavata dal nome del
-file `.deb`.
+La riga `MAGICQ` riunisce stato, versione del pacchetto realmente installato
+secondo `dpkg` e modalità di avvio, per esempio
+`READY · 1.9.8.3 · AUTO`. La versione non viene ricavata dal nome del file
+`.deb` e `READY` indica che MagicQ è disponibile per l’avvio, non un errore.
 
 ## Prima dell’installazione
 
