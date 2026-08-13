@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Data e ora
+Comment=Sincronizza l’orologio e configura data, ora e fuso
+Exec=/usr/local/bin/wasalight-date-time
+Icon=preferences-system-time
+TryExec=/usr/local/bin/wasalight-date-time
+X-Wasalight-Section=Support
+X-Wasalight-Order=15

@@ -17,7 +17,7 @@ button:hover { background: #223016; color: #f0f7e8; border-color: #76bd22; }
 button:focus { border-color: #76bd22; box-shadow: inset 0 0 0 1px #76bd22; }
 button:active { background: #76bd22; color: #080b10; }
 .navigation-button {
-    padding: 10px 16px; text-align: left;
+    padding: 10px 16px;
     background: #11151b; color: #aeb7c2; border-color: transparent;
 }
 .navigation-button:checked {

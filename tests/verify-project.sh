@@ -577,6 +577,7 @@ helpers=(
     /usr/local/bin/wasalight-control
     /usr/local/bin/wasalight-terminal-tool
     /usr/local/bin/wasalight-screen-lock
+    /usr/local/sbin/wasalight-time-control
     /usr/local/sbin/wasalight-app-register
 )
 
@@ -1028,6 +1029,39 @@ grep -Fq 'timeout --signal=TERM 6 /usr/local/bin/wasalight-touch-status' \
     "$INSTALLER" || fail "lo stato touchscreen può bloccare il refresh Control"
 grep -Fq 'dialog.set_keep_above(True)' "$control_core/widgets.py" || \
     fail "i dialoghi GTK di Control non restano in primo piano"
+
+date_time_ui="$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-date-time"
+time_control="$INSTALLER_TEMPLATE_ROOT/usr/local/sbin/wasalight-time-control"
+time_policy="$INSTALLER_TEMPLATE_ROOT/usr/share/polkit-1/actions/com.wasalight.time.policy"
+date_time_launcher="$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/date-time.desktop"
+[[ -s $date_time_ui && -s $time_control && -s $time_policy && -s $date_time_launcher ]] || \
+    fail "strumento Data e ora incompleto"
+python3 -c 'import ast, pathlib, sys; ast.parse(pathlib.Path(sys.argv[1]).read_text(), filename=sys.argv[1])' \
+    "$date_time_ui"
+bash -n "$time_control"
+python3 - "$time_policy" <<'PY' || fail "policy Polkit Data e ora non valida"
+import sys
+import xml.etree.ElementTree as ET
+ET.parse(sys.argv[1])
+PY
+grep -Fq 'Exec=/usr/local/bin/wasalight-date-time' "$date_time_launcher" || \
+    fail "Data e ora non è registrato in Wasalight Control"
+grep -Fq 'X-Wasalight-Section=Support' "$date_time_launcher" || \
+    fail "Data e ora non è nella pagina Supporto"
+grep -Fq '["pkexec", BACKEND, *arguments]' "$date_time_ui" || \
+    fail "Data e ora non usa l'autenticazione grafica Polkit"
+grep -Fq 'timedatectl list-timezones | grep -Fqx -- "$2"' "$time_control" || \
+    fail "il backend Data e ora non valida il fuso"
+grep -Fq 'chronyc -a makestep' "$time_control" || \
+    fail "Data e ora non corregge immediatamente scarti NTP elevati"
+grep -Fq 'timedatectl set-ntp true' "$time_control" || \
+    fail "Data e ora non riattiva esplicitamente la sincronizzazione NTP"
+grep -Fq 'timeout 25 chronyc waitsync 25 1' "$time_control" || \
+    fail "Data e ora non verifica l'esito della sincronizzazione NTP"
+grep -Fq 'systemctl disable --now chrony.service' "$time_control" || \
+    fail "l'impostazione manuale non disattiva la sincronizzazione automatica"
+grep -Fq 'timedatectl set-ntp false' "$time_control" || \
+    fail "l'impostazione manuale lascia attivo lo stato NTP di timedated"
 grep -Fq 'if item["optional"]:' "$control_center" || \
     fail "la scheda Plugin mostra ancora i servizi fondamentali"
 grep -Fq 'if action["management"] or action.get("control"):' \

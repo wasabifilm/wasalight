@@ -105,3 +105,20 @@ Il blocco è esclusivamente manuale. Wasalight non installa né avvia
 `xss-lock`, `xautolock` o altri timer. Subito prima e dopo lo sblocco riafferma
 con `xset` che screensaver, blanking e DPMS sono disabilitati, quindi il monitor
 resta acceso e la console non viene sospesa.
+# Data, ora e fuso orario
+
+**Wasalight Control → Strumenti → Data e ora** mostra ora locale, UTC, RTC,
+fuso, stato di Chrony e scarto rispetto alla sorgente NTP. È possibile:
+
+- sincronizzare immediatamente l’orologio e riattivare Chrony;
+- scegliere un fuso dall’elenco ufficiale di `timedatectl`;
+- impostare manualmente data e ora.
+
+Le modifiche richiedono la password amministratore tramite una finestra Polkit.
+L’impostazione manuale disattiva Chrony per evitare che il valore venga subito
+sovrascritto; **Sincronizza ora** riattiva il servizio. L’operazione aggiorna
+anche l’orologio hardware quando il sistema lo consente.
+
+Uno scarto elevato può far rifiutare i repository Ubuntu con `Release file ...
+is not valid yet`. In quel caso aprire lo strumento e usare **Sincronizza ora**
+prima di rilanciare l’aggiornamento Wasalight.
