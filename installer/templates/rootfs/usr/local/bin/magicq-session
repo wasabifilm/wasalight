@@ -1,4 +1,6 @@
 #!/bin/sh
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 set -u
 log_dir=${MAGICQ_LOG_DIR:-/data/log}
 runtime_dir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}

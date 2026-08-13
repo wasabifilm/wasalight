@@ -1,4 +1,6 @@
 #!/bin/sh
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 set -eu
 
 # Subiquity della release Ubuntu configurata:

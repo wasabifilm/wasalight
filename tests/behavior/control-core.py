@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 """Behavioral tests for the display-independent Wasalight Control core."""
 
 import json

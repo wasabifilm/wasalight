@@ -122,7 +122,8 @@ uno spettacolo.
 - [ ] Mousepad compare in Applicazioni e apre l’editor di testo con un solo
       tocco.
 - [ ] Crediti riporta Michele Moser / Wasabi Lightbulbfarm, Apache 2.0,
-      protezione del logo, GitHub, Instagram e i riconoscimenti esterni.
+      protezione del logo, indirizzo, sito, email, GitHub, Instagram, Facebook,
+      YouTube, LinkedIn e i riconoscimenti esterni.
 - [ ] Icona, titolo e focus di Wasalight Control usano il verde Wasabi
       `#76bd22`; la scheda selezionata è verde scuro con sottolineatura Wasabi
       e tutte le pagine restano scure, senza grandi superfici bianche o verde acceso.

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 set -u
 version=$(cat /etc/wasalight/version 2>/dev/null || echo unknown)
 os=$(. /etc/os-release 2>/dev/null; printf '%s' "${PRETTY_NAME:-unknown}")

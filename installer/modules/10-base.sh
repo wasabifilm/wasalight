@@ -1,4 +1,6 @@
 configure_data_mount() {
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
     install -d -m 0755 "$DATA_MOUNT"
 
     if [[ -n "$DATA_DEVICE" ]]; then

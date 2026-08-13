@@ -1,4 +1,6 @@
 """Page components used by the Wasalight Control application shell."""
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 
 from .about import AboutPage
 from .applications import ApplicationsPage

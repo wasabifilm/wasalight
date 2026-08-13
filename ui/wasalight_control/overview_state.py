@@ -1,4 +1,6 @@
 """Semantic state derived from the human-readable appliance status report."""
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 
 from dataclasses import dataclass
 

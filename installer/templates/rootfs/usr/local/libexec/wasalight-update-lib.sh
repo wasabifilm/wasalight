@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 # Shared, side-effect-free helpers for the Wasalight updater orchestrator.
 
 git_retry() {

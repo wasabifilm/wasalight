@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 # MagicQ appliance installer for Ubuntu Server 24.04 LTS (amd64).
 #
 # The protected SHOW mode uses Ubuntu's overlayroot with a tmpfs upper layer.
@@ -91,6 +93,7 @@ main() {
     install_magicq
     repair_magicq_persistent_permissions
     configure_volatile_runtime
+    install_wasalight_legal_notices
     optimize_system
     install_mode_commands
     configure_boot_branding

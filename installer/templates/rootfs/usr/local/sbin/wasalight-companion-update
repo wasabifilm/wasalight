@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
 [[ $EUID -eq 0 ]] || exec sudo "$0" "$@"
 (($# == 0)) || { echo "Usage: wasalight-companion-update" >&2; exit 2; }

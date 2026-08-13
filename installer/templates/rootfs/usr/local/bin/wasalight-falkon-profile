@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
 profile_root=${WASALIGHT_FALKON_PROFILE_ROOT:-/data/companion/browser/config/falkon/profiles/wasalight-companion}
 if [[ -z ${WASALIGHT_FALKON_PROFILE_ROOT:-} && $(id -un) != chamsys ]]; then

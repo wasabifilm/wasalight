@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
 exec lxterminal --title="Wasalight · Diagnostica" -e bash -lc '
 echo "Destinazioni USB montate:"; findmnt -rn -o TARGET | awk '\''$0 ~ "^/stick/[^/]+$"'\''

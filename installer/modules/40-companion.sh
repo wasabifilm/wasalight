@@ -1,4 +1,6 @@
 configure_companion() {
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
     local companion_source=/usr/local/src/companionpi
     local temporary_source="${companion_source}.new.$$"
     local companion_present=0

@@ -1,4 +1,6 @@
 """Project information page."""
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -31,6 +33,12 @@ class AboutPage:
         author.set_line_wrap(True)
         author.set_justify(Gtk.Justification.CENTER)
         content.pack_start(author, False, False, 0)
+        contact = Gtk.Label(label=(
+            "Wasabi sas di Michele Moser & C. · IT02274000229\n"
+            "Viale Verona 190/11 · 38123 Trento, Italy"))
+        contact.set_line_wrap(True)
+        contact.set_justify(Gtk.Justification.CENTER)
+        content.pack_start(contact, False, False, 0)
         license_text = Gtk.Label(label=_(
             "Code and documentation: Apache License 2.0. "
             "The Wasabi Lightbulbfarm logo is excluded from the software license and remains protected.\n"
@@ -41,15 +49,33 @@ class AboutPage:
         license_text.set_max_width_chars(78)
         content.pack_start(license_text, False, False, 0)
         links = Gtk.Box(spacing=12)
+        website = Gtk.LinkButton.new_with_label(
+            "https://www.wasabi.eu/", _("Website"))
+        email = Gtk.LinkButton.new_with_label(
+            "mailto:info@wasabi.eu", _("Email"))
         github = Gtk.LinkButton.new_with_label(
             "https://github.com/wasabifilm/wasalight", _("GitHub project"))
+        links.pack_start(Gtk.Label(), True, True, 0)
+        links.pack_start(website, False, False, 0)
+        links.pack_start(email, False, False, 0)
+        links.pack_start(github, False, False, 0)
+        links.pack_start(Gtk.Label(), True, True, 0)
+        content.pack_start(links, False, False, 0)
+
+        social_links = Gtk.Box(spacing=12)
+        facebook = Gtk.LinkButton.new_with_label(
+            "https://www.facebook.com/wasabilightbulbfarm", "Facebook")
         instagram = Gtk.LinkButton.new_with_label(
             "https://www.instagram.com/wasabi_lightbulbfarm/",
             "@wasabi_lightbulbfarm")
-        links.pack_start(Gtk.Label(), True, True, 0)
-        links.pack_start(github, False, False, 0)
-        links.pack_start(instagram, False, False, 0)
-        links.pack_start(Gtk.Label(), True, True, 0)
-        content.pack_start(links, False, False, 0)
+        youtube = Gtk.LinkButton.new_with_label(
+            "https://www.youtube.com/@Wasabi_lightbulbfarm", "YouTube")
+        linkedin = Gtk.LinkButton.new_with_label(
+            "https://www.linkedin.com/company/wasabi-lightbulbfarm/", "LinkedIn")
+        social_links.pack_start(Gtk.Label(), True, True, 0)
+        for button in (facebook, instagram, youtube, linkedin):
+            social_links.pack_start(button, False, False, 0)
+        social_links.pack_start(Gtk.Label(), True, True, 0)
+        content.pack_start(social_links, False, False, 0)
         page.pack_start(content, False, False, 0)
         self.widget = scroll_page(page)
