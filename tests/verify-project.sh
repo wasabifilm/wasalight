@@ -295,8 +295,9 @@ required_patterns=(
     'strut_policy = follow_size'
     'launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop'
     'launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Files.desktop'
-    'panel_items = LTSBC'
+    'panel_items = LTSPC'
     'button_lclick_command = /usr/local/bin/wasalight-keyboard-toggle'
+    'button_icon = /usr/local/share/icons/wasalight/keyboard.svg'
     'task_text = 0'
     'task_maximum_size = 64 52'
     'quick_exec=1'
@@ -407,13 +408,14 @@ required_patterns=(
     '/usr/local/bin/wasalight-x11-window-icon'
     'plugin == "internal:adblock"'
     'profile_marker="$profile_root/.wasalight-profile-$profile_schema"'
-    'profile_schema=2'
+    'profile_schema=3'
     'set_ini_value Web-URL-Settings afterLaunch 1'
     'set_ini_value Web-Browser-Settings DefaultZoomLevel 8'
-    "set_ini_value NavigationBar Layout 'button-backforward, button-reloadstop, button-home, locationbar, button-tools'"
+    "set_ini_value NavigationBar Layout 'button-backforward, button-reloadstop, button-home, button-tools'"
     '#navigationbar QToolButton'
-    '#locationbar-bookmarkicon'
-    '#locationbar-down-icon'
+    '#locationbar,'
+    '#locationbar-bookmarkicon,'
+    '#locationbar-down-icon {'
     'falkon --wmclass=WasalightCompanion --profile wasalight-companion "$url"'
     '/usr/local/bin/wasalight-x11-window-icon'
     'add,maximized_vert,maximized_horz'
@@ -1356,9 +1358,11 @@ keep=this-too
 EOF
 WASALIGHT_FALKON_PROFILE_ROOT="$falkon_profile_fixture" \
     bash "$tmp_dir/falkon-profile"
-grep -Fq '#locationbar-bookmarkicon' "$falkon_profile_fixture/userChrome.css" || \
+grep -Fq '#locationbar,' "$falkon_profile_fixture/userChrome.css" || \
+    fail "il profilo Falkon non nasconde il campo indirizzo e ricerca"
+grep -Fq '#locationbar-bookmarkicon,' "$falkon_profile_fixture/userChrome.css" || \
     fail "il profilo Falkon non nasconde il comando bookmark"
-grep -Fq '#locationbar-down-icon' "$falkon_profile_fixture/userChrome.css" || \
+grep -Fq '#locationbar-down-icon {' "$falkon_profile_fixture/userChrome.css" || \
     fail "il profilo Falkon non nasconde la freccia della barra indirizzi"
 grep -Fq 'AllowedPlugins=lib:KDEFrameworksIntegration.so' \
     "$falkon_profile_fixture/settings.ini" || \
@@ -1377,12 +1381,12 @@ grep -Fq 'DefaultZoomLevel=8' "$falkon_profile_fixture/settings.ini" || \
     fail "il profilo Falkon non usa lo zoom touch al 120 percento"
 grep -Fq 'hideTabsWithOneTab=true' "$falkon_profile_fixture/settings.ini" || \
     fail "il profilo Falkon non nasconde la barra con una singola scheda"
-grep -Fq 'Layout=button-backforward, button-reloadstop, button-home, locationbar, button-tools' \
+grep -Fq 'Layout=button-backforward, button-reloadstop, button-home, button-tools' \
     "$falkon_profile_fixture/settings.ini" || \
-    fail "la barra Falkon non usa il layout touch Wasalight"
+    fail "la barra Falkon mantiene ancora indirizzo, ricerca o bookmark"
 grep -Fq 'min-height: 46px' "$falkon_profile_fixture/userChrome.css" || \
     fail "il tema Falkon non crea controlli touch sufficientemente grandi"
-[[ -e $falkon_profile_fixture/.wasalight-profile-2 ]] || \
+[[ -e $falkon_profile_fixture/.wasalight-profile-3 ]] || \
     fail "il profilo Falkon non registra l'inizializzazione dei default"
 
 # After the first seed, updates preserve operator preferences while continuing

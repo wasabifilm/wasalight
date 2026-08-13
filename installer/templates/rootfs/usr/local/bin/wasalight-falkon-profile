@@ -131,7 +131,7 @@ set_ini_value() {
 
 # Apply the Wasalight browser defaults once. Subsequent updates preserve all
 # operator changes; AdBlock remains the only setting enforced on every launch.
-profile_schema=2
+profile_schema=3
 profile_marker="$profile_root/.wasalight-profile-$profile_schema"
 if [[ ! -e $profile_marker ]]; then
     set_ini_value Web-URL-Settings homepage http://127.0.0.1:8000
@@ -149,7 +149,7 @@ if [[ ! -e $profile_marker ]]; then
     set_ini_value Web-Browser-Settings CheckUpdates false
     set_ini_value Web-Browser-Settings CheckDefaultBrowser false
     set_ini_value NavigationBar ShowSearchBar false
-    set_ini_value NavigationBar Layout 'button-backforward, button-reloadstop, button-home, locationbar, button-tools'
+    set_ini_value NavigationBar Layout 'button-backforward, button-reloadstop, button-home, button-tools'
 
     if [[ ! -e $profile_root/userChrome.css ]]; then
         cat >"$profile_root/userChrome.css" <<'WASALIGHT_QSS'
@@ -232,12 +232,13 @@ WASALIGHT_QSS
         chmod 0600 "$profile_root/userChrome.css"
     fi
 
-    if ! grep -Fq '# Wasalight compact location controls' \
+    if ! grep -Fq 'Wasalight Companion kiosk location bar' \
             "$profile_root/userChrome.css"; then
-        cat >>"$profile_root/userChrome.css" <<'WASALIGHT_COMPACT_LOCATION'
+        cat >>"$profile_root/userChrome.css" <<'WASALIGHT_HIDE_LOCATION'
 
-/* Wasalight compact location controls: Companion does not need bookmarking
- * or the location-history arrow on its dedicated touch browser. */
+/* Wasalight Companion kiosk location bar: Falkon 24.02 forcibly restores the
+ * locationbar in its layout, so collapse the complete widget and its controls. */
+#locationbar,
 #locationbar-bookmarkicon,
 #locationbar-down-icon {
     min-width: 0;
@@ -246,8 +247,9 @@ WASALIGHT_QSS
     padding: 0;
     border: 0;
 }
-/* Wasalight compact location controls */
-WASALIGHT_COMPACT_LOCATION
+/* Wasalight Companion kiosk location bar */
+WASALIGHT_HIDE_LOCATION
+        chmod 0600 "$profile_root/userChrome.css"
     fi
 
     touch "$profile_marker"

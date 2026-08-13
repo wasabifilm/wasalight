@@ -102,6 +102,7 @@ EOF
     install_template /usr/local/share/icons/wasalight/hub.svg 0644
     install_template /usr/local/share/icons/wasalight/vnc.svg 0644
     install_template /usr/local/share/icons/wasalight/ssh.svg 0644
+    install_template /usr/local/share/icons/wasalight/keyboard.svg 0644
 
     write_file "$TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop" 0644 <<'EOF'
 [Desktop Entry]
@@ -276,7 +277,7 @@ border_width = 1
 background_color = #20252d 100
 border_color = #3d444d 100
 
-panel_items = LTSBC
+panel_items = LTSPC
 panel_size = 100% 64
 panel_margin = 0 0
 panel_padding = 10 6 10
@@ -321,7 +322,7 @@ systray_icon_asb = 100 0 0
 
 # Touch keyboard: placed immediately to the right of the network tray.
 button = new
-button_icon = input-keyboard
+button_icon = /usr/local/share/icons/wasalight/keyboard.svg
 button_text =
 button_lclick_command = /usr/local/bin/wasalight-keyboard-toggle
 button_rclick_command =
