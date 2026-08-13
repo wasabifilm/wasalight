@@ -6,8 +6,8 @@ set -Eeuo pipefail
 
 service=${1:-}
 state=${2:-}
-case $service in ssh|vnc|magicq) ;; *) echo "Usage: wasalight-remote-persistence ssh|vnc|magicq enable|disable" >&2; exit 2 ;; esac
-case $state in enable) value=enabled ;; disable) value=disabled ;; *) echo "Usage: wasalight-remote-persistence ssh|vnc|magicq enable|disable" >&2; exit 2 ;; esac
+case $service in ssh|vnc|magicq|companion) ;; *) echo "Usage: wasalight-remote-persistence ssh|vnc|magicq|companion enable|disable" >&2; exit 2 ;; esac
+case $state in enable) value=enabled ;; disable) value=disabled ;; *) echo "Usage: wasalight-remote-persistence ssh|vnc|magicq|companion enable|disable" >&2; exit 2 ;; esac
 
 flag_root=${WASALIGHT_SERVICE_FLAG_ROOT:-/data/system/service-flags}
 if [[ -z ${WASALIGHT_SERVICE_FLAG_ROOT:-} ]]; then
@@ -27,4 +27,11 @@ chmod 0644 "$temporary"
 chown root:root "$temporary"
 mv -f -- "$temporary" "$flag_root/${service}-autostart"
 trap - EXIT
+if [[ $service == companion && -f /etc/systemd/system/companion.service ]]; then
+    if [[ $value == enabled ]]; then
+        systemctl enable companion.service
+    else
+        systemctl disable companion.service
+    fi
+fi
 echo "$service automatic startup: $value"

@@ -23,6 +23,7 @@ from wasalight_control.models import ControlPaths
 from wasalight_control.models import MagicQState
 from wasalight_control.overview_state import parse_status_report
 from wasalight_control.system import magicq_state, mode_and_version, read_plugins, read_status
+from wasalight_control import theme
 
 
 class FakeRunner:
@@ -191,6 +192,29 @@ class LocalizationTests(unittest.TestCase):
                 i18n.save_language("xx", language_file=str(preference))
 
 
+class ThemeTests(unittest.TestCase):
+    @staticmethod
+    def write_theme(path, *, name="Test Console", invalid_token=None):
+        colors = dict(theme.DEFAULT_PALETTE)
+        if invalid_token:
+            colors[invalid_token] = "not-a-colour"
+        body = "[theme]\nname=" + name + "\n\n[colors]\n"
+        body += "".join(f"{key}={value}\n" for key, value in colors.items())
+        path.write_text(body, encoding="utf-8")
+
+    def test_external_theme_loading_and_invalid_fallback(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            custom = root / "custom.ini"
+            self.write_theme(custom)
+            self.assertEqual(
+                theme.configure(theme_path=str(custom)), "Test Console")
+            self.assertEqual(theme.current_theme_name(), "Test Console")
+            self.write_theme(custom, invalid_token="brand")
+            self.assertEqual(
+                theme.configure(theme_path=str(custom)), "Console Dark")
+            self.assertEqual(theme.current_palette(), theme.DEFAULT_PALETTE)
+
 class OverviewStateTests(unittest.TestCase):
     def test_ready_report_exposes_real_operational_states(self):
         report = """MagicQ Appliance
@@ -198,6 +222,7 @@ MODE:       PROTECTED
 DATA:       /dev/sda3 ext4 rw
 MAGICQ:     RUNNING · 1.9.8.3 · AUTOMATIC
 NETWORK:    persistent bind; managed
+IP:         192.168.10.20
 VNC:        stopped (manual)
 SSH:        running on TCP 22 (automatic)
 UPDATE:     up to date
@@ -207,6 +232,7 @@ UPDATE:     up to date
         self.assertEqual(snapshot.level, "good")
         self.assertTrue(snapshot.magicq_running)
         self.assertEqual(snapshot.network_level, "good")
+        self.assertEqual(snapshot.network_ip, "192.168.10.20")
         self.assertTrue(snapshot.ssh_running)
         self.assertFalse(snapshot.vnc_running)
         self.assertEqual(snapshot.update_level, "good")
@@ -217,6 +243,7 @@ MODE:       PROTECTED
 DATA:       NOT MOUNTED
 MAGICQ:     READY · 1.9.8.3 · MANUAL
 NETWORK:    volatile; unmanaged: enp2s0
+IP:         unavailable
 VNC:        stopped (manual)
 SSH:        stopped (manual)
 UPDATE:     AVAILABLE: 2026.08.13.1

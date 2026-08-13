@@ -1,3 +1,5 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 """Domain models and filesystem layout used by Wasalight Control."""
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
@@ -15,6 +17,7 @@ class ControlPaths:
     version_file: str = "/etc/wasalight/version"
     magicq_autostart_file: str = "/data/system/service-flags/magicq-autostart"
     control_language_file: str = "/data/system/control/language"
+    control_theme_path: str = "/usr/local/share/wasalight-control/themes/console-dark.ini"
     locale_dir: str = "/usr/local/share/locale"
     plugin_command: str = "/usr/local/bin/wasalight-plugin"
     status_command: str = "/usr/local/bin/wasalight-status"

@@ -39,6 +39,21 @@ msgstr "Active on TCP 8000"
 msgid "Fermo"
 msgstr "Stopped"
 
+msgid "Theme"
+msgstr "Theme"
+
+msgid "Colours are applied the next time Wasalight Control starts."
+msgstr "Colours are applied the next time Wasalight Control starts."
+
+msgid "Unable to save theme"
+msgstr "Unable to save theme"
+
+msgid "Theme saved"
+msgstr "Theme saved"
+
+msgid "The new theme will be used the next time Wasalight Control starts."
+msgstr "The new theme will be used the next time Wasalight Control starts."
+
 msgid "Servizio attivo"
 msgstr "Service active"
 
@@ -56,6 +71,21 @@ msgstr "Restart"
 
 msgid "Apri interfaccia web"
 msgstr "Open web interface"
+
+msgid "Crea backup"
+msgstr "Create backup"
+
+msgid "Creare un nuovo backup persistente di Companion?"
+msgstr "Create a new persistent Companion backup?"
+
+msgid "Address: {endpoint}"
+msgstr "Address: {endpoint}"
+
+msgid "Installed version: {version}"
+msgstr "Installed version: {version}"
+
+msgid "Operation completed"
+msgstr "Operation completed"
 
 msgid "Aggiorna"
 msgstr "Update"

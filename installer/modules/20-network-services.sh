@@ -1,3 +1,6 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+
 configure_user() {
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
@@ -233,6 +236,10 @@ configure_remote_persistence() {
     if [[ ! -e $flag_dir/magicq-autostart ]]; then
         printf '%s\n' enabled >"$flag_dir/magicq-autostart"
         chmod 0644 "$flag_dir/magicq-autostart"
+    fi
+    if [[ ! -e $flag_dir/companion-autostart ]]; then
+        printf '%s\n' enabled >"$flag_dir/companion-autostart"
+        chmod 0644 "$flag_dir/companion-autostart"
     fi
 
     install_template /usr/local/sbin/wasalight-remote-persistence 0755

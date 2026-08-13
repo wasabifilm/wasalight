@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Bitfocus Companion
-Comment=Stato, controllo, backup e aggiornamento Companion
-Exec=/usr/local/bin/wasalight-companion-panel
-Icon=/usr/local/share/icons/wasalight/companion-official.png
-TryExec=/usr/local/bin/wasalight-companion-panel
-X-Wasalight-Section=Applications
-X-Wasalight-Order=30

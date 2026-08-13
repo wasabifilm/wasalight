@@ -196,6 +196,18 @@ msgstr "Altre applicazioni"
 msgid "Programs registered with Wasalight."
 msgstr "Programmi registrati con Wasalight."
 
+msgid "Lighting console and ChamSys companion applications."
+msgstr "Console luci e applicazioni complementari ChamSys."
+
+msgid "Diagnostics and utilities"
+msgstr "Diagnostica e utilità"
+
+msgid "Optional components"
+msgstr "Componenti opzionali"
+
+msgid "Install and manage additional Wasalight components."
+msgstr "Installa e gestisce componenti Wasalight aggiuntivi."
+
 msgid "Persistent components and operations reserved for maintenance."
 msgstr "Componenti persistenti e operazioni riservate alla manutenzione."
 
@@ -222,6 +234,27 @@ msgstr "Automatico"
 
 msgid "Save"
 msgstr "Salva"
+
+msgid "Cancel"
+msgstr "Annulla"
+
+msgid "Choose the interface language. It will be applied at the next start."
+msgstr "Scegli la lingua dell’interfaccia. Sarà applicata al prossimo avvio."
+
+msgid "Theme"
+msgstr "Tema"
+
+msgid "Colours are applied the next time Wasalight Control starts."
+msgstr "I colori saranno applicati al prossimo avvio di Wasalight Control."
+
+msgid "Unable to save theme"
+msgstr "Impossibile salvare il tema"
+
+msgid "Theme saved"
+msgstr "Tema salvato"
+
+msgid "The new theme will be used the next time Wasalight Control starts."
+msgstr "Il nuovo tema sarà usato al prossimo avvio di Wasalight Control."
 
 msgid "Diagnostics, support and data management utilities."
 msgstr "Strumenti di diagnostica, supporto e gestione dei dati."
@@ -265,9 +298,6 @@ msgstr "Pronto per lo show"
 msgid "No problem requires attention."
 msgstr "Nessun problema richiede attenzione."
 
-msgid "Closed"
-msgstr "Chiuso"
-
 msgid "Ready"
 msgstr "Pronto"
 
@@ -280,14 +310,21 @@ msgstr "Avvio manuale"
 msgid "Bring to foreground"
 msgstr "Porta in primo piano"
 
-msgid "Managed"
-msgstr "Gestita"
+msgid "Configured"
+msgstr "Configurata"
 
-msgid "Configuration problem"
-msgstr "Problema di configurazione"
+msgid "To configure"
+msgstr "Da configurare"
 
-msgid "State unknown"
-msgstr "Stato sconosciuto"
+msgid "State unavailable"
+msgstr "Stato non disponibile"
+
+#, python-brace-format
+msgid "IP address: {address}"
+msgstr "Indirizzo IP: {address}"
+
+msgid "Unavailable"
+msgstr "Non disponibile"
 
 msgid "SSH and VNC active"
 msgstr "SSH e VNC attivi"
@@ -315,3 +352,18 @@ msgstr "Caricamento stato…"
 
 msgid "Reading appliance services."
 msgstr "Lettura dei servizi dell’appliance."
+
+msgid "Crea backup"
+msgstr "Crea backup"
+
+msgid "Creare un nuovo backup persistente di Companion?"
+msgstr "Creare un nuovo backup persistente di Companion?"
+
+msgid "Address: {endpoint}"
+msgstr "Indirizzo: {endpoint}"
+
+msgid "Installed version: {version}"
+msgstr "Versione installata: {version}"
+
+msgid "Operation completed"
+msgstr "Operazione completata"

@@ -1,3 +1,6 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+
 configure_graphical_session() {
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
@@ -299,12 +302,12 @@ taskbar_background_id = 0
 taskbar_active_background_id = 0
 taskbar_name = 0
 taskbar_hide_if_empty = 0
-taskbar_distribute_size = 1
+taskbar_distribute_size = 0
 
 task_icon = 1
-task_text = 1
+task_text = 0
 task_centered = 1
-task_maximum_size = 220 52
+task_maximum_size = 64 52
 task_padding = 10 4 10
 task_font = Sans 11
 task_font_color = #ffffff 100

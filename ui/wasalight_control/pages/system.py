@@ -1,3 +1,5 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 """System and remote services."""
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
@@ -15,11 +17,6 @@ class SystemPage:
     def __init__(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         page.set_border_width(16)
-        page.pack_start(section_heading(
-            _("System"),
-            _("Current state and automatic startup of Wasalight services.")),
-            False, False, 0)
-
         page.pack_start(section_heading(
             _("Remote access"),
             _("Current state and automatic startup of Wasalight services.")),

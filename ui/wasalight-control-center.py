@@ -14,7 +14,9 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk
 
 from wasalight_control.commands import CommandRunner
-from wasalight_control.i18n import _, configure, save_language
+from wasalight_control.i18n import (
+    _, configure, current_language, save_language,
+)
 from wasalight_control.launchers import installed_launchers
 from wasalight_control.models import ControlPaths
 from wasalight_control.overview_state import parse_status_report
@@ -25,6 +27,7 @@ from wasalight_control.pages import (
 from wasalight_control.shell import ApplicationShell
 from wasalight_control.system import magicq_state, mode_and_version, read_plugins, read_status
 from wasalight_control.style import install_style
+from wasalight_control.theme import configure as configure_theme
 from wasalight_control.widgets import (
     clear_flow, plugin_card, prepare_dialog,
 )
@@ -32,11 +35,13 @@ from wasalight_control.widgets import (
 PATHS = ControlPaths()
 COMMANDS = CommandRunner()
 configure(language_file=PATHS.control_language_file, locale_dir=PATHS.locale_dir)
+configure_theme(theme_path=PATHS.control_theme_path)
 PLUGIN_COMMAND = PATHS.plugin_command
 FIELD_CODE = re.compile(r"%[fFuUdDnNickvm]")
 class ControlCenter(Gtk.Window):
     def __init__(self):
         super().__init__(title="Wasalight Control Center")
+        self.set_decorated(False)
         self.set_default_size(1040, 720)
         self.set_position(Gtk.WindowPosition.CENTER)
         self.maximize()
@@ -51,10 +56,11 @@ class ControlCenter(Gtk.Window):
         launchers = installed_launchers(PATHS)
         identity = mode_and_version(PATHS, COMMANDS)
         self.overview_page = OverviewPage(
-            identity, PATHS, self.run_desktop_command, self.navigate_to)
+            identity, PATHS, self.run_desktop_command, self.navigate_to,
+            self.magicq_auto_changed)
         self.applications_page = ApplicationsPage(
             launchers, PATHS, self.run_desktop_command,
-            self.launch_application, self.magicq_auto_changed)
+            self.launch_application)
         self.system_page = SystemPage()
         self.tools_page = ToolsPage(launchers, self.launch_application)
         self.maintenance_page = MaintenancePage()
@@ -64,11 +70,11 @@ class ControlCenter(Gtk.Window):
             ("applications", _("Applications"), self.applications_page.widget),
             ("system", _("System"), self.system_page.widget),
             ("tools", _("Tools"), self.tools_page.widget),
-            ("maintenance", _("Maintenance"), self.maintenance_page.widget),
+            ("maintenance", _("Plugins"), self.maintenance_page.widget),
             ("about", _("About"), self.about_page.widget),
         )
         self.shell = ApplicationShell(identity, pages, self.destroy)
-        self.shell.configure_language_menu(self.language_saved)
+        self.shell.configure_language_button(self.show_language_dialog)
         self.add(self.shell)
         self.refresh_all()
         GLib.timeout_add_seconds(3, self.periodic_refresh)
@@ -89,8 +95,6 @@ class ControlCenter(Gtk.Window):
             status = _("{status}\n\nCONTROL:    refresh warning: {error}").format(
                 status=status, error=error)
         self.overview_page.set_snapshot(parse_status_report(status, magicq))
-        if magicq is not None:
-            self.applications_page.set_magicq_state(magicq)
         if plugins is not None and plugins != self.plugins:
             self.plugins = plugins
             clear_flow(self.system_page.service_cards)
@@ -189,7 +193,8 @@ class ControlCenter(Gtk.Window):
                 return
         self.background_command(
             [PLUGIN_COMMAND, "action", item["id"], action["id"]],
-            f"{item['name']} · {action['label']}")
+            f"{item['name']} · {action['label']}",
+            show_output=action.get("show_output", False))
 
     def plugin_control_changed(self, switch, desired, item, control):
         action_id = control["on_action"] if desired else control["off_action"]
@@ -209,8 +214,34 @@ class ControlCenter(Gtk.Window):
             lambda success: switch.set_sensitive(True))
         return True
 
-    def language_saved(self, _button, chooser):
+    def show_language_dialog(self):
+        dialog = Gtk.Dialog(
+            title=_("Language"), transient_for=self, modal=True,
+            destroy_with_parent=True)
+        dialog.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        save = dialog.add_button(_("Save"), Gtk.ResponseType.OK)
+        save.get_style_context().add_class("primary-button")
+        content = dialog.get_content_area()
+        content.set_spacing(12)
+        content.set_border_width(18)
+        detail = Gtk.Label(label=_(
+            "Choose the interface language. It will be applied at the next start."))
+        detail.set_xalign(0)
+        detail.set_line_wrap(True)
+        content.pack_start(detail, False, False, 0)
+        chooser = Gtk.ComboBoxText()
+        chooser.append("auto", _("Automatic"))
+        chooser.append("it", "Italiano")
+        chooser.append("en", "English")
+        chooser.set_active_id(current_language())
+        content.pack_start(chooser, False, False, 0)
+        dialog.show_all()
+        prepare_dialog(dialog, self)
+        accepted = dialog.run() == Gtk.ResponseType.OK
         language = chooser.get_active_id() or "auto"
+        dialog.destroy()
+        if not accepted:
+            return
         try:
             save_language(language, language_file=PATHS.control_language_file)
         except (OSError, ValueError) as error:
@@ -249,19 +280,30 @@ class ControlCenter(Gtk.Window):
         except OSError as error:
             self.show_error(_("Unable to start plugin installation"), str(error))
 
-    def background_command(self, command, title, callback=None):
+    def background_command(self, command, title, callback=None, show_output=False):
         def worker():
             try:
                 result = COMMANDS.run(command, timeout=120, merge_stderr=True)
                 GLib.idle_add(self.command_finished, result.returncode, title,
-                              result.stdout, callback)
+                              result.stdout, callback, show_output)
             except Exception as error:
-                GLib.idle_add(self.command_finished, 1, title, str(error), callback)
+                GLib.idle_add(self.command_finished, 1, title, str(error),
+                              callback, show_output)
         threading.Thread(target=worker, daemon=True).start()
 
-    def command_finished(self, returncode, title, output, callback=None):
+    def command_finished(self, returncode, title, output, callback=None,
+                         show_output=False):
         if returncode:
             self.show_error(title, output.strip() or _("Operation failed"))
+        elif show_output:
+            dialog = Gtk.MessageDialog(
+                transient_for=self, modal=True, destroy_with_parent=True,
+                message_type=Gtk.MessageType.INFO,
+                buttons=Gtk.ButtonsType.CLOSE, text=title)
+            dialog.format_secondary_text(output.strip() or _("Operation completed"))
+            prepare_dialog(dialog, self)
+            dialog.run()
+            dialog.destroy()
         if callback:
             callback(returncode == 0)
         self.refresh_all()

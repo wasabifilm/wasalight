@@ -1,3 +1,6 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+
 log()  { printf '[%s] %s\n' "$SCRIPT_NAME" "$*"; }
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0

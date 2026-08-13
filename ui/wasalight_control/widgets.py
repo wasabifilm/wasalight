@@ -1,3 +1,5 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 """Reusable GTK widgets for Wasalight Control."""
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
@@ -45,6 +47,7 @@ def section_heading(title, subtitle):
     title_label.set_xalign(0)
     title_label.set_markup(
         f"<span size='16000' weight='bold'>{GLib.markup_escape_text(title)}</span>")
+    title_label.get_style_context().add_class("technical-label")
     subtitle_label = Gtk.Label(label=subtitle)
     subtitle_label.set_xalign(0)
     subtitle_label.set_line_wrap(True)
@@ -142,12 +145,24 @@ def plugin_card(item, *, management, change_state, install, run_action,
         state.get_style_context().add_class("status-neutral")
     heading_text.pack_start(title, False, False, 0)
     heading_text.pack_start(state, False, False, 0)
+    if not management and item.get("endpoint"):
+        endpoint = Gtk.Label(label=_("Address: {endpoint}").format(
+            endpoint=item["endpoint"]))
+        endpoint.set_xalign(0)
+        endpoint.get_style_context().add_class("section-subtitle")
+        heading_text.pack_start(endpoint, False, False, 0)
     heading.pack_start(heading_text, True, True, 0)
     box.pack_start(heading, False, False, 0)
     description = Gtk.Label(label=_(item["description"]))
     description.set_xalign(0)
     description.set_line_wrap(True)
     box.pack_start(description, True, True, 0)
+    if management and item.get("installed_version"):
+        version = Gtk.Label(label=_("Installed version: {version}").format(
+            version=item["installed_version"]))
+        version.set_xalign(0)
+        version.get_style_context().add_class("section-subtitle")
+        box.pack_start(version, False, False, 0)
     actions = Gtk.Grid()
     actions.set_row_spacing(7)
     actions.set_column_spacing(7)

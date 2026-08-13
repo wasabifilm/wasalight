@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+"""Replace a window's EWMH icon with a Wasalight application icon."""
+
+import ctypes
+import sys
+
+import gi
+
+gi.require_version("GdkPixbuf", "2.0")
+from gi.repository import GdkPixbuf, GLib
+
+
+def fail(message):
+    print(f"wasalight-x11-window-icon: {message}", file=sys.stderr)
+    raise SystemExit(1)
+
+
+if len(sys.argv) != 3:
+    fail("usage: wasalight-x11-window-icon WINDOW_ID IMAGE")
+
+try:
+    window_id = int(sys.argv[1], 0)
+except ValueError:
+    fail("WINDOW_ID must be a decimal or hexadecimal X11 window id")
+
+try:
+    source = GdkPixbuf.Pixbuf.new_from_file(sys.argv[2])
+except GLib.Error as error:
+    fail(f"cannot load icon: {error}")
+
+values = []
+for size in (128, 64, 32, 16):
+    pixbuf = source.scale_simple(size, size, GdkPixbuf.InterpType.BILINEAR)
+    width, height = pixbuf.get_width(), pixbuf.get_height()
+    channels = pixbuf.get_n_channels()
+    rowstride = pixbuf.get_rowstride()
+    pixels = pixbuf.get_pixels()
+    values.extend((width, height))
+    for y in range(height):
+        row = y * rowstride
+        for x in range(width):
+            offset = row + x * channels
+            red, green, blue = pixels[offset:offset + 3]
+            alpha = pixels[offset + 3] if channels == 4 else 255
+            values.append((alpha << 24) | (red << 16) | (green << 8) | blue)
+
+libx11 = ctypes.cdll.LoadLibrary("libX11.so.6")
+libx11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+libx11.XOpenDisplay.restype = ctypes.c_void_p
+libx11.XInternAtom.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int]
+libx11.XInternAtom.restype = ctypes.c_ulong
+libx11.XChangeProperty.argtypes = [
+    ctypes.c_void_p, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong,
+    ctypes.c_int, ctypes.c_int, ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int,
+]
+libx11.XSync.argtypes = [ctypes.c_void_p, ctypes.c_int]
+libx11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+
+display = libx11.XOpenDisplay(None)
+if not display:
+    fail("cannot open the X11 display")
+
+icon_atom = libx11.XInternAtom(display, b"_NET_WM_ICON", 0)
+cardinal_atom = libx11.XInternAtom(display, b"CARDINAL", 0)
+payload = (ctypes.c_ulong * len(values))(*values)
+result = libx11.XChangeProperty(
+    display, window_id, icon_atom, cardinal_atom, 32, 0,
+    ctypes.cast(payload, ctypes.POINTER(ctypes.c_ubyte)), len(values),
+)
+libx11.XSync(display, 0)
+libx11.XCloseDisplay(display)
+if result != 1:
+    fail("XChangeProperty failed")

@@ -1,3 +1,5 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 """Project information page."""
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
@@ -7,7 +9,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk
 
 from ..i18n import _
-from ..widgets import image_for, section_heading
+from ..widgets import image_for
 from .common import scroll_page
 
 
@@ -15,9 +17,6 @@ class AboutPage:
     def __init__(self, identity):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         page.set_border_width(16)
-        page.pack_start(section_heading(
-            _("About"), _("Authors, license and project acknowledgements.")),
-            False, False, 0)
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         content.set_border_width(22)
         content.pack_start(
@@ -25,8 +24,9 @@ class AboutPage:
             False, False, 0)
         title = Gtk.Label()
         title.set_markup(
-            "<span foreground='#76bd22' size='17000' weight='bold'>Wasalight</span>\n"
+            "<span size='17000' weight='bold'>Wasalight</span>\n"
             f"<span size='9500'>{GLib.markup_escape_text(_('Version {version}').format(version=identity.version))}</span>")
+        title.get_style_context().add_class("brand-title")
         title.set_justify(Gtk.Justification.CENTER)
         content.pack_start(title, False, False, 0)
         author = Gtk.Label(label=_("Created by Michele Moser / Wasabi Lightbulbfarm"))

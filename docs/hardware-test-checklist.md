@@ -200,9 +200,10 @@ uno spettacolo.
 - [ ] `/home/companion` e `/etc/companion` risultano bind mount provenienti da
       `/data/companion`; una configurazione di prova resta presente dopo un
       riavvio in SHOW.
-- [ ] Il pannello Conky, `wasalight-status` e la voce **Bitfocus Companion** in Control
-      mostrano versione e stato coerenti.
-- [ ] **Companion Web UI** avvia Falkon su `http://127.0.0.1:8000`; se il servizio
+- [ ] Il pannello Conky e `wasalight-status` mostrano uno stato coerente; la scheda
+      Plugin mostra versione, backup e aggiornamento, mentre Sistema mostra
+      `INDIRIZZO:8000` accanto allo stato Companion.
+- [ ] **Companion** in Applicazioni avvia Falkon su `http://127.0.0.1:8000`; se il servizio
       è fermo ne propone l'avvio e la finestra massimizzata lascia Tint2 visibile.
 - [ ] La finestra Companion aperta in Falkon mostra nel taskbar Tint2 l'icona
       Companion, non l'icona generica Falkon (`WM_CLASS=WasalightCompanion`).

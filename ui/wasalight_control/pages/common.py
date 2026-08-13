@@ -1,3 +1,5 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 """Small layout helpers shared by Control pages."""
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0

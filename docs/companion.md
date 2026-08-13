@@ -69,27 +69,33 @@ versione e stato, permette di aprire l'interfaccia locale e di avviare, fermare
 o riavviare il servizio.
 
 Nella scheda **Plugin**, Companion può essere installato, disabilitato o
-riabilitato persistentemente. Quando è installato e abilitato compare anche il
-pulsante **Aggiorna**: è utilizzabile in MAINTENANCE, crea prima un backup e
+riabilitato persistentemente. La scheda mostra la versione installata e, quando
+Companion è abilitato, espone **Crea backup** e **Aggiorna**. Sono utilizzabili
+in MAINTENANCE; l'aggiornamento crea prima un backup e
 installa esclusivamente la versione Companion approvata dalla release
 Wasalight corrente. L’autorizzazione viene chiesta dalla finestra grafica
 Polkit, mentre il terminale mostra avanzamento ed errori. In SHOW il pulsante
 resta visibile ma disabilitato.
 
-La voce separata **Companion Web UI** apre `http://127.0.0.1:8000` in Falkon.
+La singola voce **Companion** in Applicazioni apre `http://127.0.0.1:8000` in Falkon.
 Se il servizio è fermo, propone di avviarlo per la sessione. La finestra viene
 massimizzata lasciando visibile Tint2, quindi resta possibile cambiare
 applicazione o chiuderla con il grande pulsante del tema Wasalight.
 La finestra usa la classe X11 dedicata `WasalightCompanion`, registrata anche
-come applicazione XDG: il dock Tint2 mostra così l'icona ufficiale Companion al
-posto dell'icona Falkon mentre l'interfaccia web è aperta. Se il download
+come applicazione XDG. Poiché Tint2 legge direttamente `_NET_WM_ICON` dalla
+finestra e Falkon pubblica la propria icona, il launcher sostituisce quella
+proprietà con l'icona ufficiale Companion dopo l'apertura. Se il download
 verificato dell'icona ufficiale non è disponibile, viene usata l'icona locale
-Wasalight senza lasciare un collegamento privo di immagine.
+Wasalight senza lasciare un collegamento privo di immagine. Il dock mostra solo
+le icone delle finestre, senza ripetere i titoli, per rimanere compatto e adatto
+al touch.
 
 Il profilo dedicato viene inizializzato con un'interfaccia scura e semplificata
 per il touch: barra di navigazione alta, pulsanti grandi per indietro/avanti,
 ricarica e home, campo indirizzo sempre visibile, barra dei preferiti e barra di
-stato nascoste. La barra delle schede scompare quando ne è aperta una sola. Home
+stato nascoste. Anche il comando bookmark e la freccia della cronologia interna
+al campo indirizzo sono nascosti nel profilo dedicato. La barra delle schede
+scompare quando ne è aperta una sola. Home
 e nuova scheda puntano all'interfaccia Companion locale; all'avvio non viene
 ripristinata la sessione precedente. Lo zoom predefinito è 120%, il livello
 nativo Falkon più vicino al 125% inizialmente previsto.

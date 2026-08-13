@@ -1,3 +1,6 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+
 configure_companion() {
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
@@ -156,15 +159,18 @@ EOF
 
     install_template /usr/local/bin/wasalight-falkon-profile 0755
 
+    install_template /usr/local/bin/wasalight-x11-window-icon 0755
+
     install -d -m 0755 /etc/wasalight/apps.d
-    install_template /etc/wasalight/apps.d/companion.desktop 0644
+    # The old technical launcher duplicated the controls now exposed by the
+    # Control Center plugin card. Keep only the operational web interface.
+    rm -f /etc/wasalight/apps.d/companion.desktop
     install_template /etc/wasalight/apps.d/companion-web.desktop 0644
     install -d -m 0755 /usr/local/share/applications
     install -m 0644 /etc/wasalight/apps.d/companion-web.desktop \
         /usr/local/share/applications/wasalight-companion-web.desktop
     if [[ ! -s /usr/local/share/icons/wasalight/companion-official.png ]]; then
         sed -i 's|companion-official.png|companion.svg|' \
-            /etc/wasalight/apps.d/companion.desktop \
             /etc/wasalight/apps.d/companion-web.desktop \
             /usr/local/share/applications/wasalight-companion-web.desktop
     fi

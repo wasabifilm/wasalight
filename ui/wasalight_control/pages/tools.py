@@ -1,3 +1,5 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 """Support and diagnostic launchers."""
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
@@ -16,7 +18,7 @@ class ToolsPage:
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         page.set_border_width(16)
         page.pack_start(section_heading(
-            _("Tools"),
+            _("Diagnostics and utilities"),
             _("Diagnostics, support and data management utilities.")),
             False, False, 0)
         page.pack_start(launcher_flow("Support", launchers, launch_application),

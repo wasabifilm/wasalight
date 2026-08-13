@@ -616,13 +616,14 @@ e verificabile di Bitfocus Companion. Il servizio usa l'utente dedicato
 `companion`, parte automaticamente dopo la rete e mantiene home, configurazione,
 moduli, log e backup sotto `/data/companion`.
 
-Il pannello Conky e `wasalight-status` mostrano lo stato Companion. La voce
-**Bitfocus Companion** in Wasalight Control offre avvio, arresto, riavvio, backup e aggiornamento e
-indica l'interfaccia web `http://INDIRIZZO:8000`. Backup e aggiornamento sono
+Il pannello Conky e `wasalight-status` mostrano lo stato Companion. La scheda
+Companion di Wasalight Control offre avvio, arresto e riavvio; in **Plugin**
+mostra la versione installata e offre backup e aggiornamento. In **Sistema**
+indica l'interfaccia web come `INDIRIZZO:8000`. Backup e aggiornamento sono
 consentiti solo in MAINTENANCE; in SHOW la configurazione rimane persistente ma
 il runtime protetto non viene modificato.
 
-La voce **Companion Web UI** apre l'interfaccia locale in Falkon, massimizzata
+La voce **Companion** in Applicazioni apre l'interfaccia locale in Falkon, massimizzata
 ma con la barra Tint2 ancora accessibile al touch. Profilo e preferenze sono
 persistenti in `/data/companion/browser`, mentre la cache resta temporanea.
 

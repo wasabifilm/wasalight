@@ -131,7 +131,7 @@ set_ini_value() {
 
 # Apply the Wasalight browser defaults once. Subsequent updates preserve all
 # operator changes; AdBlock remains the only setting enforced on every launch.
-profile_schema=1
+profile_schema=2
 profile_marker="$profile_root/.wasalight-profile-$profile_schema"
 if [[ ! -e $profile_marker ]]; then
     set_ini_value Web-URL-Settings homepage http://127.0.0.1:8000
@@ -230,6 +230,24 @@ QToolTip {
 }
 WASALIGHT_QSS
         chmod 0600 "$profile_root/userChrome.css"
+    fi
+
+    if ! grep -Fq '# Wasalight compact location controls' \
+            "$profile_root/userChrome.css"; then
+        cat >>"$profile_root/userChrome.css" <<'WASALIGHT_COMPACT_LOCATION'
+
+/* Wasalight compact location controls: Companion does not need bookmarking
+ * or the location-history arrow on its dedicated touch browser. */
+#locationbar-bookmarkicon,
+#locationbar-down-icon {
+    min-width: 0;
+    max-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+/* Wasalight compact location controls */
+WASALIGHT_COMPACT_LOCATION
     fi
 
     touch "$profile_marker"

@@ -1,3 +1,5 @@
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 """Uniform command execution for Control probes and actions."""
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
