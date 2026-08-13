@@ -2,18 +2,24 @@
 """Behavioral tests for the display-independent Wasalight Control core."""
 
 import json
+import os
+import struct
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_DIR / "ui"))
 
 from wasalight_control.commands import CommandResult, CommandRunner
+from wasalight_control import i18n
 from wasalight_control.launchers import installed_launchers, read_launcher
 from wasalight_control.models import ControlPaths
+from wasalight_control.models import MagicQState
+from wasalight_control.overview_state import parse_status_report
 from wasalight_control.system import magicq_state, mode_and_version, read_plugins, read_status
 
 
@@ -122,6 +128,101 @@ class CommandRunnerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertEqual(result.stdout.strip(), "ok")
         self.assertEqual(result.stderr.strip(), "bad")
+
+
+def write_mo(path, messages):
+    """Write the small GNU MO fixture needed by the localization tests."""
+    keys = sorted(messages)
+    originals = [key.encode("utf-8") for key in keys]
+    translations = [messages[key].encode("utf-8") for key in keys]
+    count = len(keys)
+    originals_offset = 28
+    translations_offset = originals_offset + count * 8
+    strings_offset = translations_offset + count * 8
+    original_blob = b"".join(value + b"\0" for value in originals)
+    translation_blob = b"".join(value + b"\0" for value in translations)
+    original_table = []
+    translation_table = []
+    offset = strings_offset
+    for value in originals:
+        original_table.extend((len(value), offset))
+        offset += len(value) + 1
+    offset = strings_offset + len(original_blob)
+    for value in translations:
+        translation_table.extend((len(value), offset))
+        offset += len(value) + 1
+    payload = struct.pack("<7I", 0x950412DE, 0, count,
+                          originals_offset, translations_offset, 0, 0)
+    payload += struct.pack(f"<{count * 2}I", *original_table)
+    payload += struct.pack(f"<{count * 2}I", *translation_table)
+    path.write_bytes(payload + original_blob + translation_blob)
+
+
+class LocalizationTests(unittest.TestCase):
+    def test_explicit_language_loads_catalog_and_invalid_value_falls_back(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            catalog = root / "it" / "LC_MESSAGES" / "wasalight-control.mo"
+            catalog.parent.mkdir(parents=True)
+            write_mo(catalog, {
+                "": "Content-Type: text/plain; charset=UTF-8\nLanguage: it\n",
+                "Close": "Chiudi",
+            })
+            preference = root / "control-language"
+            preference.write_text("it\n", encoding="utf-8")
+            with mock.patch.dict(os.environ, {}, clear=False):
+                os.environ.pop("WASALIGHT_CONTROL_LANGUAGE", None)
+                self.assertEqual(i18n.configure(
+                    language_file=str(preference), locale_dir=str(root)), "it")
+                self.assertEqual(i18n._("Close"), "Chiudi")
+                preference.write_text("invalid\n", encoding="utf-8")
+                self.assertEqual(i18n.configure(
+                    language_file=str(preference), locale_dir=str(root)), "auto")
+
+    def test_language_preference_is_validated_and_written_atomically(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            preference = Path(temporary) / "system" / "control-language"
+            i18n.save_language("en", language_file=str(preference))
+            self.assertEqual(preference.read_text(encoding="utf-8"), "en\n")
+            self.assertEqual(preference.stat().st_mode & 0o777, 0o640)
+            with self.assertRaises(ValueError):
+                i18n.save_language("xx", language_file=str(preference))
+
+
+class OverviewStateTests(unittest.TestCase):
+    def test_ready_report_exposes_real_operational_states(self):
+        report = """MagicQ Appliance
+MODE:       PROTECTED
+DATA:       /dev/sda3 ext4 rw
+MAGICQ:     running as chamsys (automatic)
+NETWORK:    persistent bind; managed
+VNC:        stopped (manual)
+SSH:        running on TCP 22 (automatic)
+UPDATE:     up to date
+"""
+        snapshot = parse_status_report(
+            report, MagicQState(running=True, automatic=True))
+        self.assertEqual(snapshot.level, "good")
+        self.assertTrue(snapshot.magicq_running)
+        self.assertEqual(snapshot.network_level, "good")
+        self.assertTrue(snapshot.ssh_running)
+        self.assertFalse(snapshot.vnc_running)
+        self.assertEqual(snapshot.update_level, "good")
+
+    def test_missing_data_or_unmanaged_network_requires_attention(self):
+        report = """MagicQ Appliance
+MODE:       PROTECTED
+DATA:       NOT MOUNTED
+MAGICQ:     installed, stopped (manual)
+NETWORK:    volatile; unmanaged: enp2s0
+VNC:        stopped (manual)
+SSH:        stopped (manual)
+UPDATE:     AVAILABLE: 2026.08.13.1
+"""
+        snapshot = parse_status_report(report)
+        self.assertEqual(snapshot.level, "error")
+        self.assertEqual(snapshot.network_level, "error")
+        self.assertEqual(snapshot.update_level, "warning")
 
 
 if __name__ == "__main__":

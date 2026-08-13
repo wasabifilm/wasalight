@@ -238,7 +238,7 @@ install_packages() {
         openbox tint2 picom pcmanfm lxterminal lxrandr lxtask x11vnc procps wmctrl x11-utils
         galculator i3lock mousepad onboard
         conky-all zenity libnotify-bin libglib2.0-bin desktop-file-utils librsvg2-common
-        python3 python3-gi gir1.2-gtk-3.0 arp-scan iproute2
+        python3 python3-gi gir1.2-gtk-3.0 gettext arp-scan iproute2
         network-manager network-manager-gnome wpasupplicant policykit-1 policykit-1-gnome
         overlayroot initramfs-tools plymouth plymouth-themes file chrony
         exfatprogs ntfs-3g dosfstools libfsapfs-utils util-linux udev logrotate

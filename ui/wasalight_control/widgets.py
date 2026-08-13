@@ -7,6 +7,7 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, GLib, Gtk
 
+from .i18n import _
 
 CARD_WIDTH = 290
 CARD_HEIGHT = 280
@@ -121,15 +122,16 @@ def plugin_card(item, *, management, change_state, install, run_action,
     colour = "#76bd22" if item["active"] else "#f2cc60"
     if not item["installed"] or not item["compatible"]:
         colour = "#f85149"
-    shown_state = item["state_label"] if item["installed"] else "Non installato"
+    shown_state = _(item["state_label"]) if item["installed"] else _("Not installed")
     if item["installed"] and not item["compatible"]:
-        shown_state = f"Richiede Wasalight {item['minimum_wasalight']}"
+        shown_state = _("Requires Wasalight {version}").format(
+            version=item["minimum_wasalight"])
     text.set_markup(
-        f"<span size='13000' weight='bold'>{GLib.markup_escape_text(item['name'])}</span>\n"
+        f"<span size='13000' weight='bold'>{GLib.markup_escape_text(_(item['name']))}</span>\n"
         f"<span foreground='{colour}'>{GLib.markup_escape_text(shown_state)}</span>")
     heading.pack_start(text, True, True, 0)
     box.pack_start(heading, False, False, 0)
-    description = Gtk.Label(label=item["description"])
+    description = Gtk.Label(label=_(item["description"]))
     description.set_xalign(0)
     description.set_line_wrap(True)
     box.pack_start(description, True, True, 0)
@@ -158,8 +160,8 @@ def plugin_card(item, *, management, change_state, install, run_action,
             action_column = 0
 
     if management:
-        label = "Installa con Update" if not item["installed"] else (
-            "Disabilita" if item["enabled"] else "Abilita")
+        label = _("Install with Update") if not item["installed"] else (
+            _("Disable") if item["enabled"] else _("Enable"))
         button = Gtk.Button(label=label)
         if item["installed"]:
             button.set_sensitive(item["compatible"] or item["enabled"])
@@ -171,7 +173,7 @@ def plugin_card(item, *, management, change_state, install, run_action,
             for action in item["actions"]:
                 if not action["management"]:
                     continue
-                button = Gtk.Button(label=action["label"])
+                button = Gtk.Button(label=_(action["label"]))
                 button.set_sensitive(action["available"])
                 button.connect("clicked", run_action, item, action)
                 add_action(button)
@@ -181,16 +183,16 @@ def plugin_card(item, *, management, change_state, install, run_action,
             switch.set_active(control["checked"])
             switch.set_sensitive(control["available"])
             switch.connect("state-set", control_changed, item, control)
-            add_action(toggle_row(control["label"], switch), True)
+            add_action(toggle_row(_(control["label"]), switch), True)
         for action in item["actions"]:
             if action["management"] or action.get("control"):
                 continue
-            button = Gtk.Button(label=action["label"])
+            button = Gtk.Button(label=_(action["label"]))
             button.set_sensitive(action["available"])
             button.connect("clicked", run_action, item, action)
             add_action(button)
     if not item["enabled"] and not management:
-        add_action(Gtk.Label(label="Plugin disabilitato"), True)
+        add_action(Gtk.Label(label=_("Plugin disabled")), True)
     box.pack_start(actions, False, False, 0)
     frame.add(box)
     return frame

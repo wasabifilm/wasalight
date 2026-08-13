@@ -880,6 +880,10 @@ for python_tool in "$control_core"/*.py; do
     python3 -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' \
         "$python_tool"
 done
+for python_tool in "$control_core/pages"/*.py; do
+    python3 -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' \
+        "$python_tool"
+done
 grep -Fq '["systemctl", "disable", "--now", unit]' "$plugin_admin" || \
     fail "disabilitare un plugin non ferma il servizio systemd"
 grep -Fq '["pkill", "-u", user, "-x", process]' "$plugin_admin" || \
@@ -890,17 +894,24 @@ grep -Fq 'except subprocess.TimeoutExpired:' "$plugin_command" || \
     fail "lo stato plugin non gestisce servizi lenti senza bloccare Control"
 grep -Fq 'plugin_command: str = "/usr/local/bin/wasalight-plugin"' \
     "$control_core/models.py" || fail "Wasalight Control non usa il registro plugin"
-grep -Fq 'self.add_dashboard()' "$control_center" || \
+grep -Fq 'self.overview_page = OverviewPage(' "$control_center" || \
     fail "Wasalight Control non espone la dashboard unificata"
-grep -Fq "foreground='#76bd22'" "$control_center" || \
+grep -Fq 'parse_status_report(status, magicq)' "$control_center" || \
+    fail "la Panoramica Control non deriva uno stato operativo strutturato"
+grep -Fq 'class OverviewSnapshot:' "$control_core/overview_state.py" || \
+    fail "la Panoramica Control non ha un modello di stato testabile"
+grep -Fq 'Gtk.Expander(label=_("Technical details"))' \
+    "$control_core/pages/overview.py" || \
+    fail "la Panoramica Control mostra sempre i dettagli tecnici"
+grep -Fq "foreground='#76bd22'" "$control_core/shell.py" || \
     fail "il titolo di Wasalight Control non usa il verde Wasabi"
-grep -Fq 'notebook > header tab:checked {' "$control_center" || \
-    fail "la scheda attiva di Control non ha una palette dedicata"
-grep -Fq 'background: #223016; color: #9bd95a;' "$control_center" || \
-    fail "la scheda attiva di Control non usa il verde Wasabi bilanciato"
-grep -Fq 'min-height: 44px; font-size: 15px;' "$control_center" || \
+grep -Fq '.navigation-button:checked {' "$control_core/style.py" || \
+    fail "la sezione attiva di Control non ha una palette dedicata"
+grep -Fq 'background: #223016; color: #9bd95a;' "$control_core/style.py" || \
+    fail "la sezione attiva di Control non usa il verde Wasabi bilanciato"
+grep -Fq 'min-height: 44px; font-size: 15px;' "$control_core/style.py" || \
     fail "i font dei pulsanti Control non usano la misura compatta touch"
-grep -Fq "size='20000' weight='bold'>Wasalight Control" "$control_center" || \
+grep -Fq "size='20000' weight='bold'>Wasalight Control" "$control_core/shell.py" || \
     fail "il titolo Control non usa la misura compatta"
 grep -Fq 'desktop_font=Sans 12' "$INSTALLER" || \
     fail "il desktop non usa il font compatto"
@@ -910,9 +921,9 @@ grep -Fq '<size>16</size>' "$INSTALLER" || \
     fail "i titoli Openbox non usano la misura compatta"
 grep -Fq 'task_font = Sans 11' "$INSTALLER" || \
     fail "la barra applicazioni non usa il font compatto"
-grep -Fq 'notebook, notebook > stack, scrolledwindow, viewport, flowbox {' \
-    "$control_center" || fail "le pagine Control non impongono il fondo scuro"
-grep -Fq 'gi.require_version("Gdk", "3.0")' "$control_center" || \
+grep -Fq 'stack, scrolledwindow, viewport, flowbox {' \
+    "$control_core/style.py" || fail "le pagine Control non impongono il fondo scuro"
+grep -Fq 'gi.require_version("Gdk", "3.0")' "$control_core/style.py" || \
     fail "Control non fissa la versione Gdk e genera warning PyGI"
 if grep -Fq 'add_with_viewport' "$control_center"; then
     fail "Control usa ancora l'API GTK deprecata add_with_viewport"
@@ -922,14 +933,14 @@ grep -Fq 'fill="#76bd22"' "$INSTALLER" || \
 if grep -Fq '#8957e5' "$INSTALLER"; then
     fail "l'icona Wasalight Control usa ancora l'accento viola"
 fi
-grep -Fq 'mode_label = "Passa a MAINTENANCE" if identity.mode == "SHOW" else "Passa a SHOW"' \
-    "$control_center" || fail "la home Control non mostra il cambio modalità contestuale"
+grep -Fq 'mode_label = _("Switch to MAINTENANCE") if identity.mode == "SHOW" else _("Switch to SHOW")' \
+    "$control_core/pages/overview.py" || fail "la home Control non mostra il cambio modalità contestuale"
 if grep -Fq '("File", ["pcmanfm", "/data"])' "$control_center"; then
     fail "la home Control contiene ancora il pulsante File"
 fi
-grep -Fq 'self.add_magicq_page(launchers)' "$control_center" || \
+grep -Fq 'self.applications_page = ApplicationsPage(' "$control_center" || \
     fail "Wasalight Control non espone il pannello MagicQ dedicato"
-grep -Fq '"/usr/share/pixmaps/magicq.png",' "$control_center" || \
+grep -Fq '"/usr/share/pixmaps/magicq.png",' "$control_core/pages/applications.py" || \
     fail "Wasalight Control non usa l'icona originale MagicQ"
 grep -Fq 'CARD_WIDTH = 290' "$control_core/widgets.py" || \
     fail "le schede software e servizi di Control non hanno una misura comune"
@@ -942,7 +953,8 @@ if grep -Fq '<item label="Avvia MagicQ">' "$INSTALLER" || \
    grep -Fq '<item label="Ferma MagicQ">' "$INSTALLER"; then
     fail "il menu contestuale Openbox espone ancora Avvia/Ferma MagicQ"
 fi
-grep -Fq 'self.magicq_auto_switch = Gtk.Switch()' "$control_center" || \
+grep -Fq 'self.magicq_auto_switch = Gtk.Switch()' \
+    "$control_core/pages/applications.py" || \
     fail "Wasalight Control non espone il toggle automatico MagicQ"
 grep -Fq 'magicq-autostart' "$INSTALLER" || \
     fail "l'avvio automatico MagicQ non ha un flag persistente"
@@ -952,20 +964,21 @@ grep -Fq 'magicq_auto=enabled' "$INSTALLER" || \
     fail "l'autostart SHOW di MagicQ non legge il flag persistente"
 grep -Fq 'def plugin_control_changed' "$control_center" || \
     fail "Wasalight Control non gestisce i toggle servizio dichiarativi"
-grep -Fq 'switch:checked { background: #76bd22;' "$control_center" || \
+grep -Fq 'switch:checked { background: #76bd22;' "$control_core/style.py" || \
     fail "i toggle Control non usano il verde Wasabi"
 grep -Fq 'if action["management"] or action.get("control")' \
     "$control_core/widgets.py" || \
     fail "le azioni collegate ai toggle sono ancora duplicate come pulsanti"
-grep -Fq 'self.add_service_page()' "$control_center" || \
+grep -Fq 'self.system_page = SystemPage(' "$control_center" || \
     fail "Wasalight Control non espone la gestione servizi"
-grep -Fq 'self.add_credits_page()' "$control_center" || \
+grep -Fq 'self.about_page = AboutPage(' "$control_center" || \
     fail "Wasalight Control non espone la pagina Crediti"
-grep -Fq 'Creato da Michele Moser /' "$control_center" || \
+grep -Fq 'Created by Michele Moser /' "$control_core/pages/about.py" || \
     fail "la pagina Crediti non attribuisce Wasalight"
-grep -Fq 'https://github.com/wasabifilm/wasalight' "$control_center" || \
+grep -Fq 'https://github.com/wasabifilm/wasalight' "$control_core/pages/about.py" || \
     fail "la pagina Crediti non collega il repository ufficiale"
-grep -Fq 'https://www.instagram.com/wasabi_lightbulbfarm/' "$control_center" || \
+grep -Fq 'https://www.instagram.com/wasabi_lightbulbfarm/' \
+    "$control_core/pages/about.py" || \
     fail "la pagina Crediti non collega Instagram"
 for launcher in files ip-scanner artnet-monitor; do
     launcher_body=$(cat "$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/$launcher.desktop")
@@ -993,6 +1006,24 @@ grep -Fq 'timeout=20' "$control_core/system.py" || \
     fail "Control usa ancora un timeout troppo breve per i sistemi lenti"
 grep -Fq '/usr/local/libexec/wasalight_control' "$INSTALLER" || \
     fail "l'installer non installa il core Python di Wasalight Control"
+grep -Fq 'gettext arp-scan' "$INSTALLER" || \
+    fail "l'installer non installa gli strumenti gettext"
+grep -Fq 'msgfmt --check' "$INSTALLER" || \
+    fail "l'installer non compila i cataloghi di Wasalight Control"
+grep -Fq "printf 'it\\n' >\"\$DATA_MOUNT/system/control/language\"" "$INSTALLER" || \
+    fail "l'installer non preserva l'italiano come lingua Control iniziale"
+grep -Fq 'wasalight_control/pages/' "$INSTALLER" || \
+    fail "l'installer non installa i moduli pagina di Wasalight Control"
+for locale in en it; do
+    catalog="$PROJECT_DIR/ui/locale/$locale/LC_MESSAGES/wasalight-control.po"
+    [[ -s $catalog ]] || fail "catalogo Control mancante: $locale"
+    grep -Fq "Language: $locale" "$catalog" || \
+        fail "catalogo Control privo della lingua dichiarata: $locale"
+done
+grep -Fq 'control_language_file: str = "/data/system/control/language"' \
+    "$control_core/models.py" || fail "la lingua Control non è persistente su /data"
+grep -Fq 'from wasalight_control.i18n import _, configure' "$control_center" || \
+    fail "Wasalight Control non inizializza la localizzazione"
 grep -Fq 'timeout --signal=TERM 6 /usr/local/bin/wasalight-touch-status' \
     "$INSTALLER" || fail "lo stato touchscreen può bloccare il refresh Control"
 grep -Fq 'dialog.set_keep_above(True)' "$control_core/widgets.py" || \
@@ -1285,13 +1316,18 @@ for old_command in \
         fail "nome comando non uniforme ancora presente: $old_command"
     fi
 done
-for label in '"Dashboard": "Stato"' '"Services": "Servizi"' \
-    '"Applications": "Applicazioni"' '"Support": "Supporto"' \
-    '"Credits": "Crediti"' \
-    'Gtk.Button(label="Aggiorna")' 'Gtk.Button(label="Chiudi")'; do
+for label in '("overview", _("Overview"), self.overview_page)' \
+    '("applications", _("Applications"), self.applications_page.widget)' \
+    '("system", _("System"), self.system_page.widget)' \
+    '("tools", _("Tools"), self.tools_page.widget)' \
+    '("maintenance", _("Maintenance"), self.maintenance_page.widget)' \
+    '("about", _("About"), self.about_page.widget)' \
+    'ApplicationShell(identity, pages, self.destroy)'; do
     grep -Fq "$label" "$control_center" || \
         fail "etichetta Control non uniformata: $label"
 done
+grep -Fq 'Gtk.Button(label=_("Close"))' "$control_core/shell.py" || \
+    fail "la shell Control non espone il pulsante Chiudi"
 python3 - "$PROJECT_DIR/assets/branding/boot-logo.png" <<'PY' || fail "logo Plymouth predefinito non valido"
 import struct
 import sys

@@ -327,7 +327,10 @@ final_checks() {
         /usr/local/bin/wasalight-plugin \
         /usr/local/sbin/wasalight-plugin-admin \
         /usr/local/libexec/wasalight-control-center.py \
-        /usr/local/libexec/wasalight_control/*.py
+        /usr/local/libexec/wasalight_control/*.py \
+        /usr/local/libexec/wasalight_control/pages/*.py
+    test -s /usr/local/share/locale/it/LC_MESSAGES/wasalight-control.mo
+    test -s /usr/local/share/locale/en/LC_MESSAGES/wasalight-control.mo
     WASALIGHT_VERSION_OVERRIDE="$PROJECT_VERSION" /usr/local/bin/wasalight-plugin doctor
     if [[ -d /opt/companion ]]; then
         bash -n /usr/local/bin/wasalight-companion-version

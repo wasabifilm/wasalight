@@ -12,6 +12,8 @@ class ControlPaths:
     desktop_apps_dir: str = "/usr/share/applications"
     version_file: str = "/etc/wasalight/version"
     magicq_autostart_file: str = "/data/system/service-flags/magicq-autostart"
+    control_language_file: str = "/data/system/control/language"
+    locale_dir: str = "/usr/local/share/locale"
     plugin_command: str = "/usr/local/bin/wasalight-plugin"
     status_command: str = "/usr/local/bin/wasalight-status"
     update_terminal: str = "/usr/local/bin/wasalight-update-terminal"

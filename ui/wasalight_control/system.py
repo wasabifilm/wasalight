@@ -3,6 +3,7 @@
 import json
 
 from .commands import CommandRunner
+from .i18n import _
 from .models import ControlPaths, MagicQState, SystemIdentity
 
 
@@ -37,7 +38,7 @@ def read_plugins(paths: ControlPaths = ControlPaths(),
     result = (runner or CommandRunner()).run(
         [paths.plugin_command, "list", "--json"], timeout=20)
     if result.returncode:
-        raise RuntimeError(result.stderr.strip() or "Registro plugin non disponibile")
+        raise RuntimeError(result.stderr.strip() or _("Plugin registry unavailable"))
     return json.loads(result.stdout)
 
 
@@ -45,4 +46,4 @@ def read_status(paths: ControlPaths = ControlPaths(),
                 runner: CommandRunner | None = None) -> str:
     result = (runner or CommandRunner()).run(
         [paths.status_command], timeout=20, merge_stderr=True)
-    return result.stdout.strip() or "Stato non disponibile"
+    return result.stdout.strip() or _("Status unavailable")

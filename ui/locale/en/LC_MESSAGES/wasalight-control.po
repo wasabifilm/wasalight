@@ -1,0 +1,82 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Wasalight Control\n"
+"PO-Revision-Date: 2026-08-12 17:30+0200\n"
+"Last-Translator: Michele Moser\n"
+"Language-Team: English\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+# Existing plugin manifests use Italian source text. These entries keep them
+# multilingual until manifests gain native localized fields.
+msgid "Accesso SSH"
+msgstr "SSH access"
+
+msgid "Accesso remoto sicuro alla console Wasalight"
+msgstr "Secure remote access to the Wasalight console"
+
+msgid "Sessione VNC"
+msgstr "VNC session"
+
+msgid "Condivisione remota della sessione Xorg corrente"
+msgstr "Remote sharing of the current Xorg session"
+
+msgid "Controllo Companion persistente con interfaccia web locale"
+msgstr "Persistent Companion control with a local web interface"
+
+msgid "Attivo su TCP 22"
+msgstr "Active on TCP 22"
+
+msgid "Attivo su TCP 5900"
+msgstr "Active on TCP 5900"
+
+msgid "Attivo su TCP 8000"
+msgstr "Active on TCP 8000"
+
+msgid "Fermo"
+msgstr "Stopped"
+
+msgid "Servizio attivo"
+msgstr "Service active"
+
+msgid "Avvio automatico"
+msgstr "Automatic startup"
+
+msgid "Avvia"
+msgstr "Start"
+
+msgid "Ferma"
+msgstr "Stop"
+
+msgid "Riavvia"
+msgstr "Restart"
+
+msgid "Apri interfaccia web"
+msgstr "Open web interface"
+
+msgid "Aggiorna"
+msgstr "Update"
+
+msgid "Fermare Bitfocus Companion?"
+msgstr "Stop Bitfocus Companion?"
+
+msgid "Attivo su TCP 22 · AUTO"
+msgstr "Active on TCP 22 · AUTO"
+
+msgid "Attivo su TCP 22 · MANUALE"
+msgstr "Active on TCP 22 · MANUAL"
+
+msgid "Attivo su TCP 5900 · AUTO"
+msgstr "Active on TCP 5900 · AUTO"
+
+msgid "Attivo su TCP 5900 · MANUALE"
+msgstr "Active on TCP 5900 · MANUAL"
+
+msgid "Fermo · AUTO"
+msgstr "Stopped · AUTO"
+
+msgid "Fermo · MANUALE"
+msgstr "Stopped · MANUAL"

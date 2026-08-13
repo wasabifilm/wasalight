@@ -1,8 +1,17 @@
 configure_plugins() {
-    local plugin source manifest state_file requested
+    local plugin source manifest state_file requested locale po_file
     install -d -m 0755 /usr/lib/wasalight/plugins
     install -d -m 0755 /usr/local/libexec
     install -d -o root -g root -m 0755 "$DATA_MOUNT/system/plugins-state"
+    install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 \
+        "$DATA_MOUNT/system/control"
+    if [[ ! -e $DATA_MOUNT/system/control/language ]]; then
+        # Preserve the existing Italian interface on upgraded appliances.
+        # Operators can explicitly select session-locale detection from Control.
+        printf 'it\n' >"$DATA_MOUNT/system/control/language"
+    fi
+    chown "$TARGET_USER:$TARGET_USER" "$DATA_MOUNT/system/control/language"
+    chmod 0640 "$DATA_MOUNT/system/control/language"
     install -d -o root -g root -m 0755 "$DATA_MOUNT/plugins"
     install -d -o root -g adm -m 0755 "$DATA_MOUNT/log/plugins"
 
@@ -22,6 +31,22 @@ configure_plugins() {
     for source in "$PROJECT_DIR/ui/wasalight_control/"*.py; do
         install -o root -g root -m 0644 "$source" \
             "/usr/local/libexec/wasalight_control/${source##*/}"
+    done
+    install -d -o root -g root -m 0755 \
+        /usr/local/libexec/wasalight_control/pages
+    for source in "$PROJECT_DIR/ui/wasalight_control/pages/"*.py; do
+        install -o root -g root -m 0644 "$source" \
+            "/usr/local/libexec/wasalight_control/pages/${source##*/}"
+    done
+    for po_file in "$PROJECT_DIR/ui/locale/"*/LC_MESSAGES/wasalight-control.po; do
+        locale=${po_file#"$PROJECT_DIR/ui/locale/"}
+        locale=${locale%%/*}
+        install -d -o root -g root -m 0755 \
+            "/usr/local/share/locale/$locale/LC_MESSAGES"
+        msgfmt --check --output-file="/usr/local/share/locale/$locale/LC_MESSAGES/wasalight-control.mo" \
+            "$po_file"
+        chown root:root "/usr/local/share/locale/$locale/LC_MESSAGES/wasalight-control.mo"
+        chmod 0644 "/usr/local/share/locale/$locale/LC_MESSAGES/wasalight-control.mo"
     done
 
     # Built-in management integrations are visible by default. Companion is

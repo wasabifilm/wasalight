@@ -546,6 +546,10 @@ lo ignora invece di terminare. Gli eventuali errori di avvio vengono mostrati
 a schermo e registrati in `/data/log/wasalight-control.log` (oppure in `/tmp` se
 `/data` non è disponibile).
 
+Control è predisposto per più lingue tramite GNU gettext. La preferenza
+persistente e la procedura per mantenere i cataloghi italiano e inglese sono
+descritte in [`docs/control-localization.md`](docs/control-localization.md).
+
 Il registro plugin integrato gestisce inizialmente SSH, VNC e Bitfocus Companion.
 Manifest e programmi sono protetti sotto `/usr/lib/wasalight/plugins`, mentre
 enable/disable persiste in `/data/system/plugins-state`. Le modifiche persistenti
