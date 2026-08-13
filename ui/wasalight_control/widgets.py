@@ -1,6 +1,8 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 """Reusable GTK widgets for Wasalight Control."""
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 
 import os
 

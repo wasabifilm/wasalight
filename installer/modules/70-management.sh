@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 configure_management_tools() {
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
     install -d -m 0755 /etc/wasalight/apps.d
     if mountpoint -q "$DATA_MOUNT"; then
         install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 \

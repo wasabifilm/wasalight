@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 configure_plugins() {
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
     local plugin source manifest state_file requested locale po_file
     install -d -m 0755 /usr/lib/wasalight/plugins
     install -d -m 0755 /usr/local/libexec

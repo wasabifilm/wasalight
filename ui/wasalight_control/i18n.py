@@ -1,6 +1,8 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 """Localization support shared by all Wasalight Control pages."""
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 
 import gettext
 import os

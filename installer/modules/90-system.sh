@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 configure_volatile_runtime() {
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
     install -d -m 0755 /etc/systemd/journald.conf.d
     install_template /etc/systemd/journald.conf.d/10-wasalight-volatile.conf 0644
 

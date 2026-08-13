@@ -1,6 +1,8 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 """Application chrome and primary navigation for Wasalight Control."""
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 
 import gi
 gi.require_version("Gtk", "3.0")

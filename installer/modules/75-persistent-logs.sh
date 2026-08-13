@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 configure_persistent_logs() {
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
     local log_file
     if mountpoint -q "$DATA_MOUNT"; then
         install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$DATA_MOUNT/log"

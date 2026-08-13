@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 configure_user() {
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
     local supplementary_groups password_status
     if ! id "$TARGET_USER" >/dev/null 2>&1; then
         useradd --create-home --shell /bin/bash --user-group "$TARGET_USER"

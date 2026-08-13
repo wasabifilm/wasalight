@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 log()  { printf '[%s] %s\n' "$SCRIPT_NAME" "$*"; }
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 warn() { printf '[%s] WARNING: %s\n' "$SCRIPT_NAME" "$*" >&2; }
 die()  { printf '[%s] ERROR: %s\n' "$SCRIPT_NAME" "$*" >&2; exit 1; }
 

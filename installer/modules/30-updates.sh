@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 configure_update() {
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
     install -d -m 0755 /etc/wasalight /usr/local/libexec
     install -d -m 0755 /usr/share/polkit-1/actions
     install -o root -g root -m 0644 "$RELEASE_MANIFEST" \

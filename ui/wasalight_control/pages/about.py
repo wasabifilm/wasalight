@@ -1,6 +1,8 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 """Project information page."""
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 
 import gi
 gi.require_version("Gtk", "3.0")
