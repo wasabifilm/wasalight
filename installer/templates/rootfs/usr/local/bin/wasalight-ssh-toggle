@@ -14,7 +14,8 @@ if systemctl is-active --quiet ssh.service; then
          $(</data/system/service-flags/ssh-autostart) == enabled ]]; then
         next_boot="\n\nNota: SSH è configurato per riattivarsi al prossimo avvio."
     fi
-    /usr/local/bin/wasalight-dialog --question --width=500 --title="SSH · Wasalight" \
+    /usr/local/bin/wasalight-dialog --question \
+        --icon=/usr/local/share/icons/wasalight/ssh.svg --width=500 --title="SSH · Wasalight" \
         --text="<big><b>SSH è attivo.</b></big>\n\nIndirizzo: ssh://chamsys@${ip_address:-SERVER_IP}:22${next_boot}\n\nFermare ora l’accesso SSH?" \
         --ok-label="Stop SSH" --cancel-label="Cancel" || exit 0
     output=$(sudo -n /usr/local/sbin/wasalight-ssh-control stop 2>&1) || {
@@ -25,7 +26,8 @@ if systemctl is-active --quiet ssh.service; then
     exit 0
 fi
 
-/usr/local/bin/wasalight-dialog --question --width=520 --title="SSH · Wasalight" \
+/usr/local/bin/wasalight-dialog --question \
+    --icon=/usr/local/share/icons/wasalight/ssh.svg --width=520 --title="SSH · Wasalight" \
     --text="<big><b>Attivare SSH?</b></big>\n\nL’accesso userà l’utente chamsys e la sua password Linux. Attivarlo soltanto su una rete fidata." \
     --ok-label="Start SSH" --cancel-label="Cancel" || exit 0
 output=$(sudo -n /usr/local/sbin/wasalight-ssh-control start 2>&1) || {

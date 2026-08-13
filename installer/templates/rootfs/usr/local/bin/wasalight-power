@@ -9,11 +9,13 @@ case "$action" in
         title="Spegni Wasalight"
         question="Spegnere completamente la postazione?"
         confirm="Spegni"
+        icon=/usr/local/share/icons/wasalight/power.svg
         ;;
     reboot)
         title="Riavvia Wasalight"
         question="Riavviare adesso la postazione?"
         confirm="Riavvia"
+        icon=/usr/local/share/icons/wasalight/reboot.svg
         ;;
     *)
         echo "Usage: wasalight-power poweroff|reboot" >&2
@@ -21,7 +23,7 @@ case "$action" in
         ;;
 esac
 
-/usr/local/bin/wasalight-dialog --question --width=460 --title="$title" \
+/usr/local/bin/wasalight-dialog --question --icon="$icon" --width=460 --title="$title" \
     --text="<big><b>$question</b></big>\n\nGli show salvati in /data resteranno persistenti." \
     --ok-label="$confirm" --cancel-label="Annulla" || exit 0
 sudo -n /usr/local/sbin/wasalight-power-control "$action"

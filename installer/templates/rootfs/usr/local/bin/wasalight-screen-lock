@@ -10,7 +10,7 @@ set -Eeuo pipefail
 [[ -n ${DISPLAY:-} ]] || { echo "Xorg display is unavailable." >&2; exit 1; }
 command -v i3lock >/dev/null 2>&1 || { echo "i3lock is unavailable." >&2; exit 1; }
 
-/usr/local/bin/wasalight-dialog --question --width=560 \
+/usr/local/bin/wasalight-dialog --question --icon=system-lock-screen --width=560 \
     --title="Blocca schermo · Wasalight" \
     --text="<big><b>Bloccare lo schermo adesso?</b></big>\n\nLo sblocco richiede la password Linux di chamsys e una tastiera.\nIl display resterà acceso: sospensione, salvaschermo e DPMS rimangono disattivati." \
     --ok-label="Blocca" --cancel-label="Annulla" || exit 0

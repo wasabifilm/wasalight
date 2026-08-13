@@ -687,6 +687,22 @@ grep -Fq 'desktop_icon_size=64' "$INSTALLER" || \
     fail "i pulsanti desktop non sono dimensionati per l'uso touch"
 grep -Fq '/usr/local/bin/wasalight-dialog --question' "$tmp_dir/wasalight-power" || \
     fail "spegnimento e riavvio non richiedono una conferma touch"
+grep -Fq 'icon=/usr/local/share/icons/wasalight/power.svg' "$tmp_dir/wasalight-power" || \
+    fail "la conferma di spegnimento non usa l'icona corretta"
+grep -Fq 'icon=/usr/local/share/icons/wasalight/reboot.svg' "$tmp_dir/wasalight-power" || \
+    fail "la conferma di riavvio non usa l'icona corretta"
+grep -Fq -- '--icon=/usr/local/share/icons/wasalight/ssh.svg' \
+    "$tmp_dir/wasalight-ssh-toggle" || \
+    fail "le conferme SSH non usano l'icona SSH"
+grep -Fq -- '--icon=/usr/local/share/icons/wasalight/vnc.svg' \
+    "$tmp_dir/wasalight-vnc-toggle" || \
+    fail "le conferme VNC non usano l'icona VNC"
+grep -Fq -- '--icon=system-lock-screen' "$tmp_dir/wasalight-screen-lock" || \
+    fail "la conferma di blocco non usa l'icona lucchetto"
+grep -Fq -- '--icon=edit-delete' "$rollback_ui" || \
+    fail "la conferma di eliminazione snapshot non usa l'icona cestino"
+grep -Fq -- '--icon=document-revert' "$rollback_ui" || \
+    fail "la conferma di rollback non usa l'icona ripristino"
 grep -Fq 'exec /usr/bin/zenity --modal "$@"' \
     "$tmp_dir/wasalight-dialog" || \
     fail "i dialoghi Wasalight non usano la modalità compatibile con Zenity 4"

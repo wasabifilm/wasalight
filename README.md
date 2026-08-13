@@ -471,7 +471,9 @@ Spegnimento e riavvio mostrano sempre una grande finestra di conferma. Soltanto
 dopo la conferma viene eseguito un comando amministrativo ristretto, senza
 chiedere la password e senza concedere al desktop un accesso `sudo` generico.
 Tutti i dialoghi Wasalight vengono centrati da Openbox, ricevono il focus e
-restano sopra le altre finestre fino alla conferma o all'annullamento.
+restano sopra le altre finestre fino alla conferma o all'annullamento. Le
+conferme mostrano l'icona dell'azione effettiva (spegnimento, riavvio, blocco,
+SSH, VNC, rollback o eliminazione) al posto del simbolo interrogativo generico.
 
 Sul lato destro Conky mostra un pannello aggiornato ogni due secondi con:
 
