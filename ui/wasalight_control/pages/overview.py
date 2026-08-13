@@ -18,6 +18,7 @@ class OverviewPage(Gtk.Box):
         self.open_page = open_page
 
         self.summary = Gtk.Frame()
+        self.summary.get_style_context().add_class("flat-card")
         summary_row = Gtk.Box(spacing=18)
         summary_row.set_border_width(18)
         summary_text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
@@ -33,32 +34,44 @@ class OverviewPage(Gtk.Box):
         summary_text.pack_start(self.summary_title, False, False, 0)
         summary_text.pack_start(self.summary_detail, False, False, 0)
         summary_row.pack_start(summary_text, True, True, 0)
+        summary_actions = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        summary_actions.set_halign(Gtk.Align.END)
+        self.summary_state = Gtk.Label(label="●")
+        self.summary_state.get_style_context().add_class("status-pill")
+        self.summary_state.set_halign(Gtk.Align.END)
+        summary_actions.pack_start(self.summary_state, False, False, 0)
         mode_label = _("Switch to MAINTENANCE") if identity.mode == "SHOW" else _("Switch to SHOW")
         mode_button = Gtk.Button(label=mode_label)
+        mode_button.get_style_context().add_class("primary-button")
         mode_button.set_size_request(190, 58)
         mode_button.connect("clicked", run_command, [paths.mode_toggle])
-        summary_row.pack_start(mode_button, False, False, 0)
+        summary_actions.pack_start(mode_button, False, False, 0)
+        summary_row.pack_start(summary_actions, False, False, 0)
         self.summary.add(summary_row)
         self.pack_start(self.summary, False, False, 0)
 
         magicq = Gtk.Frame()
+        magicq.get_style_context().add_class("flat-card")
         magicq_row = Gtk.Box(spacing=16)
         magicq_row.set_border_width(16)
         magicq_text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
+        magicq_heading = Gtk.Box(spacing=12)
         heading = Gtk.Label(label="MagicQ")
         heading.set_xalign(0)
         heading.get_style_context().add_class("overview-card-title")
         self.magicq_summary = Gtk.Label()
-        self.magicq_summary.set_xalign(0)
+        self.magicq_summary.get_style_context().add_class("status-pill")
+        magicq_heading.pack_start(heading, True, True, 0)
+        magicq_heading.pack_start(self.magicq_summary, False, False, 0)
         self.magicq_detail = Gtk.Label()
         self.magicq_detail.set_xalign(0)
         self.magicq_detail.get_style_context().add_class("section-subtitle")
-        magicq_text.pack_start(heading, False, False, 0)
-        magicq_text.pack_start(self.magicq_summary, False, False, 0)
+        magicq_text.pack_start(magicq_heading, False, False, 0)
         magicq_text.pack_start(self.magicq_detail, False, False, 0)
         magicq_row.pack_start(magicq_text, True, True, 0)
-        self.magicq_button = Gtk.Button(label=_("Open MagicQ"))
-        self.magicq_button.set_size_request(190, 58)
+        self.magicq_button = Gtk.Button(label=f"{_('Open MagicQ')}  →")
+        self.magicq_button.get_style_context().add_class("text-button")
+        self.magicq_button.set_size_request(170, 52)
         self.magicq_button.connect("clicked", run_command, [paths.magicq_start])
         magicq_row.pack_start(self.magicq_button, False, False, 0)
         magicq.add(magicq_row)
@@ -90,32 +103,40 @@ class OverviewPage(Gtk.Box):
     @staticmethod
     def _status_card(title, callback):
         frame = Gtk.Frame()
+        frame.get_style_context().add_class("flat-card")
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         content.set_border_width(14)
+        header = Gtk.Box(spacing=10)
         heading = Gtk.Label(label=title)
         heading.set_xalign(0)
         heading.get_style_context().add_class("overview-card-title")
         summary = Gtk.Label()
-        summary.set_xalign(0)
-        summary.set_line_wrap(True)
+        summary.get_style_context().add_class("status-pill")
+        header.pack_start(heading, True, True, 0)
+        header.pack_start(summary, False, False, 0)
         detail = Gtk.Label()
         detail.set_xalign(0)
         detail.set_line_wrap(True)
         detail.set_max_width_chars(30)
         detail.get_style_context().add_class("section-subtitle")
-        button = Gtk.Button(label=_("Open"))
+        button = Gtk.Button(label=f"{_('Open')}  →")
+        button.set_halign(Gtk.Align.START)
+        button.get_style_context().add_class("text-button")
         button.connect("clicked", callback)
-        content.pack_start(heading, False, False, 0)
-        content.pack_start(summary, False, False, 0)
+        content.pack_start(header, False, False, 0)
         content.pack_start(detail, True, True, 0)
         content.pack_start(button, False, False, 0)
         frame.add(content)
         return frame, summary, detail
 
     @staticmethod
-    def _set_card(card, summary, detail):
+    def _set_card(card, summary, detail, level="neutral"):
         card[1].set_text(summary)
         card[2].set_text(detail)
+        context = card[1].get_style_context()
+        for state in ("good", "warning", "error", "neutral"):
+            context.remove_class(f"status-{state}")
+        context.add_class(f"status-{level}")
 
     def set_snapshot(self, snapshot: OverviewSnapshot):
         if snapshot.level == "error":
@@ -132,24 +153,30 @@ class OverviewPage(Gtk.Box):
             detail = _("No problem requires attention.")
         self.summary_title.set_text(title)
         self.summary_detail.set_text(detail)
-        self.summary.get_style_context().remove_class("state-good")
-        self.summary.get_style_context().remove_class("state-warning")
-        self.summary.get_style_context().remove_class("state-error")
-        self.summary.get_style_context().add_class(f"state-{snapshot.level}")
+        self.summary_state.set_text(f"●  {title}")
+        summary_context = self.summary_state.get_style_context()
+        for state in ("good", "warning", "error", "neutral"):
+            summary_context.remove_class(f"status-{state}")
+        summary_context.add_class(f"status-{snapshot.level}")
 
         self.magicq_summary.set_text(
-            _("Open") if snapshot.magicq_running else _("Closed"))
-        self.magicq_detail.set_text(
-            _("Automatic startup enabled") if snapshot.magicq_automatic
-            else _("Manual startup"))
+            f"●  {_('Open') if snapshot.magicq_running else _('Ready')}")
+        magicq_context = self.magicq_summary.get_style_context()
+        magicq_context.remove_class("status-good")
+        magicq_context.remove_class("status-neutral")
+        magicq_context.add_class(
+            "status-good" if snapshot.magicq_running else "status-neutral")
+        self.magicq_detail.set_text(snapshot.magicq_detail)
         self.magicq_button.set_label(
-            _("Bring to foreground") if snapshot.magicq_running else _("Open MagicQ"))
+            f"{_('Bring to foreground') if snapshot.magicq_running else _('Open MagicQ')}  →")
 
         network_summary = {
             "good": _("Managed"), "error": _("Configuration problem"),
             "neutral": _("State unknown"),
         }[snapshot.network_level]
-        self._set_card(self.network_card, network_summary, snapshot.network_detail)
+        self._set_card(
+            self.network_card, network_summary, snapshot.network_detail,
+            snapshot.network_level)
 
         if snapshot.ssh_running and snapshot.vnc_running:
             remote_summary = _("SSH and VNC active")
@@ -159,12 +186,16 @@ class OverviewPage(Gtk.Box):
             remote_summary = _("VNC active")
         else:
             remote_summary = _("SSH and VNC stopped")
-        self._set_card(self.remote_card, remote_summary, snapshot.remote_detail)
+        self._set_card(
+            self.remote_card, remote_summary, snapshot.remote_detail,
+            "good" if snapshot.ssh_running or snapshot.vnc_running else "neutral")
 
         update_summary = {
             "good": _("System up to date"),
             "warning": _("Update available"),
             "neutral": _("Not checked"),
         }[snapshot.update_level]
-        self._set_card(self.update_card, update_summary, snapshot.update_detail)
+        self._set_card(
+            self.update_card, update_summary, snapshot.update_detail,
+            snapshot.update_level)
         self.status_view.get_buffer().set_text(snapshot.raw_status)

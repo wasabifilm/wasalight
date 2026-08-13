@@ -65,7 +65,7 @@ def parse_status_report(report: str,
 
     critical = (
         data.upper() == "NOT MOUNTED"
-        or magicq_detail.lower() == "missing"
+        or magicq_detail.lower() in {"missing", "not installed"}
         or network_level == "error"
     )
     if critical:

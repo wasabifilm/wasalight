@@ -93,6 +93,9 @@ msgstr "APERTO"
 msgid "CLOSED"
 msgstr "CHIUSO"
 
+msgid "READY"
+msgstr "PRONTO"
+
 msgid "AUTO"
 msgstr "AUTO"
 
@@ -258,6 +261,9 @@ msgstr "Nessun problema richiede attenzione."
 
 msgid "Closed"
 msgstr "Chiuso"
+
+msgid "Ready"
+msgstr "Pronto"
 
 msgid "Automatic startup enabled"
 msgstr "Avvio automatico attivo"

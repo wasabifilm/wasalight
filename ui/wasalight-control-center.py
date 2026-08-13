@@ -53,7 +53,7 @@ class ControlCenter(Gtk.Window):
         self.applications_page = ApplicationsPage(
             launchers, PATHS, self.run_desktop_command,
             self.launch_application, self.magicq_auto_changed)
-        self.system_page = SystemPage(self.language_saved)
+        self.system_page = SystemPage()
         self.tools_page = ToolsPage(launchers, self.launch_application)
         self.maintenance_page = MaintenancePage()
         self.about_page = AboutPage(identity)
@@ -66,6 +66,7 @@ class ControlCenter(Gtk.Window):
             ("about", _("About"), self.about_page.widget),
         )
         self.shell = ApplicationShell(identity, pages, self.destroy)
+        self.shell.configure_language_menu(self.language_saved)
         self.add(self.shell)
         self.refresh_all()
         GLib.timeout_add_seconds(3, self.periodic_refresh)

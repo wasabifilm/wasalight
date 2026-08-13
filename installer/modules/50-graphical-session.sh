@@ -120,16 +120,9 @@ Terminal=false
 StartupNotify=true
 EOF
 
-    write_file "$TARGET_HOME/.config/wasalight/dock/Keyboard.desktop" 0644 <<'EOF'
-[Desktop Entry]
-Type=Application
-Name=Tastiera
-Comment=Apre o chiude la tastiera virtuale touch
-Exec=/usr/local/bin/wasalight-keyboard-toggle
-Icon=input-keyboard
-Terminal=false
-StartupNotify=false
-EOF
+    # The keyboard has a dedicated right-side tint2 button next to the tray.
+    # Remove the old launcher when this module is reapplied to an installation.
+    rm -f "$TARGET_HOME/.config/wasalight/dock/Keyboard.desktop"
 
     write_file "$TARGET_HOME/Desktop/MagicQ.desktop" 0755 <<'EOF'
 [Desktop Entry]
@@ -278,7 +271,7 @@ border_width = 1
 background_color = #20252d 100
 border_color = #3d444d 100
 
-panel_items = LTSC
+panel_items = LTSBC
 panel_size = 100% 64
 panel_margin = 0 0
 panel_padding = 10 6 10
@@ -297,7 +290,6 @@ launcher_icon_background_id = 0
 launcher_icon_size = 46
 launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop
 launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Files.desktop
-launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Keyboard.desktop
 
 taskbar_mode = single_desktop
 taskbar_padding = 4 0 4
@@ -321,6 +313,22 @@ task_active_background_id = 2
 systray_padding = 8 4 8
 systray_icon_size = 30
 systray_icon_asb = 100 0 0
+
+# Touch keyboard: placed immediately to the right of the network tray.
+button = new
+button_icon = input-keyboard
+button_text =
+button_lclick_command = /usr/local/bin/wasalight-keyboard-toggle
+button_rclick_command =
+button_mclick_command =
+button_uwheel_command =
+button_dwheel_command =
+button_font = Sans 11
+button_font_color = #ffffff 100
+button_padding = 10 4 10
+button_background_id = 0
+button_centered = 1
+button_max_icon_size = 36
 
 time1_format = %H:%M
 time1_font = Sans Bold 12

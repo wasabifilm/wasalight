@@ -4,7 +4,7 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk
 
-from .i18n import _
+from .i18n import _, current_language
 from .widgets import image_for
 
 
@@ -16,6 +16,7 @@ class ApplicationShell(Gtk.Box):
         navigation = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         navigation.set_size_request(210, -1)
         navigation.set_border_width(10)
+        self.navigation = navigation
         self.stack = Gtk.Stack()
         self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
         self.stack.set_transition_duration(180)
@@ -35,6 +36,51 @@ class ApplicationShell(Gtk.Box):
         body.pack_start(navigation, False, False, 0)
         body.pack_start(self.stack, True, True, 0)
         self.pack_start(body, True, True, 0)
+
+    def configure_language_menu(self, save_language):
+        """Keep the Control language outside the operational page hierarchy."""
+        button = Gtk.MenuButton()
+        button.get_style_context().add_class("language-button")
+        button.set_size_request(-1, 52)
+        button_box = Gtk.Box(spacing=10)
+        button_box.pack_start(
+            image_for("preferences-desktop-locale", 22), False, False, 0)
+        language_name = {
+            "auto": _("Automatic"), "it": "Italiano", "en": "English",
+        }.get(current_language(), _("Automatic"))
+        button_label = Gtk.Label(label=f"{_('Language')}  ·  {language_name}")
+        button_label.set_xalign(0)
+        button_box.pack_start(button_label, True, True, 0)
+        button.add(button_box)
+
+        popover = Gtk.Popover.new(button)
+        popover.get_style_context().add_class("popover-card")
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        content.set_border_width(16)
+        title = Gtk.Label()
+        title.set_xalign(0)
+        title.set_markup(
+            f"<span size='14000' weight='bold'>{GLib.markup_escape_text(_('Language'))}</span>")
+        content.pack_start(title, False, False, 0)
+        description = Gtk.Label(
+            label=_("Applied the next time Wasalight Control starts."))
+        description.set_xalign(0)
+        description.set_line_wrap(True)
+        description.get_style_context().add_class("section-subtitle")
+        content.pack_start(description, False, False, 0)
+        chooser = Gtk.ComboBoxText()
+        chooser.append("auto", _("Automatic"))
+        chooser.append("it", "Italiano")
+        chooser.append("en", "English")
+        chooser.set_active_id(current_language())
+        content.pack_start(chooser, False, False, 0)
+        save = Gtk.Button(label=_("Save"))
+        save.get_style_context().add_class("primary-button")
+        save.connect("clicked", save_language, chooser)
+        content.pack_start(save, False, False, 0)
+        popover.add(content)
+        button.set_popover(popover)
+        self.navigation.pack_end(button, False, False, 0)
 
     @staticmethod
     def _header(identity, on_close):

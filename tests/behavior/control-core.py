@@ -194,7 +194,7 @@ class OverviewStateTests(unittest.TestCase):
         report = """MagicQ Appliance
 MODE:       PROTECTED
 DATA:       /dev/sda3 ext4 rw
-MAGICQ:     running as chamsys (automatic)
+MAGICQ:     RUNNING · 1.9.8.3 · AUTOMATIC
 NETWORK:    persistent bind; managed
 VNC:        stopped (manual)
 SSH:        running on TCP 22 (automatic)
@@ -213,7 +213,7 @@ UPDATE:     up to date
         report = """MagicQ Appliance
 MODE:       PROTECTED
 DATA:       NOT MOUNTED
-MAGICQ:     installed, stopped (manual)
+MAGICQ:     READY · 1.9.8.3 · MANUAL
 NETWORK:    volatile; unmanaged: enp2s0
 VNC:        stopped (manual)
 SSH:        stopped (manual)

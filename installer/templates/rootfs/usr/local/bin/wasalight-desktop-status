@@ -56,22 +56,24 @@ else
     status_line "$red" 'NEXT BOOT' 'UNKNOWN'
 fi
 
+magicq_mode=MANUAL
+[[ -r /data/system/service-flags/magicq-autostart && \
+   $(</data/system/service-flags/magicq-autostart) == enabled ]] && magicq_mode=AUTO
 if command -v dpkg-query >/dev/null 2>&1; then
     magicq_package=$(dpkg-query -W -f='${db:Status-Abbrev}\t${Version}' magicq \
         2>/dev/null || true)
     if [[ $magicq_package == ii*$'\t'* ]]; then
-        status_line "$blue" 'MAGICQ VER' "${magicq_package#*$'\t'}"
+        magicq_version=${magicq_package#*$'\t'}
+        if pgrep -x mqqt >/dev/null 2>&1; then
+            status_line "$green" 'MAGICQ' "RUNNING · $magicq_version · $magicq_mode"
+        else
+            status_line "$yellow" 'MAGICQ' "READY · $magicq_version · $magicq_mode"
+        fi
     else
-        status_line "$red" 'MAGICQ VER' 'NOT INSTALLED'
+        status_line "$red" 'MAGICQ' 'NOT INSTALLED'
     fi
 else
-    status_line "$red" 'MAGICQ VER' 'UNKNOWN'
-fi
-
-if pgrep -x mqqt >/dev/null 2>&1; then
-    status_line "$green" 'MAGICQ' 'RUNNING'
-else
-    status_line "$yellow" 'MAGICQ' 'STOPPED'
+    status_line "$red" 'MAGICQ' 'UNKNOWN'
 fi
 if [[ -d /opt/companion ]]; then
     companion_version=$(cat /data/companion/installed-version 2>/dev/null || echo UNKNOWN)
