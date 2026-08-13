@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 """Restricted persistent enable/disable operation for Wasalight plugins."""
 
 import configparser

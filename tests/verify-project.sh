@@ -1001,6 +1001,14 @@ grep -Fq 'https://github.com/wasabifilm/wasalight' "$control_core/pages/about.py
 grep -Fq 'https://www.instagram.com/wasabi_lightbulbfarm/' \
     "$control_core/pages/about.py" || \
     fail "la pagina Crediti non collega Instagram"
+for about_contact in \
+    'Viale Verona 190/11' '38123 Trento' 'mailto:info@wasabi.eu' \
+    'https://www.wasabi.eu/' 'https://www.facebook.com/wasabilightbulbfarm' \
+    'https://www.youtube.com/@Wasabi_lightbulbfarm' \
+    'https://www.linkedin.com/company/wasabi-lightbulbfarm/'; do
+    grep -Fq "$about_contact" "$control_core/pages/about.py" || \
+        fail "contatto mancante dalla pagina Crediti: $about_contact"
+done
 for launcher in files ip-scanner artnet-monitor; do
     launcher_body=$(cat "$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/$launcher.desktop")
     grep -Fq 'X-Wasalight-Section=Applications' <<<"$launcher_body" || \
@@ -1338,14 +1346,39 @@ grep -Fq '## Bitfocus Companion opzionale' "$PROJECT_DIR/docs/hardware-test-chec
 grep -Fq 'Apache License' "$PROJECT_DIR/LICENSE" || fail "testo licenza Apache non valido"
 grep -Fq 'Version 2.0, January 2004' "$PROJECT_DIR/LICENSE" || \
     fail "versione della licenza Apache non valida"
+while IFS= read -r source_file; do
+    grep -Fq 'Copyright 2026 Michele Moser' "$source_file" || \
+        fail "copyright mancante dal sorgente: ${source_file#"$PROJECT_DIR/"}"
+    grep -Fq 'SPDX-License-Identifier: Apache-2.0' "$source_file" || \
+        fail "identificatore SPDX mancante dal sorgente: ${source_file#"$PROJECT_DIR/"}"
+done < <(find "$PROJECT_DIR" -path "$PROJECT_DIR/.git" -prune -o -type f \
+    \( -name '*.sh' -o -name '*.py' -o -perm -111 \) -print | sort)
 [[ -s "$PROJECT_DIR/NOTICE" ]] || fail "NOTICE di attribuzione mancante"
 grep -Fq 'Wasalight — created by Michele Moser / Wasabi Lightbulbfarm.' \
     "$PROJECT_DIR/NOTICE" || fail "citazione Wasalight mancante dal NOTICE"
 grep -Fq '@wasabi_lightbulbfarm' "$PROJECT_DIR/NOTICE" || \
     fail "account Instagram mancante dal NOTICE"
+[[ -s "$PROJECT_DIR/CONTACT.md" ]] || fail "contatti ufficiali mancanti"
+for contact_value in \
+    'Viale Verona 190/11' '38123 Trento' 'info@wasabi.eu' \
+    'https://www.wasabi.eu/' 'https://www.facebook.com/wasabilightbulbfarm' \
+    'https://www.youtube.com/@Wasabi_lightbulbfarm' \
+    'https://www.linkedin.com/company/wasabi-lightbulbfarm/'; do
+    grep -Fq "$contact_value" "$PROJECT_DIR/CONTACT.md" || \
+        fail "contatto ufficiale mancante: $contact_value"
+done
+[[ -s "$PROJECT_DIR/TRADEMARKS.md" ]] || fail "policy sul marchio mancante"
+grep -Fq 'non è una distribuzione ufficiale Wasalight' \
+    "$PROJECT_DIR/TRADEMARKS.md" || fail "regola per derivazioni non ufficiali mancante"
 [[ -s "$PROJECT_DIR/CITATION.cff" ]] || fail "metadati di citazione mancanti"
 grep -Fq 'license: Apache-2.0' "$PROJECT_DIR/CITATION.cff" || \
     fail "licenza mancante dai metadati di citazione"
+grep -Fq 'install_wasalight_legal_notices' "$INSTALLER" || \
+    fail "l'installer non conserva gli avvisi legali nell'appliance"
+grep -Fq 'for document in LICENSE NOTICE CONTACT.md TRADEMARKS.md CITATION.cff' \
+    "$INSTALLER" || fail "insieme degli avvisi legali installati incompleto"
+grep -Fq '/usr/share/doc/wasalight/$document' "$INSTALLER" || \
+    fail "destinazione degli avvisi legali non valida"
 [[ -s "$PROJECT_DIR/assets/branding/LICENSE" ]] || fail "licenza separata del logo mancante"
 grep -Fq 'excluded from the Apache' "$PROJECT_DIR/assets/branding/LICENSE" || \
     fail "esclusione del logo dalla licenza Apache non documentata"

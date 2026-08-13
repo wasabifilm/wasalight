@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
 [[ $(id -un) == chamsys ]] || {
     echo "Run this command as the chamsys desktop user." >&2

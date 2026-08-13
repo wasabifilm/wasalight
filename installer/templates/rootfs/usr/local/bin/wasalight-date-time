@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 """Touch-friendly date, time, timezone and NTP control for Wasalight."""
 
 import datetime

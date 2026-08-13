@@ -80,3 +80,9 @@ msgstr "Stopped · AUTO"
 
 msgid "Fermo · MANUALE"
 msgstr "Stopped · MANUAL"
+
+msgid "Website"
+msgstr "Website"
+
+msgid "Email"
+msgstr "Email"

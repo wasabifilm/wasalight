@@ -83,6 +83,12 @@ msgstr "Codice e documentazione: Apache License 2.0. Il logo Wasabi Lightbulbfar
 msgid "GitHub project"
 msgstr "Progetto GitHub"
 
+msgid "Website"
+msgstr "Sito web"
+
+msgid "Email"
+msgstr "Email"
+
 #, python-brace-format
 msgid "{status}\n\nCONTROL:    refresh warning: {error}"
 msgstr "{status}\n\nCONTROL:    avviso aggiornamento: {error}"

@@ -1,4 +1,6 @@
 """MagicQ and registered application launchers."""
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 
 import os
 

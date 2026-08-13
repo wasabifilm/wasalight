@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
 mode=${1:?usage: wasalight-set-mode show|maintenance}
 [[ $EUID -eq 0 ]] || { echo "Must run as root" >&2; exit 1; }

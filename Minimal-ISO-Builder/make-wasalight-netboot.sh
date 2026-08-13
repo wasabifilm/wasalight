@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 # Build the small Wasalight network installer from Canonical's Ubuntu Mini ISO.
 
 set -Eeuo pipefail

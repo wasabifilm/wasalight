@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 # Project entry point. It automatically uses the single local or persistent .deb.
 
 set -Eeuo pipefail

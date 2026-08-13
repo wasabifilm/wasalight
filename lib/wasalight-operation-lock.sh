@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 # One inherited lock serializes every mutating Wasalight administration task.
 
 wasalight_acquire_operation_lock() {

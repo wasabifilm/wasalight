@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
 """WASALIGHT installer UI driven by structured Subiquity/curtin events."""
 
 from __future__ import annotations
