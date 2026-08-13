@@ -964,9 +964,9 @@ grep -Fq 'mode_label = _("Switch to MAINTENANCE") if identity.mode == "SHOW" els
 if grep -Fq 'self.summary_state' "$control_core/pages/overview.py"; then
     fail "la home Control duplica ancora la modalità nella stessa scheda"
 fi
-grep -Fq '_("Updates"), lambda _button: open_page("tools")' \
+grep -Fq 'lambda button: run_command(button, [paths.update_terminal])' \
     "$control_core/pages/overview.py" || \
-    fail "la scheda Aggiornamenti non apre gli strumenti dedicati"
+    fail "la scheda Aggiornamenti non avvia direttamente l'updater"
 if grep -Fq '("File", ["pcmanfm", "/data"])' "$control_center"; then
     fail "la home Control contiene ancora il pulsante File"
 fi
