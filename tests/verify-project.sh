@@ -297,6 +297,8 @@ required_patterns=(
     'launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Files.desktop'
     'panel_items = LTSBC'
     'button_lclick_command = /usr/local/bin/wasalight-keyboard-toggle'
+    'task_text = 0'
+    'task_maximum_size = 64 52'
     'quick_exec=1'
     'chown -R root:root "$TARGET_HOME/Desktop"'
     '-exec chmod 0444 {} +'
@@ -402,13 +404,18 @@ required_patterns=(
     'XDG_CACHE_HOME="$runtime_base/wasalight-companion-browser-cache"'
     '/usr/local/share/applications/wasalight-companion-web.desktop'
     '/usr/local/bin/wasalight-falkon-profile'
+    '/usr/local/bin/wasalight-x11-window-icon'
     'plugin == "internal:adblock"'
     'profile_marker="$profile_root/.wasalight-profile-$profile_schema"'
+    'profile_schema=2'
     'set_ini_value Web-URL-Settings afterLaunch 1'
     'set_ini_value Web-Browser-Settings DefaultZoomLevel 8'
     "set_ini_value NavigationBar Layout 'button-backforward, button-reloadstop, button-home, locationbar, button-tools'"
     '#navigationbar QToolButton'
+    '#locationbar-bookmarkicon'
+    '#locationbar-down-icon'
     'falkon --wmclass=WasalightCompanion --profile wasalight-companion "$url"'
+    '/usr/local/bin/wasalight-x11-window-icon'
     'add,maximized_vert,maximized_horz'
     'web) exec /usr/local/bin/wasalight-companion-browser'
     'http://${ip_address:-SERVER_IP}:8000'
@@ -1246,6 +1253,12 @@ for embedded in \
     python3 -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' \
         "$tmp_dir/$output"
 done
+window_icon="$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-x11-window-icon"
+[[ -s $window_icon ]] || fail "helper icona X11 Companion mancante"
+python3 -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' \
+    "$window_icon"
+grep -Fq '_NET_WM_ICON' "$window_icon" || \
+    fail "l’helper Companion non imposta la proprietà icona EWMH"
 
 for embedded in \
     'companion-control:/usr/local/sbin/wasalight-companion-control' \
@@ -1314,6 +1327,8 @@ grep -Fq 'http://127.0.0.1:8000' "$tmp_dir/companion-browser" || \
     fail "il browser Companion non usa l'interfaccia locale"
 grep -Fq '/data/companion/browser/config' "$tmp_dir/companion-browser" || \
     fail "il profilo Falkon Companion non è persistente"
+grep -Fq 'wasalight-x11-window-icon' "$tmp_dir/companion-browser" || \
+    fail "il browser Companion non sostituisce l’icona Falkon nel dock"
 if grep -Fq '/data/companion/browser/cache' "$tmp_dir/companion-browser"; then
     fail "la cache Falkon non deve essere persistente in /data"
 fi
@@ -1332,6 +1347,10 @@ keep=this-too
 EOF
 WASALIGHT_FALKON_PROFILE_ROOT="$falkon_profile_fixture" \
     bash "$tmp_dir/falkon-profile"
+grep -Fq '#locationbar-bookmarkicon' "$falkon_profile_fixture/userChrome.css" || \
+    fail "il profilo Falkon non nasconde il comando bookmark"
+grep -Fq '#locationbar-down-icon' "$falkon_profile_fixture/userChrome.css" || \
+    fail "il profilo Falkon non nasconde la freccia della barra indirizzi"
 grep -Fq 'AllowedPlugins=lib:KDEFrameworksIntegration.so' \
     "$falkon_profile_fixture/settings.ini" || \
     fail "il profilo Falkon non conserva gli altri plugin"
@@ -1354,7 +1373,7 @@ grep -Fq 'Layout=button-backforward, button-reloadstop, button-home, locationbar
     fail "la barra Falkon non usa il layout touch Wasalight"
 grep -Fq 'min-height: 46px' "$falkon_profile_fixture/userChrome.css" || \
     fail "il tema Falkon non crea controlli touch sufficientemente grandi"
-[[ -e $falkon_profile_fixture/.wasalight-profile-1 ]] || \
+[[ -e $falkon_profile_fixture/.wasalight-profile-2 ]] || \
     fail "il profilo Falkon non registra l'inizializzazione dei default"
 
 # After the first seed, updates preserve operator preferences while continuing

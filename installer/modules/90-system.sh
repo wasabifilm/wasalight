@@ -358,7 +358,8 @@ final_checks() {
         bash -n /usr/local/bin/wasalight-companion-panel
         bash -n /usr/local/bin/wasalight-companion-browser
         bash -n /usr/local/bin/wasalight-falkon-profile
-    command -v falkon >/dev/null 2>&1 || \
+        python3 -m py_compile /usr/local/bin/wasalight-x11-window-icon
+        command -v falkon >/dev/null 2>&1 || \
             die "Falkon Companion browser is unavailable"
         mountpoint -q /home/companion || \
             die "Companion persistent home bind is unavailable"

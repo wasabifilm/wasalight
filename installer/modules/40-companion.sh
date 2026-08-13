@@ -157,6 +157,8 @@ EOF
 
     install_template /usr/local/bin/wasalight-falkon-profile 0755
 
+    install_template /usr/local/bin/wasalight-x11-window-icon 0755
+
     install -d -m 0755 /etc/wasalight/apps.d
     # The old technical launcher duplicated the controls now exposed by the
     # Control Center plugin card. Keep only the operational web interface.
