@@ -24,17 +24,24 @@ run_if_available() {
     fi
 }
 
-shell_files=$(git grep -IlE '^#!(/usr/bin/env (ba)?sh|/bin/(ba)?sh)' || true)
-shell_fragments=$(git ls-files 'installer/modules/*.sh' 'tests/static/*.sh')
+shell_files=()
+while IFS= read -r -d '' source_file; do
+    case $(head -n 1 "$source_file") in
+        '#!/usr/bin/env bash'|'#!/usr/bin/env sh'|'#!/bin/bash'|'#!/bin/sh')
+            shell_files+=("$source_file") ;;
+    esac
+done < <(git ls-files -z)
+shell_fragments=()
+while IFS= read -r -d '' source_file; do
+    shell_fragments+=("$source_file")
+done < <(git ls-files -z 'installer/modules/*.sh' 'tests/static/*.sh')
 if command -v shellcheck >/dev/null 2>&1; then
     printf 'QUALITY  shellcheck\n'
     # Correctness errors block CI; style findings remain visible during focused work.
-    # shellcheck disable=SC2086
-    shellcheck --external-sources --severity=error $shell_files
+    shellcheck --external-sources --severity=error "${shell_files[@]}"
     # Questi file sono inclusi dall'orchestratore Bash e intenzionalmente non
     # hanno uno shebang che li renda eseguibili in modo autonomo.
-    # shellcheck disable=SC2086
-    shellcheck --shell=bash --external-sources --severity=error $shell_fragments
+    shellcheck --shell=bash --external-sources --severity=error "${shell_fragments[@]}"
 elif $require_tools; then
     printf 'Missing required quality tool: shellcheck\n' >&2
     exit 1
