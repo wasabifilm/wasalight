@@ -24,13 +24,17 @@ run_if_available() {
     fi
 }
 
-shell_files=$(git ls-files '*.sh'; git grep -IlE '^#!(/usr/bin/env bash|/bin/(ba)?sh)' -- ':!*.sh' || true)
-shell_files=$(printf '%s\n' "$shell_files" | sort -u)
+shell_files=$(git grep -IlE '^#!(/usr/bin/env (ba)?sh|/bin/(ba)?sh)' || true)
+shell_fragments=$(git ls-files 'installer/modules/*.sh' 'tests/static/*.sh')
 if command -v shellcheck >/dev/null 2>&1; then
     printf 'QUALITY  shellcheck\n'
     # Correctness errors block CI; style findings remain visible during focused work.
     # shellcheck disable=SC2086
     shellcheck --external-sources --severity=error $shell_files
+    # Questi file sono inclusi dall'orchestratore Bash e intenzionalmente non
+    # hanno uno shebang che li renda eseguibili in modo autonomo.
+    # shellcheck disable=SC2086
+    shellcheck --shell=bash --external-sources --severity=error $shell_fragments
 elif $require_tools; then
     printf 'Missing required quality tool: shellcheck\n' >&2
     exit 1
