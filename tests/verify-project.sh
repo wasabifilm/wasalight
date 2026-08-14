@@ -160,6 +160,12 @@ grep -Fq 'StartupWMClass=WasalightCompanion' "$companion_web_launcher" || \
     fail "il launcher Companion non usa una classe finestra dedicata"
 grep -Fq 'Name=Companion' "$companion_web_launcher" || \
     fail "il launcher operativo Companion non usa il nome compatto"
+grep -Fq '[[ -d /opt/companion && -x /usr/local/bin/wasalight-companion-browser ]]' \
+    "$INSTALLER" || fail "il launcher Companion nel dock non dipende dall'installazione reale"
+grep -Fq 'companion_icon=/usr/local/share/icons/wasalight/companion-official.png' \
+    "$INSTALLER" || fail "il launcher Companion nel dock non usa l'icona ufficiale"
+grep -Fq 'StartupWMClass=WasalightCompanion' "$INSTALLER" || \
+    fail "il launcher Companion nel dock non è associato alla finestra Falkon dedicata"
 [[ ! -e $INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/companion.desktop ]] || \
     fail "il vecchio launcher tecnico Companion duplica ancora il Control Center"
 
@@ -295,6 +301,8 @@ required_patterns=(
     'strut_policy = follow_size'
     'launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop'
     'launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Files.desktop'
+    '$TARGET_HOME/.config/wasalight/dock/Companion.desktop'
+    '$companion_dock_item'
     'panel_items = LTSPC'
     'button_lclick_command = /usr/local/bin/wasalight-keyboard-toggle'
     'button_icon = /usr/local/share/icons/wasalight/keyboard.svg'

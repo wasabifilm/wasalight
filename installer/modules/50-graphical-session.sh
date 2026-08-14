@@ -4,6 +4,8 @@
 configure_graphical_session() {
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
+    local companion_dock_item=
+    local companion_icon
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0755 \
         "$TARGET_HOME/.config/wasalight/dock"
 install_template /usr/local/bin/wasalight-dialog 0755
@@ -126,6 +128,26 @@ Icon=/usr/local/share/icons/wasalight/files.svg
 Terminal=false
 StartupNotify=true
 EOF
+
+    if [[ -d /opt/companion && -x /usr/local/bin/wasalight-companion-browser ]]; then
+        companion_icon=/usr/local/share/icons/wasalight/companion-official.png
+        [[ -s $companion_icon ]] || \
+            companion_icon=/usr/local/share/icons/wasalight/companion.svg
+        write_file "$TARGET_HOME/.config/wasalight/dock/Companion.desktop" 0644 <<EOF
+[Desktop Entry]
+Type=Application
+Name=Companion
+Comment=Apre l'interfaccia locale Bitfocus Companion
+Exec=/usr/local/bin/wasalight-companion-browser
+Icon=$companion_icon
+Terminal=false
+StartupNotify=true
+StartupWMClass=WasalightCompanion
+EOF
+        companion_dock_item="launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Companion.desktop"
+    else
+        rm -f "$TARGET_HOME/.config/wasalight/dock/Companion.desktop"
+    fi
 
     # The keyboard has a dedicated right-side tint2 button next to the tray.
     # Remove the old launcher when this module is reapplied to an installation.
@@ -300,6 +322,7 @@ launcher_icon_background_id = 0
 launcher_icon_size = 46
 launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop
 launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Files.desktop
+$companion_dock_item
 
 taskbar_mode = single_desktop
 taskbar_padding = 4 0 4

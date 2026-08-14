@@ -77,8 +77,10 @@ Wasalight corrente. L’autorizzazione viene chiesta dalla finestra grafica
 Polkit, mentre il terminale mostra avanzamento ed errori. In SHOW il pulsante
 resta visibile ma disabilitato.
 
-La singola voce **Companion** in Applicazioni apre `http://127.0.0.1:8000` in Falkon.
-Se il servizio è fermo, propone di avviarlo per la sessione. La finestra viene
+Quando Companion è installato, il dock aggiunge automaticamente un pulsante con
+l’icona ufficiale; la stessa apertura resta disponibile dalla voce **Companion**
+in Applicazioni. Entrambe aprono `http://127.0.0.1:8000` in Falkon. Se il servizio
+è fermo, propongono di avviarlo per la sessione. La finestra viene
 massimizzata lasciando visibile Tint2, quindi resta possibile cambiare
 applicazione o chiuderla con il grande pulsante del tema Wasalight.
 La finestra usa la classe X11 dedicata `WasalightCompanion`, registrata anche
@@ -86,9 +88,9 @@ come applicazione XDG. Poiché Tint2 legge direttamente `_NET_WM_ICON` dalla
 finestra e Falkon pubblica la propria icona, il launcher sostituisce quella
 proprietà con l'icona ufficiale Companion dopo l'apertura. Se il download
 verificato dell'icona ufficiale non è disponibile, viene usata l'icona locale
-Wasalight senza lasciare un collegamento privo di immagine. Il dock mostra solo
-le icone delle finestre, senza ripetere i titoli, per rimanere compatto e adatto
-al touch.
+Wasalight senza lasciare un collegamento privo di immagine. Oltre ai launcher
+fissi, il taskbar del dock mostra solo le icone delle finestre, senza ripetere i
+titoli, per rimanere compatto e adatto al touch.
 
 Il profilo dedicato viene inizializzato con un'interfaccia scura e semplificata
 per il touch: barra di navigazione alta, pulsanti grandi per indietro/avanti,
