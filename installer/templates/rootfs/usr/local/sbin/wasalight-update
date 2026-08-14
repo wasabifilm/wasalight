@@ -140,16 +140,102 @@ find "$log_root" -maxdepth 1 -type f -name 'update-*.log' -mtime +30 -delete
 mapfile -t stale_run_logs < <(find "$log_root" -maxdepth 1 -type f \
     -name 'update-*.log' -printf '%T@\t%p\n' | sort -nr | tail -n +21 | cut -f2-)
 ((${#stale_run_logs[@]} == 0)) || rm -f -- "${stale_run_logs[@]}"
+# Keep a direct descriptor for the operator terminal. Long-running commands
+# write their complete output only to the persistent logs while this descriptor
+# receives the compact progress UI.
+exec 3>&1
 exec > >(tee -a "$legacy_log" "$log_file") 2>&1
 ((verbose)) && { export PS4='+ ${BASH_SOURCE##*/}:${LINENO}: '; set -x; }
 
 phase="Preparazione"
-if [[ -t 1 ]]; then
-    green=$'\033[1;32m'; amber=$'\033[1;33m'; red=$'\033[1;31m'; reset=$'\033[0m'
+if [[ -t 3 ]]; then
+    brand=$'\033[1;38;2;118;189;34m'
+    green=$'\033[1;32m'; amber=$'\033[1;33m'; red=$'\033[1;31m'
+    white=$'\033[1;37m'; muted=$'\033[38;5;245m'; reset=$'\033[0m'
+    clear_line=$'\033[2K'
 else
-    green= amber= red= reset=
+    brand= green= amber= red= white= muted= reset= clear_line=
 fi
-step() { phase=$*; printf '\n%s▶ %s%s\n' "$green" "$phase" "$reset"; }
+step() { phase=$*; printf '\n%s▶ %s%s\n' "$brand" "$phase" "$reset"; }
+banner() {
+    printf '\n%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓%s\n' "$brand" "$reset"
+    printf '%s┃%s  %sWASALIGHT UPDATE%s                                  %s┃%s\n' \
+        "$brand" "$reset" "$white" "$reset" "$brand" "$reset"
+    printf '%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛%s\n' "$brand" "$reset"
+}
+
+# Run a potentially slow command without flooding the touch-friendly terminal.
+# Raw stdout/stderr are always retained in both update logs. The indicator is a
+# separate child: the real command stays in the foreground, so its completion is
+# observed directly instead of polling a PID that could remain as a zombie.
+progress_indicator() {
+    local label=$1 elapsed=0 frame=0
+    local -a frames=('●··' '·●·' '··●' '·●·')
+    while :; do
+        printf '\r%s  %s%s  %-38s %02d:%02d%s' \
+            "$clear_line" "$brand" "${frames[frame]}" "$label" \
+            "$((elapsed / 60))" "$((elapsed % 60))" "$reset" >&3
+        frame=$(((frame + 1) % ${#frames[@]}))
+        sleep 1
+        ((elapsed += 1))
+    done
+}
+
+_run_with_progress() {
+    local label=$1 destination=$2
+    shift 2
+    local indicator_pid rc raw_output started elapsed
+    local -a command_status
+
+    raw_output=$(mktemp /run/wasalight-update-progress.XXXXXX)
+    started=$SECONDS
+    progress_indicator "$label" &
+    indicator_pid=$!
+    # Tee writes the hidden output to both persistent logs while the command is
+    # still running. This preserves diagnostics even after a power interruption.
+    set +e
+    (trap - ERR; set +e; "$@") 2>&1 | \
+        tee -a "$legacy_log" "$log_file" >"$raw_output"
+    command_status=("${PIPESTATUS[@]}")
+    set -e
+    rc=${command_status[0]}
+    ((rc != 0 || command_status[1] == 0)) || rc=${command_status[1]}
+    kill "$indicator_pid" 2>/dev/null || true
+    wait "$indicator_pid" 2>/dev/null || true
+    elapsed=$((SECONDS - started))
+    [[ -z $destination ]] || cp "$raw_output" "$destination"
+    printf '\r%s' "$clear_line" >&3
+    ((verbose)) && cat "$raw_output" >&3
+    if ((rc == 0)); then
+        printf '%s  ✓%s  %s completato (%02d:%02d)\n' \
+            "$green" "$reset" "$label" "$((elapsed / 60))" "$((elapsed % 60))"
+    else
+        printf '%s  ✗%s  %s non riuscito\n' "$red" "$reset" "$label" >&3
+        printf '%sUltime righe del log:%s\n' "$amber" "$reset" >&3
+        tail -n 24 "$raw_output" >&3 || true
+    fi
+    rm -f -- "$raw_output"
+    return "$rc"
+}
+
+run_with_progress() {
+    local label=$1
+    shift
+    local rc command
+    printf -v command '%q ' "$@"
+    if _run_with_progress "$label" "" "$@"; then
+        return 0
+    else
+        rc=$?
+        update_failed "$rc" "${BASH_LINENO[0]}" "${command% }"
+    fi
+}
+
+run_with_progress_capture() {
+    local destination=$1 label=$2
+    shift 2
+    _run_with_progress "$label" "$destination" "$@"
+}
 update_failed() {
     local rc=$1 line=$2 command=$3
     trap - ERR
@@ -171,9 +257,7 @@ update_failed() {
 }
 trap 'update_failed "$?" "$LINENO" "$BASH_COMMAND"' ERR
 
-printf '\n========================================\n'
-printf '       WASALIGHT · AGGIORNAMENTO\n'
-printf '========================================\n'
+banner
 echo "Avvio: $(date --iso-8601=seconds)"
 echo "Log di questa esecuzione: $log_file"
 installed_version=$(cat /etc/wasalight/version 2>/dev/null || echo non-installata)
@@ -243,9 +327,11 @@ else
     git -C "$candidate_checkout" remote add origin "$repository"
 fi
 if ((existing_checkout)); then
-    git_retry -C "$candidate_checkout" fetch --quiet origin "refs/heads/$branch"
+    run_with_progress "Download da GitHub" \
+        git_retry -C "$candidate_checkout" fetch --quiet origin "refs/heads/$branch"
 else
-    git_retry -C "$candidate_checkout" fetch --quiet --depth=1 origin "refs/heads/$branch"
+    run_with_progress "Download da GitHub" \
+        git_retry -C "$candidate_checkout" fetch --quiet --depth=1 origin "refs/heads/$branch"
 fi
 remote_commit=$(git -C "$candidate_checkout" rev-parse --verify FETCH_HEAD)
 [[ $remote_commit =~ ^[0-9a-f]{40}$ ]] || {
@@ -265,7 +351,7 @@ downloaded_commit=$(git -C "$candidate_checkout" rev-parse --verify HEAD)
 }
 
 step "3/4 · Verifica del progetto scaricato"
-"$candidate_checkout/tests/verify-project.sh"
+run_with_progress "Test del progetto" "$candidate_checkout/tests/verify-project.sh"
 available_version=$(<"$candidate_checkout/VERSION")
 [[ $available_version =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]] || {
     echo "VERSION scaricata non valida: $available_version" >&2
@@ -395,22 +481,29 @@ fi
 install -o root -g root -m 0755 "$checkout/libexec/wasalight-update-snapshot" \
     "$snapshot_tool"
 bash -n "$snapshot_tool"
-if snapshot=$(bash "$snapshot_tool" create); then
+snapshot_output=$(mktemp /run/wasalight-update-snapshot-output.XXXXXX)
+if run_with_progress_capture "$snapshot_output" "Creazione snapshot" \
+        bash "$snapshot_tool" create; then
+    snapshot=$(tail -n 1 "$snapshot_output")
+    rm -f -- "$snapshot_output"
     :
 else
     snapshot_rc=$?
+    rm -f -- "$snapshot_output"
     update_failed "$snapshot_rc" "$LINENO" 'bash "$snapshot_tool" create'
 fi
 echo "Snapshot pre-aggiornamento: $snapshot"
 
 step "4/4 · Installazione della configurazione Wasalight"
-"$checkout/install.sh" "${installer_args[@]}"
+run_with_progress "Installazione Wasalight" \
+    env NEEDRESTART_SUSPEND=1 "$checkout/install.sh" "${installer_args[@]}"
 touch /run/wasalight-update-reboot-required
 
 trap - ERR
-printf '\n========================================\n'
-printf '       AGGIORNAMENTO COMPLETATO\n'
-printf '========================================\n'
+printf '\n%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓%s\n' "$green" "$reset"
+printf '%s┃%s  %sAGGIORNAMENTO COMPLETATO%s                         %s┃%s\n' \
+    "$green" "$reset" "$white" "$reset" "$green" "$reset"
+printf '%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛%s\n' "$green" "$reset"
 echo "Fine: $(date --iso-8601=seconds)"
 printf '%sOK%s · tutte le fasi sono terminate correttamente.\n' "$green" "$reset"
 if ((protect)); then

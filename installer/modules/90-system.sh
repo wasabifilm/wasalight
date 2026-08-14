@@ -255,7 +255,10 @@ PYEOF
     if ((intel_graphics)); then
         grep -qxF i915 /etc/initramfs-tools/modules || printf 'i915\n' >>/etc/initramfs-tools/modules
     fi
-    update-grub
+    # The global Wasalight lock intentionally uses fd 9. GRUB invokes LVM tools
+    # that warn about inherited descriptors, although they never use the lock;
+    # close it only in this child while the parent transaction keeps it held.
+    update-grub 9>&-
 }
 
 configure_overlay() {
@@ -264,7 +267,7 @@ configure_overlay() {
     else
         printf '%s\n' 'overlayroot="disabled"' >"$OVERLAY_CONF"
     fi
-    update-initramfs -u
+    update-initramfs -u 9>&-
 }
 
 record_installed_version() {

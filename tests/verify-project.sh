@@ -445,7 +445,7 @@ required_patterns=(
     '98-wasalight-early-display.cfg'
     'grep -qxF i915 /etc/initramfs-tools/modules'
     'remote_commit=$(git -C "$candidate_checkout" rev-parse --verify FETCH_HEAD)'
-    'snapshot=$(bash "$snapshot_tool" create)'
+    'run_with_progress_capture "$snapshot_output" "Creazione snapshot"'
     'bash "$snapshot_tool" restore "$snapshot"'
     'SSH:        $ssh'
     'MAINTENANCE mode: automatic MagicQ start skipped'
@@ -773,6 +773,23 @@ grep -Fq '/usr/local/bin/wasalight-remote-autostart &' "$INSTALLER" || \
     fail "l'autostart remoto non è collegato alla sessione Openbox"
 grep -Fq 'git_retry -C "$candidate_checkout" fetch' "$tmp_dir/wasalight-update" || \
     fail "l'aggiornamento Wasalight non usa download Git con retry"
+grep -Fq 'progress_indicator()' "$tmp_dir/wasalight-update" || \
+    fail "l'updater non offre un avanzamento compatto per le operazioni lente"
+grep -Fq "local -a frames=('●··' '·●·' '··●' '·●·')" "$tmp_dir/wasalight-update" || \
+    fail "l'updater non rende visibile che un'operazione lunga sta proseguendo"
+grep -Fq 'kill "$indicator_pid"' "$tmp_dir/wasalight-update" || \
+    fail "l'indicatore dell'updater non viene arrestato alla fine del comando"
+if grep -Fq 'while kill -0 "$pid"' "$tmp_dir/wasalight-update"; then
+    fail "l'avanzamento updater può restare bloccato su un processo zombie"
+fi
+grep -Fq 'tee -a "$legacy_log" "$log_file" >"$raw_output"' \
+    "$tmp_dir/wasalight-update" || \
+    fail "la vista compatta dell'updater non conserva l'output completo in tempo reale"
+grep -Fq 'tail -n 24 "$raw_output"' "$tmp_dir/wasalight-update" || \
+    fail "l'updater non mostra il contesto grezzo quando un comando fallisce"
+grep -Fq 'env NEEDRESTART_SUSPEND=1 "$checkout/install.sh"' \
+    "$tmp_dir/wasalight-update" || \
+    fail "l'updater non evita il riepilogo needrestart prima del riavvio richiesto"
 grep -Fq 'merge-base --is-ancestor' "$tmp_dir/wasalight-update" || \
     fail "l'updater non blocca una riscrittura non fast-forward del ramo"
 grep -Fq 'timeout --signal=TERM 120' "$tmp_dir/wasalight-update-lib.sh" || \
@@ -816,6 +833,11 @@ grep -Fq 'update_args+=(--plugin "$WASALIGHT_UPDATE_PLUGIN")' \
     fail "la sessione Update non inoltra il plugin selezionato"
 grep -Fq 'pkexec /usr/local/sbin/wasalight-update' "$tmp_dir/wasalight-update-session" || \
     fail "la sessione guidata non usa l'autenticazione grafica Polkit"
+grep -Fq 'In attesa dell’autorizzazione…' "$tmp_dir/wasalight-update-session" || \
+    fail "la sessione guidata non spiega l'attesa della finestra Polkit"
+grep -Fq 'Il log completo resta disponibile anche con la vista compatta.' \
+    "$tmp_dir/wasalight-update-session" || \
+    fail "la sessione guidata non chiarisce che l'output completo viene conservato"
 if grep -Fq 'sudo /usr/local/sbin/wasalight-update' "$tmp_dir/wasalight-update-session"; then
     fail "la sessione guidata richiede ancora la password nel terminale"
 fi
@@ -871,6 +893,10 @@ grep -Fq 'sudo wasalight-update --allow-missing-magicq' \
     fail "l'updater non spiega come ignorare l'assenza di MagicQ"
 grep -Fq 'systemctl reboot' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update --reboot non riavvia il sistema"
+grep -Fq 'update-grub 9>&-' "$INSTALLER" || \
+    fail "GRUB eredita ancora il descrittore del lock globale"
+grep -Fq 'update-initramfs -u 9>&-' "$INSTALLER" || \
+    fail "initramfs eredita ancora il descrittore del lock globale"
 grep -Fq 'require_manifest_value /etc/wasalight/release-manifest.ini Wasalight VersionURL' \
     "$tmp_dir/wasalight-update-check" || \
     fail "il controllo aggiornamenti non usa la VersionURL centralizzata"
