@@ -323,6 +323,7 @@ required_patterns=(
     '/etc/wasalight/apps.d/ip-scanner.desktop'
     '/etc/wasalight/apps.d/artnet-monitor.desktop'
     '/etc/wasalight/apps.d/system-monitor.desktop'
+    '/usr/local/share/icons/wasalight/system-monitor.svg'
     'TryExec=lxtask'
     '/usr/local/sbin/wasalight-ip-scan'
     '/usr/local/sbin/wasalight-artnet-capture'
@@ -1170,9 +1171,9 @@ grep -Fq 'timeout --signal=TERM 6 /usr/local/bin/wasalight-touch-status' \
     "$INSTALLER" || fail "lo stato touchscreen può bloccare il refresh Control"
 grep -Fq 'dialog.set_keep_above(True)' "$control_core/widgets.py" || \
     fail "i dialoghi GTK di Control non restano in primo piano"
-grep -Fq 'Icon=utilities-system-monitor-symbolic' \
+grep -Fq 'Icon=/usr/local/share/icons/wasalight/system-monitor.svg' \
     "$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/system-monitor.desktop" || \
-    fail "Monitor sistema non usa un'icona riconoscibile"
+    fail "Monitor sistema non usa l'icona Wasalight dedicata"
 
 date_time_ui="$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-date-time"
 time_control="$INSTALLER_TEMPLATE_ROOT/usr/local/sbin/wasalight-time-control"

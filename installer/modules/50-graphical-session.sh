@@ -103,6 +103,7 @@ EOF
     install_template /usr/local/share/icons/wasalight/vnc.svg 0644
     install_template /usr/local/share/icons/wasalight/ssh.svg 0644
     install_template /usr/local/share/icons/wasalight/keyboard.svg 0644
+    install_template /usr/local/share/icons/wasalight/system-monitor.svg 0644
 
     write_file "$TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop" 0644 <<'EOF'
 [Desktop Entry]
