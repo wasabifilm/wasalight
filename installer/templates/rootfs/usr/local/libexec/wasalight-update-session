@@ -31,7 +31,8 @@ if ((rc == 0)); then
         exit 0
     fi
     echo "Aggiornamento completato correttamente."
-    if /usr/local/bin/wasalight-dialog --question --width=520 --title="Wasalight aggiornato" \
+    if /usr/local/bin/wasalight-dialog --question \
+        --icon=/usr/local/share/icons/wasalight/reboot.svg --width=520 --title="Wasalight aggiornato" \
         --text="<big><b>Aggiornamento completato.</b></big>\n\nRiavviare ora per applicare la nuova configurazione?" \
         --ok-label="Riavvia ora" --cancel-label="Più tardi"; then
         echo "Riavvio in corso…"

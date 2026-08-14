@@ -143,7 +143,12 @@ e non interferisce con quella di MagicQ: quando è chiusa non resta alcun proces
 residente. Il pulsante **Tastiera** nel dock e in **Wasalight Control →
 Applicazioni** funziona da interruttore: il primo tocco la apre sopra la barra
 inferiore, il secondo la chiude. Il comando equivalente è
-`wasalight-keyboard-toggle`.
+`wasalight-keyboard-toggle`. Onboard non aggiunge una seconda icona nell'area di
+notifica e non usa apertura o chiusura automatica: resta visibile quando cambia
+il focus e viene chiuso soltanto premendo di nuovo il pulsante verde. Su Ubuntu
+24.04 usa il backend GTK di Onboard, più stabile quando il sistema espone
+contemporaneamente touchscreen/tablet e mouse; l'installer include inoltre il
+typelib AT-SPI raccomandato da Onboard.
 
 La geometria viene calcolata dalla risoluzione corrente e occupa il 90% della
 larghezza e il 38% dell’altezza. Se il window manager non riesce a posizionarla,

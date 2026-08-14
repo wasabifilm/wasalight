@@ -102,6 +102,9 @@ uno spettacolo.
       indirizzo, porta e tipo di attivazione (`MANUALE` oppure `AUTO`).
 - [ ] **Spegni** e **Riavvia** mostrano sempre la conferma; **Annulla** non
       esegue azioni e la conferma completa correttamente l'operazione scelta.
+- [ ] Ogni conferma mostra l'icona coerente con l'azione (alimentazione,
+      riavvio, blocco, SSH, VNC, rollback o eliminazione) e non l'interrogativo
+      generico di Zenity.
 - [ ] Le conferme Wasalight sono centrate, ricevono subito il focus e restano in
       primo piano anche sopra MagicQ, browser e altre finestre massimizzate.
 - [ ] Il pannello destro mostra CURRENT, NEXT BOOT, versione e stato MagicQ,

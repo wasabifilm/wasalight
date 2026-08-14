@@ -228,7 +228,7 @@ required_patterns=(
     'libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0'
     'libasound2-data alsa-utils'
     'openbox tint2 picom pcmanfm lxterminal lxrandr lxtask x11vnc procps wmctrl x11-utils'
-    'galculator i3lock mousepad onboard'
+    'galculator i3lock mousepad onboard gir1.2-atspi-2.0'
     'conky-all zenity libnotify-bin libglib2.0-bin desktop-file-utils librsvg2-common'
     'python3 python3-gi gir1.2-gtk-3.0'
     'arp-scan iproute2'
@@ -621,6 +621,20 @@ grep -Fq 'pgrep -u "$(id -u)" -x onboard' "$keyboard_toggle" || \
     fail "il pulsante Tastiera non rileva un'istanza Onboard esistente"
 grep -Fq 'pkill -TERM -u "$(id -u)" -x onboard' "$keyboard_toggle" || \
     fail "il pulsante Tastiera non permette di chiudere Onboard"
+grep -Fq 'gsettings set org.onboard show-status-icon false' "$keyboard_toggle" || \
+    fail "Onboard mostra ancora un'icona duplicata che interferisce col toggle"
+grep -Fq 'gsettings set org.onboard.auto-show enabled false' "$keyboard_toggle" || \
+    fail "Onboard non è configurato per il solo controllo manuale"
+grep -Fq 'gsettings set org.onboard.keyboard input-event-source GTK' \
+    "$keyboard_toggle" || \
+    fail "Onboard usa ancora il backend XInput instabile con tablet e mouse"
+grep -Fq 'GTK_A11Y=none onboard' "$keyboard_toggle" || \
+    fail "Onboard non disabilita il bridge accessibilità assente"
+grep -Fq 'gsettings set org.onboard.window force-to-top true' "$keyboard_toggle" || \
+    fail "Onboard non resta sopra le applicazioni della console"
+grep -Fq 'onboard_args+=(--size="${width}x${height}" -x "$x" -y "$y")' \
+    "$keyboard_toggle" || \
+    fail "la geometria GTK di Onboard non viene impostata prima dell'avvio"
 grep -Fq 'wmctrl -i -r "$window_id" -b add,above,sticky' "$keyboard_toggle" || \
     fail "la tastiera virtuale non viene mantenuta visibile sul desktop touch"
 if grep -Fq 'wasalight-keyboard-toggle &' "$INSTALLER"; then
@@ -687,6 +701,22 @@ grep -Fq 'desktop_icon_size=64' "$INSTALLER" || \
     fail "i pulsanti desktop non sono dimensionati per l'uso touch"
 grep -Fq '/usr/local/bin/wasalight-dialog --question' "$tmp_dir/wasalight-power" || \
     fail "spegnimento e riavvio non richiedono una conferma touch"
+grep -Fq 'icon=/usr/local/share/icons/wasalight/power.svg' "$tmp_dir/wasalight-power" || \
+    fail "la conferma di spegnimento non usa l'icona corretta"
+grep -Fq 'icon=/usr/local/share/icons/wasalight/reboot.svg' "$tmp_dir/wasalight-power" || \
+    fail "la conferma di riavvio non usa l'icona corretta"
+grep -Fq -- '--icon=/usr/local/share/icons/wasalight/ssh.svg' \
+    "$tmp_dir/wasalight-ssh-toggle" || \
+    fail "le conferme SSH non usano l'icona SSH"
+grep -Fq -- '--icon=/usr/local/share/icons/wasalight/vnc.svg' \
+    "$tmp_dir/wasalight-vnc-toggle" || \
+    fail "le conferme VNC non usano l'icona VNC"
+grep -Fq -- '--icon=system-lock-screen' "$tmp_dir/wasalight-screen-lock" || \
+    fail "la conferma di blocco non usa l'icona lucchetto"
+grep -Fq -- '--icon=edit-delete' "$rollback_ui" || \
+    fail "la conferma di eliminazione snapshot non usa l'icona cestino"
+grep -Fq -- '--icon=document-revert' "$rollback_ui" || \
+    fail "la conferma di rollback non usa l'icona ripristino"
 grep -Fq 'exec /usr/bin/zenity --modal "$@"' \
     "$tmp_dir/wasalight-dialog" || \
     fail "i dialoghi Wasalight non usano la modalità compatibile con Zenity 4"

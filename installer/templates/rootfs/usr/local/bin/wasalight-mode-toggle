@@ -17,7 +17,7 @@ else
     explanation="Il prossimo avvio userà la protezione overlayroot per lo show."
 fi
 
-/usr/local/bin/wasalight-dialog --question --width=560 \
+/usr/local/bin/wasalight-dialog --question --icon=preferences-system --width=560 \
     --title="Modalità $target · Wasalight" \
     --text="<big><b>Preparare la modalità $target?</b></big>\n\n$explanation\n\nLa modalità cambierà soltanto dopo il riavvio." \
     --ok-label="Prepara $target" --cancel-label="Annulla" || exit 0
@@ -28,7 +28,8 @@ output=$(sudo -n "$command" 2>&1) || {
     exit 1
 }
 
-if /usr/local/bin/wasalight-dialog --question --width=520 \
+if /usr/local/bin/wasalight-dialog --question \
+    --icon=/usr/local/share/icons/wasalight/reboot.svg --width=520 \
     --title="$target pronto · Wasalight" \
     --text="<big><b>Modalità $target preparata.</b></big>\n\nRiavviare adesso per applicarla?" \
     --ok-label="Riavvia ora" --cancel-label="Più tardi"; then
