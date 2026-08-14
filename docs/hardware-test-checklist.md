@@ -161,6 +161,9 @@ uno spettacolo.
       MagicQ trasmette ArtDMX; **Azzera** svuota correttamente l’elenco.
 - [ ] **Monitor sistema** apre LXTask e aggiorna processi, CPU e memoria senza
       richiedere password o privilegi amministrativi.
+- [ ] **Audit sistema** è apribile da Supporto e da terminale; mostra boot,
+      servizi, porte, CPU, RAM, storage, rete e processi senza chiedere password
+      e senza cambiare file, mount, pacchetti o servizi.
 - [ ] Il clic destro mostra soltanto il menu Wasalight minimale, senza
       preferenze Openbox generiche.
 - [ ] Il clic destro sullo sfondo continua ad aprire il menu Openbox.

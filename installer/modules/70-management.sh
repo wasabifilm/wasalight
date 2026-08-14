@@ -10,13 +10,14 @@ configure_management_tools() {
             "$DATA_MOUNT/system/first-run" "$DATA_MOUNT/system/magicq-updates"
     fi
     for tool in \
-        wasalight-health wasalight-health-monitor wasalight-support-bundle wasalight-data-transfer \
+        wasalight-health wasalight-health-monitor wasalight-system-audit \
+        wasalight-support-bundle wasalight-data-transfer \
         wasalight-first-run wasalight-magicq-usb-watch \
         wasalight-plugin-bundle wasalight-update-snapshot wasalight-rollback; do
         source="$PROJECT_DIR/libexec/$tool"
         [[ -s $source ]] || die "management tool is missing: $source"
         case $tool in
-            wasalight-health|wasalight-first-run|wasalight-magicq-usb-watch)
+            wasalight-health|wasalight-system-audit|wasalight-first-run|wasalight-magicq-usb-watch)
                 destination="/usr/local/bin/$tool" ;;
             *) destination="/usr/local/sbin/$tool" ;;
         esac
@@ -39,6 +40,7 @@ configure_management_tools() {
     install_template /usr/local/sbin/wasalight-time-control 0755
 
     install_template /etc/wasalight/apps.d/health.desktop 0644
+    install_template /etc/wasalight/apps.d/system-audit.desktop 0644
     install_template /etc/wasalight/apps.d/support-bundle.desktop 0644
     install_template /etc/wasalight/apps.d/data-transfer.desktop 0644
     install_template /etc/wasalight/apps.d/plugin-bundle.desktop 0644

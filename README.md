@@ -42,6 +42,7 @@ magicq-ubuntu-appliance/
 │   ├── hardware-test-checklist.md
 │   ├── companion.md
 │   ├── maintenance-tools.md
+│   ├── system-audit.md
 │   ├── plugins.md
 │   ├── boot-branding.md
 │   ├── licensing.md
@@ -52,7 +53,10 @@ magicq-ubuntu-appliance/
 │   ├── update.md
 │   └── vnc.md
 └── tests/
-    └── verify-project.sh
+    ├── behavior/                       prove eseguibili isolate
+    ├── static/                         controlli divisi per dominio
+    ├── quality.sh                      lint e validazione degli asset
+    └── verify-project.sh               orchestratore della suite
 ```
 
 ## Licenza e attribuzione
@@ -377,6 +381,7 @@ magicq-stop
 wasalight-touch-status
 wasalight-touch-config list
 wasalight-audio-test
+wasalight-system-audit
 wasalight-vnc-start
 wasalight-vnc-stop
 wasalight-control
@@ -388,6 +393,11 @@ sudo wasalight-app-register --list
 sudo wasalight-maintenance
 sudo wasalight-protect
 ```
+
+`wasalight-system-audit` analizza avvio, servizi, porte, CPU, memoria, storage,
+rete e processi senza richiedere privilegi e senza modificare il sistema. È
+disponibile anche da **Wasalight Control → Supporto → Audit sistema**; dettagli
+e interpretazione dell'output sono nella [guida all'audit](docs/system-audit.md).
 
 `wasalight-maintenance` e `wasalight-protect` preparano la modalità del boot
 successivo. Dopo il comando occorre riavviare quando si è pronti.

@@ -325,6 +325,7 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-terminal-tool
     bash -n /usr/local/bin/wasalight-health
     bash -n /usr/local/sbin/wasalight-health-monitor
+    bash -n /usr/local/bin/wasalight-system-audit
     bash -n /usr/local/bin/wasalight-first-run
     bash -n /usr/local/bin/wasalight-magicq-usb-watch
     bash -n /usr/local/sbin/wasalight-support-bundle
