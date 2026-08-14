@@ -28,7 +28,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y \
-            desktop-file-utils gettext ruff shellcheck
+            desktop-file-utils gettext shellcheck
+          pipx install ruff==0.12.10
 
       - name: Verify installer and management tools
         run: tests/verify-project.sh
