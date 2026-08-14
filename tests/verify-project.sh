@@ -228,7 +228,7 @@ required_patterns=(
     'libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0'
     'libasound2-data alsa-utils'
     'openbox tint2 picom pcmanfm lxterminal lxrandr lxtask x11vnc procps wmctrl x11-utils'
-    'galculator i3lock mousepad onboard'
+    'galculator i3lock mousepad onboard gir1.2-atspi-2.0'
     'conky-all zenity libnotify-bin libglib2.0-bin desktop-file-utils librsvg2-common'
     'python3 python3-gi gir1.2-gtk-3.0'
     'arp-scan iproute2'
@@ -621,6 +621,20 @@ grep -Fq 'pgrep -u "$(id -u)" -x onboard' "$keyboard_toggle" || \
     fail "il pulsante Tastiera non rileva un'istanza Onboard esistente"
 grep -Fq 'pkill -TERM -u "$(id -u)" -x onboard' "$keyboard_toggle" || \
     fail "il pulsante Tastiera non permette di chiudere Onboard"
+grep -Fq 'gsettings set org.onboard show-status-icon false' "$keyboard_toggle" || \
+    fail "Onboard mostra ancora un'icona duplicata che interferisce col toggle"
+grep -Fq 'gsettings set org.onboard.auto-show enabled false' "$keyboard_toggle" || \
+    fail "Onboard non è configurato per il solo controllo manuale"
+grep -Fq 'gsettings set org.onboard.keyboard input-event-source GTK' \
+    "$keyboard_toggle" || \
+    fail "Onboard usa ancora il backend XInput instabile con tablet e mouse"
+grep -Fq 'GTK_A11Y=none onboard' "$keyboard_toggle" || \
+    fail "Onboard non disabilita il bridge accessibilità assente"
+grep -Fq 'gsettings set org.onboard.window force-to-top true' "$keyboard_toggle" || \
+    fail "Onboard non resta sopra le applicazioni della console"
+grep -Fq 'onboard_args+=(--size="${width}x${height}" -x "$x" -y "$y")' \
+    "$keyboard_toggle" || \
+    fail "la geometria GTK di Onboard non viene impostata prima dell'avvio"
 grep -Fq 'wmctrl -i -r "$window_id" -b add,above,sticky' "$keyboard_toggle" || \
     fail "la tastiera virtuale non viene mantenuta visibile sul desktop touch"
 if grep -Fq 'wasalight-keyboard-toggle &' "$INSTALLER"; then

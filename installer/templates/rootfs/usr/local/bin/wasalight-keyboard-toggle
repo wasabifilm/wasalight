@@ -25,7 +25,44 @@ fi
 onboard_args=()
 [[ ! -r /usr/share/onboard/themes/Nightshade.theme ]] || \
     onboard_args+=(--theme=Nightshade)
-onboard "${onboard_args[@]}" >/dev/null 2>&1 &
+
+# Wasalight controls Onboard exclusively through the fixed tint2 button. Its
+# own status icon would appear beside that button while the pointer is still
+# there, shift the panel and potentially hide the keyboard again. Auto-show is
+# disabled too: visibility must not depend on focus or pointer position.
+if command -v gsettings >/dev/null 2>&1; then
+    gsettings set org.onboard show-status-icon false 2>/dev/null || true
+    gsettings set org.onboard.auto-show enabled false 2>/dev/null || true
+    # The XInput backend in Ubuntu 24.04 can crash when a virtual tablet and a
+    # mouse are exposed together (notably in UTM/QEMU). GTK still supports
+    # mouse and touchscreen input without binding directly to every XI device.
+    gsettings set org.onboard.keyboard input-event-source GTK 2>/dev/null || true
+    gsettings set org.onboard.window force-to-top true 2>/dev/null || true
+    gsettings set org.onboard.window window-state-sticky true 2>/dev/null || true
+    gsettings set org.onboard.window enable-inactive-transparency false \
+        2>/dev/null || true
+fi
+
+# Pass the geometry at startup as well as through the later window-manager
+# fallback. With the GTK input backend Onboard may deliberately omit its main
+# window from the EWMH task list, making it invisible to wmctrl.
+read -r screen_width screen_height < <(
+    xdpyinfo 2>/dev/null | awk '
+        /dimensions:/ {
+            split($2, size, "x")
+            print size[1], size[2]
+            exit
+        }'
+)
+if [[ ${screen_width:-} =~ ^[0-9]+$ && ${screen_height:-} =~ ^[0-9]+$ ]]; then
+    width=$((screen_width * 90 / 100))
+    height=$((screen_height * 38 / 100))
+    x=$((screen_width * 5 / 100))
+    y=$((screen_height - height - 64))
+    ((y < 0)) && y=0
+    onboard_args+=(--size="${width}x${height}" -x "$x" -y "$y")
+fi
+GTK_A11Y=none onboard "${onboard_args[@]}" >/dev/null 2>&1 &
 
 # Place the keyboard above the always-visible dock. Failure to position the
 # window is harmless: Onboard remains usable with its own saved geometry.
@@ -33,20 +70,7 @@ for _ in $(seq 1 30); do
     window_id=$(wmctrl -lx 2>/dev/null | \
         awk 'tolower($0) ~ /onboard/ { print $1; exit }')
     if [[ -n ${window_id:-} ]]; then
-        read -r screen_width screen_height < <(
-            xdpyinfo 2>/dev/null | awk '
-                /dimensions:/ {
-                    split($2, size, "x")
-                    print size[1], size[2]
-                    exit
-                }'
-        )
         if [[ ${screen_width:-} =~ ^[0-9]+$ && ${screen_height:-} =~ ^[0-9]+$ ]]; then
-            width=$((screen_width * 90 / 100))
-            height=$((screen_height * 38 / 100))
-            x=$((screen_width * 5 / 100))
-            y=$((screen_height - height - 64))
-            ((y < 0)) && y=0
             wmctrl -i -r "$window_id" -e "0,$x,$y,$width,$height" || true
             wmctrl -i -r "$window_id" -b add,above,sticky || true
         fi
