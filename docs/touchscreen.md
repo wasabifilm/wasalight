@@ -140,10 +140,10 @@ garanzia di persistenza con overlayroot attivo.
 
 Onboard è un componente standard di Wasalight. Non viene aperta automaticamente
 e non interferisce con quella di MagicQ: quando è chiusa non resta alcun processo
-residente. Il pulsante **Tastiera** nel dock e in **Wasalight Control →
-Applicazioni** funziona da interruttore: il primo tocco la apre sopra la barra
-inferiore, il secondo la chiude. Il comando equivalente è
-`wasalight-keyboard-toggle`. Onboard non aggiunge una seconda icona nell'area di
+residente. Il pulsante **Tastiera** posto a destra nella barra inferiore funziona
+da interruttore: il primo tocco la apre sopra la barra, il secondo la chiude.
+Non viene ripetuto in **Wasalight Control → Applicazioni**. Il comando equivalente
+è `wasalight-keyboard-toggle`. Onboard non aggiunge una seconda icona nell'area di
 notifica e non usa apertura o chiusura automatica: resta visibile quando cambia
 il focus e viene chiuso soltanto premendo di nuovo il pulsante verde. Su Ubuntu
 24.04 usa il backend GTK di Onboard, più stabile quando il sistema espone

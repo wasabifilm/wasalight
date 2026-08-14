@@ -257,10 +257,13 @@ EOF
     install_template /etc/wasalight/apps.d/system-monitor.desktop 0644
     install_template /etc/wasalight/apps.d/terminal.desktop 0644
     install_template /etc/wasalight/apps.d/status.desktop 0644
-    install_template /etc/wasalight/apps.d/keyboard.desktop 0644
-    # SSH and VNC are managed only in the Services page; keep apps.d free from
-    # duplicate controls when the installer is run repeatedly.
-    rm -f /etc/wasalight/apps.d/vnc.desktop /etc/wasalight/apps.d/ssh.desktop
+    # The keyboard already has a permanent tint2 toggle. SSH and VNC belong to
+    # Services. Remove stale registrations so Control never shows duplicates,
+    # including copies left in the persistent third-party registry.
+    rm -f /etc/wasalight/apps.d/keyboard.desktop \
+        /etc/wasalight/apps.d/vnc.desktop \
+        /etc/wasalight/apps.d/ssh.desktop \
+        /data/system/apps.d/keyboard.desktop
     install_template /etc/wasalight/apps.d/update.desktop 0644
 
     install_template /usr/local/sbin/wasalight-app-register 0755

@@ -321,7 +321,6 @@ required_patterns=(
     'own_window_argb_value = 165'
     'border_inner_margin = 16'
     '/etc/wasalight/apps.d/ip-scanner.desktop'
-    '/etc/wasalight/apps.d/keyboard.desktop'
     '/etc/wasalight/apps.d/artnet-monitor.desktop'
     '/etc/wasalight/apps.d/system-monitor.desktop'
     'TryExec=lxtask'
@@ -640,6 +639,11 @@ grep -Fq 'wmctrl -i -r "$window_id" -b add,above,sticky' "$keyboard_toggle" || \
 if grep -Fq 'wasalight-keyboard-toggle &' "$INSTALLER"; then
     fail "la tastiera virtuale viene avviata automaticamente"
 fi
+if grep -Fq 'install_template /etc/wasalight/apps.d/keyboard.desktop' "$INSTALLER"; then
+    fail "la tastiera è ancora duplicata nella pagina Applicazioni"
+fi
+grep -Fq '/data/system/apps.d/keyboard.desktop' "$INSTALLER" || \
+    fail "l'installer non rimuove la registrazione persistente duplicata della tastiera"
 
 wallpaper_python="$tmp_dir/wasalight-desktop-wallpaper.py"
 awk '/^python3 .*PYEOF/ { capture=1; next }
