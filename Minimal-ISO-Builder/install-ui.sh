@@ -226,6 +226,7 @@ def render(tty: Any, spinner: str) -> None:
     model = read_first_line("/run/wasalight-target-model")
     boot_mode = read_first_line("/run/wasalight-boot-mode")
     keyboard = read_first_line("/run/wasalight-keyboard-label")
+    timezone = read_first_line("/run/wasalight-timezone-label")
     variant = read_first_line("/run/wasalight-install-variant") or "INSTALL"
     title = f"WASALIGHT INSTALLER v{INSTALLER_VERSION} · {variant}"
     ubuntu_title = "Ubuntu Server __WASALIGHT_UBUNTU_VERSION__ LTS"
@@ -265,6 +266,7 @@ def render(tty: Any, spinner: str) -> None:
             f"│  Modello: {fit(model, 49):<49}│",
             f"│  Avvio: {fit(boot_mode, 51):<51}│",
             f"│  Tastiera: {fit(keyboard, 48):<48}│",
+            f"│  Fuso: {fit(timezone, 52):<52}│",
             f"│  Account: {'chamsys · password configurata':<49}│",
             GREEN + "├────────────────────────────────────────────────────────────┤" + RESET,
             f"│  {DIM}{'Log tecnici: Ctrl+Alt+F1':<58}{RESET}│",

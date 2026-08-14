@@ -73,6 +73,29 @@ grep -Fq '__WASALIGHT_UBUNTU_POINT_RELEASE__' \
     fail "loader NETBOOT privo del placeholder release Ubuntu"
 [[ $(grep -Foc '__WASALIGHT_UBUNTU_VERSION__' "$ISO_BUILDER_DIR/install-ui.sh") == 1 ]] || \
     fail "UI priva del placeholder versione Ubuntu univoco"
+[[ $(grep -Foc '__WASALIGHT_TIMEZONE__' "$ISO_BUILDER_DIR/autoinstall.yaml") == 1 ]] || \
+    fail "autoinstall privo del placeholder fuso orario univoco"
+for builder in make-wasalight-minimal.sh make-wasalight-netboot.sh; do
+    grep -Fq '__WASALIGHT_TIMEZONE__' "$ISO_BUILDER_DIR/$builder" || \
+        fail "$builder non verifica il placeholder fuso orario"
+done
+grep -Fq 'timezone: "__WASALIGHT_TIMEZONE__"' "$ISO_BUILDER_DIR/autoinstall.yaml" || \
+    fail "campo autoinstall.timezone non configurato"
+grep -Fq '/usr/share/zoneinfo/$candidate' "$ISO_BUILDER_DIR/select-keyboard.sh" || \
+    fail "selettore fuso orario non valida il database zoneinfo"
+grep -Fq 's/__WASALIGHT_TIMEZONE__/$escaped_timezone/g' \
+    "$ISO_BUILDER_DIR/select-keyboard.sh" || \
+    fail "selettore fuso orario non risolve il placeholder"
+grep -Fq '/run/wasalight-timezone-label' "$ISO_BUILDER_DIR/install-ui.sh" || \
+    fail "UI installer non mostra il fuso orario scelto"
+"$ISO_BUILDER_DIR/select-keyboard.sh" --validate-timezone Europe/Rome || \
+    fail "Europe/Rome non riconosciuto come fuso orario valido"
+if "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-timezone ../Etc/UTC; then
+    fail "il selettore accetta un percorso zoneinfo con traversal"
+fi
+if "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-timezone Invalid; then
+    fail "il selettore accetta un fuso orario non valido"
+fi
 
 sed \
     -e "s|__WASALIGHT_SERVER_ISO_URL__|$live_url|g" \

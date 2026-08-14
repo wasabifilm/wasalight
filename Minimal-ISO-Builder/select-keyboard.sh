@@ -16,6 +16,30 @@ case "$INSTALLER_VERSION" in
   ''|*[!0-9]*) echo "ERRORE: VERSION non valida."; exit 1 ;;
 esac
 
+valid_timezone() {
+  candidate=$1
+  case "$candidate" in
+    ''|/*|*..*|*[!A-Za-z0-9_+./-]*|*/) return 1 ;;
+    */*) ;;
+    *) return 1 ;;
+  esac
+  [ -e "/usr/share/zoneinfo/$candidate" ] && \
+    [ ! -d "/usr/share/zoneinfo/$candidate" ]
+}
+
+case "${1:-}" in
+  '') ;;
+  --validate-timezone)
+    [ "$#" -eq 2 ] || exit 2
+    valid_timezone "$2"
+    exit $?
+    ;;
+  *)
+    echo "ERRORE: opzione sconosciuta: $1" >&2
+    exit 2
+    ;;
+esac
+
 TTY=/dev/tty1
 [ -c "$TTY" ] || TTY=/dev/console
 exec <"$TTY" >"$TTY" 2>&1
@@ -125,6 +149,66 @@ while :; do
   esac
 done
 
+while :; do
+  clear_screen
+  echo "=============================================================="
+  green "                WASALIGHT INSTALLER v$INSTALLER_VERSION"
+  echo "=============================================================="
+  echo
+  echo "Seleziona il fuso orario:"
+  echo
+  echo "   1) Italia          (Europe/Rome)"
+  echo "   2) Svizzera        (Europe/Zurich)"
+  echo "   3) Regno Unito     (Europe/London)"
+  echo "   4) Germania        (Europe/Berlin)"
+  echo "   5) Francia         (Europe/Paris)"
+  echo "   6) Spagna          (Europe/Madrid)"
+  echo "   7) UTC             (Etc/UTC)"
+  echo "   8) Altro fuso IANA (es. America/New_York)"
+  echo
+  printf "Scelta [1]: "
+  IFS= read -r timezone_choice
+
+  case "$timezone_choice" in
+    ''|1) timezone="Europe/Rome" ;;
+    2) timezone="Europe/Zurich" ;;
+    3) timezone="Europe/London" ;;
+    4) timezone="Europe/Berlin" ;;
+    5) timezone="Europe/Paris" ;;
+    6) timezone="Europe/Madrid" ;;
+    7) timezone="Etc/UTC" ;;
+    8)
+      echo
+      printf "Fuso orario IANA: "
+      IFS= read -r timezone
+      ;;
+    *)
+      pause_error "Scelta non valida."
+      continue
+      ;;
+  esac
+
+  if ! valid_timezone "$timezone"; then
+    pause_error "Fuso orario non valido o non disponibile: $timezone"
+    continue
+  fi
+
+  clear_screen
+  echo "=============================================================="
+  echo "                CONFERMA FUSO ORARIO"
+  echo "=============================================================="
+  echo
+  echo "Fuso orario: $timezone"
+  echo
+  printf "Confermare? [S/n]: "
+  IFS= read -r confirm
+
+  case "$confirm" in
+    ""|s|S|si|SI|Si|sI) break ;;
+    *) continue ;;
+  esac
+done
+
 command -v openssl >/dev/null 2>&1 || {
   echo
   echo "ERRORE: openssl non disponibile nell'ambiente di installazione."
@@ -209,6 +293,14 @@ grep -Fq '__WASALIGHT_KEYBOARD_VARIANT__' /autoinstall.yaml || {
   exec sh
 }
 
+grep -Fq '__WASALIGHT_TIMEZONE__' /autoinstall.yaml || {
+  echo
+  echo "ERRORE: placeholder fuso orario non trovato."
+  echo "Premi INVIO per aprire una shell."
+  IFS= read -r _dummy
+  exec sh
+}
+
 grep -Fq '__WASALIGHT_PASSWORD_HASH__' /autoinstall.yaml || {
   echo
   echo "ERRORE: placeholder password non trovato."
@@ -219,23 +311,27 @@ grep -Fq '__WASALIGHT_PASSWORD_HASH__' /autoinstall.yaml || {
 
 escaped_layout=$(printf '%s' "$layout" | sed 's/[\/&]/\\&/g')
 escaped_variant=$(printf '%s' "$variant" | sed 's/[\/&]/\\&/g')
+escaped_timezone=$(printf '%s' "$timezone" | sed 's/[\/&]/\\&/g')
 escaped_password_hash=$(printf '%s' "$password_hash" | sed 's/[\/&]/\\&/g')
 
 sed \
   -e "s/__WASALIGHT_KEYBOARD_LAYOUT__/$escaped_layout/g" \
   -e "s/__WASALIGHT_KEYBOARD_VARIANT__/$escaped_variant/g" \
+  -e "s/__WASALIGHT_TIMEZONE__/$escaped_timezone/g" \
   -e "s/__WASALIGHT_PASSWORD_HASH__/$escaped_password_hash/g" \
   /autoinstall.yaml > /run/autoinstall.keyboard.yaml
 
 cat /run/autoinstall.keyboard.yaml > /autoinstall.yaml
 
 printf '%s\n' "$label" > /run/wasalight-keyboard-label
+printf '%s\n' "$timezone" > /run/wasalight-timezone-label
 printf '%s\n' "configurata" > /run/wasalight-password-status
 password_hash=""
 escaped_password_hash=""
 
 clear_screen
 echo "Tastiera selezionata: $label"
+echo "Fuso orario selezionato: $timezone"
 echo "Password chamsys configurata."
 echo
 echo "L'installazione proseguira' automaticamente..."
