@@ -41,3 +41,6 @@ incorporata `Console Dark`, evitando che un errore grafico impedisca l’avvio.
 
 I nomi dei token descrivono la funzione, non il singolo widget. Questo permette
 di cambiare l’identità cromatica senza modificare il codice Python o il CSS.
+Il pulsante **Chiudi** dell’intestazione usa intenzionalmente `danger` e
+`danger_hover`: è più grande degli altri controlli di intestazione e resta
+immediatamente riconoscibile anche su touchscreen.

@@ -1588,8 +1588,16 @@ for label in '("overview", _("Overview"), self.overview_page)' \
     grep -Fq "$label" "$control_center" || \
         fail "etichetta Control non uniformata: $label"
 done
-grep -Fq 'Gtk.Button(label=_("Close"))' "$control_core/shell.py" || \
-    fail "la shell Control non espone il pulsante Chiudi"
+grep -Fq 'Gtk.Button(label=f"✕  {_('"'"'Close'"'"')}")' "$control_core/shell.py" || \
+    fail "la shell Control non espone un simbolo Chiudi riconoscibile"
+grep -Fq 'close.set_size_request(150, 56)' "$control_core/shell.py" || \
+    fail "il pulsante Chiudi di Control non ha una dimensione touch evidente"
+grep -Fq 'add_class("close-button")' "$control_core/shell.py" || \
+    fail "il pulsante Chiudi di Control non usa uno stile dedicato"
+grep -Fq '.close-button {' "$control_core/style.py" || \
+    fail "lo stile Control non evidenzia il pulsante Chiudi"
+grep -Fq "background: {palette['danger']}; color: {palette['text']};" \
+    "$control_core/style.py" || fail "il pulsante Chiudi non usa i colori danger del tema"
 python3 - "$PROJECT_DIR/assets/branding/boot-logo.png" <<'PY' || fail "logo Plymouth predefinito non valido"
 import struct
 import sys
