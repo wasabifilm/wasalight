@@ -22,6 +22,22 @@ Un timer systemd ripete il controllo ogni 15 minuti, conserva l’ultimo stato i
 wasalight-health
 ```
 
+## Audit di sistema in sola lettura
+
+**Audit sistema** apre `wasalight-system-audit`. Il comando non usa `sudo`, non
+scrive file e non abilita, arresta o rimuove servizi. Riunisce tempi di boot,
+unità fallite, porte in ascolto, CPU e governor, memoria, storage/TRIM, contatori
+di rete e processi più attivi. Ogni interrogazione potenzialmente lenta ha un
+timeout, quindi lo strumento resta utilizzabile anche in presenza di hardware o
+servizi anomali.
+
+```bash
+wasalight-system-audit
+```
+
+La lettura completa dell'output è descritta in
+[Audit di sistema](system-audit.md).
+
 ## Pacchetto diagnostico
 
 **Esporta diagnostica** crea `wasalight-support-AAAAMMGG-HHMMSS.tar.gz` e il

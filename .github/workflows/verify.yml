@@ -24,8 +24,18 @@ jobs:
             exit 1
           fi
 
+      - name: Install quality validators
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            desktop-file-utils gettext shellcheck
+          pipx install ruff==0.12.10
+
       - name: Verify installer and management tools
         run: tests/verify-project.sh
+
+      - name: Lint scripts and validate assets
+        run: tests/quality.sh --require-tools
 
       - name: Verify Minimal ISO Builder sources
         run: |

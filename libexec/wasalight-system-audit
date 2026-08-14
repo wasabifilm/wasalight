@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+
+set -uo pipefail
+
+section() {
+    printf '\n\033[1;32m== %s ==\033[0m\n' "$1"
+}
+
+run() {
+    local timeout_seconds=$1
+    shift
+    if command -v timeout >/dev/null 2>&1; then
+        timeout --foreground "$timeout_seconds" "$@" 2>&1 || true
+    else
+        "$@" 2>&1 || true
+    fi
+}
+
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+read_value() {
+    local path=$1 fallback=${2:--}
+    [[ -r $path ]] && tr -d '\n' <"$path" || printf '%s' "$fallback"
+}
+
+printf '\033[1;37mWasalight system audit\033[0m\n'
+printf 'Generated: %s\n' "$(date --iso-8601=seconds 2>/dev/null || date)"
+printf 'Version:   %s\n' "$(read_value /etc/wasalight/version unknown)"
+printf 'Mode:      %s\n' "$(if [[ $(findmnt -n -o FSTYPE / 2>/dev/null) == overlay ]]; then printf SHOW; else printf MAINTENANCE; fi)"
+printf 'Uptime:    %s\n' "$(uptime -p 2>/dev/null || printf unknown)"
+printf 'Read-only: this command does not change the system.\n'
+
+section 'Boot'
+if command_exists systemd-analyze; then
+    run 8 systemd-analyze time
+    printf '\nSlowest units:\n'
+    run 8 systemd-analyze blame | head -n 15
+else
+    printf 'systemd-analyze unavailable\n'
+fi
+
+section 'Services'
+failed=$(run 8 systemctl --failed --no-legend --plain)
+if [[ -n $failed ]]; then
+    printf 'FAILED:\n%s\n' "$failed"
+else
+    printf 'Failed units: none\n'
+fi
+running=$(run 8 systemctl list-units --type=service --state=running --no-legend --plain | wc -l | tr -d ' ')
+printf 'Running services: %s\n' "${running:-unknown}"
+
+section 'Listening ports'
+if command_exists ss; then
+    run 8 ss -lntup
+else
+    printf 'ss unavailable\n'
+fi
+
+section 'CPU and load'
+cpu_model=$(awk -F: '/model name/ {sub(/^[[:space:]]+/, "", $2); print $2; exit}' /proc/cpuinfo 2>/dev/null)
+printf 'CPU:       %s\n' "${cpu_model:-unknown}"
+printf 'Load:      %s\n' "$(cut -d' ' -f1-3 /proc/loadavg 2>/dev/null || printf unknown)"
+governors=$(for governor in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+    [[ -r $governor ]] && read_value "$governor"
+done | sort -u | paste -sd, -)
+printf 'Governor:  %s\n' "${governors:-unavailable}"
+command_exists sensors && run 8 sensors
+
+section 'Memory and swap'
+run 8 free -h
+
+section 'Storage'
+run 8 df -hT / /data /stick 2>/dev/null
+if command_exists lsblk; then
+    run 8 lsblk -e 7 -o NAME,TYPE,SIZE,FSTYPE,MOUNTPOINTS,ROTA,DISC-MAX,MODEL
+fi
+if command_exists systemctl; then
+    printf '\nTRIM timer: %s\n' "$(run 5 systemctl is-enabled fstrim.timer | head -n 1)"
+fi
+
+section 'Network'
+if command_exists ip; then
+    run 8 ip -brief address
+    printf '\nInterface counters:\n'
+    run 8 ip -s -brief link
+fi
+if command_exists nstat; then
+    printf '\nUDP/IP error counters:\n'
+    run 8 nstat -az | awk '$2 != 0 && ($1 ~ /Udp|Ip.*Err|Tcp.*Fail/)'
+fi
+
+section 'Top processes'
+printf 'By CPU:\n'
+run 8 ps -eo pid,user,comm,%cpu,%mem --sort=-%cpu | head -n 12
+printf '\nBy memory:\n'
+run 8 ps -eo pid,user,comm,%cpu,%mem --sort=-%mem | head -n 12
+
+section 'Packages eligible for Wasalight cleanup'
+cleanup_candidates=(
+    apport apport-symptoms popularity-contest ubuntu-report whoopsie
+    unattended-upgrades update-notifier-common
+    open-vm-tools open-vm-tools-desktop qemu-guest-agent spice-vdagent
+)
+installed=()
+if command_exists dpkg-query; then
+    for package in "${cleanup_candidates[@]}"; do
+        [[ $(dpkg-query -W -f='${db:Status-Abbrev}' "$package" 2>/dev/null) == ii* ]] && \
+            installed+=("$package")
+    done
+fi
+if ((${#installed[@]})); then
+    printf 'Still installed: %s\n' "${installed[*]}"
+else
+    printf 'No known cleanup candidates installed.\n'
+fi
+
+printf '\nAudit complete. No system changes were made.\n'

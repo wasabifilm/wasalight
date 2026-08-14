@@ -68,12 +68,19 @@ Eseguire sempre:
 
 ```bash
 ./tests/verify-project.sh
+./tests/quality.sh
 ```
 
-La suite controlla sintassi dei moduli, presenza e contenuto del manifesto,
-template eseguibili, ordine delle fasi e invarianti di installazione. Una nuova
-fase deve essere aggiunta come modulo quando è indipendente; un nuovo file
-statico destinato al sistema deve essere un template, non un heredoc.
+`verify-project.sh` prepara una sola volta installer combinato e template, poi
+carica le suite di dominio in `tests/static/installer.sh`,
+`tests/static/control-plugins.sh` e `tests/static/runtime.sh`. Le suite
+controllano sintassi dei moduli, manifesto, template, ordine delle fasi e
+invarianti di installazione. `quality.sh` aggiunge ShellCheck, Ruff,
+`systemd-analyze verify`, `desktop-file-validate`, gettext e link locali della
+documentazione; in CI usa `--require-tools` per rendere obbligatori tutti i
+validatori. Una nuova fase deve essere aggiunta come modulo quando è
+indipendente; un nuovo file statico destinato al sistema deve essere un
+template, non un heredoc.
 
 I test autonomi in `tests/behavior` verificano eseguendo il codice reale il lock
 globale, il parser del manifesto e la politica di retry Git dell'updater. Vengono

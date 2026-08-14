@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Audit sistema
+Comment=Analizza avvio, servizi, porte e risorse senza modificare il sistema
+Exec=/usr/local/bin/wasalight-terminal-tool audit
+Icon=/usr/local/share/icons/wasalight/system-monitor.svg
+TryExec=/usr/local/bin/wasalight-system-audit
+X-Wasalight-Section=Support
+X-Wasalight-Order=72
