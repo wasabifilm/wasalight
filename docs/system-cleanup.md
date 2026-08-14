@@ -24,6 +24,11 @@ dal controllo remoto, `needrestart` o le dipendenze grafiche di MagicQ.
 Le librerie XCB richieste dal plugin Qt di MagicQ sono elencate esplicitamente
 tra le dipendenze dell'appliance, così APT non può considerarle superflue.
 
+Dopo il passaggio definitivo a NetworkManager, Wasalight disabilita anche
+`systemd-networkd` e `systemd-networkd-wait-online`. Lasciarli attivi senza
+interfacce di competenza produce soltanto un timeout e una falsa unità fallita;
+NetworkManager rimane l’unico gestore della rete della console.
+
 ## Ordine delle operazioni APT
 
 L’installer evita che i timer APT e `unattended-upgrades` lavorino in parallelo,

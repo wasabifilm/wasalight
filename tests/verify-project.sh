@@ -243,6 +243,8 @@ required_patterns=(
     'renderer: NetworkManager'
     'netplan apply'
     'network-manager network-manager-gnome wpasupplicant'
+    'systemd-networkd-wait-online.service systemd-networkd.service'
+    'systemctl reset-failed systemd-networkd-wait-online.service'
     'libfsapfs-utils util-linux udev logrotate'
     'fsapfsmount -X ro,allow_other,nosuid,nodev,noexec'
     'Mounted $dev (APFS) read-only'
