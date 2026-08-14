@@ -160,6 +160,12 @@ grep -Fq 'StartupWMClass=WasalightCompanion' "$companion_web_launcher" || \
     fail "il launcher Companion non usa una classe finestra dedicata"
 grep -Fq 'Name=Companion' "$companion_web_launcher" || \
     fail "il launcher operativo Companion non usa il nome compatto"
+grep -Fq '[[ -d /opt/companion && -x /usr/local/bin/wasalight-companion-browser ]]' \
+    "$INSTALLER" || fail "il launcher Companion nel dock non dipende dall'installazione reale"
+grep -Fq 'companion_icon=/usr/local/share/icons/wasalight/companion-official.png' \
+    "$INSTALLER" || fail "il launcher Companion nel dock non usa l'icona ufficiale"
+grep -Fq 'StartupWMClass=WasalightCompanion' "$INSTALLER" || \
+    fail "il launcher Companion nel dock non è associato alla finestra Falkon dedicata"
 [[ ! -e $INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/companion.desktop ]] || \
     fail "il vecchio launcher tecnico Companion duplica ancora il Control Center"
 
@@ -237,6 +243,8 @@ required_patterns=(
     'renderer: NetworkManager'
     'netplan apply'
     'network-manager network-manager-gnome wpasupplicant'
+    'systemd-networkd-wait-online.service systemd-networkd.service'
+    'systemctl reset-failed systemd-networkd-wait-online.service'
     'libfsapfs-utils util-linux udev logrotate'
     'fsapfsmount -X ro,allow_other,nosuid,nodev,noexec'
     'Mounted $dev (APFS) read-only'
@@ -295,6 +303,8 @@ required_patterns=(
     'strut_policy = follow_size'
     'launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop'
     'launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Files.desktop'
+    '$TARGET_HOME/.config/wasalight/dock/Companion.desktop'
+    '$companion_dock_item'
     'panel_items = LTSPC'
     'button_lclick_command = /usr/local/bin/wasalight-keyboard-toggle'
     'button_icon = /usr/local/share/icons/wasalight/keyboard.svg'
@@ -321,9 +331,9 @@ required_patterns=(
     'own_window_argb_value = 165'
     'border_inner_margin = 16'
     '/etc/wasalight/apps.d/ip-scanner.desktop'
-    '/etc/wasalight/apps.d/keyboard.desktop'
     '/etc/wasalight/apps.d/artnet-monitor.desktop'
     '/etc/wasalight/apps.d/system-monitor.desktop'
+    '/usr/local/share/icons/wasalight/system-monitor.svg'
     'TryExec=lxtask'
     '/usr/local/sbin/wasalight-ip-scan'
     '/usr/local/sbin/wasalight-artnet-capture'
@@ -445,7 +455,7 @@ required_patterns=(
     '98-wasalight-early-display.cfg'
     'grep -qxF i915 /etc/initramfs-tools/modules'
     'remote_commit=$(git -C "$candidate_checkout" rev-parse --verify FETCH_HEAD)'
-    'snapshot=$(bash "$snapshot_tool" create)'
+    'run_with_progress_capture "$snapshot_output" "Creazione snapshot"'
     'bash "$snapshot_tool" restore "$snapshot"'
     'SSH:        $ssh'
     'MAINTENANCE mode: automatic MagicQ start skipped'
@@ -640,6 +650,11 @@ grep -Fq 'wmctrl -i -r "$window_id" -b add,above,sticky' "$keyboard_toggle" || \
 if grep -Fq 'wasalight-keyboard-toggle &' "$INSTALLER"; then
     fail "la tastiera virtuale viene avviata automaticamente"
 fi
+if grep -Fq 'install_template /etc/wasalight/apps.d/keyboard.desktop' "$INSTALLER"; then
+    fail "la tastiera è ancora duplicata nella pagina Applicazioni"
+fi
+grep -Fq '/data/system/apps.d/keyboard.desktop' "$INSTALLER" || \
+    fail "l'installer non rimuove la registrazione persistente duplicata della tastiera"
 
 wallpaper_python="$tmp_dir/wasalight-desktop-wallpaper.py"
 awk '/^python3 .*PYEOF/ { capture=1; next }
@@ -773,6 +788,23 @@ grep -Fq '/usr/local/bin/wasalight-remote-autostart &' "$INSTALLER" || \
     fail "l'autostart remoto non è collegato alla sessione Openbox"
 grep -Fq 'git_retry -C "$candidate_checkout" fetch' "$tmp_dir/wasalight-update" || \
     fail "l'aggiornamento Wasalight non usa download Git con retry"
+grep -Fq 'progress_indicator()' "$tmp_dir/wasalight-update" || \
+    fail "l'updater non offre un avanzamento compatto per le operazioni lente"
+grep -Fq "local -a frames=('●··' '·●·' '··●' '·●·')" "$tmp_dir/wasalight-update" || \
+    fail "l'updater non rende visibile che un'operazione lunga sta proseguendo"
+grep -Fq 'kill "$indicator_pid"' "$tmp_dir/wasalight-update" || \
+    fail "l'indicatore dell'updater non viene arrestato alla fine del comando"
+if grep -Fq 'while kill -0 "$pid"' "$tmp_dir/wasalight-update"; then
+    fail "l'avanzamento updater può restare bloccato su un processo zombie"
+fi
+grep -Fq 'tee -a "$legacy_log" "$log_file" >"$raw_output"' \
+    "$tmp_dir/wasalight-update" || \
+    fail "la vista compatta dell'updater non conserva l'output completo in tempo reale"
+grep -Fq 'tail -n 24 "$raw_output"' "$tmp_dir/wasalight-update" || \
+    fail "l'updater non mostra il contesto grezzo quando un comando fallisce"
+grep -Fq 'env NEEDRESTART_SUSPEND=1 "$checkout/install.sh"' \
+    "$tmp_dir/wasalight-update" || \
+    fail "l'updater non evita il riepilogo needrestart prima del riavvio richiesto"
 grep -Fq 'merge-base --is-ancestor' "$tmp_dir/wasalight-update" || \
     fail "l'updater non blocca una riscrittura non fast-forward del ramo"
 grep -Fq 'timeout --signal=TERM 120' "$tmp_dir/wasalight-update-lib.sh" || \
@@ -816,6 +848,11 @@ grep -Fq 'update_args+=(--plugin "$WASALIGHT_UPDATE_PLUGIN")' \
     fail "la sessione Update non inoltra il plugin selezionato"
 grep -Fq 'pkexec /usr/local/sbin/wasalight-update' "$tmp_dir/wasalight-update-session" || \
     fail "la sessione guidata non usa l'autenticazione grafica Polkit"
+grep -Fq 'In attesa dell’autorizzazione…' "$tmp_dir/wasalight-update-session" || \
+    fail "la sessione guidata non spiega l'attesa della finestra Polkit"
+grep -Fq 'Il log completo resta disponibile anche con la vista compatta.' \
+    "$tmp_dir/wasalight-update-session" || \
+    fail "la sessione guidata non chiarisce che l'output completo viene conservato"
 if grep -Fq 'sudo /usr/local/sbin/wasalight-update' "$tmp_dir/wasalight-update-session"; then
     fail "la sessione guidata richiede ancora la password nel terminale"
 fi
@@ -871,6 +908,10 @@ grep -Fq 'sudo wasalight-update --allow-missing-magicq' \
     fail "l'updater non spiega come ignorare l'assenza di MagicQ"
 grep -Fq 'systemctl reboot' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update --reboot non riavvia il sistema"
+grep -Fq 'update-grub 9>&-' "$INSTALLER" || \
+    fail "GRUB eredita ancora il descrittore del lock globale"
+grep -Fq 'update-initramfs -u 9>&-' "$INSTALLER" || \
+    fail "initramfs eredita ancora il descrittore del lock globale"
 grep -Fq 'require_manifest_value /etc/wasalight/release-manifest.ini Wasalight VersionURL' \
     "$tmp_dir/wasalight-update-check" || \
     fail "il controllo aggiornamenti non usa la VersionURL centralizzata"
@@ -1140,9 +1181,9 @@ grep -Fq 'timeout --signal=TERM 6 /usr/local/bin/wasalight-touch-status' \
     "$INSTALLER" || fail "lo stato touchscreen può bloccare il refresh Control"
 grep -Fq 'dialog.set_keep_above(True)' "$control_core/widgets.py" || \
     fail "i dialoghi GTK di Control non restano in primo piano"
-grep -Fq 'Icon=utilities-system-monitor-symbolic' \
+grep -Fq 'Icon=/usr/local/share/icons/wasalight/system-monitor.svg' \
     "$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/system-monitor.desktop" || \
-    fail "Monitor sistema non usa un'icona riconoscibile"
+    fail "Monitor sistema non usa l'icona Wasalight dedicata"
 
 date_time_ui="$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-date-time"
 time_control="$INSTALLER_TEMPLATE_ROOT/usr/local/sbin/wasalight-time-control"
@@ -1549,8 +1590,16 @@ for label in '("overview", _("Overview"), self.overview_page)' \
     grep -Fq "$label" "$control_center" || \
         fail "etichetta Control non uniformata: $label"
 done
-grep -Fq 'Gtk.Button(label=_("Close"))' "$control_core/shell.py" || \
-    fail "la shell Control non espone il pulsante Chiudi"
+grep -Fq 'Gtk.Button(label=f"✕  {_('"'"'Close'"'"')}")' "$control_core/shell.py" || \
+    fail "la shell Control non espone un simbolo Chiudi riconoscibile"
+grep -Fq 'close.set_size_request(150, 56)' "$control_core/shell.py" || \
+    fail "il pulsante Chiudi di Control non ha una dimensione touch evidente"
+grep -Fq 'add_class("close-button")' "$control_core/shell.py" || \
+    fail "il pulsante Chiudi di Control non usa uno stile dedicato"
+grep -Fq '.close-button {' "$control_core/style.py" || \
+    fail "lo stile Control non evidenzia il pulsante Chiudi"
+grep -Fq "background: {palette['danger']}; color: {palette['text']};" \
+    "$control_core/style.py" || fail "il pulsante Chiudi non usa i colori danger del tema"
 python3 - "$PROJECT_DIR/assets/branding/boot-logo.png" <<'PY' || fail "logo Plymouth predefinito non valido"
 import struct
 import sys

@@ -302,6 +302,14 @@ configure_networkmanager() {
     netplan apply
     systemctl restart NetworkManager.service
 
+    # The Server installer may leave networkd and its wait-online unit enabled.
+    # Once Netplan is rendered by NetworkManager they have no interface to
+    # configure; wait-online can then time out and leave a misleading failed
+    # unit on every boot. Keep NetworkManager as the single network owner.
+    disable_service_if_present \
+        systemd-networkd-wait-online.service systemd-networkd.service
+    systemctl reset-failed systemd-networkd-wait-online.service 2>/dev/null || true
+
     if nmcli -t -f DEVICE,TYPE,STATE device status 2>/dev/null | \
        grep -E '^[^:]+:(ethernet|wifi):unmanaged$' >/dev/null; then
         warn "a physical network interface is still unmanaged after applying Netplan"

@@ -42,6 +42,20 @@ button:active {{
     background: {palette['brand_hover']}; color: {palette['brand_text']};
     border-color: {palette['brand_hover']};
 }}
+.close-button {{
+    min-width: 150px; min-height: 56px; padding: 8px 18px;
+    background: {palette['danger']}; color: {palette['text']};
+    border: 2px solid {palette['danger_hover']};
+    font-size: 16px; font-weight: bold;
+}}
+.close-button:hover, .close-button:focus {{
+    background: {palette['danger_hover']}; color: {palette['text']};
+    border-color: {palette['text']};
+}}
+.close-button:active {{
+    background: {palette['danger']}; color: {palette['text']};
+    border-color: {palette['text']};
+}}
 .secondary-button {{
     background: {palette['panel_alt']}; border-color: {palette['separator']};
 }}

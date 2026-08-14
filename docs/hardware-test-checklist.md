@@ -208,6 +208,8 @@ uno spettacolo.
       `INDIRIZZO:8000` accanto allo stato Companion.
 - [ ] **Companion** in Applicazioni avvia Falkon su `http://127.0.0.1:8000`; se il servizio
       è fermo ne propone l'avvio e la finestra massimizzata lascia Tint2 visibile.
+- [ ] Quando Companion è installato, il dock mostra il pulsante con l’icona
+      ufficiale e lo nasconde su un’installazione senza Companion.
 - [ ] La finestra Companion aperta in Falkon mostra nel taskbar Tint2 l'icona
       Companion, non l'icona generica Falkon (`WM_CLASS=WasalightCompanion`).
 - [ ] Editor pulsanti, installazione moduli, drag-and-drop, WebSocket e feedback

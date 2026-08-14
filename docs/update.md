@@ -107,20 +107,28 @@ sudo wasalight-update
 
 Dal desktop non serve aprire manualmente il terminale: clic destro →
 **Aggiorna Wasalight**, oppure **Wasalight Control → Stato → Aggiorna**.
-Si apre una finestra con quattro fasi leggibili: controllo del pacchetto MagicQ,
-download, verifica e installazione. Prima di modificare il sistema, l’agente
+Si apre una finestra scura con i colori Wasalight e quattro fasi leggibili:
+controllo del pacchetto MagicQ, download, verifica e installazione. Le operazioni
+lunghe mostrano un indicatore animato e il tempo trascorso, così è sempre evidente
+che l’aggiornamento sta proseguendo. Prima di modificare il sistema, l’agente
 grafico Polkit mostra una finestra centrata per la password amministrativa di
 `chamsys`; la password non viene digitata nel terminale e non viene salvata.
-Il terminale resta visibile esclusivamente per avanzamento e diagnostica. Se
-l’autenticazione viene annullata, l’aggiornamento termina senza modificare il
-sistema. Al termine compare un grande pulsante
+Il terminale usa una vista compatta: nasconde l’output ripetitivo di Git, test,
+snapshot, APT e initramfs, ma conserva ogni riga nei log. Con `--verbose` mostra
+anche l’output grezzo. Poiché al termine è comunque necessario riavviare,
+`needrestart` non esegue il proprio riepilogo intermedio; inoltre GRUB e
+initramfs non ereditano il descrittore del lock globale, evitando il falso warning
+di LVM senza rilasciare la protezione dell’aggiornamento. Se l’autenticazione
+viene annullata, l’aggiornamento termina senza modificare il sistema. Al termine
+compare un grande pulsante
 **Riavvia ora**; scegliendo **Più tardi** l’aggiornamento resta installato e viene
 ricordato che il riavvio è ancora necessario. Non occorre più premere Invio per
 chiudere la finestra, quindi il flusso è utilizzabile interamente al touch.
 
 In caso di errore non viene mai eseguito il riavvio automatico: il terminale
-mostra fase, comando, linea e codice di uscita. Il log completo della singola
-esecuzione resta in `/data/log/wasalight/updates/`, mentre
+mostra le ultime righe dell’output grezzo, poi fase, comando, linea e codice di
+uscita. Il log completo della singola esecuzione resta in
+`/data/log/wasalight/updates/`, mentre
 `/data/log/wasalight-update.log` conserva la cronologia cumulativa. Il registro
 cumulativo viene ruotato a 5 MiB mantenendo cinque copie compresse; dei log per
 singola esecuzione restano al massimo i venti più recenti e nessuno oltre

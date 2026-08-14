@@ -80,8 +80,10 @@ class ApplicationShell(Gtk.Box):
         version.set_xalign(1)
         version.get_style_context().add_class("section-subtitle")
         box.pack_start(version, False, False, 0)
-        close = Gtk.Button(label=_("Close"))
-        close.set_size_request(120, 50)
+        close = Gtk.Button(label=f"✕  {_('Close')}")
+        close.get_style_context().add_class("close-button")
+        close.set_size_request(150, 56)
+        close.set_tooltip_text(_("Close"))
         close.connect("clicked", lambda _button: on_close())
         box.pack_start(close, False, False, 0)
         return box

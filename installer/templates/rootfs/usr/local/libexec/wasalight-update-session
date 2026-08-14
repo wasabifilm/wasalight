@@ -13,11 +13,23 @@ if [[ -n ${WASALIGHT_UPDATE_PLUGIN:-} ]]; then
     update_args+=(--plugin "$WASALIGHT_UPDATE_PLUGIN")
 fi
 
+if [[ -t 1 ]]; then
+    brand=$'\033[1;38;2;118;189;34m'
+    white=$'\033[1;37m'
+    muted=$'\033[38;5;245m'
+    reset=$'\033[0m'
+else
+    brand= white= muted= reset=
+fi
 clear
-printf '\n  WASALIGHT UPDATE\n'
-printf '  Scarico, verifico e installo l’ultima versione.\n'
-printf '  Autorizza l’operazione nella finestra grafica.\n'
-printf '  La password richiesta è quella Linux di chamsys.\n\n'
+printf '%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓%s\n' "$brand" "$reset"
+printf '%s┃%s  %sWASALIGHT UPDATE%s                                  %s┃%s\n' \
+    "$brand" "$reset" "$white" "$reset" "$brand" "$reset"
+printf '%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛%s\n\n' "$brand" "$reset"
+printf '  %s●%s Scarico, verifico e installo l’ultima versione.\n' "$brand" "$reset"
+printf '  %s●%s Il log completo resta disponibile anche con la vista compatta.\n' "$brand" "$reset"
+printf '  %s●%s La password richiesta è quella Linux di chamsys.\n\n' "$brand" "$reset"
+printf '  %sIn attesa dell’autorizzazione…%s\n\n' "$muted" "$reset"
 
 pkexec /usr/local/sbin/wasalight-update "${update_args[@]}"
 rc=$?

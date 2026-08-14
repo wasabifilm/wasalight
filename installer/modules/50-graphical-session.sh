@@ -4,6 +4,8 @@
 configure_graphical_session() {
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
+    local companion_dock_item=
+    local companion_icon
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0755 \
         "$TARGET_HOME/.config/wasalight/dock"
 install_template /usr/local/bin/wasalight-dialog 0755
@@ -103,6 +105,7 @@ EOF
     install_template /usr/local/share/icons/wasalight/vnc.svg 0644
     install_template /usr/local/share/icons/wasalight/ssh.svg 0644
     install_template /usr/local/share/icons/wasalight/keyboard.svg 0644
+    install_template /usr/local/share/icons/wasalight/system-monitor.svg 0644
 
     write_file "$TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop" 0644 <<'EOF'
 [Desktop Entry]
@@ -125,6 +128,26 @@ Icon=/usr/local/share/icons/wasalight/files.svg
 Terminal=false
 StartupNotify=true
 EOF
+
+    if [[ -d /opt/companion && -x /usr/local/bin/wasalight-companion-browser ]]; then
+        companion_icon=/usr/local/share/icons/wasalight/companion-official.png
+        [[ -s $companion_icon ]] || \
+            companion_icon=/usr/local/share/icons/wasalight/companion.svg
+        write_file "$TARGET_HOME/.config/wasalight/dock/Companion.desktop" 0644 <<EOF
+[Desktop Entry]
+Type=Application
+Name=Companion
+Comment=Apre l'interfaccia locale Bitfocus Companion
+Exec=/usr/local/bin/wasalight-companion-browser
+Icon=$companion_icon
+Terminal=false
+StartupNotify=true
+StartupWMClass=WasalightCompanion
+EOF
+        companion_dock_item="launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Companion.desktop"
+    else
+        rm -f "$TARGET_HOME/.config/wasalight/dock/Companion.desktop"
+    fi
 
     # The keyboard has a dedicated right-side tint2 button next to the tray.
     # Remove the old launcher when this module is reapplied to an installation.
@@ -257,10 +280,13 @@ EOF
     install_template /etc/wasalight/apps.d/system-monitor.desktop 0644
     install_template /etc/wasalight/apps.d/terminal.desktop 0644
     install_template /etc/wasalight/apps.d/status.desktop 0644
-    install_template /etc/wasalight/apps.d/keyboard.desktop 0644
-    # SSH and VNC are managed only in the Services page; keep apps.d free from
-    # duplicate controls when the installer is run repeatedly.
-    rm -f /etc/wasalight/apps.d/vnc.desktop /etc/wasalight/apps.d/ssh.desktop
+    # The keyboard already has a permanent tint2 toggle. SSH and VNC belong to
+    # Services. Remove stale registrations so Control never shows duplicates,
+    # including copies left in the persistent third-party registry.
+    rm -f /etc/wasalight/apps.d/keyboard.desktop \
+        /etc/wasalight/apps.d/vnc.desktop \
+        /etc/wasalight/apps.d/ssh.desktop \
+        /data/system/apps.d/keyboard.desktop
     install_template /etc/wasalight/apps.d/update.desktop 0644
 
     install_template /usr/local/sbin/wasalight-app-register 0755
@@ -296,6 +322,7 @@ launcher_icon_background_id = 0
 launcher_icon_size = 46
 launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop
 launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Files.desktop
+$companion_dock_item
 
 taskbar_mode = single_desktop
 taskbar_padding = 4 0 4

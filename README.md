@@ -460,7 +460,8 @@ spostarli o modificarli accidentalmente.
 Sul desktop rimangono **MagicQ**, **Spegni** e **Riavvia**. L'icona MagicQ usa
 l'immagine originale ChamSys e consente l'avvio rapido con un solo tocco.
 **Wasalight Control** e **File** restano nel dock inferiore sempre visibile e
-non sono duplicati sul desktop.
+non sono duplicati sul desktop. Quando Bitfocus Companion è installato, nello
+stesso dock compare automaticamente il pulsante per aprirne l’interfaccia web.
 
 SSH e VNC sono gestiti esclusivamente nella scheda **Servizi** di Wasalight
 Control. Entrambi presentano gli stessi toggle: **Servizio attivo** modifica la
@@ -625,9 +626,10 @@ indica l'interfaccia web come `INDIRIZZO:8000`. Backup e aggiornamento sono
 consentiti solo in MAINTENANCE; in SHOW la configurazione rimane persistente ma
 il runtime protetto non viene modificato.
 
-La voce **Companion** in Applicazioni apre l'interfaccia locale in Falkon, massimizzata
-ma con la barra Tint2 ancora accessibile al touch. Profilo e preferenze sono
-persistenti in `/data/companion/browser`, mentre la cache resta temporanea.
+Il pulsante Companion nel dock e la voce **Companion** in Applicazioni aprono
+l'interfaccia locale in Falkon, massimizzata ma con la barra Tint2 ancora
+accessibile al touch. Profilo e preferenze sono persistenti in
+`/data/companion/browser`, mentre la cache resta temporanea.
 
 Per controllare MagicQ dalla stessa macchina, installare nella web UI Companion
 il modulo ChamSys MagicQ OSC o UDP e usare `127.0.0.1` come host. Installazione,
