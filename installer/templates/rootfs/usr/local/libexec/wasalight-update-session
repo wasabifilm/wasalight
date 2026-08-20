@@ -19,6 +19,22 @@ if [[ -n ${WASALIGHT_UPDATE_OPERATION:-} ]]; then
     update_args+=("$WASALIGHT_UPDATE_OPERATION")
 fi
 
+# A console used only for Wasalight/Companion development may intentionally
+# have no MagicQ package yet.  The command-line updater keeps this as an
+# explicit safety choice; the graphical launcher asks for that choice here and
+# forwards the corresponding option after confirmation.
+installed_magicq=$(dpkg-query -W -f='${db:Status-Abbrev}' magicq 2>/dev/null || true)
+if [[ $installed_magicq != ii* ]]; then
+    if /usr/local/bin/wasalight-dialog --question \
+        --icon=system-software-update --width=560 --title="MagicQ non installato" \
+        --text="<big><b>MagicQ non è installato.</b></big>\n\nL’aggiornamento cercherà comunque un pacchetto valido in /data e nelle USB. Se non lo trova, vuoi aggiornare soltanto Wasalight e gli altri componenti?" \
+        --ok-label="Continua" --cancel-label="Annulla"; then
+        update_args+=(--allow-missing-magicq)
+    else
+        exit 0
+    fi
+fi
+
 transaction_status=$(awk -F= '$1 == "status" {print $2; exit}' \
     /data/system/update-state 2>/dev/null || true)
 if [[ -z ${WASALIGHT_UPDATE_OPERATION:-} && \

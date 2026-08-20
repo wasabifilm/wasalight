@@ -21,7 +21,10 @@ inventory() {
 }
 
 inventory "$temporary/before"
-/usr/local/sbin/wasalight-update --channel debug --plan
+update_args=(--channel debug --plan)
+installed_magicq=$(dpkg-query -W -f='${db:Status-Abbrev}' magicq 2>/dev/null || true)
+[[ $installed_magicq == ii* ]] || update_args+=(--allow-missing-magicq)
+/usr/local/sbin/wasalight-update "${update_args[@]}"
 inventory "$temporary/after"
 diff -u "$temporary/before" "$temporary/after"
 echo "PASS: --plan did not change persistent Wasalight files."

@@ -24,9 +24,13 @@ inventory() {
         -print0 2>/dev/null | sort -z | xargs -0 sha256sum >"$output"
 }
 
-/usr/local/sbin/wasalight-update --channel debug --repair
+update_args=(--channel debug --repair)
+installed_magicq=$(dpkg-query -W -f='${db:Status-Abbrev}' magicq 2>/dev/null || true)
+[[ $installed_magicq == ii* ]] || update_args+=(--allow-missing-magicq)
+
+/usr/local/sbin/wasalight-update "${update_args[@]}"
 inventory "$temporary/first"
-/usr/local/sbin/wasalight-update --channel debug --repair
+/usr/local/sbin/wasalight-update "${update_args[@]}"
 inventory "$temporary/second"
 diff -u "$temporary/first" "$temporary/second"
 echo "PASS: two repair installations produced the same managed configuration."
