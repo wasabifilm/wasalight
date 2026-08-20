@@ -2,15 +2,36 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
-case ${1:-} in
-    '') ;;
-    --plugin)
-        (($# == 2)) || { echo "Usage: wasalight-update-terminal [--plugin ID]" >&2; exit 2; }
-        case $2 in
-            companion|ssh|vnc) export WASALIGHT_UPDATE_PLUGIN=$2 ;;
-            *) echo "Unknown plugin: $2" >&2; exit 2 ;;
-        esac
-        ;;
-    *) echo "Usage: wasalight-update-terminal [--plugin ID]" >&2; exit 2 ;;
-esac
+while (($#)); do
+    case $1 in
+        --plugin)
+            (($# >= 2)) || { echo "--plugin requires an ID" >&2; exit 2; }
+            case $2 in
+                companion|ssh|vnc) export WASALIGHT_UPDATE_PLUGIN=$2 ;;
+                *) echo "Unknown plugin: $2" >&2; exit 2 ;;
+            esac
+            shift 2
+            ;;
+        --channel)
+            (($# >= 2)) || { echo "--channel requires stable or debug" >&2; exit 2; }
+            case $2 in
+                stable|debug) export WASALIGHT_UPDATE_CHANNEL=$2 ;;
+                *) echo "Unknown update channel: $2" >&2; exit 2 ;;
+            esac
+            shift 2
+            ;;
+        --resume|--repair|--rollback)
+            [[ -z ${WASALIGHT_UPDATE_OPERATION:-} ]] || {
+                echo "Only one recovery operation may be requested." >&2; exit 2;
+            }
+            export WASALIGHT_UPDATE_OPERATION=$1
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: wasalight-update-terminal [--channel stable|debug] [--resume|--repair|--rollback] [--plugin ID]"
+            exit 0
+            ;;
+        *) echo "Unknown option: $1" >&2; exit 2 ;;
+    esac
+done
 exec lxterminal --title="Wasalight Update" -e /usr/local/libexec/wasalight-update-session

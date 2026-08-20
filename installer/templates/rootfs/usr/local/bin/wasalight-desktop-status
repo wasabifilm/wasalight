@@ -17,6 +17,8 @@ installed_version=$(cat /etc/wasalight/version 2>/dev/null || echo UNKNOWN)
 checked_version=$(cat /data/system/update-check/latest-version 2>/dev/null || true)
 checkout_version=$(cat /data/system/wasalight/VERSION 2>/dev/null || true)
 status_line "$blue" 'VERSION' "$installed_version"
+update_channel=$(cat /data/system/update-channel 2>/dev/null || echo stable)
+status_line "$blue" 'CHANNEL' "${update_channel^^}"
 if [[ $checked_version =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]]; then
     if [[ $installed_version == "$checked_version" ]]; then
         status_line "$green" 'UPDATE' 'UP TO DATE'
@@ -42,6 +44,11 @@ elif [[ $checkout_version =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]]; then
 else
     status_line "$yellow" 'UPDATE' 'NOT CHECKED'
 fi
+update_transaction=$(awk -F= '$1 == "status" {print $2; exit}' \
+    /data/system/update-state 2>/dev/null || true)
+case $update_transaction in
+    running|failed) status_line "$red" 'RECOVERY' "REQUIRED · ${update_transaction^^}" ;;
+esac
 
 root_fs=$(findmnt -n -o FSTYPE / 2>/dev/null || echo unknown)
 if [[ $root_fs == overlay ]]; then

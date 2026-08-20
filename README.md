@@ -102,6 +102,12 @@ in `wasalight-status`. `UPDATE READY` indica che il codice già scaricato in `/d
 è più recente della configurazione installata. Dettagli e procedura di incremento
 sono nella [guida al versionamento](docs/versioning.md).
 
+Gli aggiornamenti usano due canali espliciti: `stable`, predefinito e vincolato
+a una GitHub Release immutabile con tag SSH firmato, e `debug`, destinato ai test
+da `main`. Il piano `--plan` è realmente non mutante e una transazione interrotta
+può essere ripresa con `--resume`; dettagli operativi e recovery sono nella
+[guida aggiornamenti](docs/update.md).
+
 Versioni della piattaforma, repository, commit e checksum esterni sono
 centralizzati in `release-manifest.ini`. L’architettura modulare e le regole per
 aggiungere una fase o un template sono descritte in

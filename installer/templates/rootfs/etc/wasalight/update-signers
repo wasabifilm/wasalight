@@ -1,0 +1,4 @@
+# Wasalight stable-release SSH allowed signers.
+# Stable updates remain intentionally unavailable until an authorized public
+# signing key is added in OpenSSH allowed-signers format:
+# release@wasalight.local ssh-ed25519 AAAA...

@@ -5,26 +5,64 @@ set -Eeuo pipefail
 readonly state_dir=/data/system/update-check
 . /usr/local/libexec/wasalight-release-manifest.sh
 readonly version_url="$(require_manifest_value /etc/wasalight/release-manifest.ini Wasalight VersionURL)"
+readonly stable_api="$(require_manifest_value /etc/wasalight/release-manifest.ini Updates StableAPI)"
+readonly default_channel="$(require_manifest_value /etc/wasalight/release-manifest.ini Updates DefaultChannel)"
+readonly tag_prefix="$(require_manifest_value /etc/wasalight/release-manifest.ini Updates TagPrefix)"
 
 [[ $(id -un) == chamsys ]] || { echo "Run as the chamsys desktop user." >&2; exit 1; }
 mountpoint -q /data || exit 0
 install -d -m 0755 "$state_dir"
 temporary=$(mktemp "$state_dir/.latest.XXXXXX")
 trap 'rm -f -- "$temporary"' EXIT
+channel=$(cat /data/system/update-channel 2>/dev/null || printf '%s' "$default_channel")
+channel=$(printf '%s' "$channel" | tr '[:upper:]' '[:lower:]')
+case $channel in
+    stable|normal|normale) channel=stable ;;
+    debug|development|sviluppo) channel=debug ;;
+    *) channel=$default_channel ;;
+esac
 
-if ! curl --fail --silent --show-error --location \
-    --connect-timeout 5 --max-time 15 "$version_url" >"$temporary"; then
+if [[ $channel == stable ]]; then
+    release_json=$(mktemp "$state_dir/.release.XXXXXX")
+    if curl --fail --silent --show-error --location --connect-timeout 5 --max-time 15 \
+        -H 'Accept: application/vnd.github+json' "$stable_api" >"$release_json"; then
+        latest=$(python3 - "$release_json" "$tag_prefix" <<'PY' 2>/dev/null || true
+import json
+import sys
+release = json.load(open(sys.argv[1], encoding="utf-8"))
+tag = release.get("tag_name", "")
+prefix = sys.argv[2]
+if release.get("draft") or release.get("prerelease") or release.get("immutable") is not True:
+    raise SystemExit(1)
+if not tag.startswith(prefix):
+    raise SystemExit(1)
+print(tag[len(prefix):])
+PY
+        )
+    else
+        latest=
+    fi
+    rm -f -- "$release_json"
+else
+    latest=$(curl --fail --silent --show-error --location \
+        --connect-timeout 5 --max-time 15 "$version_url" 2>/dev/null || true)
+fi
+if [[ -z $latest ]]; then
+    recorded_channel=$(cat "$state_dir/channel" 2>/dev/null || true)
+    [[ -z $recorded_channel || $recorded_channel == "$channel" ]] || \
+        rm -f "$state_dir/latest-version"
     printf '%s\n' "$(date -Is)" >"$state_dir/last-failure"
-    logger -t wasalight-update-check "version check unavailable"
+    logger -t wasalight-update-check "version check unavailable for channel $channel"
     exit 0
 fi
-latest=$(tr -d '[:space:]' <"$temporary")
+latest=$(tr -d '[:space:]' <<<"$latest")
 [[ $latest =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]] || {
     logger -t wasalight-update-check "GitHub returned an invalid version: $latest"
     exit 0
 }
 printf '%s\n' "$latest" >"$temporary"
 mv -f -- "$temporary" "$state_dir/latest-version"
+printf '%s\n' "$channel" >"$state_dir/channel"
 trap - EXIT
 printf '%s\n' "$(date -Is)" >"$state_dir/last-success"
 rm -f "$state_dir/last-failure"
@@ -32,7 +70,7 @@ rm -f "$state_dir/last-failure"
 installed=$(cat /etc/wasalight/version 2>/dev/null || echo 0.0.0.0)
 if [[ $(printf '%s\n%s\n' "$installed" "$latest" | sort -V | tail -n1) == "$latest" && \
       $latest != "$installed" ]]; then
-    logger -t wasalight-update-check "Wasalight $latest available (installed $installed)"
+    logger -t wasalight-update-check "Wasalight $latest available on $channel (installed $installed)"
     command -v notify-send >/dev/null 2>&1 && notify-send \
         --app-name=Wasalight --icon=system-software-update \
         "Aggiornamento Wasalight disponibile" \

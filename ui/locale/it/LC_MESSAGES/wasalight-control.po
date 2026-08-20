@@ -344,6 +344,9 @@ msgstr "Sistema aggiornato"
 msgid "Update available"
 msgstr "Aggiornamento disponibile"
 
+msgid "Recovery required"
+msgstr "Ripristino richiesto"
+
 msgid "Not checked"
 msgstr "Non controllato"
 

@@ -19,13 +19,104 @@ git_retry() {
     return "$rc"
 }
 
+atomic_text_write() {
+    local destination=$1 content=$2 owner=${3:-root:root} mode=${4:-0640}
+    local directory temporary
+    directory=${destination%/*}
+    [[ $directory != "$destination" ]] || directory=.
+    install -d -m 0755 "$directory"
+    temporary=$(mktemp "$directory/.wasalight-write.XXXXXX")
+    printf '%s' "$content" >"$temporary"
+    chown "$owner" "$temporary"
+    chmod "$mode" "$temporary"
+    mv -f -- "$temporary" "$destination"
+}
+
+update_state_value() {
+    local state_file=$1 key=$2
+    [[ -r $state_file ]] || return 1
+    awk -F= -v wanted="$key" '
+        $1 == wanted { print substr($0, index($0, "=") + 1); found=1; exit }
+        END { if (!found) exit 1 }
+    ' "$state_file"
+}
+
+update_state_write() {
+    local state_file=$1 status=$2 phase=$3 version=$4 commit=$5
+    local snapshot=$6 started=$7 channel=$8 candidate=$9
+    local value
+    for value in "$status" "$phase" "$version" "$commit" "$snapshot" \
+                 "$started" "$channel" "$candidate"; do
+        [[ $value != *$'\n'* && $value != *$'\r'* ]] || {
+            echo "Invalid newline in update transaction state." >&2
+            return 1
+        }
+    done
+    atomic_text_write "$state_file" \
+        "status=$status
+phase=$phase
+version=$version
+commit=$commit
+snapshot=$snapshot
+started=$started
+channel=$channel
+candidate=$candidate
+" "${WASALIGHT_UPDATE_STATE_OWNER:-root:chamsys}" 0640
+}
+
+normalize_update_channel() {
+    local normalized
+    normalized=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
+    case $normalized in
+        stable|normal|normale) printf '%s\n' stable ;;
+        debug|development|sviluppo) printf '%s\n' debug ;;
+        *) echo "Canale aggiornamenti non valido: $1 (usare stable o debug)" >&2; return 2 ;;
+    esac
+}
+
+discover_stable_release() {
+    local api_url=$1 output_json=$2
+    curl --fail --silent --show-error --location \
+        --connect-timeout 5 --max-time 30 \
+        -H 'Accept: application/vnd.github+json' \
+        -H 'X-GitHub-Api-Version: 2022-11-28' \
+        "$api_url" >"$output_json"
+    python3 - "$output_json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as source:
+    release = json.load(source)
+if release.get("draft") or release.get("prerelease"):
+    raise SystemExit("GitHub latest release is not stable")
+if release.get("immutable") is not True:
+    raise SystemExit("GitHub stable release is not immutable")
+tag = release.get("tag_name", "")
+if not isinstance(tag, str) or not tag:
+    raise SystemExit("GitHub stable release has no tag")
+print(tag)
+PY
+}
+
+verify_stable_tag() {
+    local repository_dir=$1 tag=$2 signer_file=$3
+    [[ -r $signer_file ]] && grep -Eq '^[^#[:space:]].*[[:space:]]ssh-(ed25519|rsa)[[:space:]]' "$signer_file" || {
+        echo "Chiave pubblica release assente: $signer_file" >&2
+        return 1
+    }
+    git -C "$repository_dir" \
+        -c gpg.format=ssh \
+        -c gpg.ssh.allowedSignersFile="$signer_file" \
+        verify-tag "$tag"
+}
+
 free_kib() {
     df -Pk "$1" | awk 'NR == 2 {print $4}'
 }
 
 update_preflight() {
     local root_free data_free required_command
-    for required_command in git timeout dpkg dpkg-deb sha256sum tar; do
+    for required_command in curl git python3 ssh-keygen timeout dpkg dpkg-deb sha256sum tar; do
         command -v "$required_command" >/dev/null 2>&1 || {
             echo "Comando necessario non disponibile: $required_command" >&2
             return 1
@@ -61,6 +152,7 @@ magicq_version_of() {
 
 newest_stored_version() {
     local stored version newest=
+    [[ -d $package_store ]] || { printf '\n'; return 0; }
     while IFS= read -r -d '' stored; do
         version=$(magicq_version_of "$stored") || continue
         if [[ -z $newest ]] || dpkg --compare-versions "$version" gt "$newest"; then
@@ -73,7 +165,7 @@ newest_stored_version() {
 import_magicq_package() {
     local source=$1 remove_source=${2:-0}
     local version installed_record installed_magicq_version= stored stored_version
-    local baseline destination
+    local baseline destination temporary
 
     [[ -f $source ]] || return 0
     version=$(magicq_version_of "$source") || {
@@ -110,12 +202,14 @@ import_magicq_package() {
     fi
 
     destination="$package_store/magicq_${version}_amd64.deb"
-    install -o root -g root -m 0640 "$source" "$destination"
-    cmp -s -- "$source" "$destination" || {
+    temporary=$(mktemp "$package_store/.magicq-import.XXXXXX")
+    install -o root -g root -m 0640 "$source" "$temporary"
+    cmp -s -- "$source" "$temporary" || {
         echo "Verifica della copia del pacchetto non riuscita: $destination" >&2
-        rm -f -- "$destination"
+        rm -f -- "$temporary"
         return 1
     }
+    mv -f -- "$temporary" "$destination"
     ((remove_source)) && rm -f -- "$source"
     echo "MagicQ $version importato e conservato in $destination"
 }
@@ -124,6 +218,7 @@ select_newest_magicq_package() {
     local stored version
     selected_package=
     selected_package_version=
+    [[ -d $package_store ]] || return 0
     while IFS= read -r -d '' stored; do
         version=$(magicq_version_of "$stored") || {
             echo "Ignoro un pacchetto persistente non valido: $stored" >&2

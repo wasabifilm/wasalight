@@ -72,33 +72,58 @@ main() {
     require_host
     wasalight_acquire_operation_lock "installazione Wasalight"
     log "starting Wasalight installer version $PROJECT_VERSION"
+    installer_progress "1/25 · Preparazione partizione dati"
     configure_data_mount
+    installer_progress "2/25 · Ricerca del pacchetto MagicQ"
     discover_magicq_from_usb
     persist_magicq_package
     require_magicq_or_override
+    installer_progress "3/25 · Installazione pacchetti di sistema"
     install_packages
+    installer_progress "4/25 · Configurazione utente chamsys"
     configure_user
+    installer_progress "5/25 · Configurazione rete persistente"
     configure_networkmanager
+    installer_progress "6/25 · Configurazione log persistenti"
     configure_persistent_logs
+    installer_progress "7/25 · Configurazione touchscreen"
     configure_touchscreen
+    installer_progress "8/25 · Configurazione VNC"
     configure_vnc
+    installer_progress "9/25 · Configurazione SSH"
     configure_ssh
     configure_remote_persistence
+    installer_progress "10/25 · Configurazione aggiornamenti"
     configure_update
+    installer_progress "11/25 · Configurazione Companion"
     configure_companion
+    installer_progress "12/25 · Configurazione desktop"
     configure_graphical_session
+    installer_progress "13/25 · Configurazione plugin"
     configure_plugins
+    installer_progress "14/25 · Installazione strumenti di gestione"
     configure_management_tools
+    installer_progress "15/25 · Configurazione supporti USB"
     configure_usb
+    installer_progress "16/25 · Installazione MagicQ"
     install_magicq
+    installer_progress "17/25 · Verifica permessi MagicQ"
     repair_magicq_persistent_permissions
+    installer_progress "18/25 · Configurazione runtime volatile"
     configure_volatile_runtime
+    installer_progress "19/25 · Installazione licenze e crediti"
     install_wasalight_legal_notices
+    installer_progress "20/25 · Ottimizzazione del sistema"
     optimize_system
+    installer_progress "21/25 · Installazione comandi SHOW e MAINTENANCE"
     install_mode_commands
+    installer_progress "22/25 · Configurazione grafica di avvio"
     configure_boot_branding
+    installer_progress "23/25 · Configurazione protezione overlayroot"
     configure_overlay
+    installer_progress "24/25 · Controlli finali"
     final_checks
+    installer_progress "25/25 · Registrazione versione installata"
     record_installed_version
 
     log "installation completed: Wasalight $PROJECT_VERSION"

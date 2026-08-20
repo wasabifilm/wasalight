@@ -200,7 +200,7 @@ required_patterns=(
     '${execpi 2 /usr/local/bin/wasalight-desktop-status}'
     '/data/system/wasalight'
     '/data/system/packages'
-    'candidate_checkout=$(mktemp -d "${checkout}.candidate.XXXXXX")'
+    'candidate_checkout="${checkout}.candidate"'
     '/etc/wasalight/apps.d/network.desktop'
     '/data/system/apps.d'
     'wasalight-app-register'
@@ -703,12 +703,12 @@ grep -Fq 'kill "$indicator_pid"' "$tmp_dir/wasalight-update" || \
 if grep -Fq 'while kill -0 "$pid"' "$tmp_dir/wasalight-update"; then
     fail "l'avanzamento updater può restare bloccato su un processo zombie"
 fi
-grep -Fq 'tee -a "$legacy_log" "$log_file" >"$raw_output"' \
+grep -Fq 'tee -a "$current_log" "$log_file" >"$raw_output"' \
     "$tmp_dir/wasalight-update" || \
     fail "la vista compatta dell'updater non conserva l'output completo in tempo reale"
 grep -Fq 'tail -n 24 "$raw_output"' "$tmp_dir/wasalight-update" || \
     fail "l'updater non mostra il contesto grezzo quando un comando fallisce"
-grep -Fq 'env NEEDRESTART_SUSPEND=1 "$checkout/install.sh"' \
+grep -Fq 'WASALIGHT_PROGRESS_FILE="$progress_file"' \
     "$tmp_dir/wasalight-update" || \
     fail "l'updater non evita il riepilogo needrestart prima del riavvio richiesto"
 grep -Fq 'merge-base --is-ancestor' "$tmp_dir/wasalight-update" || \
@@ -719,7 +719,7 @@ grep -Fq 'mv "$candidate_checkout" "$checkout"' "$tmp_dir/wasalight-update" || \
     fail "il checkout verificato non viene attivato transazionalmente"
 grep -Fq 'status --porcelain' "$tmp_dir/wasalight-update" || \
     fail "l'updater non protegge i file Git non tracciati"
-grep -Fq 'cmp -s -- "$source" "$destination"' "$tmp_dir/wasalight-update-lib.sh" || \
+grep -Fq 'cmp -s -- "$source" "$temporary"' "$tmp_dir/wasalight-update-lib.sh" || \
     fail "la copia persistente del pacchetto MagicQ non viene verificata"
 grep -Fq 'findmnt -rn -o TARGET' "$tmp_dir/wasalight-update" || \
     fail "l'updater non controlla le USB attualmente montate"
@@ -740,8 +740,8 @@ if grep -Fq 'find "$package_store" -maxdepth 1 -type f -name '"'"'*.deb'"'"' -pr
 fi
 grep -Fq 'tests/verify-project.sh' "$tmp_dir/wasalight-update" || \
     fail "l'aggiornamento Wasalight non verifica il progetto scaricato"
-grep -Fq '/usr/local/sbin/wasalight-update --code-only' "$INSTALLER" || \
-    fail "l'installer non inizializza il checkout persistente degli aggiornamenti"
+grep -Fq 'git clone --quiet --no-hardlinks "$PROJECT_DIR" "$UPDATE_CHECKOUT"' "$INSTALLER" || \
+    fail "l'installer non inizializza il checkout persistente dalla sorgente verificata"
 if grep -Fq 'git reset --hard' "$tmp_dir/wasalight-update"; then
     fail "l'aggiornamento Wasalight non deve cancellare modifiche locali"
 fi
@@ -752,6 +752,11 @@ grep -Fq 'WASALIGHT_UPDATE_PLUGIN' "$tmp_dir/wasalight-update-terminal" || \
 grep -Fq 'update_args+=(--plugin "$WASALIGHT_UPDATE_PLUGIN")' \
     "$tmp_dir/wasalight-update-session" || \
     fail "la sessione Update non inoltra il plugin selezionato"
+grep -Fq 'update_args+=(--channel "$WASALIGHT_UPDATE_CHANNEL")' \
+    "$tmp_dir/wasalight-update-session" || \
+    fail "la sessione Update non inoltra il canale selezionato"
+grep -Fq 'update_args+=(--resume)' "$tmp_dir/wasalight-update-session" || \
+    fail "la sessione Update non propone la ripresa di una transazione interrotta"
 grep -Fq 'pkexec /usr/local/sbin/wasalight-update' "$tmp_dir/wasalight-update-session" || \
     fail "la sessione guidata non usa l'autenticazione grafica Polkit"
 grep -Fq 'In attesa dell’autorizzazione…' "$tmp_dir/wasalight-update-session" || \
@@ -772,6 +777,29 @@ grep -Fq -- '--verbose' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non espone la diagnostica dettagliata"
 grep -Fq -- '--plan' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non espone il piano senza installazione"
+grep -Fq 'candidate_checkout=$(mktemp -d /tmp/wasalight-plan.XXXXXX)' \
+    "$tmp_dir/wasalight-update" || \
+    fail "--plan non usa un checkout temporaneo esterno a /data"
+grep -Fq 'Simulazione: le USB vengono ispezionate solo durante un aggiornamento reale.' \
+    "$tmp_dir/wasalight-update" || \
+    fail "--plan può ancora importare pacchetti dalle USB"
+grep -Fq -- '--resume' "$tmp_dir/wasalight-update" || \
+    fail "wasalight-update non espone la ripresa transazionale"
+grep -Fq 'update_state_write "$state_file" running installing' \
+    "$tmp_dir/wasalight-update" || \
+    fail "l'updater non registra atomicamente la fase di installazione"
+grep -Fq 'WASALIGHT_UPDATE_STATE_OWNER:-root:chamsys' \
+    "$tmp_dir/wasalight-update-lib.sh" || \
+    fail "lo stato transazionale non è leggibile dal pannello chamsys"
+grep -Fq 'export GIT_OPTIONAL_LOCKS=0' "$tmp_dir/wasalight-update" || \
+    fail "--plan può ancora aggiornare l'indice Git persistente"
+grep -Fq 'WASALIGHT_UPDATE_TRANSACTION=1' "$tmp_dir/wasalight-update" || \
+    fail "l'installer può inizializzare il checkout attivo durante una transazione"
+grep -Fq 'verify_stable_tag "$candidate_checkout" "$stable_tag" "$signer_file"' \
+    "$tmp_dir/wasalight-update" || \
+    fail "il canale stable non verifica la firma del tag"
+grep -Fq 'refs/heads/main' "$RELEASE_MANIFEST" || \
+    fail "il canale debug non è dichiarato nel manifest"
 grep -Fq -- '--repair' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non espone la reinstallazione intenzionale"
 grep -Fq 'same_release && !explicit_state_change && !magicq_change && !repair' \

@@ -52,6 +52,27 @@ Canonical, repository e branch. Una copia viene incorporata nelle ISO e
 installata in `/etc/wasalight/release-manifest.ini`, così first boot, updater e
 Companion usano gli stessi valori verificati.
 
+La sezione `[Updates]` separa il canale `stable`, basato su una GitHub Release
+immutabile e un tag SSH firmato, dal canale `debug`, basato su
+`refs/heads/main`. La configurazione dichiara gli endpoint e il percorso del
+file `allowed_signers`; la logica di verifica resta nel modulo updater e non nel
+manifesto.
+
+## Transazione di aggiornamento
+
+L’updater installa dal checkout `/data/system/wasalight.candidate` e attiva
+`/data/system/wasalight` soltanto dopo test, installer e health check. Lo stato
+atomico `/data/system/update-state` consente di distinguere download, snapshot,
+installazione, verifica e attivazione e contiene il riferimento allo snapshot da
+usare per `--resume` o `--rollback`. Il canale viene scritto atomicamente solo a
+esito positivo e viene ripristinato insieme al checkout se la chiusura della
+transazione fallisce.
+
+L’ambiente `WASALIGHT_PROGRESS_FILE` è accettato esclusivamente per il percorso
+volatile `/run/wasalight-update-progress-detail`. L’orchestratore pubblica lì il
+nome dei 25 passaggi con una sostituzione atomica; l’updater lo mostra senza
+mescolare l’intero output di APT nel terminale touch-friendly.
+
 ## Lock delle operazioni
 
 `lib/wasalight-operation-lock.sh` gestisce

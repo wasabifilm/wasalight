@@ -39,6 +39,8 @@ fi
 
 for requirement in \
     'Wasalight Repository' 'Wasalight Branch' 'Wasalight VersionURL' \
+    'Updates DefaultChannel' 'Updates StableAPI' 'Updates DebugRef' \
+    'Updates TagPrefix' 'Updates SignerFile' \
     'Platform UbuntuVersion' 'Platform Architecture' \
     'Companion Version' 'Companion Repository' 'Companion Commit' \
     'MagicQ Package' 'MagicQ Architecture'; do

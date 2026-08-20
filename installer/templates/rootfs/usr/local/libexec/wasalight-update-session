@@ -12,6 +12,27 @@ update_args=()
 if [[ -n ${WASALIGHT_UPDATE_PLUGIN:-} ]]; then
     update_args+=(--plugin "$WASALIGHT_UPDATE_PLUGIN")
 fi
+if [[ -n ${WASALIGHT_UPDATE_CHANNEL:-} ]]; then
+    update_args+=(--channel "$WASALIGHT_UPDATE_CHANNEL")
+fi
+if [[ -n ${WASALIGHT_UPDATE_OPERATION:-} ]]; then
+    update_args+=("$WASALIGHT_UPDATE_OPERATION")
+fi
+
+transaction_status=$(awk -F= '$1 == "status" {print $2; exit}' \
+    /data/system/update-state 2>/dev/null || true)
+if [[ -z ${WASALIGHT_UPDATE_OPERATION:-} && \
+      ( $transaction_status == running || $transaction_status == failed ) ]]; then
+    if /usr/local/bin/wasalight-dialog --question \
+        --icon=system-software-update --width=560 --title="Aggiornamento interrotto" \
+        --text="<big><b>È presente un aggiornamento incompleto.</b></big>\n\nStato: $transaction_status\n\nRiprendere ora la transazione verificata?" \
+        --ok-label="Riprendi" --cancel-label="Chiudi"; then
+        update_args+=(--resume)
+    else
+        exit 0
+    fi
+fi
+display_channel=${WASALIGHT_UPDATE_CHANNEL:-$(cat /data/system/update-channel 2>/dev/null || echo stable)}
 
 if [[ -t 1 ]]; then
     brand=$'\033[1;38;2;118;189;34m'
@@ -27,6 +48,7 @@ printf '%s┃%s  %sWASALIGHT UPDATE%s                                  %s┃%s\n
     "$brand" "$reset" "$white" "$reset" "$brand" "$reset"
 printf '%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛%s\n\n' "$brand" "$reset"
 printf '  %s●%s Scarico, verifico e installo l’ultima versione.\n' "$brand" "$reset"
+printf '  %s●%s Canale: %s.\n' "$brand" "$reset" "$display_channel"
 printf '  %s●%s Il log completo resta disponibile anche con la vista compatta.\n' "$brand" "$reset"
 printf '  %s●%s La password richiesta è quella Linux di chamsys.\n\n' "$brand" "$reset"
 printf '  %sIn attesa dell’autorizzazione…%s\n\n' "$muted" "$reset"
