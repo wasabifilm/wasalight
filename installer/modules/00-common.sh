@@ -7,6 +7,16 @@ log()  { printf '[%s] %s\n' "$SCRIPT_NAME" "$*"; }
 warn() { printf '[%s] WARNING: %s\n' "$SCRIPT_NAME" "$*" >&2; }
 die()  { printf '[%s] ERROR: %s\n' "$SCRIPT_NAME" "$*" >&2; exit 1; }
 
+installer_progress() {
+    local message=$* temporary
+    log "$message"
+    [[ ${WASALIGHT_PROGRESS_FILE:-} == /run/wasalight-update-progress-detail ]] || return 0
+    temporary=$(mktemp /run/.wasalight-progress.XXXXXX)
+    printf '%s\n' "$message" >"$temporary"
+    chmod 0644 "$temporary"
+    mv -f -- "$temporary" "$WASALIGHT_PROGRESS_FILE"
+}
+
 on_error() {
     local rc=$?
     printf '[%s] ERROR: command failed at line %s (exit %s): %s\n' \

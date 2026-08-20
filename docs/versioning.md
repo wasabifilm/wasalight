@@ -27,7 +27,8 @@ codice.
 
 `release-manifest.ini` centralizza invece i valori della release che prima
 erano distribuiti negli script: Ubuntu supportato, architettura, repository e
-ramo Wasalight, URL del controllo versione, basi Canonical dell'ISO Builder con
+ramo Wasalight, canali `stable`/`debug`, API GitHub Releases, file dei firmatari,
+URL del controllo versione, basi Canonical dell'ISO Builder con
 nomi/dimensioni/checksum, versione/commit/checksum di Companion e requisiti del
 pacchetto MagicQ. I campi `VersionFile` collegano il manifesto ai rispettivi file
 di versione; `VERSION` alla radice resta l’unica sorgente del numero CalVer.
@@ -56,6 +57,7 @@ che una release venga modificata senza incrementarne `VERSION`.
 Il pannello mostra:
 
 - `VERSION`: versione realmente installata;
+- `CHANNEL`: `STABLE` per le release firmate o `DEBUG` per l’ultimo `main`;
 - `MAGICQ`: stato, versione del pacchetto MagicQ letta dal database `dpkg` e
   modalità di avvio, per esempio `READY · 1.9.8.3 · AUTO` (è indipendente dalla
   versione Wasalight);
@@ -63,7 +65,9 @@ Il pannello mostra:
   `/data/system/wasalight`;
 - `UPDATE READY`: checkout persistente più recente del sistema installato;
 - `UPDATE CHECKOUT OLDER`: checkout più vecchio, per esempio dopo un rollback;
-- `UPDATE NOT CHECKED`: checkout o file `VERSION` non ancora disponibile.
+- `UPDATE NOT CHECKED`: checkout o file `VERSION` non ancora disponibile;
+- `RECOVERY REQUIRED`: una transazione è rimasta `running` o `failed` e deve
+  essere ripresa, riparata oppure annullata con rollback.
 
 `CODE MATCH` confronta il sistema con il codice già scaricato, non interroga
 continuamente GitHub. Eseguire `sudo wasalight-update` per aggiornare il checkout,
@@ -81,8 +85,33 @@ Prima del commit destinato alla pubblicazione:
 2. usare build `1`, oppure incrementarla se esiste già una build nella stessa
    data;
 3. eseguire `./tests/verify-project.sh`;
-4. creare il commit e, quando si inizieranno a pubblicare release formali, il tag
-   Git `vAAAA.MM.GG.BUILD`.
+4. creare il commit e il tag annotato SSH firmato `vAAAA.MM.GG.BUILD`;
+5. verificare localmente il tag con lo stesso file `allowed_signers` distribuito
+   alle console;
+6. pubblicare il tag e una GitHub Release non prerelease, quindi renderla
+   immutabile prima di considerarla disponibile sul canale stable.
+
+Configurazione tipica della postazione di rilascio, indicando una chiave privata
+protetta da passphrase e mai inclusa nel repository:
+
+```bash
+git config gpg.format ssh
+git config user.signingkey ~/.ssh/wasalight_release_ed25519
+git tag -s -a "v$(cat VERSION)" -m "Wasalight $(cat VERSION)"
+git -c gpg.format=ssh \
+  -c gpg.ssh.allowedSignersFile=installer/templates/rootfs/etc/wasalight/update-signers \
+  verify-tag "v$(cat VERSION)"
+```
+
+Il file dei firmatari contiene soltanto la chiave pubblica, per esempio:
+
+```text
+release@wasalight.local ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA...
+```
+
+Se il file non contiene una chiave reale, la release non è immutabile, la firma
+non è valida oppure tag e `VERSION` differiscono, il canale stable si ferma senza
+ripiegare su debug.
 
 Un aggiornamento che fallisce prima dei controlli finali non modifica la versione
 installata e resta quindi riconoscibile come incompleto.

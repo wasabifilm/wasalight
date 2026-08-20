@@ -62,7 +62,9 @@ def parse_status_report(report: str,
     ssh_running = ssh_detail.lower().startswith("running")
     vnc_running = vnc_detail.lower().startswith("running")
     update_lower = update_detail.lower()
-    if update_lower.startswith("available"):
+    if update_lower.startswith("recovery required"):
+        update_level = "error"
+    elif update_lower.startswith("available"):
         update_level = "warning"
     elif update_lower == "up to date":
         update_level = "good"
@@ -73,6 +75,7 @@ def parse_status_report(report: str,
         data.upper() == "NOT MOUNTED"
         or magicq_detail.lower() in {"missing", "not installed"}
         or network_level == "error"
+        or update_level == "error"
     )
     if critical:
         level = "error"

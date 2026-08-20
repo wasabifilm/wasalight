@@ -24,13 +24,32 @@ configure_update() {
 
     install_template /usr/local/bin/wasalight-update-check 0755
 
+    if [[ ! -e /etc/wasalight/update-signers ]]; then
+        install_template /etc/wasalight/update-signers 0644
+    fi
+    if mountpoint -q "$DATA_MOUNT" && [[ ! -r $DATA_MOUNT/system/update-channel ]]; then
+        printf '%s\n' "$(require_manifest_value "$RELEASE_MANIFEST" Updates DefaultChannel)" \
+            >"$DATA_MOUNT/system/update-channel"
+        chown root:root "$DATA_MOUNT/system/update-channel"
+        chmod 0644 "$DATA_MOUNT/system/update-channel"
+    fi
+
     # pkexec selects these narrowly scoped actions from their executable-path
     # annotations and delegates the password prompt to the graphical agent.
     install_template /usr/share/polkit-1/actions/com.wasalight.updates.policy 0644
 
-    if mountpoint -q "$DATA_MOUNT" && [[ ! -d $UPDATE_CHECKOUT/.git ]]; then
-        log "initializing the persistent Wasalight update checkout"
-        /usr/local/sbin/wasalight-update --code-only || \
-            warn "persistent update checkout could not be initialized; retry later with sudo wasalight-update --code-only"
+    if [[ ${WASALIGHT_UPDATE_TRANSACTION:-0} != 1 ]] && \
+       mountpoint -q "$DATA_MOUNT" && [[ ! -d $UPDATE_CHECKOUT/.git ]] && \
+       [[ -d $PROJECT_DIR/.git ]]; then
+        if [[ $PROJECT_COMMIT =~ ^[0-9a-f]{40}$ && \
+              -z $(git -C "$PROJECT_DIR" status --porcelain) ]]; then
+            log "initializing the persistent Wasalight checkout from the verified installer source"
+            rm -rf -- "$UPDATE_CHECKOUT"
+            git clone --quiet --no-hardlinks "$PROJECT_DIR" "$UPDATE_CHECKOUT"
+            git -C "$UPDATE_CHECKOUT" checkout --quiet --detach "$PROJECT_COMMIT"
+            chown -R root:root "$UPDATE_CHECKOUT"
+        else
+            warn "installer source has local changes; persistent update checkout not initialized"
+        fi
     fi
 }

@@ -64,7 +64,21 @@ uno spettacolo.
 - [ ] Ripetendo l’update della stessa versione/commit compare **sistema già
       aggiornato** senza snapshot, APT, installer o richiesta di riavvio.
 - [ ] `wasalight-update --plan` mostra versione, commit, MagicQ, snapshot e
-      modalità prevista senza modificare la configurazione del sistema.
+      modalità prevista senza modificare `/data`, configurazione, pacchetti USB,
+      canale o checkout; `tests/utm/verify-update-plan.sh` termina con `PASS`.
+- [ ] `wasalight-update --channel debug` segue `main`, salva `debug` soltanto a
+      esito positivo e il pannello mostra `CHANNEL DEBUG`.
+- [ ] Senza una chiave reale in `/etc/wasalight/update-signers`, il canale
+      `stable` si ferma chiaramente e non ripiega su `main`.
+- [ ] Con una release stable immutabile e firmata, tag, `VERSION`, commit
+      installato e chiave autorizzata coincidono; un tag non firmato viene rifiutato.
+- [ ] Interrompendo intenzionalmente la VM durante l’installer, il pannello
+      mostra `RECOVERY REQUIRED`; l’avvio grafico dell’update propone
+      **Riprendi** e `--resume` riutilizza lo snapshot registrato.
+- [ ] Dopo un errore successivo all’installazione, configurazione, canale e
+      checkout precedente vengono ripristinati insieme.
+- [ ] Il test UTM `verify-update-idempotency.sh`, avviato con la conferma
+      `WASALIGHT_IDEMPOTENCY_CONFIRM=UTM-ONLY`, termina con `PASS` dopo due repair.
 - [ ] Il log cumulativo ruota a 5 MiB e in `updates/` restano al massimo venti
       esecuzioni, nessuna più vecchia di trenta giorni.
 - [ ] Il controllo di `libqxcb.so`, eseguito con le librerie incluse da MagicQ,

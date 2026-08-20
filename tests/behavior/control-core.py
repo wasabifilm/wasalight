@@ -253,6 +253,21 @@ UPDATE:     AVAILABLE: 2026.08.13.1
         self.assertEqual(snapshot.network_level, "error")
         self.assertEqual(snapshot.update_level, "warning")
 
+    def test_incomplete_update_requires_recovery(self):
+        report = """MagicQ Appliance
+MODE:       MAINTENANCE
+DATA:       /dev/sda3 ext4 rw
+MAGICQ:     READY · 1.9.8.3 · MANUAL
+NETWORK:    persistent bind; managed
+IP:         192.168.10.20
+VNC:        stopped (manual)
+SSH:        stopped (manual)
+UPDATE:     RECOVERY REQUIRED (failed)
+"""
+        snapshot = parse_status_report(report)
+        self.assertEqual(snapshot.level, "error")
+        self.assertEqual(snapshot.update_level, "error")
+
 
 if __name__ == "__main__":
     unittest.main()

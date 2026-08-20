@@ -193,6 +193,7 @@ class OverviewPage(Gtk.Box):
         update_summary = {
             "good": _("System up to date"),
             "warning": _("Update available"),
+            "error": _("Recovery required"),
             "neutral": _("Not checked"),
         }[snapshot.update_level]
         self._set_card(
