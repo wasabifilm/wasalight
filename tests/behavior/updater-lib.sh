@@ -66,7 +66,10 @@ update_state_write "$state_file" running installing 2026.08.20.1 \
     fail "lo stato transazionale non conserva phase"
 [[ $(update_state_value "$state_file" candidate) == /data/system/wasalight.candidate ]] || \
     fail "lo stato transazionale non conserva il checkout candidato"
-state_mode=$(stat -f '%Lp' "$state_file" 2>/dev/null || stat -c '%a' "$state_file")
+# GNU stat accepts -f too, but interprets it as filesystem status and can
+# return a successful, non-mode value. Prefer its native -c form, then fall
+# back to the BSD/macOS spelling used by local development machines.
+state_mode=$(stat -c '%a' "$state_file" 2>/dev/null || stat -f '%Lp' "$state_file")
 [[ $state_mode == 640 ]] || fail "lo stato transazionale non usa permessi 0640"
 WASALIGHT_UPDATE_STATE_OWNER="$(id -un):$(id -gn)" \
 update_state_write "$state_file" complete complete 2026.08.20.1 \
