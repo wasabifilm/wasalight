@@ -15,7 +15,8 @@ for test_script in \
     "$TEST_DIR/release-manifest.sh" \
     "$TEST_DIR/updater-lib.sh" \
     "$TEST_DIR/session-language.sh" \
-    "$TEST_DIR/system-i18n.sh"; do
+    "$TEST_DIR/system-i18n.sh" \
+    "$TEST_DIR/openbox-menu.sh"; do
     printf 'BEHAVIOR  %s\n' "${test_script##*/}"
     if [[ ${test_script##*/} == operation-lock.sh ]]; then
         # Reproduce the environment present when the updater verifies a newly

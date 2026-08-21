@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=Installa MagicQ
-Comment=Installa MagicQ da una chiavetta USB senza Internet
+Name=Install MagicQ
+Name[it]=Installa MagicQ
+Comment=Install MagicQ from a USB drive without Internet
+Comment[it]=Installa MagicQ da una chiavetta USB senza Internet
 Exec=/usr/local/bin/wasalight-magicq-desktop-action
 Icon=/usr/local/share/icons/wasalight/magicq-install.svg
 Terminal=false

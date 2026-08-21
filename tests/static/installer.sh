@@ -13,6 +13,11 @@ bash -n "$i18n_helper"
 grep -Fq '. /usr/local/libexec/wasalight-i18n' \
     "$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-power" || \
     fail "i dialoghi di alimentazione non usano il dominio gettext di sistema"
+openbox_menu="$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-openbox-menu"
+[[ -s $openbox_menu ]] || fail "generatore menu Openbox mancante"
+bash -n "$openbox_menu"
+grep -Fq '/usr/local/bin/wasalight-openbox-menu "$HOME/.config/openbox/menu.xml"' \
+    "$INSTALLER" || fail "il menu Openbox non viene rigenerato a ogni login"
 grep -Fq '. /usr/local/libexec/wasalight-session-language' "$INSTALLER" || \
     fail "la sessione grafica non applica la preferenza lingua persistente"
 grep -Fq 'locale-gen en_US.UTF-8 it_IT.UTF-8' "$INSTALLER" || \

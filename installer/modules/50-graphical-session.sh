@@ -9,6 +9,7 @@ configure_graphical_session() {
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0755 \
         "$TARGET_HOME/.config/wasalight/dock"
     install_template /usr/local/bin/wasalight-dialog 0755
+    install_template /usr/local/bin/wasalight-openbox-menu 0755
     install_template /usr/local/libexec/wasalight-i18n 0644
     install_template /usr/local/libexec/wasalight-session-language 0644
 
@@ -17,6 +18,7 @@ configure_graphical_session() {
     write_file "$TARGET_HOME/.xinitrc" 0755 <<'EOF'
 #!/bin/sh
 . /usr/local/libexec/wasalight-session-language
+/usr/local/bin/wasalight-openbox-menu "$HOME/.config/openbox/menu.xml"
 exec dbus-run-session -- openbox-session
 EOF
 
@@ -114,7 +116,9 @@ EOF
 [Desktop Entry]
 Type=Application
 Name=Wasalight Control
-Comment=Gestione unificata di MagicQ, servizi, plugin e strumenti
+Name[it]=Wasalight Control
+Comment=Unified management of MagicQ, services, plugins and tools
+Comment[it]=Gestione unificata di MagicQ, servizi, plugin e strumenti
 Exec=/usr/local/bin/wasalight-control
 Icon=/usr/local/share/icons/wasalight/hub.svg
 Terminal=false
@@ -124,8 +128,10 @@ EOF
     write_file "$TARGET_HOME/.config/wasalight/dock/Files.desktop" 0644 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=File
-Comment=Apre dati persistenti e chiavette USB
+Name=Files
+Name[it]=File
+Comment=Open persistent data and USB drives
+Comment[it]=Apre dati persistenti e chiavette USB
 Exec=pcmanfm /data
 Icon=/usr/local/share/icons/wasalight/files.svg
 Terminal=false
@@ -140,7 +146,9 @@ EOF
 [Desktop Entry]
 Type=Application
 Name=Companion
-Comment=Apre l'interfaccia locale Bitfocus Companion
+Name[it]=Companion
+Comment=Open the local Bitfocus Companion interface
+Comment[it]=Apre l'interfaccia locale Bitfocus Companion
 Exec=/usr/local/bin/wasalight-companion-browser
 Icon=$companion_icon
 Terminal=false
@@ -424,20 +432,10 @@ else
 fi
 EOF
 
-    write_file "$TARGET_HOME/.config/openbox/menu.xml" 0644 <<'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<openbox_menu xmlns="http://openbox.org/3.4/menu">
-  <menu id="root-menu" label="Wasalight">
-    <item label="Wasalight Control"><action name="Execute"><command>/usr/local/bin/wasalight-control</command></action></item>
-    <item label="File"><action name="Execute"><command>pcmanfm /data</command></action></item>
-    <item label="Terminal"><action name="Execute"><command>lxterminal</command></action></item>
-    <item label="Aggiorna Wasalight"><action name="Execute"><command>/usr/local/bin/wasalight-update-terminal</command></action></item>
-    <separator />
-    <item label="Riavvia"><action name="Execute"><command>/usr/local/bin/wasalight-power reboot</command></action></item>
-    <item label="Spegni"><action name="Execute"><command>/usr/local/bin/wasalight-power poweroff</command></action></item>
-  </menu>
-</openbox_menu>
-EOF
+    LANG=en_US.UTF-8 LANGUAGE=en LC_MESSAGES=en_US.UTF-8 \
+        runuser -u "$TARGET_USER" -- \
+        /usr/local/bin/wasalight-openbox-menu \
+        "$TARGET_HOME/.config/openbox/menu.xml"
 
     write_file "$TARGET_HOME/.config/pcmanfm/default/pcmanfm.conf" 0644 <<'EOF'
 [volume]

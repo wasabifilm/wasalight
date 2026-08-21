@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=Schermo
-Comment=Configura monitor e risoluzione
+Name=Display
+Name[it]=Schermo
+Comment=Configure monitors and resolution
+Comment[it]=Configura monitor e risoluzione
 Exec=lxrandr
 Icon=video-display
 TryExec=lxrandr

@@ -79,10 +79,10 @@ La localizzazione verrà estesa conservando i formati standard già utilizzati:
    `wasalight-system`. L'helper comune root-owned `wasalight-i18n` configura il
    catalogo e offre un fallback inglese anche se gettext non è disponibile. I
    dialoghi di spegnimento e riavvio sono i primi strumenti migrati.
-3. **Launcher e file `.desktop`** useranno inglese nei campi base `Name=` e
+3. **Launcher e file `.desktop`** usano inglese nei campi base `Name=` e
    `Comment=` e le varianti standard `Name[it]=` e `Comment[it]=`. Wasalight
-   Control selezionerà la variante coerente con la propria lingua anche quando
-   questa differisce dalla locale predefinita del sistema.
+   Control seleziona la variante coerente con la propria preferenza; in modalità
+   `auto` segue `LANGUAGE`, `LC_ALL`, `LC_MESSAGES` e `LANG`.
 4. **Manifest dei plugin** adotteranno campi localizzati equivalenti, con
    fallback alla lingua base, eliminando progressivamente le traduzioni
    temporanee di stringhe italiane dal catalogo inglese.
@@ -92,8 +92,11 @@ dalla lingua. Vengono invece tradotti il nome mostrato sotto l’icona, la
 didascalia, il tooltip, il testo accessibile e ogni conferma associata. Marchi e
 nomi propri come Wasalight, MagicQ e Bitfocus Companion non vengono tradotti.
 
-La verifica di qualità valida entrambi i domini gettext,
-controllare le varianti localizzate dei launcher e fallire se un nuovo testo
+La verifica di qualità valida entrambi i domini gettext, controlla le varianti
+localizzate dei launcher e fallisce se un nuovo testo
 rivolto all’operatore viene aggiunto direttamente nel codice senza passare dal
 meccanismo previsto. Il collaudo va eseguito in italiano, inglese e modalità
 automatica, riaprendo la sessione grafica dopo ogni cambio lingua.
+
+Il menu Openbox non duplica file XML: `wasalight-openbox-menu` lo rigenera in
+modo atomico a ogni login, dopo l'applicazione della lingua di sessione.

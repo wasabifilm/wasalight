@@ -36,3 +36,12 @@ msgstr "Shows saved in /data will remain persistent."
 
 msgid "Cancel"
 msgstr "Cancel"
+
+msgid "Files"
+msgstr "Files"
+
+msgid "Terminal"
+msgstr "Terminal"
+
+msgid "Update Wasalight"
+msgstr "Update Wasalight"

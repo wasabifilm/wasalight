@@ -84,6 +84,29 @@ class LauncherTests(unittest.TestCase):
                 encoding="utf-8")
             self.assertIsNone(read_launcher(str(launcher), which=lambda _name: None))
 
+    def test_launcher_uses_explicit_and_automatic_localized_fields(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            launcher = Path(temporary) / "localized.desktop"
+            launcher.write_text(
+                "[Desktop Entry]\n"
+                "Name=Network\nName[it]=Rete\n"
+                "Comment=Configure Ethernet and Wi-Fi\n"
+                "Comment[it]=Configura Ethernet e Wi-Fi\n"
+                "Exec=network-tool\n",
+                encoding="utf-8")
+
+            italian = read_launcher(str(launcher), language="it")
+            english = read_launcher(str(launcher), language="en")
+            with mock.patch.dict(os.environ, {"LANGUAGE": "it:en"}, clear=True):
+                automatic = read_launcher(str(launcher), language="auto")
+
+            self.assertEqual((italian.name, italian.comment),
+                             ("Rete", "Configura Ethernet e Wi-Fi"))
+            self.assertEqual((english.name, english.comment),
+                             ("Network", "Configure Ethernet and Wi-Fi"))
+            self.assertEqual((automatic.name, automatic.comment),
+                             ("Rete", "Configura Ethernet e Wi-Fi"))
+
 
 class SystemProbeTests(unittest.TestCase):
     def test_paths_and_runner_are_injectable(self):

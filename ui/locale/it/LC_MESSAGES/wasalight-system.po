@@ -36,3 +36,12 @@ msgstr "Gli show salvati in /data resteranno persistenti."
 
 msgid "Cancel"
 msgstr "Annulla"
+
+msgid "Files"
+msgstr "File"
+
+msgid "Terminal"
+msgstr "Terminale"
+
+msgid "Update Wasalight"
+msgstr "Aggiorna Wasalight"

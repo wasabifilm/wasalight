@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=Calcolatrice
-Comment=Calcolatrice scientifica leggera
+Name=Calculator
+Name[it]=Calcolatrice
+Comment=Lightweight scientific calculator
+Comment[it]=Calcolatrice scientifica leggera
 Exec=galculator
 Icon=accessories-calculator
 TryExec=galculator

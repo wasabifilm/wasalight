@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=Installa o aggiorna MagicQ
-Comment=Installa soltanto MagicQ da USB, anche senza Internet
+Name=Install or update MagicQ
+Name[it]=Installa o aggiorna MagicQ
+Comment=Install only MagicQ from USB, even without Internet
+Comment[it]=Installa soltanto MagicQ da USB, anche senza Internet
 Exec=/usr/local/bin/wasalight-magicq-install-ui
 Icon=/usr/local/share/icons/wasalight/magicq-install.svg
 TryExec=/usr/local/bin/wasalight-magicq-install-ui

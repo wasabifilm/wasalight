@@ -349,6 +349,7 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-artnet-monitor
     bash -n /usr/local/sbin/wasalight-app-register
     bash -n /usr/local/bin/wasalight-control
+    bash -n /usr/local/bin/wasalight-openbox-menu
     bash -n /usr/local/libexec/wasalight-i18n
     sh -n /usr/local/libexec/wasalight-session-language
     locale -a | grep -Fqx 'en_US.utf8'

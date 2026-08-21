@@ -215,6 +215,18 @@ for locale in en it; do
             fail "catalogo $domain privo della lingua dichiarata: $locale"
     done
 done
+while IFS= read -r desktop_file; do
+    grep -Eq '^Name=.+$' "$desktop_file" || \
+        fail "launcher senza nome inglese: $desktop_file"
+    grep -Eq '^Name\[it\]=.+$' "$desktop_file" || \
+        fail "launcher senza nome italiano: $desktop_file"
+    grep -Eq '^Comment=.+$' "$desktop_file" || \
+        fail "launcher senza descrizione inglese: $desktop_file"
+    grep -Eq '^Comment\[it\]=.+$' "$desktop_file" || \
+        fail "launcher senza descrizione italiana: $desktop_file"
+done < <(find "$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d" \
+    "$INSTALLER_TEMPLATE_ROOT/usr/local/share/wasalight/desktop" \
+    -type f -name '*.desktop' -print | sort)
 grep -Fq 'control_language_file: str = "/data/system/control/language"' \
     "$control_core/models.py" || fail "la lingua Control non è persistente su /data"
 grep -Fq 'control_theme_path: str = "/usr/local/share/wasalight-control/themes/console-dark.ini"' \

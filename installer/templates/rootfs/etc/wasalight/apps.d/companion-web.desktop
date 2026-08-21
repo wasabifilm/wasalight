@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
 Name=Companion
-Comment=Apre l'interfaccia locale Companion nel browser touch
+Name[it]=Companion
+Comment=Open the local Companion interface in the touch browser
+Comment[it]=Apre l'interfaccia locale Companion nel browser touch
 Exec=/usr/local/bin/wasalight-companion-browser
 Icon=/usr/local/share/icons/wasalight/companion-official.png
 TryExec=/usr/local/bin/wasalight-companion-browser

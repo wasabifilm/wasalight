@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
 Name=Terminal
-Comment=Apre il terminale di manutenzione
+Name[it]=Terminale
+Comment=Open the maintenance terminal
+Comment[it]=Apre il terminale di manutenzione
 Exec=lxterminal
 Icon=/usr/local/share/icons/wasalight/terminal.svg
 TryExec=lxterminal
