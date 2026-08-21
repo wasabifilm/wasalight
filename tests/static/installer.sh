@@ -31,6 +31,25 @@ for locked_tool in \
     grep -Fq 'wasalight_acquire_operation_lock' "$locked_tool" || \
         fail "operazione mutante priva di lock globale: $locked_tool"
 done
+magicq_installer="$INSTALLER_TEMPLATE_ROOT/usr/local/sbin/wasalight-magicq-install"
+magicq_installer_ui="$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-magicq-install-ui"
+[[ -x $magicq_installer ]] || fail "installer MagicQ offline mancante o non eseguibile"
+bash -n "$magicq_installer" "$magicq_installer_ui"
+grep -Fq 'wasalight_acquire_operation_lock "installazione MagicQ"' "$magicq_installer" || \
+    fail "l'installer MagicQ offline non usa il lock globale"
+grep -Fq 'apt-get --simulate --no-download install' "$magicq_installer" || \
+    fail "l'installer MagicQ non verifica offline le dipendenze prima di modificare il sistema"
+grep -Fq 'dpkg --install "$selected_package"' "$magicq_installer" || \
+    fail "l'installer MagicQ non installa direttamente il pacchetto locale verificato"
+grep -Fq 'find "$usb_mount/packages" -maxdepth 1' "$magicq_installer" || \
+    fail "l'installer MagicQ non cerca nella cartella packages della USB"
+grep -Fq 'pkexec /usr/local/sbin/wasalight-magicq-install' "$magicq_installer_ui" || \
+    fail "l'interfaccia MagicQ non usa l'autenticazione grafica"
+for forbidden_magicq_action in 'apt-get update' 'git clone' 'git fetch' 'curl ' 'wget '; do
+    if grep -Fq "$forbidden_magicq_action" "$magicq_installer"; then
+        fail "l'installer MagicQ offline usa rete o aggiorna indici: $forbidden_magicq_action"
+    fi
+done
 rollback_tool="$PROJECT_DIR/libexec/wasalight-rollback"
 rollback_ui="$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-rollback-ui"
 grep -Fq 'head -n 5' "$rollback_tool" || fail "il rollback non limita la lista agli ultimi cinque snapshot"
@@ -183,7 +202,9 @@ required_patterns=(
     'pcmanfm --desktop --profile=default'
     '$TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop'
     '$TARGET_HOME/.config/wasalight/dock/Files.desktop'
-    '$TARGET_HOME/Desktop/MagicQ.desktop'
+    '/usr/local/share/wasalight/desktop/MagicQ.desktop'
+    '/usr/local/share/wasalight/desktop/Install-MagicQ.desktop'
+    'wasalight-magicq-desktop-refresh'
     '$TARGET_HOME/Desktop/Power-Off.desktop'
     '$TARGET_HOME/Desktop/Reboot.desktop'
     'Icon=/usr/local/share/icons/wasalight/hub.svg'
@@ -872,8 +893,10 @@ if grep -Fq 'write_file "$TARGET_HOME/Desktop/Files.desktop"' "$INSTALLER" || \
    grep -Fq 'write_file "$TARGET_HOME/Desktop/Wasalight-Control.desktop"' "$INSTALLER"; then
     fail "File Manager o Wasalight Control sono ancora duplicati sul desktop"
 fi
-grep -Fq 'write_file "$TARGET_HOME/Desktop/MagicQ.desktop"' "$INSTALLER" || \
+grep -Fq 'install_template /usr/local/share/wasalight/desktop/MagicQ.desktop' "$INSTALLER" || \
     fail "l'avvio rapido MagicQ non è disponibile sul desktop"
+grep -Fq '/usr/local/sbin/wasalight-magicq-desktop-refresh' "$INSTALLER" || \
+    fail "il desktop non commuta tra Installa MagicQ e MagicQ"
 if grep -Fq 'write_file "$TARGET_HOME/Desktop/VNC.desktop"' "$INSTALLER" || \
    grep -Fq 'write_file "$TARGET_HOME/Desktop/SSH.desktop"' "$INSTALLER"; then
     fail "SSH o VNC sono ancora duplicati sul desktop"

@@ -116,3 +116,9 @@ msgstr "Website"
 
 msgid "Email"
 msgstr "Email"
+
+msgid "Install MagicQ"
+msgstr "Install MagicQ"
+
+msgid "Install from USB without Internet"
+msgstr "Install from USB without Internet"

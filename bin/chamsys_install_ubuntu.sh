@@ -109,6 +109,7 @@ main() {
     install_magicq
     installer_progress "17/25 · Verifica permessi MagicQ"
     repair_magicq_persistent_permissions
+    /usr/local/sbin/wasalight-magicq-desktop-refresh
     installer_progress "18/25 · Configurazione runtime volatile"
     configure_volatile_runtime
     installer_progress "19/25 · Installazione licenze e crediti"

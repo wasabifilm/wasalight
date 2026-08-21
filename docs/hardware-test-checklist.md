@@ -9,6 +9,12 @@ uno spettacolo.
       sulla VM UTM senza problemi apparenti. Questo esito conferma
       l’installazione iniziale, ma non sostituisce le prove di interruzione,
       ripresa, rollback e idempotenza elencate più avanti.
+- [x] 2026-08-21 — La PR #31 / build `2026.08.21.1` è stata installata in UTM.
+      `wasalight-magicq-install --scan-only` ha selezionato il pacchetto
+      persistente e `--reinstall` ha reinstallato realmente MagicQ 1.9.8.3
+      dentro un namespace senza rete. Dpkg è rimasto `ii`, `ldd` non ha trovato
+      librerie mancanti, il checksum del `.deb` è rimasto invariato e il
+      launcher risultava `root:root 0444`. Resta da ripetere con una USB fisica.
 
 ## Avvio e protezione
 
@@ -38,6 +44,11 @@ uno spettacolo.
 - [ ] In MAINTENANCE `magicq-start` consente comunque l'avvio manuale.
 - [ ] In SHOW / PROTECTED MagicQ parte automaticamente una volta.
 - [ ] Il sistema riparte correttamente dopo più interruzioni di alimentazione.
+- [ ] Su SSD/NVMe con discard, `systemctl is-enabled fstrim.timer` restituisce
+      `enabled` e un’esecuzione controllata di `fstrim -av` completa senza
+      errori; sui dischi che non supportano TRIM la funzione resta innocua.
+- [ ] La politica swap documentata coincide con `swapon --show` e non provoca
+      pressione o latenza anomala durante MagicQ e Companion.
 
 ## MagicQ e grafica
 
@@ -57,6 +68,9 @@ uno spettacolo.
       esclusivamente il `.deb` locale e le dipendenze già predisposte da
       Wasalight. Se manca una dipendenza, l’operazione si ferma prima di
       modificare MagicQ e indica chiaramente il pacchetto mancante.
+- [ ] `wasalight-magicq-install --scan-only` seleziona il `.deb` più recente
+      senza modificare dpkg; il comando normale non invoca rete, Git o
+      l’installer Wasalight e aggiorna il launcher desktop al termine.
 - [ ] `./install.sh -help` e `wasalight-update -help` mostrano tutte le opzioni.
 - [ ] La versione nella riga `MAGICQ` del pannello e di `wasalight-status`
       coincide con `dpkg-query -W -f='${Version}\n' magicq` (per esempio
@@ -208,6 +222,9 @@ uno spettacolo.
       collegato alla stessa rete; una nuova scansione aggiorna la tabella.
 - [ ] **Art-Net Monitor** mostra sorgente, universo e contatore quando un nodo o
       MagicQ trasmette ArtDMX; **Azzera** svuota correttamente l’elenco.
+- [ ] **OSC Monitor** mostra indirizzo sorgente, porta, percorso OSC, argomenti e
+      contatore senza occupare o interferire con le porte configurate in MagicQ
+      e Companion.
 - [ ] **Monitor sistema** apre LXTask e aggiorna processi, CPU e memoria senza
       richiedere password o privilegi amministrativi.
 - [ ] **Audit sistema** è apribile da Supporto e da terminale; mostra boot,
@@ -239,6 +256,9 @@ uno spettacolo.
 - [ ] `nm-connection-editor` salva DHCP e indirizzi statici.
 - [ ] Le connessioni sopravvivono a un riavvio protetto.
 - [ ] Nessun indirizzo o servizio inatteso interferisce con la rete show.
+- [ ] La politica firewall scelta e documentata espone soltanto i servizi
+      previsti oppure dichiara esplicitamente il firewall disabilitato; MagicQ,
+      Art-Net, sACN, OSC, Companion, SSH e VNC funzionano come progettato.
 - [ ] SSH non è raggiungibile finché non viene attivato dal pulsante oppure
       installato con `--with-ssh` per l’avvio automatico.
 

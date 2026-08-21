@@ -153,16 +153,12 @@ EOF
     # Remove the old launcher when this module is reapplied to an installation.
     rm -f "$TARGET_HOME/.config/wasalight/dock/Keyboard.desktop"
 
-    write_file "$TARGET_HOME/Desktop/MagicQ.desktop" 0755 <<'EOF'
-[Desktop Entry]
-Type=Application
-Name=MagicQ
-Comment=Avvia ChamSys MagicQ
-Exec=/usr/local/bin/magicq-start
-Icon=/usr/share/pixmaps/magicq.png
-Terminal=false
-StartupNotify=false
-EOF
+    install_template /usr/local/share/wasalight/desktop/MagicQ.desktop 0644
+    install_template /usr/local/share/wasalight/desktop/Install-MagicQ.desktop 0644
+    install_template /usr/local/share/icons/wasalight/magicq-install.svg 0644
+    install_template /usr/local/bin/wasalight-magicq-desktop-action 0755
+    install_template /usr/local/sbin/wasalight-magicq-desktop-refresh 0755
+    /usr/local/sbin/wasalight-magicq-desktop-refresh
 
     # Keep the touch desktop and tint2 dock as separate, authoritative layouts.
     # File Manager and Control belong only to the dock.

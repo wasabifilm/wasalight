@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+set -Eeuo pipefail
+
+title='Wasalight · MagicQ'
+if [[ $(findmnt -n -o FSTYPE / 2>/dev/null) == overlay ]]; then
+    /usr/local/bin/wasalight-dialog --error \
+        --icon=/usr/local/share/icons/wasalight/magicq-install.svg \
+        --width=580 --title="$title" \
+        --text="<big><b>Modalità MAINTENANCE richiesta.</b></big>\n\nPassa a MAINTENANCE e riavvia, poi ripeti l’installazione di MagicQ."
+    exit 1
+fi
+
+if ! /usr/local/bin/wasalight-dialog --question \
+    --icon=/usr/local/share/icons/wasalight/magicq-install.svg \
+    --width=620 --title="$title" \
+    --text="<big><b>Installare o aggiornare MagicQ?</b></big>\n\nInserisci una chiavetta con il pacchetto MagicQ nella root o nella cartella packages. L’operazione funziona senza Internet e non aggiorna Wasalight." \
+    --ok-label="Cerca e installa" --cancel-label="Annulla"; then
+    exit 0
+fi
+
+log_file=$(mktemp /tmp/wasalight-magicq-install.XXXXXX)
+trap 'rm -f -- "$log_file"' EXIT
+set +e
+pkexec /usr/local/sbin/wasalight-magicq-install >"$log_file" 2>&1 &
+install_pid=$!
+(
+    while kill -0 "$install_pid" 2>/dev/null; do
+        echo "# Ricerca e verifica del pacchetto MagicQ…"
+        sleep 1
+    done
+) | zenity --progress --pulsate --auto-close --no-cancel --modal \
+    --width=560 --title="$title" 2>/dev/null
+wait "$install_pid"
+rc=$?
+set -e
+
+details=$(tail -n 18 "$log_file")
+if ((rc != 0)); then
+    /usr/local/bin/wasalight-dialog --error \
+        --icon=/usr/local/share/icons/wasalight/magicq-install.svg \
+        --width=680 --title="$title" \
+        --text="<big><b>Installazione MagicQ non riuscita.</b></big>\n\n$details"
+    exit "$rc"
+fi
+
+/usr/local/bin/wasalight-dialog --info \
+    --icon=/usr/share/pixmaps/magicq.png --width=620 --title="$title" \
+    --text="<big><b>MagicQ è pronto.</b></big>\n\n$details"

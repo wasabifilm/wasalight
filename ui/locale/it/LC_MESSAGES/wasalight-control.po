@@ -370,3 +370,9 @@ msgstr "Versione installata: {version}"
 
 msgid "Operation completed"
 msgstr "Operazione completata"
+
+msgid "Install MagicQ"
+msgstr "Installa MagicQ"
+
+msgid "Install from USB without Internet"
+msgstr "Installa da USB senza Internet"

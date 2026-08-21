@@ -24,6 +24,7 @@ class ControlPaths:
     update_terminal: str = "/usr/local/bin/wasalight-update-terminal"
     mode_toggle: str = "/usr/local/bin/wasalight-mode-toggle"
     magicq_start: str = "/usr/local/bin/magicq-start"
+    magicq_action: str = "/usr/local/bin/wasalight-magicq-desktop-action"
     companion_launcher: str = "/usr/local/sbin/wasalight-companion-launcher"
     remote_persistence: str = "/usr/local/sbin/wasalight-remote-persistence"
 

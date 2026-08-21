@@ -40,6 +40,7 @@ magicq-ubuntu-appliance/
 │   └── magicq_ubuntu_v1_9_8_3.deb    da aggiungere
 ├── docs/
 │   ├── hardware-test-checklist.md
+│   ├── roadmap.md                       funzionalità, fasi e attività residue
 │   ├── companion.md
 │   ├── maintenance-tools.md
 │   ├── system-audit.md
@@ -126,9 +127,12 @@ secondo `dpkg` e modalità di avvio, per esempio
    nella cartella `packages/` di una chiavetta USB, preferibilmente FAT32.
 4. Identificare la partizione dati con `lsblk -f` o `blkid`.
 
-Se MagicQ non è già installato e lo script non trova un `.deb` valido, si ferma
-e indica `--allow-missing-magicq` per continuare intenzionalmente senza
-l’applicazione. Tutte le opzioni sono consultabili anche con:
+Se MagicQ non è già installato e lo script non trova un `.deb` valido, durante
+un’installazione interattiva propone tre scelte: inserire la USB e ripetere la
+ricerca, continuare senza MagicQ oppure interrompere. Continuando senza
+l’applicazione, sul desktop compare **Installa MagicQ**. Nelle esecuzioni non
+interattive lo script si ferma e indica `--allow-missing-magicq`. Tutte le
+opzioni sono consultabili anche con:
 
 ```bash
 sudo ./install.sh -help
@@ -256,10 +260,11 @@ in `/data/system/wasalight`, conserva i pacchetti MagicQ proprietari in
 `/data/system/packages` e rilancia l’installer lasciando la protezione
 disattivata per il collaudo. Quando tutto è corretto usare
 `sudo wasalight-protect` oppure eseguire `sudo wasalight-update --protect`.
-Per aggiornare MagicQ basta inserire il `.deb` nella root o nella cartella
-`packages/` di una chiavetta: **Aggiorna Wasalight** verifica tutte le USB montate,
-conserva il file in `/data` senza cancellare l’originale e sceglie la versione
-più recente dai metadati Debian.
+Per installare o aggiornare soltanto MagicQ basta inserire il `.deb` nella root
+o nella cartella `packages/` di una chiavetta e scegliere **Installa o aggiorna
+MagicQ** in Wasalight Control. Il flusso è separato da **Aggiorna Wasalight**,
+funziona senza Internet, conserva il file in `/data` senza cancellare
+l’originale e sceglie la versione più recente dai metadati Debian.
 Prima dell’installazione crea uno snapshot della configurazione; in caso di
 errore tenta il rollback automatico. L’ultimo snapshot può essere ripristinato
 manualmente con `sudo wasalight-update --rollback`.

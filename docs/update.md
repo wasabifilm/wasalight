@@ -57,10 +57,17 @@ MAGICQ_USB/packages/*.deb
 ```
 
 Dopo il montaggio automatico in `/stick/<dispositivo>`, entrare in MAINTENANCE
-e avviare normalmente **Aggiorna Wasalight**. L’updater controlla tutte le USB
-attualmente montate, non le directory residue, e accetta soltanto un archivio
-Debian integro con `Package: magicq`, `Architecture: amd64` e una versione
-Debian valida.
+e scegliere **Installa o aggiorna MagicQ** nella pagina MagicQ di Wasalight
+Control oppure usare:
+
+```bash
+sudo wasalight-magicq-install
+```
+
+Il comando aggiorna soltanto MagicQ: non esegue `git`, `apt update`, download o
+un reinstall completo di Wasalight. Controlla tutte le USB effettivamente
+montate, non le directory residue, e accetta soltanto un archivio Debian integro
+con `Package: magicq`, `Architecture: amd64` e una versione Debian valida.
 
 Il file scelto viene copiato in `/data/system/packages` e verificato byte per
 byte; l’originale sulla chiavetta non viene mai spostato o cancellato. Versioni
@@ -68,6 +75,16 @@ precedenti vengono ignorate. Due pacchetti con la stessa versione ma contenuto
 diverso bloccano l’operazione, evitando una sostituzione ambigua. Fra più USB e
 più file viene selezionata la versione più recente usando i metadati Debian,
 non il nome del file.
+
+Prima di modificare MagicQ viene simulata l’installazione con download
+disabilitati. Se manca anche una sola dipendenza o APT dovrebbe installare un
+altro pacchetto, l’operazione termina lasciando MagicQ invariato e indica i
+componenti da predisporre. L’installazione reale passa direttamente a `dpkg`
+l’archivio locale verificato, quindi resta offline anche quando la macchina ha
+una connessione di rete e non può modificare altre dipendenze.
+`--scan-only` importa e mostra il candidato senza installarlo; `--reinstall`
+consente di reinstallare intenzionalmente la stessa versione. I downgrade sono
+bloccati.
 
 Alla prima installazione `/stick` non è ancora gestito da Wasalight. In quel
 caso l’installer usa una scansione bootstrap separata: riconosce le partizioni
