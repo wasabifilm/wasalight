@@ -21,17 +21,26 @@ for language in en it; do
         "$PROJECT_DIR/ui/locale/$language/LC_MESSAGES/wasalight-system.po"
 done
 
-italian_menu="$tmp_dir/menu-it.xml"
-LANG=it_IT.UTF-8 LANGUAGE=it LC_ALL=it_IT.UTF-8 \
-    WASALIGHT_LOCALE_DIR="$tmp_dir/locale" WASALIGHT_I18N_HELPER="$i18n_helper" \
-    "$generator" "$italian_menu"
-grep -Fq 'label="Aggiorna Wasalight"' "$italian_menu" || \
-    fail "il menu italiano non traduce l'aggiornamento"
-grep -Fq 'label="Spegni"' "$italian_menu" || \
-    fail "il menu italiano non traduce lo spegnimento"
+catalog_table=$(msgunfmt --stringtable-output \
+    "$tmp_dir/locale/it/LC_MESSAGES/wasalight-system.mo")
+grep -Fqx '"Update Wasalight" = "Aggiorna Wasalight";' <<<"$catalog_table" || \
+    fail "il catalogo non traduce l'aggiornamento del menu"
+grep -Fqx '"Power off" = "Spegni";' <<<"$catalog_table" || \
+    fail "il catalogo non traduce lo spegnimento del menu"
+
+if grep -Eqi '^it_IT\.(UTF-8|utf8)$' <<<"$(locale -a 2>/dev/null || true)"; then
+    italian_menu="$tmp_dir/menu-it.xml"
+    LANG=it_IT.UTF-8 LANGUAGE=it LC_ALL=it_IT.UTF-8 \
+        WASALIGHT_LOCALE_DIR="$tmp_dir/locale" WASALIGHT_I18N_HELPER="$i18n_helper" \
+        "$generator" "$italian_menu"
+    grep -Fq 'label="Aggiorna Wasalight"' "$italian_menu" || \
+        fail "il menu italiano non traduce l'aggiornamento"
+    grep -Fq 'label="Spegni"' "$italian_menu" || \
+        fail "il menu italiano non traduce lo spegnimento"
+fi
 
 english_menu="$tmp_dir/menu-en.xml"
-LANG=en_US.UTF-8 LANGUAGE=en LC_ALL=en_US.UTF-8 \
+LANG=C LANGUAGE= LC_ALL=C \
     WASALIGHT_LOCALE_DIR="$tmp_dir/locale" WASALIGHT_I18N_HELPER="$i18n_helper" \
     "$generator" "$english_menu"
 grep -Fq 'label="Update Wasalight"' "$english_menu" || \

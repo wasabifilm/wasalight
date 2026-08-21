@@ -21,27 +21,34 @@ for language in en it; do
         "$PROJECT_DIR/ui/locale/$language/LC_MESSAGES/wasalight-system.po"
 done
 
-italian_help=$(
-    LANG=it_IT.UTF-8 LANGUAGE=it LC_ALL=it_IT.UTF-8 \
-        WASALIGHT_LOCALE_DIR="$tmp_dir/locale" WASALIGHT_I18N_HELPER="$i18n_helper" \
-        "$launcher" --help
-)
-[[ $italian_help == Uso:* ]] || fail "l'help italiano dell'updater non è tradotto"
+catalog_table=$(msgunfmt --stringtable-output \
+    "$tmp_dir/locale/it/LC_MESSAGES/wasalight-system.mo")
+grep -Fqx '"Unknown option" = "Opzione sconosciuta";' <<<"$catalog_table" || \
+    fail "il catalogo non traduce gli errori dell'updater"
+
+if grep -Eqi '^it_IT\.(UTF-8|utf8)$' <<<"$(locale -a 2>/dev/null || true)"; then
+    italian_help=$(
+        LANG=it_IT.UTF-8 LANGUAGE=it LC_ALL=it_IT.UTF-8 \
+            WASALIGHT_LOCALE_DIR="$tmp_dir/locale" WASALIGHT_I18N_HELPER="$i18n_helper" \
+            "$launcher" --help
+    )
+    [[ $italian_help == Uso:* ]] || fail "l'help italiano dell'updater non è tradotto"
+
+    set +e
+    italian_error=$(
+        LANG=it_IT.UTF-8 LANGUAGE=it LC_ALL=it_IT.UTF-8 \
+            WASALIGHT_LOCALE_DIR="$tmp_dir/locale" WASALIGHT_I18N_HELPER="$i18n_helper" \
+            "$launcher" --unknown 2>&1
+    )
+    rc=$?
+    set -e
+    [[ $rc == 2 && $italian_error == 'Opzione sconosciuta: --unknown' ]] || \
+        fail "l'errore italiano dell'updater non è tradotto"
+fi
 
 english_help=$(
-    LANG=en_US.UTF-8 LANGUAGE=en LC_ALL=en_US.UTF-8 \
+    LANG=C LANGUAGE= LC_ALL=C \
         WASALIGHT_LOCALE_DIR="$tmp_dir/locale" WASALIGHT_I18N_HELPER="$i18n_helper" \
         "$launcher" --help
 )
 [[ $english_help == Usage:* ]] || fail "l'help inglese dell'updater non usa il testo sorgente"
-
-set +e
-italian_error=$(
-    LANG=it_IT.UTF-8 LANGUAGE=it LC_ALL=it_IT.UTF-8 \
-        WASALIGHT_LOCALE_DIR="$tmp_dir/locale" WASALIGHT_I18N_HELPER="$i18n_helper" \
-        "$launcher" --unknown 2>&1
-)
-rc=$?
-set -e
-[[ $rc == 2 && $italian_error == 'Opzione sconosciuta: --unknown' ]] || \
-    fail "l'errore italiano dell'updater non è tradotto"
