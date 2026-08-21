@@ -4,6 +4,8 @@
 """Touch-friendly date, time, timezone and NTP control for Wasalight."""
 
 import datetime
+import gettext
+import os
 import subprocess
 
 import gi
@@ -12,6 +14,11 @@ from gi.repository import Gdk, GLib, Gtk
 
 
 BACKEND = "/usr/local/sbin/wasalight-time-control"
+_ = gettext.translation(
+    "wasalight-system",
+    localedir=os.environ.get("WASALIGHT_LOCALE_DIR", "/usr/local/share/locale"),
+    fallback=True,
+).gettext
 
 
 def command_output(command, timeout=15):
@@ -23,7 +30,7 @@ def command_output(command, timeout=15):
 
 class DateTimeWindow(Gtk.Window):
     def __init__(self):
-        super().__init__(title="Data e ora · Wasalight")
+        super().__init__(title=_("Date and time · Wasalight"))
         self.set_default_size(860, 640)
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_keep_above(True)
@@ -36,7 +43,7 @@ class DateTimeWindow(Gtk.Window):
 
         title = Gtk.Label()
         title.set_xalign(0)
-        title.set_markup("<span size='22000' weight='bold' foreground='#76bd22'>Data e ora</span>")
+        title.set_markup(_("<span size='22000' weight='bold' foreground='#76bd22'>Date and time</span>"))
         root.pack_start(title, False, False, 0)
 
         self.status = Gtk.Label()
@@ -45,19 +52,19 @@ class DateTimeWindow(Gtk.Window):
         self.status.get_style_context().add_class("status")
         root.pack_start(self.status, False, False, 0)
 
-        sync_box = self._section("Sincronizzazione automatica")
+        sync_box = self._section(_("Automatic synchronization"))
         sync_text = Gtk.Label(label=(
-            "Corregge immediatamente l’orologio tramite Chrony e riattiva "
-            "la sincronizzazione automatica."))
+            _("Immediately corrects the clock through Chrony and re-enables "
+              "automatic synchronization.")))
         sync_text.set_xalign(0)
         sync_text.set_line_wrap(True)
         sync_box.pack_start(sync_text, True, True, 0)
-        sync_button = Gtk.Button(label="Sincronizza ora")
+        sync_button = Gtk.Button(label=_("Synchronize now"))
         sync_button.connect("clicked", lambda _button: self.run_privileged(["sync"]))
         sync_box.pack_start(sync_button, False, False, 0)
         root.pack_start(sync_box, False, False, 0)
 
-        timezone_box = self._section("Fuso orario")
+        timezone_box = self._section(_("Time zone"))
         self.timezone = Gtk.ComboBoxText()
         rc, zones = command_output(["timedatectl", "list-timezones"])
         if rc == 0:
@@ -67,12 +74,12 @@ class DateTimeWindow(Gtk.Window):
         self.timezone.set_active_id(current_zone)
         self.timezone.set_hexpand(True)
         timezone_box.pack_start(self.timezone, True, True, 0)
-        timezone_button = Gtk.Button(label="Applica fuso")
+        timezone_button = Gtk.Button(label=_("Apply time zone"))
         timezone_button.connect("clicked", self.apply_timezone)
         timezone_box.pack_start(timezone_button, False, False, 0)
         root.pack_start(timezone_box, False, False, 0)
 
-        manual_box = self._section("Impostazione manuale")
+        manual_box = self._section(_("Manual setting"))
         now = datetime.datetime.now()
         self.date = Gtk.Entry()
         self.date.set_placeholder_text("YYYY-MM-DD")
@@ -84,20 +91,20 @@ class DateTimeWindow(Gtk.Window):
         self.time.set_width_chars(10)
         manual_box.pack_start(self.date, False, False, 0)
         manual_box.pack_start(self.time, False, False, 0)
-        manual_button = Gtk.Button(label="Imposta manualmente")
+        manual_button = Gtk.Button(label=_("Set manually"))
         manual_button.connect("clicked", self.apply_manual)
         manual_box.pack_start(manual_button, False, False, 0)
         root.pack_start(manual_box, False, False, 0)
 
         note = Gtk.Label(label=(
-            "L’impostazione manuale disattiva Chrony. Usa “Sincronizza ora” "
-            "per tornare alla modalità automatica."))
+            _("Manual setting disables Chrony. Use “Synchronize now” to "
+              "return to automatic mode.")))
         note.set_xalign(0)
         note.set_line_wrap(True)
         note.get_style_context().add_class("note")
         root.pack_start(note, False, False, 0)
 
-        close = Gtk.Button(label="Chiudi")
+        close = Gtk.Button(label=_("Close"))
         close.connect("clicked", lambda _button: self.close())
         close.set_halign(Gtk.Align.END)
         root.pack_end(close, False, False, 0)
@@ -138,14 +145,16 @@ class DateTimeWindow(Gtk.Window):
         _rc, rtc = command_output(["timedatectl", "show", "--property=RTCTimeUSec", "--value"])
         _rc, ntp = command_output(["systemctl", "is-active", "chrony.service"])
         _rc, tracking = command_output(["chronyc", "tracking"])
-        offset = "non disponibile"
+        offset = _("unavailable")
         for line in tracking.splitlines():
             if line.startswith("System time"):
                 offset = line.split(":", 1)[-1].strip()
                 break
         self.status.set_text(
-            f"Ora locale:  {local}\nOra UTC:     {utc}\nRTC:         {rtc}\n"
-            f"Fuso:        {self.current_timezone()}\nChrony:      {ntp}\nScarto:      {offset}")
+            _("Local time:  {local}\nUTC time:    {utc}\nRTC:         {rtc}\n"
+              "Time zone:   {zone}\nChrony:      {ntp}\nOffset:      {offset}").format(
+                  local=local, utc=utc, rtc=rtc, zone=self.current_timezone(),
+                  ntp=ntp, offset=offset))
         self.timezone.set_active_id(self.current_timezone())
 
     def dialog(self, message_type, title, text, buttons=Gtk.ButtonsType.OK):
@@ -163,30 +172,30 @@ class DateTimeWindow(Gtk.Window):
         try:
             rc, output = command_output(["pkexec", BACKEND, *arguments], timeout=45)
         except subprocess.TimeoutExpired:
-            self.dialog(Gtk.MessageType.ERROR, "Operazione scaduta",
-                        "La regolazione dell’orologio non ha risposto entro 45 secondi.")
+            self.dialog(Gtk.MessageType.ERROR, _("Operation timed out"),
+                        _("Clock adjustment did not respond within 45 seconds."))
             return
         if rc:
-            self.dialog(Gtk.MessageType.ERROR, "Operazione non riuscita",
-                        output or "Autenticazione annullata o comando non riuscito.")
+            self.dialog(Gtk.MessageType.ERROR, _("Operation failed"),
+                        output or _("Authentication cancelled or command failed."))
             return
         self.refresh()
-        self.dialog(Gtk.MessageType.INFO, "Data e ora aggiornate",
-                    output or "Operazione completata correttamente.")
+        self.dialog(Gtk.MessageType.INFO, _("Date and time updated"),
+                    output or _("Operation completed successfully."))
 
     def apply_timezone(self, _button):
         zone = self.timezone.get_active_id()
         if not zone:
-            self.dialog(Gtk.MessageType.WARNING, "Seleziona un fuso",
-                        "Scegli un fuso orario dall’elenco.")
+            self.dialog(Gtk.MessageType.WARNING, _("Select a time zone"),
+                        _("Choose a time zone from the list."))
             return
         self.run_privileged(["timezone", zone])
 
     def apply_manual(self, _button):
         value = f"{self.date.get_text().strip()} {self.time.get_text().strip()}"
         response = self.dialog(
-            Gtk.MessageType.WARNING, "Disattivare l’ora automatica?",
-            f"Impostare manualmente {value}?\n\nChrony verrà disattivato.",
+            Gtk.MessageType.WARNING, _("Disable automatic time?"),
+            _("Set {value} manually?\n\nChrony will be disabled.").format(value=value),
             Gtk.ButtonsType.OK_CANCEL)
         if response == Gtk.ResponseType.OK:
             self.run_privileged(["manual", value])

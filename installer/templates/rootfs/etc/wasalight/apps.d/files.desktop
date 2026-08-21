@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=File
-Comment=Apre dati persistenti e chiavette USB
+Name=Files
+Name[it]=File
+Comment=Open persistent data and USB drives
+Comment[it]=Apre dati persistenti e chiavette USB
 Exec=pcmanfm /data
 Icon=/usr/local/share/icons/wasalight/files.svg
 TryExec=pcmanfm

@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
 Name=Mousepad
-Comment=Editor di testo leggero per note, log e configurazioni
+Name[it]=Mousepad
+Comment=Lightweight text editor for notes, logs and configuration
+Comment[it]=Editor di testo leggero per note, log e configurazioni
 Exec=mousepad
 Icon=accessories-text-editor
 TryExec=mousepad

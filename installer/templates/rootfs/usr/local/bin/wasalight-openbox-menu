@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+set -Eeuo pipefail
+. "${WASALIGHT_I18N_HELPER:-/usr/local/libexec/wasalight-i18n}"
+
+destination=${1:-}
+if [[ -z $destination || $destination != */* ]]; then
+    printf 'Usage: wasalight-openbox-menu /path/to/menu.xml\n' >&2
+    exit 2
+fi
+
+directory=${destination%/*}
+temporary=$(mktemp "$directory/.menu.xml.XXXXXX")
+cleanup() {
+    rm -f -- "$temporary"
+}
+trap cleanup EXIT
+
+files=$( _ "Files" )
+terminal=$( _ "Terminal" )
+update=$( _ "Update Wasalight" )
+restart=$( _ "Restart" )
+poweroff=$( _ "Power off" )
+
+cat >"$temporary" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<openbox_menu xmlns="http://openbox.org/3.4/menu">
+  <menu id="root-menu" label="Wasalight">
+    <item label="Wasalight Control"><action name="Execute"><command>/usr/local/bin/wasalight-control</command></action></item>
+    <item label="$files"><action name="Execute"><command>pcmanfm /data</command></action></item>
+    <item label="$terminal"><action name="Execute"><command>lxterminal</command></action></item>
+    <item label="$update"><action name="Execute"><command>/usr/local/bin/wasalight-update-terminal</command></action></item>
+    <separator />
+    <item label="$restart"><action name="Execute"><command>/usr/local/bin/wasalight-power reboot</command></action></item>
+    <item label="$poweroff"><action name="Execute"><command>/usr/local/bin/wasalight-power poweroff</command></action></item>
+  </menu>
+</openbox_menu>
+EOF
+
+chmod 0644 "$temporary"
+mv -f -- "$temporary" "$destination"
+trap - EXIT

@@ -200,15 +200,21 @@ stessi percorsi di ricerca e preservazione del pacchetto.
 
 ## Fase 7 — Localizzazione completa
 
-- [ ] Usare `/data/system/control/language` come unica preferenza di lingua.
-- [ ] Supportare italiano, inglese e modalità automatica per tutta la sessione.
-- [ ] Conservare `wasalight-control` per la GUI e introdurre il dominio gettext
-      `wasalight-system` per script, updater, dialoghi e strumenti.
-- [ ] Tradurre menu Openbox, tooltip, conferme, errori e testi dell’updater.
-- [ ] Usare campi standard `Name[it]` e `Comment[it]` nei launcher `.desktop`.
-- [ ] Aggiungere campi localizzati ai manifest dei plugin.
-- [ ] Eliminare testo traducibile incorporato nelle icone.
-- [ ] Estendere i controlli qualità per rilevare stringhe utente non catalogate.
+- [~] Usare `/data/system/control/language` come unica preferenza di lingua;
+      applicazione alla sessione implementata, ancora da collaudare in UTM.
+- [~] Supportare italiano, inglese e modalità automatica per tutta la sessione;
+      ambiente Openbox implementato, ancora da verificare dopo un nuovo login.
+- [x] Conservare `wasalight-control` per la GUI e introdurre il dominio gettext
+      `wasalight-system`; infrastruttura, dialoghi e utility grafiche completati.
+- [x] Tradurre menu Openbox, tooltip, conferme, errori e testi dell’updater;
+      menu, alimentazione e interfaccia guidata updater completati; log e
+      diagnostica tecnica uniformati in inglese; utility operative completate.
+- [x] Usare campi standard `Name[it]` e `Comment[it]` nei launcher `.desktop`.
+- [x] Aggiungere campi localizzati ai manifest dei plugin.
+- [x] Eliminare testo traducibile incorporato nelle icone; le icone distribuite
+      non contengono elementi testuali.
+- [x] Estendere i controlli qualità per validare i cataloghi, bloccare traduzioni
+      italiane mancanti e verificare campi localizzati di launcher e plugin.
 - [ ] Collaudare il cambio lingua dopo un nuovo accesso in `it`, `en` e `auto`.
 
 ## Fase 8 — Collaudo hardware e prima release stabile

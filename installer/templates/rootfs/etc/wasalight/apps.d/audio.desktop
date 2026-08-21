@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=Test audio
-Comment=Prova il dispositivo ALSA predefinito
+Name=Audio test
+Name[it]=Test audio
+Comment=Test the default ALSA device
+Comment[it]=Prova il dispositivo ALSA predefinito
 Exec=/usr/local/bin/wasalight-terminal-tool audio
 Icon=audio-card
 TryExec=/usr/local/bin/wasalight-audio-test

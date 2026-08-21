@@ -276,7 +276,7 @@ install_packages() {
         openbox tint2 picom pcmanfm lxterminal lxrandr lxtask x11vnc procps wmctrl x11-utils
         galculator i3lock mousepad onboard gir1.2-atspi-2.0
         conky-all zenity libnotify-bin libglib2.0-bin desktop-file-utils librsvg2-common
-        python3 python3-gi gir1.2-gtk-3.0 gettext arp-scan iproute2
+        python3 python3-gi gir1.2-gtk-3.0 gettext locales arp-scan iproute2
         network-manager network-manager-gnome wpasupplicant policykit-1 policykit-1-gnome
         overlayroot initramfs-tools plymouth plymouth-themes file chrony
         exfatprogs ntfs-3g dosfstools libfsapfs-utils util-linux udev logrotate
@@ -316,6 +316,10 @@ install_packages() {
     else
         log "all required packages are installed; skipping apt metadata refresh"
     fi
+
+    # The operator can select either supported language for the graphical
+    # session without changing Ubuntu's global locale.
+    locale-gen en_US.UTF-8 it_IT.UTF-8
 
     systemctl enable NetworkManager.service chrony.service
     # SSH reboot persistence is deliberately stored on /data instead of in

@@ -2,6 +2,7 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -u
+. "${WASALIGHT_I18N_HELPER:-/usr/local/libexec/wasalight-i18n}"
 
 # The minimal Openbox session does not run the AT-SPI accessibility bus.
 # Disable GTK accessibility only for this small update UI so Zenity does not
@@ -25,10 +26,13 @@ fi
 # forwards the corresponding option after confirmation.
 installed_magicq=$(dpkg-query -W -f='${db:Status-Abbrev}' magicq 2>/dev/null || true)
 if [[ $installed_magicq != ii* ]]; then
+    missing_title=$( _ "MagicQ not installed" )
+    missing_heading=$( _ "MagicQ is not installed." )
+    missing_detail=$( _ "The update will still search for a valid package in /data and on USB drives. If none is found, do you want to update only Wasalight and the other components?" )
     if /usr/local/bin/wasalight-dialog --question \
-        --icon=system-software-update --width=560 --title="MagicQ non installato" \
-        --text="<big><b>MagicQ non è installato.</b></big>\n\nL’aggiornamento cercherà comunque un pacchetto valido in /data e nelle USB. Se non lo trova, vuoi aggiornare soltanto Wasalight e gli altri componenti?" \
-        --ok-label="Continua" --cancel-label="Annulla"; then
+        --icon=system-software-update --width=560 --title="$missing_title" \
+        --text="<big><b>$missing_heading</b></big>\n\n$missing_detail" \
+        --ok-label="$( _ "Continue" )" --cancel-label="$( _ "Cancel" )"; then
         update_args+=(--allow-missing-magicq)
     else
         exit 0
@@ -39,10 +43,14 @@ transaction_status=$(awk -F= '$1 == "status" {print $2; exit}' \
     /data/system/update-state 2>/dev/null || true)
 if [[ -z ${WASALIGHT_UPDATE_OPERATION:-} && \
       ( $transaction_status == running || $transaction_status == failed ) ]]; then
+    interrupted_title=$( _ "Update interrupted" )
+    interrupted_heading=$( _ "An incomplete update is present." )
+    printf -v interrupted_status "$( _ "Status: %s" )" "$transaction_status"
+    interrupted_question=$( _ "Resume the verified transaction now?" )
     if /usr/local/bin/wasalight-dialog --question \
-        --icon=system-software-update --width=560 --title="Aggiornamento interrotto" \
-        --text="<big><b>È presente un aggiornamento incompleto.</b></big>\n\nStato: $transaction_status\n\nRiprendere ora la transazione verificata?" \
-        --ok-label="Riprendi" --cancel-label="Chiudi"; then
+        --icon=system-software-update --width=560 --title="$interrupted_title" \
+        --text="<big><b>$interrupted_heading</b></big>\n\n$interrupted_status\n\n$interrupted_question" \
+        --ok-label="$( _ "Resume" )" --cancel-label="$( _ "Close" )"; then
         update_args+=(--resume)
     else
         exit 0
@@ -63,50 +71,63 @@ printf '%s┏━━━━━━━━━━━━━━━━━━━━━━�
 printf '%s┃%s  %sWASALIGHT UPDATE%s                                  %s┃%s\n' \
     "$brand" "$reset" "$white" "$reset" "$brand" "$reset"
 printf '%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛%s\n\n' "$brand" "$reset"
-printf '  %s●%s Scarico, verifico e installo l’ultima versione.\n' "$brand" "$reset"
-printf '  %s●%s Canale: %s.\n' "$brand" "$reset" "$display_channel"
-printf '  %s●%s Il log completo resta disponibile anche con la vista compatta.\n' "$brand" "$reset"
-printf '  %s●%s La password richiesta è quella Linux di chamsys.\n\n' "$brand" "$reset"
-printf '  %sIn attesa dell’autorizzazione…%s\n\n' "$muted" "$reset"
+printf '  %s●%s %s\n' "$brand" "$reset" \
+    "$( _ "Download, verify and install the latest version." )"
+printf '  %s●%s %s %s.\n' "$brand" "$reset" "$( _ "Channel:" )" "$display_channel"
+printf '  %s●%s %s\n' "$brand" "$reset" \
+    "$( _ "The full log remains available with the compact view." )"
+printf '  %s●%s %s\n\n' "$brand" "$reset" \
+    "$( _ "The requested password is the Linux password for chamsys." )"
+printf '  %s%s%s\n\n' "$muted" "$( _ "Waiting for authorization…" )" "$reset"
 
 pkexec /usr/local/sbin/wasalight-update "${update_args[@]}"
 rc=$?
 if ((rc == 0)); then
     echo
     if [[ ! -e /run/wasalight-update-reboot-required ]]; then
-        echo "Il sistema è già aggiornato; nessun riavvio necessario."
-        /usr/local/bin/wasalight-dialog --info --width=520 --title="Wasalight aggiornato" \
-            --text="<big><b>Il sistema è già aggiornato.</b></big>\n\nNon sono state applicate modifiche e non serve riavviare." \
-            --ok-label="Chiudi"
+        _ "The system is already up to date; no reboot is required."
+        printf '\n'
+        /usr/local/bin/wasalight-dialog --info --width=520 \
+            --title="$( _ "Wasalight updated" )" \
+            --text="<big><b>$( _ "The system is already up to date." )</b></big>\n\n$( _ "No changes were applied and no reboot is required." )" \
+            --ok-label="$( _ "Close" )"
         exit 0
     fi
-    echo "Aggiornamento completato correttamente."
+    _ "Update completed successfully."
+    printf '\n'
     if /usr/local/bin/wasalight-dialog --question \
-        --icon=/usr/local/share/icons/wasalight/reboot.svg --width=520 --title="Wasalight aggiornato" \
-        --text="<big><b>Aggiornamento completato.</b></big>\n\nRiavviare ora per applicare la nuova configurazione?" \
-        --ok-label="Riavvia ora" --cancel-label="Più tardi"; then
-        echo "Riavvio in corso…"
+        --icon=/usr/local/share/icons/wasalight/reboot.svg --width=520 \
+        --title="$( _ "Wasalight updated" )" \
+        --text="<big><b>$( _ "Update completed." )</b></big>\n\n$( _ "Restart now to apply the new configuration?" )" \
+        --ok-label="$( _ "Restart now" )" --cancel-label="$( _ "Later" )"; then
+        _ "Restarting…"
+        printf '\n'
         sudo -n /usr/local/sbin/wasalight-power-control reboot
         exit $?
     fi
-    /usr/local/bin/wasalight-dialog --info --width=500 --title="Wasalight aggiornato" \
-        --text="Aggiornamento installato.\n\nRicordati di riavviare prima del prossimo utilizzo." \
-        --ok-label="Chiudi"
+    /usr/local/bin/wasalight-dialog --info --width=500 \
+        --title="$( _ "Wasalight updated" )" \
+        --text="$( _ "Update installed." )\n\n$( _ "Remember to restart before the next use." )" \
+        --ok-label="$( _ "Close" )"
     exit 0
 fi
 
 if ((rc == 126)); then
     echo
-    echo "Autenticazione annullata: Wasalight non è stato modificato."
-    /usr/local/bin/wasalight-dialog --info --width=500 --title="Aggiornamento annullato" \
-        --text="L’autenticazione è stata annullata.\n\nWasalight non è stato modificato." \
-        --ok-label="Chiudi" 2>/dev/null || true
+    _ "Authentication cancelled: Wasalight was not modified."
+    printf '\n'
+    /usr/local/bin/wasalight-dialog --info --width=500 \
+        --title="$( _ "Update cancelled" )" \
+        --text="$( _ "Authentication was cancelled." )\n\n$( _ "Wasalight was not modified." )" \
+        --ok-label="$( _ "Close" )" 2>/dev/null || true
     exit 126
 fi
 
 echo
-echo "Aggiornamento non completato. La macchina non verrà riavviata."
-/usr/local/bin/wasalight-dialog --error --width=560 --title="Aggiornamento non riuscito" \
-    --text="<big><b>Wasalight non è stato aggiornato.</b></big>\n\nLa macchina non verrà riavviata.\nControlla: /data/log/wasalight-update.log" \
-    --ok-label="Chiudi" 2>/dev/null || true
+_ "Update not completed. The machine will not restart."
+printf '\n'
+/usr/local/bin/wasalight-dialog --error --width=560 \
+    --title="$( _ "Update failed" )" \
+    --text="<big><b>$( _ "Wasalight was not updated." )</b></big>\n\n$( _ "The machine will not restart." )\n$( _ "Check: /data/log/wasalight-update.log" )" \
+    --ok-label="$( _ "Close" )" 2>/dev/null || true
 exit "$rc"

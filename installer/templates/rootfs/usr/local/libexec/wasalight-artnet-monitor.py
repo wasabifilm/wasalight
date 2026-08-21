@@ -1,12 +1,20 @@
 #!/usr/bin/env python3
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
+import gettext
+import os
 import subprocess
 import threading
 
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, GLib, Gtk
+
+_ = gettext.translation(
+    "wasalight-system",
+    localedir=os.environ.get("WASALIGHT_LOCALE_DIR", "/usr/local/share/locale"),
+    fallback=True,
+).gettext
 
 OPCODES = {"0x2000": "Poll", "0x2100": "Poll Reply", "0x5000": "ArtDMX", "0x5200": "Sync"}
 
@@ -23,14 +31,15 @@ class Monitor(Gtk.Window):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         box.set_border_width(16)
         title = Gtk.Label()
-        title.set_markup("<span size='18000' weight='bold'>Art-Net Monitor</span>\n"
-                         "<span size='10000'>Traffico UDP Art-Net su tutte le interfacce</span>")
+        title.set_markup(_("<span size='18000' weight='bold'>Art-Net Monitor</span>\n"
+                           "<span size='10000'>Art-Net UDP traffic on all interfaces</span>"))
         title.set_xalign(0)
         box.pack_start(title, False, False, 0)
 
         self.store = Gtk.ListStore(str, str, str, str, int, int, str)
         view = Gtk.TreeView(model=self.store)
-        labels = ("Sorgente", "Destinazione", "Tipo", "Universo", "Canali", "Pacchetti", "Ultimo")
+        labels = (_("Source"), _("Destination"), _("Type"), _("Universe"),
+                  _("Channels"), _("Packets"), _("Last seen"))
         for index, label in enumerate(labels):
             renderer = Gtk.CellRendererText()
             renderer.set_property("ypad", 8)
@@ -43,12 +52,12 @@ class Monitor(Gtk.Window):
         box.pack_start(scroll, True, True, 0)
 
         controls = Gtk.Box(spacing=10)
-        self.status = Gtk.Label(label="In ascolto sulla porta UDP 6454")
+        self.status = Gtk.Label(label=_("Listening on UDP port 6454"))
         self.status.set_xalign(0)
-        clear = Gtk.Button(label="Azzera")
+        clear = Gtk.Button(label=_("Clear"))
         clear.set_size_request(150, 58)
         clear.connect("clicked", self.clear)
-        close = Gtk.Button(label="Chiudi")
+        close = Gtk.Button(label=_("Close"))
         close.set_size_request(150, 58)
         close.connect("clicked", lambda _button: self.destroy())
         controls.pack_start(self.status, True, True, 0)

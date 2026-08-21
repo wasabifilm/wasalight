@@ -2,18 +2,19 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
+. /usr/local/libexec/wasalight-i18n
 
 title='Wasalight · Rollback'
 if [[ $(findmnt -n -o FSTYPE / 2>/dev/null) == overlay ]]; then
     /usr/local/bin/wasalight-dialog --error --width=560 --title="$title" \
-        --text="<big><b>Modalità MAINTENANCE richiesta.</b></big>\n\nPassa a MAINTENANCE e riavvia prima di ripristinare uno snapshot."
+        --text="$( _ '<big><b>MAINTENANCE mode required.</b></big>\n\nSwitch to MAINTENANCE and reboot before restoring a snapshot.' )"
     exit 1
 fi
 
 snapshots=$(pkexec /usr/local/sbin/wasalight-rollback list)
 if [[ -z $snapshots ]]; then
     /usr/local/bin/wasalight-dialog --info --width=520 --title="$title" \
-        --text="Nessuno snapshot Wasalight disponibile."
+        --text="$( _ "No Wasalight snapshot is available." )"
     exit 0
 fi
 
@@ -23,34 +24,37 @@ while IFS=$'\t' read -r file version stamp size integrity mode; do
 done <<<"$snapshots"
 
 selected=$(zenity --list --modal --width=820 --height=430 --title="$title" \
-    --text="Seleziona una configurazione Wasalight da ripristinare.\nMagicQ, pacchetti Ubuntu e dati dello show non vengono modificati." \
-    --column="File" --column="Versione" --column="Data" --column="Dimensione" \
-    --column="Checksum" --hide-column=1 --print-column=1 "${rows[@]}") || exit 0
+    --text="$( _ 'Select a Wasalight configuration to restore.\nMagicQ, Ubuntu packages and show data will not be changed.' )" \
+    --column="$( _ "File" )" --column="$( _ "Version" )" --column="$( _ "Date" )" \
+    --column="$( _ "Size" )" --column="Checksum" --hide-column=1 --print-column=1 \
+    "${rows[@]}") || exit 0
 [[ -n $selected ]] || exit 0
 
-details=$(awk -F '\t' -v selected="$selected" '$1 == selected {print "Versione: "$2"\nData: "$3"\nDimensione: "$4"\nChecksum: "$5}' <<<"$snapshots")
+details=$(awk -F '\t' -v selected="$selected" \
+    -v version="$( _ "Version:" )" -v date="$( _ "Date:" )" -v size="$( _ "Size:" )" \
+    '$1 == selected {print version" "$2"\n"date" "$3"\n"size" "$4"\nChecksum: "$5}' <<<"$snapshots")
 integrity=$(awk -F '\t' -v selected="$selected" '$1 == selected {print $5}' <<<"$snapshots")
 set +e
 action=$(/usr/local/bin/wasalight-dialog --question --icon=document-revert --width=620 --title="$title" \
-    --text="<big><b>Cosa vuoi fare con questa snapshot?</b></big>\n\n$details\n\nIl ripristino sostituisce configurazione, comandi e tema Wasalight. L'eliminazione è definitiva." \
-    --ok-label="Ripristina" --cancel-label="Annulla" \
-    --extra-button="Elimina snapshot")
+    --text="$(printf "$(_ '<big><b>What do you want to do with this snapshot?</b></big>\n\n%s\n\nRestore replaces Wasalight configuration, commands and theme. Deletion is permanent.')" "$details")" \
+    --ok-label="$( _ "Restore" )" --cancel-label="$( _ "Cancel" )" \
+    --extra-button="$( _ "Delete snapshot" )")
 action_rc=$?
 set -e
 
-if [[ $action == 'Elimina snapshot' ]]; then
+if [[ $action == "$( _ "Delete snapshot" )" ]]; then
     if ! /usr/local/bin/wasalight-dialog --question --icon=edit-delete --width=600 --title="$title" \
-        --text="<big><b>Eliminare definitivamente questa snapshot?</b></big>\n\n$details\n\nIl file e il relativo checksum verranno rimossi da /data e non potranno essere recuperati." \
-        --ok-label="Elimina definitivamente" --cancel-label="Conserva"; then
+        --text="$(printf "$(_ '<big><b>Permanently delete this snapshot?</b></big>\n\n%s\n\nThe file and its checksum will be removed from /data and cannot be recovered.')" "$details")" \
+        --ok-label="$( _ "Delete permanently" )" --cancel-label="$( _ "Keep" )"; then
         exit 0
     fi
     if pkexec /usr/local/sbin/wasalight-rollback delete "$selected"; then
         /usr/local/bin/wasalight-dialog --info --width=520 --title="$title" \
-            --text="<big><b>Snapshot eliminata.</b></big>\n\n$details"
+            --text="$(printf "$(_ '<big><b>Snapshot deleted.</b></big>\n\n%s')" "$details")"
         exit 0
     fi
     /usr/local/bin/wasalight-dialog --error --width=560 --title="$title" \
-        --text="<big><b>Eliminazione non riuscita.</b></big>\n\nLa snapshot è stata conservata."
+        --text="$( _ '<big><b>Deletion failed.</b></big>\n\nThe snapshot was kept.' )"
     exit 1
 fi
 if ((action_rc != 0)); then
@@ -58,7 +62,7 @@ if ((action_rc != 0)); then
 fi
 if [[ $integrity != OK ]]; then
     /usr/local/bin/wasalight-dialog --error --width=560 --title="$title" \
-        --text="<big><b>Snapshot non integro.</b></big>\n\nIl checksum non è valido: il ripristino è stato bloccato. Puoi comunque eliminare la snapshot dal menu precedente."
+        --text="$( _ '<big><b>Snapshot integrity check failed.</b></big>\n\nThe checksum is invalid, so restore was blocked. You can still delete the snapshot from the previous menu.' )"
     exit 1
 fi
 
@@ -69,7 +73,7 @@ pkexec /usr/local/sbin/wasalight-rollback restore "$selected" >"$log_file" 2>&1 
 restore_pid=$!
 (
     while kill -0 "$restore_pid" 2>/dev/null; do
-        echo "# Ripristino della configurazione in corso…"
+        printf '# %s\n' "$( _ "Restoring configuration…" )"
         sleep 1
     done
 ) | zenity --progress --pulsate --auto-close --no-cancel --modal \
@@ -81,13 +85,13 @@ set -e
 if ((rc != 0)); then
     details=$(tail -n 20 "$log_file")
     /usr/local/bin/wasalight-dialog --error --width=680 --title="$title" \
-        --text="<big><b>Rollback non riuscito.</b></big>\n\n$details"
+        --text="$(printf "$(_ '<big><b>Rollback failed.</b></big>\n\n%s')" "$details")"
     exit "$rc"
 fi
 
 if /usr/local/bin/wasalight-dialog --question \
     --icon=/usr/local/share/icons/wasalight/reboot.svg --width=560 --title="$title" \
-    --text="<big><b>Configurazione ripristinata.</b></big>\n\nRiavviare ora per applicarla?" \
-    --ok-label="Riavvia ora" --cancel-label="Più tardi"; then
+    --text="$( _ '<big><b>Configuration restored.</b></big>\n\nRestart now to apply it?' )" \
+    --ok-label="$( _ "Restart now" )" --cancel-label="$( _ "Later" )"; then
     sudo -n /usr/local/sbin/wasalight-power-control reboot
 fi

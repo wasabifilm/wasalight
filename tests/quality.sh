@@ -69,6 +69,15 @@ if command -v msgfmt >/dev/null 2>&1; then
     while IFS= read -r catalog; do
         msgfmt --check --check-compatibility -o /dev/null "$catalog"
     done < <(find ui/locale -type f -name '*.po' -print | sort)
+    while IFS= read -r catalog; do
+        untranslated=$(msgattrib --untranslated --no-obsolete "$catalog" | \
+            grep -c '^msgid ' || true)
+        [[ $untranslated == 0 ]] || {
+            printf 'Untranslated Italian entries: %s\n' "$catalog" >&2
+            msgattrib --untranslated --no-obsolete "$catalog" >&2
+            exit 1
+        }
+    done < <(find ui/locale/it -type f -name '*.po' -print | sort)
 elif $require_tools; then
     printf 'Missing required quality tool: msgfmt\n' >&2
     exit 1

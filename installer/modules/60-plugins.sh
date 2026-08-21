@@ -4,7 +4,7 @@
 configure_plugins() {
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
-    local plugin source manifest state_file requested locale po_file
+    local domain plugin source manifest state_file requested locale po_file
     install -d -m 0755 /usr/lib/wasalight/plugins
     install -d -m 0755 /usr/local/libexec
     install -d -o root -g root -m 0755 "$DATA_MOUNT/system/plugins-state"
@@ -48,15 +48,17 @@ configure_plugins() {
     install -o root -g root -m 0644 \
         "$PROJECT_DIR/ui/themes/console-dark.ini" \
         /usr/local/share/wasalight-control/themes/console-dark.ini
-    for po_file in "$PROJECT_DIR/ui/locale/"*/LC_MESSAGES/wasalight-control.po; do
+    for po_file in "$PROJECT_DIR/ui/locale/"*/LC_MESSAGES/wasalight-*.po; do
         locale=${po_file#"$PROJECT_DIR/ui/locale/"}
         locale=${locale%%/*}
+        domain=${po_file##*/}
+        domain=${domain%.po}
         install -d -o root -g root -m 0755 \
             "/usr/local/share/locale/$locale/LC_MESSAGES"
-        msgfmt --check --output-file="/usr/local/share/locale/$locale/LC_MESSAGES/wasalight-control.mo" \
+        msgfmt --check --output-file="/usr/local/share/locale/$locale/LC_MESSAGES/$domain.mo" \
             "$po_file"
-        chown root:root "/usr/local/share/locale/$locale/LC_MESSAGES/wasalight-control.mo"
-        chmod 0644 "/usr/local/share/locale/$locale/LC_MESSAGES/wasalight-control.mo"
+        chown root:root "/usr/local/share/locale/$locale/LC_MESSAGES/$domain.mo"
+        chmod 0644 "/usr/local/share/locale/$locale/LC_MESSAGES/$domain.mo"
     done
 
     # Built-in management integrations are visible by default. Companion is

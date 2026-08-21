@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=Scanner IP
-Comment=Trova dispositivi, indirizzi IP e produttori nella rete locale
+Name=IP scanner
+Name[it]=Scanner IP
+Comment=Find devices, IP addresses and vendors on the local network
+Comment[it]=Trova dispositivi, indirizzi IP e produttori nella rete locale
 Exec=/usr/local/bin/wasalight-ip-scanner
 Icon=/usr/local/share/icons/wasalight/ip-scanner.svg
 TryExec=/usr/local/bin/wasalight-ip-scanner

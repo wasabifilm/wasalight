@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=Esporta diagnostica
-Comment=Crea un pacchetto assistenza privo di password
+Name=Export diagnostics
+Name[it]=Esporta diagnostica
+Comment=Create a support bundle without passwords
+Comment[it]=Crea un pacchetto assistenza privo di password
 Exec=/usr/local/bin/wasalight-support-bundle-terminal
 Icon=package-x-generic
 TryExec=/usr/local/bin/wasalight-support-bundle-terminal

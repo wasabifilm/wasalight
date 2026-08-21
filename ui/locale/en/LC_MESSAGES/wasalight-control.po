@@ -1,6 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Wasalight Control\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-21 10:07+0200\n"
 "PO-Revision-Date: 2026-08-12 17:30+0200\n"
 "Last-Translator: Michele Moser\n"
 "Language-Team: English\n"
@@ -10,115 +12,382 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-# Existing plugin manifests use Italian source text. These entries keep them
-# multilingual until manifests gain native localized fields.
-msgid "Accesso SSH"
-msgstr "SSH access"
+#: ui/wasalight-control-center.py:69
+msgid "Overview"
+msgstr "Overview"
 
-msgid "Accesso remoto sicuro alla console Wasalight"
-msgstr "Secure remote access to the Wasalight console"
+#: ui/wasalight-control-center.py:70
+msgid "Applications"
+msgstr "Applications"
 
-msgid "Sessione VNC"
-msgstr "VNC session"
+#: ui/wasalight-control-center.py:71
+msgid "System"
+msgstr "System"
 
-msgid "Condivisione remota della sessione Xorg corrente"
-msgstr "Remote sharing of the current Xorg session"
+#: ui/wasalight-control-center.py:72
+msgid "Tools"
+msgstr "Tools"
 
-msgid "Controllo Companion persistente con interfaccia web locale"
-msgstr "Persistent Companion control with a local web interface"
+#: ui/wasalight-control-center.py:73
+msgid "Plugins"
+msgstr "Plugins"
 
-msgid "Attivo su TCP 22"
-msgstr "Active on TCP 22"
+#: ui/wasalight-control-center.py:74
+msgid "About"
+msgstr "About"
 
-msgid "Attivo su TCP 5900"
-msgstr "Active on TCP 5900"
+#: ui/wasalight-control-center.py:95
+#, python-brace-format
+msgid ""
+"{status}\n"
+"\n"
+"CONTROL:    refresh warning: {error}"
+msgstr ""
+"{status}\n"
+"\n"
+"CONTROL:    refresh warning: {error}"
 
-msgid "Attivo su TCP 8000"
-msgstr "Active on TCP 8000"
+#: ui/wasalight-control-center.py:123 ui/wasalight_control/system.py:53
+msgid "Status unavailable"
+msgstr "Status unavailable"
 
-msgid "Fermo"
-msgstr "Stopped"
+#: ui/wasalight-control-center.py:130
+msgid "status"
+msgstr "status"
 
-msgid "Theme"
-msgstr "Theme"
+#: ui/wasalight-control-center.py:131
+msgid "plugins"
+msgstr "plugins"
 
-msgid "Colours are applied the next time Wasalight Control starts."
-msgstr "Colours are applied the next time Wasalight Control starts."
+#: ui/wasalight-control-center.py:166
+msgid "Unable to start command"
+msgstr "Unable to start command"
 
-msgid "Unable to save theme"
-msgstr "Unable to save theme"
+#: ui/wasalight-control-center.py:181
+msgid "Unable to start application"
+msgstr "Unable to start application"
 
-msgid "Theme saved"
-msgstr "Theme saved"
+#: ui/wasalight-control-center.py:213
+msgid "MagicQ · Automatic startup"
+msgstr "MagicQ · Automatic startup"
 
-msgid "The new theme will be used the next time Wasalight Control starts."
-msgstr "The new theme will be used the next time Wasalight Control starts."
+#: ui/wasalight-control-center.py:219 ui/wasalight_control/shell.py:57
+msgid "Language"
+msgstr "Language"
 
-msgid "Servizio attivo"
-msgstr "Service active"
+#: ui/wasalight-control-center.py:221
+msgid "Cancel"
+msgstr "Cancel"
 
-msgid "Avvio automatico"
-msgstr "Automatic startup"
+#: ui/wasalight-control-center.py:222
+msgid "Save"
+msgstr "Save"
 
-msgid "Avvia"
-msgstr "Start"
+#: ui/wasalight-control-center.py:228
+msgid "Choose the interface language. It will be applied at the next start."
+msgstr "Choose the interface language. It will be applied at the next start."
 
-msgid "Ferma"
-msgstr "Stop"
+#: ui/wasalight-control-center.py:233 ui/wasalight_control/shell.py:48
+#: ui/wasalight_control/shell.py:50
+msgid "Automatic"
+msgstr "Automatic"
 
-msgid "Riavvia"
-msgstr "Restart"
+#: ui/wasalight-control-center.py:248
+msgid "Unable to save language"
+msgstr "Unable to save language"
 
-msgid "Apri interfaccia web"
-msgstr "Open web interface"
+#: ui/wasalight-control-center.py:254
+msgid "Language saved"
+msgstr "Language saved"
 
-msgid "Crea backup"
-msgstr "Create backup"
+#: ui/wasalight-control-center.py:256
+msgid "The new language will be used the next time Wasalight Control starts."
+msgstr "The new language will be used the next time Wasalight Control starts."
 
-msgid "Creare un nuovo backup persistente di Companion?"
-msgstr "Create a new persistent Companion backup?"
+#: ui/wasalight-control-center.py:264 ui/wasalight-control-center.py:275
+msgid "MAINTENANCE mode required"
+msgstr "MAINTENANCE mode required"
 
-msgid "Address: {endpoint}"
-msgstr "Address: {endpoint}"
+#: ui/wasalight-control-center.py:265
+msgid "Restart in MAINTENANCE to enable or disable persistent plugins."
+msgstr "Restart in MAINTENANCE to enable or disable persistent plugins."
 
-msgid "Installed version: {version}"
-msgstr "Installed version: {version}"
+#: ui/wasalight-control-center.py:268 ui/wasalight_control/widgets.py:192
+msgid "Enable"
+msgstr "Enable"
 
+#: ui/wasalight-control-center.py:268 ui/wasalight_control/widgets.py:192
+msgid "Disable"
+msgstr "Disable"
+
+#: ui/wasalight-control-center.py:276
+msgid "Restart in MAINTENANCE to install a plugin."
+msgstr "Restart in MAINTENANCE to install a plugin."
+
+#: ui/wasalight-control-center.py:281
+msgid "Unable to start plugin installation"
+msgstr "Unable to start plugin installation"
+
+#: ui/wasalight-control-center.py:297
+msgid "Operation failed"
+msgstr "Operation failed"
+
+#: ui/wasalight-control-center.py:303
 msgid "Operation completed"
 msgstr "Operation completed"
 
-msgid "Aggiorna"
-msgstr "Update"
+#: ui/wasalight_control/shell.py:83 ui/wasalight_control/shell.py:86
+msgid "Close"
+msgstr "Close"
 
-msgid "Fermare Bitfocus Companion?"
-msgstr "Stop Bitfocus Companion?"
+#: ui/wasalight_control/system.py:45
+msgid "Plugin registry unavailable"
+msgstr "Plugin registry unavailable"
 
-msgid "Attivo su TCP 22 · AUTO"
-msgstr "Active on TCP 22 · AUTO"
+#: ui/wasalight_control/widgets.py:131
+msgid "Not installed"
+msgstr "Not installed"
 
-msgid "Attivo su TCP 22 · MANUALE"
-msgstr "Active on TCP 22 · MANUAL"
+#: ui/wasalight_control/widgets.py:133
+#, python-brace-format
+msgid "Requires Wasalight {version}"
+msgstr "Requires Wasalight {version}"
 
-msgid "Attivo su TCP 5900 · AUTO"
-msgstr "Active on TCP 5900 · AUTO"
+#: ui/wasalight_control/widgets.py:149
+#, python-brace-format
+msgid "Address: {endpoint}"
+msgstr "Address: {endpoint}"
 
-msgid "Attivo su TCP 5900 · MANUALE"
-msgstr "Active on TCP 5900 · MANUAL"
+#: ui/wasalight_control/widgets.py:161
+#, python-brace-format
+msgid "Installed version: {version}"
+msgstr "Installed version: {version}"
 
-msgid "Fermo · AUTO"
-msgstr "Stopped · AUTO"
+#: ui/wasalight_control/widgets.py:191
+msgid "Install with Update"
+msgstr "Install with Update"
 
-msgid "Fermo · MANUALE"
-msgstr "Stopped · MANUAL"
+#: ui/wasalight_control/widgets.py:225
+msgid "Plugin disabled"
+msgstr "Plugin disabled"
 
+#: ui/wasalight_control/pages/about.py:28
+#, python-brace-format
+msgid "Version {version}"
+msgstr "Version {version}"
+
+#: ui/wasalight_control/pages/about.py:32
+msgid "Created by Michele Moser / Wasabi Lightbulbfarm"
+msgstr "Created by Michele Moser / Wasabi Lightbulbfarm"
+
+#: ui/wasalight_control/pages/about.py:43
+msgid ""
+"Code and documentation: Apache License 2.0. The Wasabi Lightbulbfarm logo is "
+"excluded from the software license and remains protected.\n"
+"ChamSys MagicQ and Bitfocus Companion are external products and retain their "
+"respective trademarks and licenses."
+msgstr ""
+"Code and documentation: Apache License 2.0. The Wasabi Lightbulbfarm logo is "
+"excluded from the software license and remains protected.\n"
+"ChamSys MagicQ and Bitfocus Companion are external products and retain their "
+"respective trademarks and licenses."
+
+#: ui/wasalight_control/pages/about.py:53
 msgid "Website"
 msgstr "Website"
 
+#: ui/wasalight_control/pages/about.py:55
 msgid "Email"
 msgstr "Email"
 
+#: ui/wasalight_control/pages/about.py:57
+msgid "GitHub project"
+msgstr "GitHub project"
+
+#: ui/wasalight_control/pages/applications.py:23
+msgid "Lighting console and ChamSys companion applications."
+msgstr "Lighting console and ChamSys companion applications."
+
+#: ui/wasalight_control/pages/applications.py:29
+#: ui/wasalight_control/pages/overview.py:167
 msgid "Install MagicQ"
 msgstr "Install MagicQ"
 
+#: ui/wasalight_control/pages/applications.py:30
+msgid "Main lighting console"
+msgstr "Main lighting console"
+
+#: ui/wasalight_control/pages/applications.py:31
 msgid "Install from USB without Internet"
 msgstr "Install from USB without Internet"
+
+#: ui/wasalight_control/pages/applications.py:38
+msgid "ChamSys application"
+msgstr "ChamSys application"
+
+#: ui/wasalight_control/pages/applications.py:42
+msgid "Other applications"
+msgstr "Other applications"
+
+#: ui/wasalight_control/pages/applications.py:42
+msgid "Programs registered with Wasalight."
+msgstr "Programs registered with Wasalight."
+
+#: ui/wasalight_control/pages/common.py:31
+msgid "No applications registered"
+msgstr "No applications registered"
+
+#: ui/wasalight_control/pages/maintenance.py:21
+msgid "Optional components"
+msgstr "Optional components"
+
+#: ui/wasalight_control/pages/maintenance.py:22
+msgid "Install and manage additional Wasalight components."
+msgstr "Install and manage additional Wasalight components."
+
+#: ui/wasalight_control/pages/overview.py:33
+msgid "Loading status…"
+msgstr "Loading status…"
+
+#: ui/wasalight_control/pages/overview.py:38
+msgid "Reading appliance services."
+msgstr "Reading appliance services."
+
+#: ui/wasalight_control/pages/overview.py:44
+msgid "Switch to MAINTENANCE"
+msgstr "Switch to MAINTENANCE"
+
+#: ui/wasalight_control/pages/overview.py:44
+msgid "Switch to SHOW"
+msgstr "Switch to SHOW"
+
+#: ui/wasalight_control/pages/overview.py:75
+msgid "Automatic startup"
+msgstr "Automatic startup"
+
+#: ui/wasalight_control/pages/overview.py:77
+#: ui/wasalight_control/pages/overview.py:171
+msgid "Open MagicQ"
+msgstr "Open MagicQ"
+
+#: ui/wasalight_control/pages/overview.py:88
+msgid "Network"
+msgstr "Network"
+
+#: ui/wasalight_control/pages/overview.py:90
+#: ui/wasalight_control/pages/system.py:21
+msgid "Remote access"
+msgstr "Remote access"
+
+#: ui/wasalight_control/pages/overview.py:92
+msgid "Updates"
+msgstr "Updates"
+
+#: ui/wasalight_control/pages/overview.py:98
+msgid "Technical details"
+msgstr "Technical details"
+
+#: ui/wasalight_control/pages/overview.py:129
+msgid "Open"
+msgstr "Open"
+
+#: ui/wasalight_control/pages/overview.py:150
+msgid "Attention required"
+msgstr "Attention required"
+
+#: ui/wasalight_control/pages/overview.py:151
+msgid "One or more essential appliance components are unavailable."
+msgstr "One or more essential appliance components are unavailable."
+
+#: ui/wasalight_control/pages/overview.py:153
+msgid "Maintenance mode"
+msgstr "Maintenance mode"
+
+#: ui/wasalight_control/pages/overview.py:154
+msgid "Persistent system changes are currently allowed."
+msgstr "Persistent system changes are currently allowed."
+
+#: ui/wasalight_control/pages/overview.py:156
+msgid "Ready for the show · update available"
+msgstr "Ready for the show · update available"
+
+#: ui/wasalight_control/pages/overview.py:157
+msgid "The appliance can operate, but a Wasalight update is available."
+msgstr "The appliance can operate, but a Wasalight update is available."
+
+#: ui/wasalight_control/pages/overview.py:159
+msgid "Ready for the show"
+msgstr "Ready for the show"
+
+#: ui/wasalight_control/pages/overview.py:160
+msgid "No problem requires attention."
+msgstr "No problem requires attention."
+
+#: ui/wasalight_control/pages/overview.py:169
+msgid "Bring to foreground"
+msgstr "Bring to foreground"
+
+#: ui/wasalight_control/pages/overview.py:178
+msgid "Configured"
+msgstr "Configured"
+
+#: ui/wasalight_control/pages/overview.py:178
+msgid "To configure"
+msgstr "To configure"
+
+#: ui/wasalight_control/pages/overview.py:179
+msgid "State unavailable"
+msgstr "State unavailable"
+
+#: ui/wasalight_control/pages/overview.py:181
+#, python-brace-format
+msgid "IP address: {address}"
+msgstr "IP address: {address}"
+
+#: ui/wasalight_control/pages/overview.py:182
+msgid "Unavailable"
+msgstr "Unavailable"
+
+#: ui/wasalight_control/pages/overview.py:188
+msgid "SSH and VNC active"
+msgstr "SSH and VNC active"
+
+#: ui/wasalight_control/pages/overview.py:190
+msgid "SSH active"
+msgstr "SSH active"
+
+#: ui/wasalight_control/pages/overview.py:192
+msgid "VNC active"
+msgstr "VNC active"
+
+#: ui/wasalight_control/pages/overview.py:194
+msgid "SSH and VNC stopped"
+msgstr "SSH and VNC stopped"
+
+#: ui/wasalight_control/pages/overview.py:200
+msgid "System up to date"
+msgstr "System up to date"
+
+#: ui/wasalight_control/pages/overview.py:201
+msgid "Update available"
+msgstr "Update available"
+
+#: ui/wasalight_control/pages/overview.py:202
+msgid "Recovery required"
+msgstr "Recovery required"
+
+#: ui/wasalight_control/pages/overview.py:203
+msgid "Not checked"
+msgstr "Not checked"
+
+#: ui/wasalight_control/pages/system.py:22
+msgid "Current state and automatic startup of Wasalight services."
+msgstr "Current state and automatic startup of Wasalight services."
+
+#: ui/wasalight_control/pages/tools.py:21
+msgid "Diagnostics and utilities"
+msgstr "Diagnostics and utilities"
+
+#: ui/wasalight_control/pages/tools.py:22
+msgid "Diagnostics, support and data management utilities."
+msgstr "Diagnostics, support and data management utilities."

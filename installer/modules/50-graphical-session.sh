@@ -8,12 +8,17 @@ configure_graphical_session() {
     local companion_icon
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0755 \
         "$TARGET_HOME/.config/wasalight/dock"
-install_template /usr/local/bin/wasalight-dialog 0755
+    install_template /usr/local/bin/wasalight-dialog 0755
+    install_template /usr/local/bin/wasalight-openbox-menu 0755
+    install_template /usr/local/libexec/wasalight-i18n 0644
+    install_template /usr/local/libexec/wasalight-session-language 0644
 
     install_template /etc/X11/Xwrapper.config 0644
 
     write_file "$TARGET_HOME/.xinitrc" 0755 <<'EOF'
 #!/bin/sh
+. /usr/local/libexec/wasalight-session-language
+/usr/local/bin/wasalight-openbox-menu "$HOME/.config/openbox/menu.xml"
 exec dbus-run-session -- openbox-session
 EOF
 
@@ -111,7 +116,9 @@ EOF
 [Desktop Entry]
 Type=Application
 Name=Wasalight Control
-Comment=Gestione unificata di MagicQ, servizi, plugin e strumenti
+Name[it]=Wasalight Control
+Comment=Unified management of MagicQ, services, plugins and tools
+Comment[it]=Gestione unificata di MagicQ, servizi, plugin e strumenti
 Exec=/usr/local/bin/wasalight-control
 Icon=/usr/local/share/icons/wasalight/hub.svg
 Terminal=false
@@ -121,8 +128,10 @@ EOF
     write_file "$TARGET_HOME/.config/wasalight/dock/Files.desktop" 0644 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=File
-Comment=Apre dati persistenti e chiavette USB
+Name=Files
+Name[it]=File
+Comment=Open persistent data and USB drives
+Comment[it]=Apre dati persistenti e chiavette USB
 Exec=pcmanfm /data
 Icon=/usr/local/share/icons/wasalight/files.svg
 Terminal=false
@@ -137,7 +146,9 @@ EOF
 [Desktop Entry]
 Type=Application
 Name=Companion
-Comment=Apre l'interfaccia locale Bitfocus Companion
+Name[it]=Companion
+Comment=Open the local Bitfocus Companion interface
+Comment[it]=Apre l'interfaccia locale Bitfocus Companion
 Exec=/usr/local/bin/wasalight-companion-browser
 Icon=$companion_icon
 Terminal=false
@@ -169,8 +180,10 @@ EOF
     write_file "$TARGET_HOME/Desktop/Power-Off.desktop" 0755 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Spegni
-Comment=Spegne la postazione dopo una conferma
+Name=Power off
+Name[it]=Spegni
+Comment=Shut down the workstation after confirmation
+Comment[it]=Spegne la postazione dopo una conferma
 Exec=/usr/local/bin/wasalight-power poweroff
 Icon=/usr/local/share/icons/wasalight/power.svg
 Terminal=false
@@ -180,8 +193,10 @@ EOF
     write_file "$TARGET_HOME/Desktop/Reboot.desktop" 0755 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Riavvia
-Comment=Riavvia la postazione dopo una conferma
+Name=Restart
+Name[it]=Riavvia
+Comment=Restart the workstation after confirmation
+Comment[it]=Riavvia la postazione dopo una conferma
 Exec=/usr/local/bin/wasalight-power reboot
 Icon=/usr/local/share/icons/wasalight/reboot.svg
 Terminal=false
@@ -417,20 +432,10 @@ else
 fi
 EOF
 
-    write_file "$TARGET_HOME/.config/openbox/menu.xml" 0644 <<'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<openbox_menu xmlns="http://openbox.org/3.4/menu">
-  <menu id="root-menu" label="Wasalight">
-    <item label="Wasalight Control"><action name="Execute"><command>/usr/local/bin/wasalight-control</command></action></item>
-    <item label="File"><action name="Execute"><command>pcmanfm /data</command></action></item>
-    <item label="Terminal"><action name="Execute"><command>lxterminal</command></action></item>
-    <item label="Aggiorna Wasalight"><action name="Execute"><command>/usr/local/bin/wasalight-update-terminal</command></action></item>
-    <separator />
-    <item label="Riavvia"><action name="Execute"><command>/usr/local/bin/wasalight-power reboot</command></action></item>
-    <item label="Spegni"><action name="Execute"><command>/usr/local/bin/wasalight-power poweroff</command></action></item>
-  </menu>
-</openbox_menu>
-EOF
+    LANG=en_US.UTF-8 LANGUAGE=en LC_MESSAGES=en_US.UTF-8 \
+        runuser -u "$TARGET_USER" -- \
+        /usr/local/bin/wasalight-openbox-menu \
+        "$TARGET_HOME/.config/openbox/menu.xml"
 
     write_file "$TARGET_HOME/.config/pcmanfm/default/pcmanfm.conf" 0644 <<'EOF'
 [volume]

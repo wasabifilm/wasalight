@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+# Shared gettext setup for Wasalight shell tools. Source this file before
+# constructing any operator-facing text.
+
+TEXTDOMAIN=${WASALIGHT_TEXTDOMAIN:-wasalight-system}
+TEXTDOMAINDIR=${WASALIGHT_LOCALE_DIR:-/usr/local/share/locale}
+export TEXTDOMAIN TEXTDOMAINDIR
+
+_() {
+    if command -v gettext >/dev/null 2>&1; then
+        gettext "$1"
+    else
+        printf '%s' "$1"
+    fi
+}

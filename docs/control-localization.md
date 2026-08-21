@@ -25,9 +25,9 @@ L’installer inizializza le appliance esistenti e nuove con `it`, preservando l
 lingua storica dell’interfaccia; `auto` rimane una scelta esplicita.
 La variabile `WASALIGHT_CONTROL_LANGUAGE` è riservata a test e diagnostica.
 
-Il selettore grafico verrà esposto nella pagina **Sistema → Lingua**. La nuova
-preferenza sarà applicata al successivo avvio di Control, evitando di dover
-ricostruire a caldo l’intero albero GTK.
+Il selettore grafico è esposto nel menu lingua separato dalle pagine operative.
+La nuova preferenza viene applicata al successivo accesso grafico, evitando di
+dover ricostruire a caldo l'intero desktop e l'albero GTK.
 
 ## Aggiornare i cataloghi
 
@@ -54,40 +54,66 @@ dinamici si usano placeholder nominati, ad esempio
 `_("Version {version}").format(version=value)`. I plurali devono usare
 `ngettext`.
 
-I manifest plugin incorporati usano ancora testo italiano. Il catalogo inglese
-ne contiene temporaneamente le traduzioni; i futuri manifest potranno esporre
-campi localizzati senza modificare l’interfaccia GTK.
+I manifest plugin usano inglese nei campi base e varianti `[it]` per i testi
+italiani. Il registro seleziona nome, descrizione, stato, controlli, azioni e
+conferme in base alla lingua della sessione, con fallback sicuro all’inglese.
 
-## Estensione pianificata all’intero desktop
+## Lingua dell'intera sessione
 
-La preferenza già salvata in `/data/system/control/language` diventerà la fonte
-unica anche per la sessione Wasalight, senza aggiungere un secondo selettore o
-un altro file di configurazione. Al successivo accesso Openbox, `auto` seguirà
-la locale di sistema, mentre `it` ed `en` imposteranno la lingua della sessione
-e di tutti gli strumenti Wasalight.
+La preferenza salvata in `/data/system/control/language` è la fonte unica anche
+per la sessione Wasalight, senza un secondo selettore o un altro file di
+configurazione. `.xinitrc` carica l'helper root-owned
+`/usr/local/libexec/wasalight-session-language` prima di Openbox. `auto`
+conserva la locale ereditata dal sistema; `it` ed `en` impostano `LANG`,
+`LANGUAGE` e `LC_MESSAGES` per il desktop e tutte le applicazioni avviate dalla
+sessione. Valori assenti o non validi tornano in modo sicuro ad `auto`.
+
+L'installer genera esplicitamente `en_US.UTF-8` e `it_IT.UTF-8`, senza cambiare
+la locale globale di Ubuntu.
 
 La localizzazione verrà estesa conservando i formati standard già utilizzati:
 
 1. **Wasalight Control** continuerà a usare GNU gettext con dominio
    `wasalight-control` e stringhe sorgente in inglese.
-2. **Dialoghi, script e utility autonome** useranno un dominio gettext separato
-   `wasalight-system`. Una piccola libreria comune leggerà la stessa preferenza
-   persistente prima di mostrare testi, pulsanti o messaggi d’errore.
-3. **Launcher e file `.desktop`** useranno inglese nei campi base `Name=` e
+2. **Dialoghi, script e utility autonome** usano il dominio gettext separato
+   `wasalight-system`. L'helper comune root-owned `wasalight-i18n` configura il
+   catalogo e offre un fallback inglese anche se gettext non è disponibile. I
+   dialoghi di spegnimento e riavvio e l'interfaccia guidata dell'updater sono
+   già migrati. Il motore root emette invece diagnostica tecnica in inglese,
+   secondo la politica descritta sotto.
+3. **Launcher e file `.desktop`** usano inglese nei campi base `Name=` e
    `Comment=` e le varianti standard `Name[it]=` e `Comment[it]=`. Wasalight
-   Control selezionerà la variante coerente con la propria lingua anche quando
-   questa differisce dalla locale predefinita del sistema.
-4. **Manifest dei plugin** adotteranno campi localizzati equivalenti, con
-   fallback alla lingua base, eliminando progressivamente le traduzioni
-   temporanee di stringhe italiane dal catalogo inglese.
+   Control seleziona la variante coerente con la propria preferenza; in modalità
+   `auto` segue `LANGUAGE`, `LC_ALL`, `LC_MESSAGES` e `LANG`.
+4. **Manifest dei plugin** usano campi localizzati equivalenti, con fallback
+   alla lingua base; non dipendono da traduzioni temporanee nel catalogo della
+   GUI.
 
 Le icone grafiche non devono contenere parole e restano quindi indipendenti
 dalla lingua. Vengono invece tradotti il nome mostrato sotto l’icona, la
 didascalia, il tooltip, il testo accessibile e ogni conferma associata. Marchi e
 nomi propri come Wasalight, MagicQ e Bitfocus Companion non vengono tradotti.
 
-La verifica di qualità dovrà estrarre e validare entrambi i domini gettext,
-controllare le varianti localizzate dei launcher e fallire se un nuovo testo
+La verifica di qualità valida entrambi i domini gettext, controlla le varianti
+localizzate dei launcher e fallisce se un nuovo testo
 rivolto all’operatore viene aggiunto direttamente nel codice senza passare dal
 meccanismo previsto. Il collaudo va eseguito in italiano, inglese e modalità
 automatica, riaprendo la sessione grafica dopo ogni cambio lingua.
+
+Il menu Openbox non duplica file XML: `wasalight-openbox-menu` lo rigenera in
+modo atomico a ogni login, dopo l'applicazione della lingua di sessione.
+
+## Log e diagnostica tecnica
+
+I testi destinati all'operatore — pulsanti, conferme, errori sintetici e stato
+della procedura guidata — sono localizzati. Log persistenti, tracce dei comandi,
+nomi delle fasi transazionali e diagnostica amministrativa usano invece un
+inglese tecnico unico. Questo mantiene ricercabili gli errori, rende confrontabili
+i log tra macchine con lingue diverse e non gonfia i cataloghi con stringhe che
+non fanno parte dell'interfaccia. L'updater root segue questa regola; il wrapper
+grafico continua a essere bilingue.
+
+La stessa separazione vale per l’installazione offline di MagicQ e per i
+backend di data/ora e scansione rete: le finestre e le notifiche sono bilingui,
+mentre help da terminale, output dei comandi e dettagli amministrativi sono in
+inglese tecnico.

@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=Installa plugin firmato
-Comment=Importa da USB un bundle verificato in MAINTENANCE
+Name=Install signed plugin
+Name[it]=Installa plugin firmato
+Comment=Import a verified bundle from USB in MAINTENANCE
+Comment[it]=Importa da USB un bundle verificato in MAINTENANCE
 Exec=/usr/local/bin/wasalight-plugin-bundle-terminal
 Icon=application-x-addon
 TryExec=/usr/local/bin/wasalight-plugin-bundle-terminal

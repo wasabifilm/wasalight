@@ -2,6 +2,7 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -u
+. /usr/local/libexec/wasalight-i18n
 
 readonly runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 readonly lock_file="$runtime_dir/wasalight-keyboard.lock"
@@ -9,7 +10,8 @@ readonly lock_file="$runtime_dir/wasalight-keyboard.lock"
 command -v onboard >/dev/null 2>&1 || {
     command -v notify-send >/dev/null 2>&1 && notify-send \
         --app-name=Wasalight --icon=input-keyboard \
-        "Tastiera virtuale non disponibile" "Il pacchetto Onboard non è installato." || true
+        "$( _ "On-screen keyboard unavailable" )" \
+        "$( _ "The Onboard package is not installed." )" || true
     exit 1
 }
 

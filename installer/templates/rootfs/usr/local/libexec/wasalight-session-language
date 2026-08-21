@@ -1,0 +1,43 @@
+#!/bin/sh
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+# Apply Wasalight's persistent language preference to the graphical session.
+# This file is sourced by .xinitrc so its exports reach Openbox and every app.
+
+_wasalight_language_file=${WASALIGHT_LANGUAGE_FILE:-/data/system/control/language}
+_wasalight_language_preference=auto
+
+if [ -r "$_wasalight_language_file" ]; then
+    _wasalight_language_preference=$(cat -- "$_wasalight_language_file" 2>/dev/null) || \
+        _wasalight_language_preference=auto
+fi
+
+case $_wasalight_language_preference in
+    en)
+        _wasalight_session_locale=en_US.UTF-8
+        ;;
+    it)
+        _wasalight_session_locale=it_IT.UTF-8
+        ;;
+    auto)
+        _wasalight_session_locale=
+        ;;
+    *)
+        _wasalight_language_preference=auto
+        _wasalight_session_locale=
+        ;;
+esac
+
+if [ -n "$_wasalight_session_locale" ]; then
+    unset LC_ALL
+    LANG=$_wasalight_session_locale
+    LANGUAGE=$_wasalight_language_preference
+    LC_MESSAGES=$_wasalight_session_locale
+    export LANG LANGUAGE LC_MESSAGES
+fi
+
+WASALIGHT_LANGUAGE=$_wasalight_language_preference
+export WASALIGHT_LANGUAGE
+
+unset _wasalight_language_file _wasalight_language_preference \
+    _wasalight_session_locale

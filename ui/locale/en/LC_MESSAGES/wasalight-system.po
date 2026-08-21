@@ -1,0 +1,1277 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Wasalight System\n"
+"PO-Revision-Date: 2026-08-21 00:00+0200\n"
+"Last-Translator: Michele Moser\n"
+"Language-Team: English\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Power off Wasalight"
+msgstr "Power off Wasalight"
+
+msgid "Shut down the workstation completely?"
+msgstr "Shut down the workstation completely?"
+
+msgid "Power off"
+msgstr "Power off"
+
+msgid "Restart Wasalight"
+msgstr "Restart Wasalight"
+
+msgid "Restart the workstation now?"
+msgstr "Restart the workstation now?"
+
+msgid "Restart"
+msgstr "Restart"
+
+msgid "Usage: wasalight-power poweroff|reboot"
+msgstr "Usage: wasalight-power poweroff|reboot"
+
+msgid "Shows saved in /data will remain persistent."
+msgstr "Shows saved in /data will remain persistent."
+
+msgid "Cancel"
+msgstr "Cancel"
+
+msgid "Files"
+msgstr "Files"
+
+msgid "Terminal"
+msgstr "Terminal"
+
+msgid "Update Wasalight"
+msgstr "Update Wasalight"
+
+msgid "--channel requires stable or debug"
+msgstr "--channel requires stable or debug"
+
+msgid "--plugin requires an ID"
+msgstr "--plugin requires an ID"
+
+msgid "An incomplete update is present."
+msgstr "An incomplete update is present."
+
+msgid "Authentication cancelled: Wasalight was not modified."
+msgstr "Authentication cancelled: Wasalight was not modified."
+
+msgid "Authentication was cancelled."
+msgstr "Authentication was cancelled."
+
+msgid "Channel:"
+msgstr "Channel:"
+
+msgid "Check: /data/log/wasalight-update.log"
+msgstr "Check: /data/log/wasalight-update.log"
+
+msgid "Close"
+msgstr "Close"
+
+msgid "Continue"
+msgstr "Continue"
+
+msgid "Download, verify and install the latest version."
+msgstr "Download, verify and install the latest version."
+
+msgid "Later"
+msgstr "Later"
+
+msgid "MagicQ is not installed."
+msgstr "MagicQ is not installed."
+
+msgid "MagicQ not installed"
+msgstr "MagicQ not installed"
+
+msgid "No changes were applied and no reboot is required."
+msgstr "No changes were applied and no reboot is required."
+
+msgid "Only one recovery operation may be requested."
+msgstr "Only one recovery operation may be requested."
+
+msgid "Remember to restart before the next use."
+msgstr "Remember to restart before the next use."
+
+msgid "Restart now"
+msgstr "Restart now"
+
+msgid "Restart now to apply the new configuration?"
+msgstr "Restart now to apply the new configuration?"
+
+msgid "Restarting…"
+msgstr "Restarting…"
+
+msgid "Resume"
+msgstr "Resume"
+
+msgid "Resume the verified transaction now?"
+msgstr "Resume the verified transaction now?"
+
+msgid "Status: %s"
+msgstr "Status: %s"
+
+msgid "The full log remains available with the compact view."
+msgstr "The full log remains available with the compact view."
+
+msgid "The machine will not restart."
+msgstr "The machine will not restart."
+
+msgid "The requested password is the Linux password for chamsys."
+msgstr "The requested password is the Linux password for chamsys."
+
+msgid "The system is already up to date."
+msgstr "The system is already up to date."
+
+msgid "The system is already up to date; no reboot is required."
+msgstr "The system is already up to date; no reboot is required."
+
+msgid ""
+"The update will still search for a valid package in /data and on USB drives. "
+"If none is found, do you want to update only Wasalight and the other "
+"components?"
+msgstr ""
+"The update will still search for a valid package in /data and on USB drives. "
+"If none is found, do you want to update only Wasalight and the other "
+"components?"
+
+msgid "Unknown option"
+msgstr "Unknown option"
+
+msgid "Unknown plugin"
+msgstr "Unknown plugin"
+
+msgid "Unknown update channel"
+msgstr "Unknown update channel"
+
+msgid "Update cancelled"
+msgstr "Update cancelled"
+
+msgid "Update completed successfully."
+msgstr "Update completed successfully."
+
+msgid "Update completed."
+msgstr "Update completed."
+
+msgid "Update failed"
+msgstr "Update failed"
+
+msgid "Update installed."
+msgstr "Update installed."
+
+msgid "Update interrupted"
+msgstr "Update interrupted"
+
+msgid "Update not completed. The machine will not restart."
+msgstr "Update not completed. The machine will not restart."
+
+msgid ""
+"Usage: wasalight-update-terminal [--channel stable|debug] [--resume|--"
+"repair|--rollback] [--plugin ID]"
+msgstr ""
+"Usage: wasalight-update-terminal [--channel stable|debug] [--resume|--"
+"repair|--rollback] [--plugin ID]"
+
+msgid "Waiting for authorization…"
+msgstr "Waiting for authorization…"
+
+msgid "Wasalight Update"
+msgstr "Wasalight Update"
+
+msgid "Wasalight updated"
+msgstr "Wasalight updated"
+
+msgid "Wasalight was not modified."
+msgstr "Wasalight was not modified."
+
+msgid "Wasalight was not updated."
+msgstr "Wasalight was not updated."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-control:27
+#, sh-printf-format
+msgid ""
+"<big><b>Wasalight Control could not start.</b></big>\\n\\n%s\\n\\nLog: %s"
+msgstr ""
+"<big><b>Wasalight Control could not start.</b></big>\\n\\n%s\\n\\nLog: %s"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-keyboard-toggle:13
+msgid "On-screen keyboard unavailable"
+msgstr "On-screen keyboard unavailable"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-keyboard-toggle:14
+msgid "The Onboard package is not installed."
+msgstr "The Onboard package is not installed."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:12
+msgid ""
+"<big><b>MAINTENANCE mode required.</b></big>\\n\\nSwitch to MAINTENANCE and "
+"reboot, then try the MagicQ installation again."
+msgstr ""
+"<big><b>MAINTENANCE mode required.</b></big>\\n\\nSwitch to MAINTENANCE and "
+"reboot, then try the MagicQ installation again."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:19
+msgid ""
+"<big><b>Install or update MagicQ?</b></big>\\n\\nInsert a USB drive "
+"containing the MagicQ package in its root or packages folder. This works "
+"without Internet and does not update Wasalight."
+msgstr ""
+"<big><b>Install or update MagicQ?</b></big>\\n\\nInsert a USB drive "
+"containing the MagicQ package in its root or packages folder. This works "
+"without Internet and does not update Wasalight."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:20
+msgid "Find and install"
+msgstr "Find and install"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:31
+msgid "Searching for and verifying the MagicQ package…"
+msgstr "Searching for and verifying the MagicQ package…"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:45
+#, sh-printf-format
+msgid "<big><b>MagicQ installation failed.</b></big>\\n\\n%s"
+msgstr "<big><b>MagicQ installation failed.</b></big>\\n\\n%s"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:51
+#, sh-printf-format
+msgid "<big><b>MagicQ is ready.</b></big>\\n\\n%s"
+msgstr "<big><b>MagicQ is ready.</b></big>\\n\\n%s"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-mode-toggle:14
+msgid ""
+"The next boot will use the writable filesystem for updates and maintenance."
+msgstr ""
+"The next boot will use the writable filesystem for updates and maintenance."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-mode-toggle:18
+msgid "The next boot will use overlayroot protection for the show."
+msgstr "The next boot will use overlayroot protection for the show."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-mode-toggle:22
+#, sh-printf-format
+msgid "%s mode · Wasalight"
+msgstr "%s mode · Wasalight"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-mode-toggle:23
+#, sh-printf-format
+msgid ""
+"<big><b>Prepare %s mode?</b></big>\\n\\n%s\\n\\nThe mode will change only "
+"after rebooting."
+msgstr ""
+"<big><b>Prepare %s mode?</b></big>\\n\\n%s\\n\\nThe mode will change only "
+"after rebooting."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-mode-toggle:24
+#, sh-printf-format
+msgid "Prepare %s"
+msgstr "Prepare %s"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-mode-toggle:28
+msgid "Wasalight mode"
+msgstr "Wasalight mode"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-mode-toggle:34
+#, sh-printf-format
+msgid "%s ready · Wasalight"
+msgstr "%s ready · Wasalight"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-mode-toggle:35
+#, sh-printf-format
+msgid "<big><b>%s mode is ready.</b></big>\\n\\nRestart now to apply it?"
+msgstr "<big><b>%s mode is ready.</b></big>\\n\\nRestart now to apply it?"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-remote-auto-toggle:18
+#, sh-printf-format
+msgid ""
+"Disable automatic startup for %s?\\n\\nThe running service will not be "
+"stopped."
+msgstr ""
+"Disable automatic startup for %s?\\n\\nThe running service will not be "
+"stopped."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-remote-auto-toggle:19
+msgid "Disable automatic startup"
+msgstr "Disable automatic startup"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-remote-auto-toggle:22
+#, sh-printf-format
+msgid "Enable automatic startup for %s after every reboot?"
+msgstr "Enable automatic startup for %s after every reboot?"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-remote-auto-toggle:23
+msgid "Enable automatic startup"
+msgstr "Enable automatic startup"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-screen-lock:15
+msgid "Lock screen · Wasalight"
+msgstr "Lock screen · Wasalight"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-screen-lock:16
+msgid ""
+"<big><b>Lock the screen now?</b></big>\\n\\nUnlocking requires the Linux "
+"password for chamsys and a keyboard.\\nThe display will stay on: suspend, "
+"screensaver and DPMS remain disabled."
+msgstr ""
+"<big><b>Lock the screen now?</b></big>\\n\\nUnlocking requires the Linux "
+"password for chamsys and a keyboard.\\nThe display will stay on: suspend, "
+"screensaver and DPMS remain disabled."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-screen-lock:17
+msgid "Lock"
+msgstr "Lock"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-ssh-toggle:16
+msgid "Note: SSH is configured to start again on the next boot."
+msgstr "Note: SSH is configured to start again on the next boot."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-ssh-toggle:20
+#, sh-printf-format
+msgid ""
+"<big><b>SSH is active.</b></big>\\n\\nAddress: ssh://"
+"chamsys@%s:22%s\\n\\nStop SSH access now?"
+msgstr ""
+"<big><b>SSH is active.</b></big>\\n\\nAddress: ssh://"
+"chamsys@%s:22%s\\n\\nStop SSH access now?"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-ssh-toggle:21
+msgid "Stop SSH"
+msgstr "Stop SSH"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-ssh-toggle:32
+msgid ""
+"<big><b>Enable SSH?</b></big>\\n\\nAccess will use the chamsys account and "
+"its Linux password. Enable it only on a trusted network."
+msgstr ""
+"<big><b>Enable SSH?</b></big>\\n\\nAccess will use the chamsys account and "
+"its Linux password. Enable it only on a trusted network."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-ssh-toggle:33
+msgid "Start SSH"
+msgstr "Start SSH"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-ssh-toggle:40
+#, sh-printf-format
+msgid ""
+"<big><b>SSH active</b></big>\\n\\nAddress: ssh://chamsys@%s:22\\nUser: "
+"chamsys\\nPassword: the Linux password for chamsys"
+msgstr ""
+"<big><b>SSH active</b></big>\\n\\nAddress: ssh://chamsys@%s:22\\nUser: "
+"chamsys\\nPassword: the Linux password for chamsys"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-vnc-toggle:14
+msgid "<big><b>VNC is active.</b></big>\\n\\nStop sharing the current session?"
+msgstr ""
+"<big><b>VNC is active.</b></big>\\n\\nStop sharing the current session?"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-vnc-toggle:15
+msgid "Stop VNC"
+msgstr "Stop VNC"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-vnc-toggle:29
+#: installer/templates/rootfs/usr/local/libexec/wasalight-companion-update-session:25
+msgid "Press Enter to close."
+msgstr "Press Enter to close."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-vnc-toggle:30
+msgid "VNC password · Wasalight"
+msgstr "VNC password · Wasalight"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-vnc-toggle:41
+#, sh-printf-format
+msgid ""
+"<big><b>VNC active in the current session</b></big>\\n\\nAddress: vnc://"
+"%s:5900\\n\\nUse it only on a trusted local network."
+msgstr ""
+"<big><b>VNC active in the current session</b></big>\\n\\nAddress: vnc://"
+"%s:5900\\n\\nUse it only on a trusted local network."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-update-check:77
+msgid "Wasalight update available"
+msgstr "Wasalight update available"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-update-check:78
+#, sh-printf-format
+msgid "Version %s. Open Wasalight Control in MAINTENANCE to update."
+msgstr "Version %s. Open Wasalight Control in MAINTENANCE to update."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-browser:12
+msgid "Falkon is not installed. Run Wasalight update again."
+msgstr "Falkon is not installed. Run Wasalight update again."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-browser:17
+msgid "Bitfocus Companion is not installed."
+msgstr "Bitfocus Companion is not installed."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-browser:24
+msgid "Bitfocus Companion is stopped. Start it for this session?"
+msgstr "Bitfocus Companion is stopped. Start it for this session?"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-browser:28
+msgid "Unable to start Bitfocus Companion."
+msgstr "Unable to start Bitfocus Companion."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-browser:44
+#, sh-printf-format
+msgid "Companion is running but its web interface did not respond on %s."
+msgstr "Companion is running but its web interface did not respond on %s."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-panel:6
+msgid "STOPPED"
+msgstr "STOPPED"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-panel:7
+msgid "RUNNING"
+msgstr "RUNNING"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-panel:13
+#, sh-printf-format
+msgid ""
+"<big><b>Bitfocus Companion %s · %s</b></big>\\n\\nWeb UI: %s\\nLocal MagicQ: "
+"127.0.0.1"
+msgstr ""
+"<big><b>Bitfocus Companion %s · %s</b></big>\\n\\nWeb UI: %s\\nLocal MagicQ: "
+"127.0.0.1"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-panel:14
+msgid "Action"
+msgstr "Action"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-panel:14
+msgid "Description"
+msgstr "Description"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-panel:15
+msgid "Open the local Companion Web UI"
+msgstr "Open the local Companion Web UI"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-panel:16
+msgid "Show connection information"
+msgstr "Show connection information"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-panel:17
+msgid "Start the Companion service"
+msgstr "Start the Companion service"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-panel:18
+msgid "Stop the Companion service"
+msgstr "Stop the Companion service"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-panel:19
+msgid "Restart the Companion service"
+msgstr "Restart the Companion service"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-panel:20
+msgid "Create a persistent backup (MAINTENANCE)"
+msgstr "Create a persistent backup (MAINTENANCE)"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-panel:21
+msgid "Install the Wasalight-approved Companion build (MAINTENANCE)"
+msgstr "Install the Wasalight-approved Companion build (MAINTENANCE)"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-panel:27
+#, sh-printf-format
+msgid ""
+"Web interface:\\n<b>%s</b>\\n\\nOpen this address from a Mac, tablet or "
+"another computer.\\nFor MagicQ on this console use 127.0.0.1."
+msgstr ""
+"Web interface:\\n<b>%s</b>\\n\\nOpen this address from a Mac, tablet or "
+"another computer.\\nFor MagicQ on this console use 127.0.0.1."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-panel:31
+#, sh-printf-format
+msgid "Companion action failed: %s"
+msgstr "Companion action failed: %s"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-panel:35
+msgid "Companion Backup"
+msgstr "Companion Backup"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:10
+msgid ""
+"<big><b>MAINTENANCE mode required.</b></big>\\n\\nSwitch to MAINTENANCE and "
+"reboot before restoring a snapshot."
+msgstr ""
+"<big><b>MAINTENANCE mode required.</b></big>\\n\\nSwitch to MAINTENANCE and "
+"reboot before restoring a snapshot."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:17
+msgid "No Wasalight snapshot is available."
+msgstr "No Wasalight snapshot is available."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:27
+msgid ""
+"Select a Wasalight configuration to restore.\\nMagicQ, Ubuntu packages and "
+"show data will not be changed."
+msgstr ""
+"Select a Wasalight configuration to restore.\\nMagicQ, Ubuntu packages and "
+"show data will not be changed."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:28
+msgid "File"
+msgstr "File"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:28
+msgid "Version"
+msgstr "Version"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:28
+msgid "Date"
+msgstr "Date"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:29
+msgid "Size"
+msgstr "Size"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:34
+msgid "Version:"
+msgstr "Version:"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:34
+msgid "Date:"
+msgstr "Date:"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:34
+msgid "Size:"
+msgstr "Size:"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:39
+#, sh-printf-format
+msgid ""
+"<big><b>What do you want to do with this snapshot?</b></"
+"big>\\n\\n%s\\n\\nRestore replaces Wasalight configuration, commands and "
+"theme. Deletion is permanent."
+msgstr ""
+"<big><b>What do you want to do with this snapshot?</b></"
+"big>\\n\\n%s\\n\\nRestore replaces Wasalight configuration, commands and "
+"theme. Deletion is permanent."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:40
+msgid "Restore"
+msgstr "Restore"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:41
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:45
+msgid "Delete snapshot"
+msgstr "Delete snapshot"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:47
+#, sh-printf-format
+msgid ""
+"<big><b>Permanently delete this snapshot?</b></big>\\n\\n%s\\n\\nThe file "
+"and its checksum will be removed from /data and cannot be recovered."
+msgstr ""
+"<big><b>Permanently delete this snapshot?</b></big>\\n\\n%s\\n\\nThe file "
+"and its checksum will be removed from /data and cannot be recovered."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:48
+msgid "Delete permanently"
+msgstr "Delete permanently"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:48
+msgid "Keep"
+msgstr "Keep"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:53
+#, sh-printf-format
+msgid "<big><b>Snapshot deleted.</b></big>\\n\\n%s"
+msgstr "<big><b>Snapshot deleted.</b></big>\\n\\n%s"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:57
+msgid "<big><b>Deletion failed.</b></big>\\n\\nThe snapshot was kept."
+msgstr "<big><b>Deletion failed.</b></big>\\n\\nThe snapshot was kept."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:65
+msgid ""
+"<big><b>Snapshot integrity check failed.</b></big>\\n\\nThe checksum is "
+"invalid, so restore was blocked. You can still delete the snapshot from the "
+"previous menu."
+msgstr ""
+"<big><b>Snapshot integrity check failed.</b></big>\\n\\nThe checksum is "
+"invalid, so restore was blocked. You can still delete the snapshot from the "
+"previous menu."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:76
+msgid "Restoring configuration…"
+msgstr "Restoring configuration…"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:88
+#, sh-printf-format
+msgid "<big><b>Rollback failed.</b></big>\\n\\n%s"
+msgstr "<big><b>Rollback failed.</b></big>\\n\\n%s"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:94
+msgid "<big><b>Configuration restored.</b></big>\\n\\nRestart now to apply it?"
+msgstr ""
+"<big><b>Configuration restored.</b></big>\\n\\nRestart now to apply it?"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-companion-update-session:8
+msgid "Updates are allowed only in MAINTENANCE mode."
+msgstr "Updates are allowed only in MAINTENANCE mode."
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-companion-update-session:10
+msgid ""
+"Authorize the operation in the graphical window using the chamsys password."
+msgstr ""
+"Authorize the operation in the graphical window using the chamsys password."
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-companion-update-session:17
+msgid "Companion update completed."
+msgstr "Companion update completed."
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-companion-update-session:20
+msgid "Authentication cancelled: Companion was not modified."
+msgstr "Authentication cancelled: Companion was not modified."
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-companion-update-session:23
+#, sh-printf-format
+msgid "Companion update failed (exit code %s)."
+msgstr "Companion update failed (exit code %s)."
+
+#: libexec/wasalight-first-run:13
+msgid "Welcome to Wasalight"
+msgstr "Welcome to Wasalight"
+
+#: libexec/wasalight-first-run:14
+msgid ""
+"<big><b>Initial setup</b></big>\\n\\nThis setup checks network, data, "
+"touchscreen, audio, MagicQ and remote services. You can stop and resume it "
+"on the next boot."
+msgstr ""
+"<big><b>Initial setup</b></big>\\n\\nThis setup checks network, data, "
+"touchscreen, audio, MagicQ and remote services. You can stop and resume it "
+"on the next boot."
+
+#: libexec/wasalight-first-run:16
+msgid "Network"
+msgstr "Network"
+
+#: libexec/wasalight-first-run:17
+msgid "Open Ethernet and Wi-Fi settings now?"
+msgstr "Open Ethernet and Wi-Fi settings now?"
+
+#: libexec/wasalight-first-run:18
+msgid "Configure network"
+msgstr "Configure network"
+
+#: libexec/wasalight-first-run:22
+msgid "unavailable"
+msgstr "unavailable"
+
+#: libexec/wasalight-first-run:23
+msgid "not tested"
+msgstr "not tested"
+
+#: libexec/wasalight-first-run:24
+msgid "Audio and touchscreen"
+msgstr "Audio and touchscreen"
+
+#: libexec/wasalight-first-run:25
+#, sh-printf-format
+msgid "Touchscreen: %s\\n\\nRun the audio test now?"
+msgstr "Touchscreen: %s\\n\\nRun the audio test now?"
+
+#: libexec/wasalight-first-run:26
+msgid "Audio test"
+msgstr "Audio test"
+
+#: libexec/wasalight-first-run:26
+msgid "Skip"
+msgstr "Skip"
+
+#: libexec/wasalight-first-run:27
+msgid "Press Enter to close"
+msgstr "Press Enter to close"
+
+#: libexec/wasalight-first-run:28
+msgid "Wasalight · Audio test"
+msgstr "Wasalight · Audio test"
+
+#: libexec/wasalight-first-run:30
+msgid "test completed"
+msgstr "test completed"
+
+#: libexec/wasalight-first-run:33
+msgid "not installed"
+msgstr "not installed"
+
+#: libexec/wasalight-first-run:34
+msgid "Initial setup summary"
+msgstr "Initial setup summary"
+
+#: libexec/wasalight-first-run:35
+#, sh-printf-format
+msgid ""
+"<big><b>Checks completed</b></big>\\n\\nMagicQ: %s\\nTouchscreen: "
+"%s\\nAudio: %s\\n\\nSSH and VNC can be enabled from Services. Backup, "
+"diagnostics and system health are available under Support."
+msgstr ""
+"<big><b>Checks completed</b></big>\\n\\nMagicQ: %s\\nTouchscreen: "
+"%s\\nAudio: %s\\n\\nSSH and VNC can be enabled from Services. Backup, "
+"diagnostics and system health are available under Support."
+
+#: libexec/wasalight-magicq-usb-watch:35
+msgid "MagicQ update on USB"
+msgstr "MagicQ update on USB"
+
+#: libexec/wasalight-magicq-usb-watch:36
+#, sh-printf-format
+msgid ""
+"Version %s is available. Install it from Wasalight Control in MAINTENANCE."
+msgstr ""
+"Version %s is available. Install it from Wasalight Control in MAINTENANCE."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:33
+msgid "Date and time · Wasalight"
+msgstr "Date and time · Wasalight"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:46
+msgid ""
+"<span size='22000' weight='bold' foreground='#76bd22'>Date and time</span>"
+msgstr ""
+"<span size='22000' weight='bold' foreground='#76bd22'>Date and time</span>"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:55
+msgid "Automatic synchronization"
+msgstr "Automatic synchronization"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:57
+msgid ""
+"Immediately corrects the clock through Chrony and re-enables automatic "
+"synchronization."
+msgstr ""
+"Immediately corrects the clock through Chrony and re-enables automatic "
+"synchronization."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:62
+msgid "Synchronize now"
+msgstr "Synchronize now"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:67
+msgid "Time zone"
+msgstr "Time zone"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:77
+msgid "Apply time zone"
+msgstr "Apply time zone"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:82
+msgid "Manual setting"
+msgstr "Manual setting"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:94
+msgid "Set manually"
+msgstr "Set manually"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:100
+msgid ""
+"Manual setting disables Chrony. Use “Synchronize now” to return to automatic "
+"mode."
+msgstr ""
+"Manual setting disables Chrony. Use “Synchronize now” to return to automatic "
+"mode."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:154
+#, python-brace-format
+msgid ""
+"Local time:  {local}\n"
+"UTC time:    {utc}\n"
+"RTC:         {rtc}\n"
+"Time zone:   {zone}\n"
+"Chrony:      {ntp}\n"
+"Offset:      {offset}"
+msgstr ""
+"Local time:  {local}\n"
+"UTC time:    {utc}\n"
+"RTC:         {rtc}\n"
+"Time zone:   {zone}\n"
+"Chrony:      {ntp}\n"
+"Offset:      {offset}"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:175
+msgid "Operation timed out"
+msgstr "Operation timed out"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:176
+msgid "Clock adjustment did not respond within 45 seconds."
+msgstr "Clock adjustment did not respond within 45 seconds."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:179
+msgid "Operation failed"
+msgstr "Operation failed"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:180
+msgid "Authentication cancelled or command failed."
+msgstr "Authentication cancelled or command failed."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:183
+msgid "Date and time updated"
+msgstr "Date and time updated"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:184
+msgid "Operation completed successfully."
+msgstr "Operation completed successfully."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:189
+msgid "Select a time zone"
+msgstr "Select a time zone"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:190
+msgid "Choose a time zone from the list."
+msgstr "Choose a time zone from the list."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:197
+msgid "Disable automatic time?"
+msgstr "Disable automatic time?"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-date-time:198
+#, python-brace-format
+msgid ""
+"Set {value} manually?\n"
+"\n"
+"Chrony will be disabled."
+msgstr ""
+"Set {value} manually?\n"
+"\n"
+"Chrony will be disabled."
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-ip-scanner.py:19
+msgid "No network interface is connected"
+msgstr "No network interface is connected"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-ip-scanner.py:33
+msgid ""
+"<span size='18000' weight='bold'>IP Scanner</span>\n"
+"<span size='10000'>Reachable devices on the local network</span>"
+msgstr ""
+"<span size='18000' weight='bold'>IP Scanner</span>\n"
+"<span size='10000'>Reachable devices on the local network</span>"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-ip-scanner.py:40
+msgid "Interface"
+msgstr "Interface"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-ip-scanner.py:40
+msgid "IP address"
+msgstr "IP address"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-ip-scanner.py:40
+msgid "Vendor"
+msgstr "Vendor"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-ip-scanner.py:52
+msgid "Ready"
+msgstr "Ready"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-ip-scanner.py:54
+msgid "Scan network"
+msgstr "Scan network"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-ip-scanner.py:69
+msgid "Scanning…"
+msgstr "Scanning…"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-ip-scanner.py:87
+msgid "Scan failed"
+msgstr "Scan failed"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-ip-scanner.py:96
+#, python-brace-format
+msgid "{count} devices found"
+msgstr "{count} devices found"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-artnet-monitor.py:34
+msgid ""
+"<span size='18000' weight='bold'>Art-Net Monitor</span>\n"
+"<span size='10000'>Art-Net UDP traffic on all interfaces</span>"
+msgstr ""
+"<span size='18000' weight='bold'>Art-Net Monitor</span>\n"
+"<span size='10000'>Art-Net UDP traffic on all interfaces</span>"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-artnet-monitor.py:41
+msgid "Source"
+msgstr "Source"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-artnet-monitor.py:41
+msgid "Destination"
+msgstr "Destination"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-artnet-monitor.py:41
+msgid "Type"
+msgstr "Type"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-artnet-monitor.py:41
+msgid "Universe"
+msgstr "Universe"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-artnet-monitor.py:42
+msgid "Channels"
+msgstr "Channels"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-artnet-monitor.py:42
+msgid "Packets"
+msgstr "Packets"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-artnet-monitor.py:42
+msgid "Last seen"
+msgstr "Last seen"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-artnet-monitor.py:55
+msgid "Listening on UDP port 6454"
+msgstr "Listening on UDP port 6454"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-artnet-monitor.py:57
+msgid "Clear"
+msgstr "Clear"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-control:27
+#, sh-printf-format
+msgid ""
+"<big><b>Wasalight Control could not start.</b></big>\n"
+"\n"
+"%s\n"
+"\n"
+"Log: %s"
+msgstr ""
+"<big><b>Wasalight Control could not start.</b></big>\n"
+"\n"
+"%s\n"
+"\n"
+"Log: %s"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:12
+msgid ""
+"<big><b>MAINTENANCE mode required.</b></big>\n"
+"\n"
+"Switch to MAINTENANCE and reboot, then try the MagicQ installation again."
+msgstr ""
+"<big><b>MAINTENANCE mode required.</b></big>\n"
+"\n"
+"Switch to MAINTENANCE and reboot, then try the MagicQ installation again."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:19
+msgid ""
+"<big><b>Install or update MagicQ?</b></big>\n"
+"\n"
+"Insert a USB drive containing the MagicQ package in its root or packages "
+"folder. This works without Internet and does not update Wasalight."
+msgstr ""
+"<big><b>Install or update MagicQ?</b></big>\n"
+"\n"
+"Insert a USB drive containing the MagicQ package in its root or packages "
+"folder. This works without Internet and does not update Wasalight."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:45
+#, sh-printf-format
+msgid ""
+"<big><b>MagicQ installation failed.</b></big>\n"
+"\n"
+"%s"
+msgstr ""
+"<big><b>MagicQ installation failed.</b></big>\n"
+"\n"
+"%s"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:51
+#, sh-printf-format
+msgid ""
+"<big><b>MagicQ is ready.</b></big>\n"
+"\n"
+"%s"
+msgstr ""
+"<big><b>MagicQ is ready.</b></big>\n"
+"\n"
+"%s"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-mode-toggle:23
+#, sh-printf-format
+msgid ""
+"<big><b>Prepare %s mode?</b></big>\n"
+"\n"
+"%s\n"
+"\n"
+"The mode will change only after rebooting."
+msgstr ""
+"<big><b>Prepare %s mode?</b></big>\n"
+"\n"
+"%s\n"
+"\n"
+"The mode will change only after rebooting."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-mode-toggle:35
+#, sh-printf-format
+msgid ""
+"<big><b>%s mode is ready.</b></big>\n"
+"\n"
+"Restart now to apply it?"
+msgstr ""
+"<big><b>%s mode is ready.</b></big>\n"
+"\n"
+"Restart now to apply it?"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-remote-auto-toggle:18
+#, sh-printf-format
+msgid ""
+"Disable automatic startup for %s?\n"
+"\n"
+"The running service will not be stopped."
+msgstr ""
+"Disable automatic startup for %s?\n"
+"\n"
+"The running service will not be stopped."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-screen-lock:16
+msgid ""
+"<big><b>Lock the screen now?</b></big>\n"
+"\n"
+"Unlocking requires the Linux password for chamsys and a keyboard.\n"
+"The display will stay on: suspend, screensaver and DPMS remain disabled."
+msgstr ""
+"<big><b>Lock the screen now?</b></big>\n"
+"\n"
+"Unlocking requires the Linux password for chamsys and a keyboard.\n"
+"The display will stay on: suspend, screensaver and DPMS remain disabled."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-ssh-toggle:20
+#, sh-printf-format
+msgid ""
+"<big><b>SSH is active.</b></big>\n"
+"\n"
+"Address: ssh://chamsys@%s:22%s\n"
+"\n"
+"Stop SSH access now?"
+msgstr ""
+"<big><b>SSH is active.</b></big>\n"
+"\n"
+"Address: ssh://chamsys@%s:22%s\n"
+"\n"
+"Stop SSH access now?"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-ssh-toggle:32
+msgid ""
+"<big><b>Enable SSH?</b></big>\n"
+"\n"
+"Access will use the chamsys account and its Linux password. Enable it only "
+"on a trusted network."
+msgstr ""
+"<big><b>Enable SSH?</b></big>\n"
+"\n"
+"Access will use the chamsys account and its Linux password. Enable it only "
+"on a trusted network."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-ssh-toggle:40
+#, sh-printf-format
+msgid ""
+"<big><b>SSH active</b></big>\n"
+"\n"
+"Address: ssh://chamsys@%s:22\n"
+"User: chamsys\n"
+"Password: the Linux password for chamsys"
+msgstr ""
+"<big><b>SSH active</b></big>\n"
+"\n"
+"Address: ssh://chamsys@%s:22\n"
+"User: chamsys\n"
+"Password: the Linux password for chamsys"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-vnc-toggle:14
+msgid ""
+"<big><b>VNC is active.</b></big>\n"
+"\n"
+"Stop sharing the current session?"
+msgstr ""
+"<big><b>VNC is active.</b></big>\n"
+"\n"
+"Stop sharing the current session?"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-vnc-toggle:41
+#, sh-printf-format
+msgid ""
+"<big><b>VNC active in the current session</b></big>\n"
+"\n"
+"Address: vnc://%s:5900\n"
+"\n"
+"Use it only on a trusted local network."
+msgstr ""
+"<big><b>VNC active in the current session</b></big>\n"
+"\n"
+"Address: vnc://%s:5900\n"
+"\n"
+"Use it only on a trusted local network."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-panel:13
+#, sh-printf-format
+msgid ""
+"<big><b>Bitfocus Companion %s · %s</b></big>\n"
+"\n"
+"Web UI: %s\n"
+"Local MagicQ: 127.0.0.1"
+msgstr ""
+"<big><b>Bitfocus Companion %s · %s</b></big>\n"
+"\n"
+"Web UI: %s\n"
+"Local MagicQ: 127.0.0.1"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-companion-panel:27
+#, sh-printf-format
+msgid ""
+"Web interface:\n"
+"<b>%s</b>\n"
+"\n"
+"Open this address from a Mac, tablet or another computer.\n"
+"For MagicQ on this console use 127.0.0.1."
+msgstr ""
+"Web interface:\n"
+"<b>%s</b>\n"
+"\n"
+"Open this address from a Mac, tablet or another computer.\n"
+"For MagicQ on this console use 127.0.0.1."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:10
+msgid ""
+"<big><b>MAINTENANCE mode required.</b></big>\n"
+"\n"
+"Switch to MAINTENANCE and reboot before restoring a snapshot."
+msgstr ""
+"<big><b>MAINTENANCE mode required.</b></big>\n"
+"\n"
+"Switch to MAINTENANCE and reboot before restoring a snapshot."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:27
+msgid ""
+"Select a Wasalight configuration to restore.\n"
+"MagicQ, Ubuntu packages and show data will not be changed."
+msgstr ""
+"Select a Wasalight configuration to restore.\n"
+"MagicQ, Ubuntu packages and show data will not be changed."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:39
+#, sh-printf-format
+msgid ""
+"<big><b>What do you want to do with this snapshot?</b></big>\n"
+"\n"
+"%s\n"
+"\n"
+"Restore replaces Wasalight configuration, commands and theme. Deletion is "
+"permanent."
+msgstr ""
+"<big><b>What do you want to do with this snapshot?</b></big>\n"
+"\n"
+"%s\n"
+"\n"
+"Restore replaces Wasalight configuration, commands and theme. Deletion is "
+"permanent."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:47
+#, sh-printf-format
+msgid ""
+"<big><b>Permanently delete this snapshot?</b></big>\n"
+"\n"
+"%s\n"
+"\n"
+"The file and its checksum will be removed from /data and cannot be recovered."
+msgstr ""
+"<big><b>Permanently delete this snapshot?</b></big>\n"
+"\n"
+"%s\n"
+"\n"
+"The file and its checksum will be removed from /data and cannot be recovered."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:53
+#, sh-printf-format
+msgid ""
+"<big><b>Snapshot deleted.</b></big>\n"
+"\n"
+"%s"
+msgstr ""
+"<big><b>Snapshot deleted.</b></big>\n"
+"\n"
+"%s"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:57
+msgid ""
+"<big><b>Deletion failed.</b></big>\n"
+"\n"
+"The snapshot was kept."
+msgstr ""
+"<big><b>Deletion failed.</b></big>\n"
+"\n"
+"The snapshot was kept."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:65
+msgid ""
+"<big><b>Snapshot integrity check failed.</b></big>\n"
+"\n"
+"The checksum is invalid, so restore was blocked. You can still delete the "
+"snapshot from the previous menu."
+msgstr ""
+"<big><b>Snapshot integrity check failed.</b></big>\n"
+"\n"
+"The checksum is invalid, so restore was blocked. You can still delete the "
+"snapshot from the previous menu."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:88
+#, sh-printf-format
+msgid ""
+"<big><b>Rollback failed.</b></big>\n"
+"\n"
+"%s"
+msgstr ""
+"<big><b>Rollback failed.</b></big>\n"
+"\n"
+"%s"
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-rollback-ui:94
+msgid ""
+"<big><b>Configuration restored.</b></big>\n"
+"\n"
+"Restart now to apply it?"
+msgstr ""
+"<big><b>Configuration restored.</b></big>\n"
+"\n"
+"Restart now to apply it?"
+
+#: libexec/wasalight-first-run:14
+msgid ""
+"<big><b>Initial setup</b></big>\n"
+"\n"
+"This setup checks network, data, touchscreen, audio, MagicQ and remote "
+"services. You can stop and resume it on the next boot."
+msgstr ""
+"<big><b>Initial setup</b></big>\n"
+"\n"
+"This setup checks network, data, touchscreen, audio, MagicQ and remote "
+"services. You can stop and resume it on the next boot."
+
+#: libexec/wasalight-first-run:25
+#, sh-printf-format
+msgid ""
+"Touchscreen: %s\n"
+"\n"
+"Run the audio test now?"
+msgstr ""
+"Touchscreen: %s\n"
+"\n"
+"Run the audio test now?"
+
+#: libexec/wasalight-first-run:35
+#, sh-printf-format
+msgid ""
+"<big><b>Checks completed</b></big>\n"
+"\n"
+"MagicQ: %s\n"
+"Touchscreen: %s\n"
+"Audio: %s\n"
+"\n"
+"SSH and VNC can be enabled from Services. Backup, diagnostics and system "
+"health are available under Support."
+msgstr ""
+"<big><b>Checks completed</b></big>\n"
+"\n"
+"MagicQ: %s\n"
+"Touchscreen: %s\n"
+"Audio: %s\n"
+"\n"
+"SSH and VNC can be enabled from Services. Backup, diagnostics and system "
+"health are available under Support."

@@ -4,6 +4,34 @@
 system_audit="$PROJECT_DIR/libexec/wasalight-system-audit"
 [[ -x $system_audit ]] || fail "audit di sistema mancante o non eseguibile"
 bash -n "$system_audit"
+session_language="$INSTALLER_TEMPLATE_ROOT/usr/local/libexec/wasalight-session-language"
+[[ -s $session_language ]] || fail "helper lingua della sessione mancante"
+sh -n "$session_language"
+i18n_helper="$INSTALLER_TEMPLATE_ROOT/usr/local/libexec/wasalight-i18n"
+[[ -s $i18n_helper ]] || fail "helper gettext di sistema mancante"
+bash -n "$i18n_helper"
+grep -Fq '. /usr/local/libexec/wasalight-i18n' \
+    "$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-power" || \
+    fail "i dialoghi di alimentazione non usano il dominio gettext di sistema"
+openbox_menu="$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-openbox-menu"
+[[ -s $openbox_menu ]] || fail "generatore menu Openbox mancante"
+bash -n "$openbox_menu"
+grep -Fq '/usr/local/bin/wasalight-openbox-menu "$HOME/.config/openbox/menu.xml"' \
+    "$INSTALLER" || fail "il menu Openbox non viene rigenerato a ogni login"
+grep -Fq '. /usr/local/libexec/wasalight-session-language' "$INSTALLER" || \
+    fail "la sessione grafica non applica la preferenza lingua persistente"
+grep -Fq 'locale-gen en_US.UTF-8 it_IT.UTF-8' "$INSTALLER" || \
+    fail "l'installer non genera entrambe le locale supportate"
+for localized_desktop_field in \
+    'Name=Power off' 'Name[it]=Spegni' \
+    'Comment=Shut down the workstation after confirmation' \
+    'Comment[it]=Spegne la postazione dopo una conferma' \
+    'Name=Restart' 'Name[it]=Riavvia' \
+    'Comment=Restart the workstation after confirmation' \
+    'Comment[it]=Riavvia la postazione dopo una conferma'; do
+    grep -Fq "$localized_desktop_field" "$INSTALLER" || \
+        fail "campo desktop localizzato mancante: $localized_desktop_field"
+done
 grep -Fq 'wasalight-system-audit' "$PROJECT_DIR/installer/modules/70-management.sh" || \
     fail "l'installer non installa l'audit di sistema"
 grep -Fq 'audit) command_to_run=/usr/local/bin/wasalight-system-audit' \
@@ -35,7 +63,7 @@ magicq_installer="$INSTALLER_TEMPLATE_ROOT/usr/local/sbin/wasalight-magicq-insta
 magicq_installer_ui="$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-magicq-install-ui"
 [[ -x $magicq_installer ]] || fail "installer MagicQ offline mancante o non eseguibile"
 bash -n "$magicq_installer" "$magicq_installer_ui"
-grep -Fq 'wasalight_acquire_operation_lock "installazione MagicQ"' "$magicq_installer" || \
+grep -Fq 'wasalight_acquire_operation_lock "MagicQ installation"' "$magicq_installer" || \
     fail "l'installer MagicQ offline non usa il lock globale"
 grep -Fq 'apt-get --simulate --no-download install' "$magicq_installer" || \
     fail "l'installer MagicQ non verifica offline le dipendenze prima di modificare il sistema"
@@ -59,9 +87,9 @@ grep -Fq 'pkexec /usr/local/sbin/wasalight-rollback restore' "$rollback_ui" || \
     fail "l’interfaccia rollback non richiede autenticazione amministrativa"
 grep -Fq 'pkexec /usr/local/sbin/wasalight-rollback delete' "$rollback_ui" || \
     fail "l’interfaccia rollback non protegge l’eliminazione con autenticazione"
-grep -Fq 'Elimina definitivamente' "$rollback_ui" || \
+grep -Fq '_ "Delete permanently"' "$rollback_ui" || \
     fail "l’interfaccia rollback elimina snapshot senza seconda conferma"
-delete_branch_line=$(grep -n "^if \[\[ \$action == 'Elimina snapshot' \]\]; then$" \
+delete_branch_line=$(grep -n '^if \[\[ \$action == "$( _ "Delete snapshot" )" \]\]; then$' \
     "$rollback_ui" | cut -d: -f1)
 integrity_block_line=$(grep -n '^if \[\[ \$integrity != OK \]\]; then$' \
     "$rollback_ui" | cut -d: -f1)
@@ -382,7 +410,7 @@ required_patterns=(
     '98-wasalight-early-display.cfg'
     'grep -qxF i915 /etc/initramfs-tools/modules'
     'remote_commit=$(git -C "$candidate_checkout" rev-parse --verify FETCH_HEAD)'
-    'run_with_progress_capture "$snapshot_output" "Creazione snapshot"'
+    'run_with_progress_capture "$snapshot_output" "Creating snapshot"'
     'bash "$snapshot_tool" restore "$snapshot"'
     'SSH:        $ssh'
     'MAINTENANCE mode: automatic MagicQ start skipped'
@@ -753,7 +781,7 @@ grep -Fq '[[ $(dpkg-deb -f "$source" Package 2>/dev/null) == "$magicq_package" ]
     fail "l'updater non verifica che il pacchetto USB sia MagicQ"
 grep -Fq 'dpkg --compare-versions' "$tmp_dir/wasalight-update" || \
     fail "l'updater non confronta le vere versioni Debian di MagicQ"
-grep -Fq 'CONFLITTO: MagicQ $version' "$tmp_dir/wasalight-update-lib.sh" || \
+grep -Fq 'CONFLICT: MagicQ $version' "$tmp_dir/wasalight-update-lib.sh" || \
     fail "l'updater non blocca pacchetti della stessa versione ma differenti"
 if grep -Fq 'find "$package_store" -maxdepth 1 -type f -name '"'"'*.deb'"'"' -print | sort -V' \
     "$tmp_dir/wasalight-update-lib.sh"; then
@@ -780,11 +808,17 @@ grep -Fq 'update_args+=(--resume)' "$tmp_dir/wasalight-update-session" || \
     fail "la sessione Update non propone la ripresa di una transazione interrotta"
 grep -Fq 'pkexec /usr/local/sbin/wasalight-update' "$tmp_dir/wasalight-update-session" || \
     fail "la sessione guidata non usa l'autenticazione grafica Polkit"
-grep -Fq 'In attesa dell’autorizzazione…' "$tmp_dir/wasalight-update-session" || \
+grep -Fq '_ "Waiting for authorization…"' "$tmp_dir/wasalight-update-session" || \
     fail "la sessione guidata non spiega l'attesa della finestra Polkit"
-grep -Fq 'Il log completo resta disponibile anche con la vista compatta.' \
+grep -Fq '_ "The full log remains available with the compact view."' \
     "$tmp_dir/wasalight-update-session" || \
     fail "la sessione guidata non chiarisce che l'output completo viene conservato"
+for localized_update_ui in \
+    "$tmp_dir/wasalight-update-terminal" "$tmp_dir/wasalight-update-session"; do
+    grep -Fq 'WASALIGHT_I18N_HELPER:-/usr/local/libexec/wasalight-i18n' \
+        "$localized_update_ui" || \
+        fail "componente updater privo del dominio gettext: $localized_update_ui"
+done
 if grep -Fq 'sudo /usr/local/sbin/wasalight-update' "$tmp_dir/wasalight-update-session"; then
     fail "la sessione guidata richiede ancora la password nel terminale"
 fi
@@ -801,7 +835,7 @@ grep -Fq -- '--plan' "$tmp_dir/wasalight-update" || \
 grep -Fq 'candidate_checkout=$(mktemp -d /tmp/wasalight-plan.XXXXXX)' \
     "$tmp_dir/wasalight-update" || \
     fail "--plan non usa un checkout temporaneo esterno a /data"
-grep -Fq 'Simulazione: le USB vengono ispezionate solo durante un aggiornamento reale.' \
+grep -Fq 'Simulation: USB drives are inspected only during a real update.' \
     "$tmp_dir/wasalight-update" || \
     fail "--plan può ancora importare pacchetti dalle USB"
 grep -Fq -- '--resume' "$tmp_dir/wasalight-update" || \
@@ -831,11 +865,11 @@ grep -Fq 'touch /run/wasalight-update-reboot-required' "$tmp_dir/wasalight-updat
 grep -Fq '[[ ! -e /run/wasalight-update-reboot-required ]]' \
     "$tmp_dir/wasalight-update-session" || \
     fail "la GUI updater propone un riavvio anche dopo un no-op"
-grep -Fq 'Downgrade bloccato:' "$tmp_dir/wasalight-update" || \
+grep -Fq 'Downgrade blocked:' "$tmp_dir/wasalight-update" || \
     fail "l'updater non blocca downgrade Wasalight"
-grep -Fq 'Release incoerente:' "$tmp_dir/wasalight-update" || \
+grep -Fq 'Inconsistent release:' "$tmp_dir/wasalight-update" || \
     fail "l'updater accetta lo stesso VERSION da commit differenti"
-grep -Fq 'downgrade evitato' "$tmp_dir/wasalight-update" || \
+grep -Fq 'downgrade avoided' "$tmp_dir/wasalight-update" || \
     fail "l'updater può installare un vecchio pacchetto MagicQ persistente"
 grep -Fq '/data/log/wasalight/updates' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non crea un log separato per ogni esecuzione"
@@ -844,7 +878,7 @@ grep -Fq 'tail -n +21' "$tmp_dir/wasalight-update" || \
 grep -Fq '/data/log/wasalight-update.log' \
     "$INSTALLER_TEMPLATE_ROOT/etc/wasalight/wasalight-logrotate.conf" || \
     fail "il log cumulativo updater non viene ruotato"
-grep -Fq 'Comando: %s' "$tmp_dir/wasalight-update" || \
+grep -Fq 'Command: %s' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non riporta il comando che ha causato l'errore"
 grep -Fq -- '--with-companion' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non espone --with-companion"

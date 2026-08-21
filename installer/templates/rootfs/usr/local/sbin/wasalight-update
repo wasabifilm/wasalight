@@ -57,38 +57,37 @@ usage() {
     cat <<'EOT'
 Usage: sudo wasalight-update [options]
 
-Scarica e verifica l'ultima versione di Wasalight, conserva il pacchetto
-MagicQ e aggiorna la macchina in modalità MAINTENANCE.
+Download and verify the latest Wasalight version, preserve the MagicQ package,
+and update the workstation in MAINTENANCE mode.
 
-Opzioni:
-  --protect       Prepara SHOW / PROTECTED per il prossimo avvio.
-  --code-only     Scarica e verifica il codice senza installarlo.
-  --reboot        Riavvia automaticamente dopo un aggiornamento riuscito.
-  --verbose       Mostra anche ogni comando eseguito; il log resta completo
-                  anche senza questa opzione.
-  --plan          Scarica e verifica il codice, quindi mostra cosa cambierebbe
-                  senza scrivere su /data o modificare il sistema.
-  --channel NOME  Seleziona stable (release GitHub immutabile e firmata) oppure
-                  debug (ultimo commit del ramo main). La scelta riuscita resta
-                  persistente. Predefinito: stable.
-  --resume        Riprende in sicurezza una transazione interrotta usando lo
-                  snapshot già creato e ripetendo le fasi idempotenti.
-  --repair        Reinstalla la release anche quando versione e commit
-                  coincidono; utile per riparare una configurazione alterata.
-  --rollback      Ripristina l'ultimo snapshot della configurazione Wasalight
-                  e termina senza scaricare o installare codice.
-  --with-ssh      Mantiene SSH attivo automaticamente dopo il riavvio.
-  --without-ssh   Mantiene SSH spento all'avvio; il pulsante resta disponibile.
+Options:
+  --protect       Prepare SHOW / PROTECTED for the next boot.
+  --code-only     Download and verify code without installing it.
+  --reboot        Reboot automatically after a successful update.
+  --verbose       Also show every command; logs remain complete without it.
+  --plan          Download and verify code, then show what would change without
+                  writing to /data or modifying the system.
+  --channel NAME  Select stable (immutable signed GitHub release) or debug
+                  (latest commit on main). A successful choice is persisted.
+                  Default: stable.
+  --resume        Safely resume an interrupted transaction using its existing
+                  snapshot and repeating idempotent phases.
+  --repair        Reinstall the release even when version and commit match;
+                  useful for repairing altered configuration.
+  --rollback      Restore the latest Wasalight configuration snapshot and exit
+                  without downloading or installing code.
+  --with-ssh      Keep SSH enabled automatically after reboot.
+  --without-ssh   Keep SSH disabled at boot; the manual control remains.
   --with-companion
-                  Installa Bitfocus Companion se non è ancora presente; le
-                  installazioni esistenti vengono sempre conservate.
-  --plugin ID     Abilita un plugin Wasalight. Ripetibile; ID disponibili:
+                  Install Bitfocus Companion if missing; preserve existing
+                  installations.
+  --plugin ID     Enable a Wasalight plugin. Repeatable; available IDs:
                   companion, ssh, vnc.
   --allow-missing-magicq
-                  Continua esplicitamente se MagicQ non è installato e non è
-                  disponibile alcun .deb valido nel sistema o sulle USB.
+                  Explicitly continue when MagicQ is not installed and no valid
+                  .deb is available on the system or USB drives.
   -h, -help, --help
-                  Mostra tutte le opzioni.
+                  Show all options.
 EOT
 }
 
@@ -104,7 +103,7 @@ while (($#)); do
         --resume) resume=1 ;;
         --channel)
             shift
-            (($#)) || { echo "--channel richiede stable o debug" >&2; exit 2; }
+            (($#)) || { echo "--channel requires stable or debug" >&2; exit 2; }
             channel_override=$1
             ;;
         --with-ssh) ssh_mode=enabled; explicit_state_change=1 ;;
@@ -112,18 +111,18 @@ while (($#)); do
         --with-companion) with_companion=1; explicit_state_change=1; plugins+=(companion) ;;
         --plugin)
             shift
-            (($#)) || { echo "--plugin richiede un ID" >&2; exit 2; }
+            (($#)) || { echo "--plugin requires an ID" >&2; exit 2; }
             case $1 in
                 companion) with_companion=1 ;;
                 ssh|vnc) ;;
-                *) echo "Plugin Wasalight sconosciuto: $1" >&2; exit 2 ;;
+                *) echo "Unknown Wasalight plugin: $1" >&2; exit 2 ;;
             esac
             explicit_state_change=1
             plugins+=("$1")
             ;;
         --allow-missing-magicq) allow_missing_magicq=1 ;;
         -h|-help|--help) usage; exit 0 ;;
-        *) echo "Opzione sconosciuta: $1" >&2; usage >&2; exit 2 ;;
+        *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
     esac
     shift
 done
@@ -131,18 +130,18 @@ done
 if ((code_only && (reboot_after || plan_only || resume))) || \
    ((rollback && (code_only || reboot_after || plan_only || repair || resume))) || \
    ((plan_only && (reboot_after || resume))) || ((resume && repair)); then
-    echo "--rollback, --code-only, --plan e --reboot hanno combinazioni non valide." >&2
+    echo "--rollback, --code-only, --plan and --reboot were combined incorrectly." >&2
     exit 2
 fi
 
-[[ $EUID -eq 0 ]] || { echo "Esegui con: sudo wasalight-update" >&2; exit 1; }
-wasalight_acquire_operation_lock "aggiornamento Wasalight"
+[[ $EUID -eq 0 ]] || { echo "Run with: sudo wasalight-update" >&2; exit 1; }
+wasalight_acquire_operation_lock "Wasalight update"
 rm -f /run/wasalight-update-reboot-required
 [[ $(findmnt -n -o FSTYPE / 2>/dev/null) != overlay ]] || {
-    echo "Serve la modalità MAINTENANCE. Esegui sudo wasalight-maintenance e riavvia." >&2
+    echo "MAINTENANCE mode is required. Run sudo wasalight-maintenance and reboot." >&2
     exit 1
 }
-mountpoint -q /data || { echo "/data non è montata: aggiornamento interrotto." >&2; exit 1; }
+mountpoint -q /data || { echo "/data is not mounted: update aborted." >&2; exit 1; }
 if [[ -r $channel_file ]]; then
     previous_channel=$(<"$channel_file")
     previous_channel_present=1
@@ -156,7 +155,7 @@ else
 fi
 if ((rollback)); then
     [[ -x /usr/local/sbin/wasalight-update-snapshot ]] || {
-        echo "Nessun gestore rollback installato." >&2; exit 1;
+        echo "No rollback manager is installed." >&2; exit 1;
     }
     latest_snapshot=
     if [[ -r $state_file ]]; then
@@ -167,8 +166,8 @@ if ((rollback)); then
     fi
     [[ -z $latest_snapshot || -r $latest_snapshot ]] || latest_snapshot=
     [[ -n $latest_snapshot ]] || latest_snapshot=$(/usr/local/sbin/wasalight-update-snapshot list | head -n 1)
-    [[ -n $latest_snapshot ]] || { echo "Nessuno snapshot disponibile." >&2; exit 1; }
-    echo "Ripristino dell'ultimo snapshot: $latest_snapshot"
+    [[ -n $latest_snapshot ]] || { echo "No snapshot is available." >&2; exit 1; }
+    echo "Restoring the latest snapshot: $latest_snapshot"
     /usr/local/sbin/wasalight-update-snapshot restore "$latest_snapshot"
     [[ ! -r $state_file ]] || update_state_write "$state_file" rolled-back rollback \
         "$(update_state_value "$state_file" version 2>/dev/null || true)" \
@@ -176,7 +175,7 @@ if ((rollback)); then
         "$latest_snapshot" "$(update_state_value "$state_file" started 2>/dev/null || true)" \
         "$(update_state_value "$state_file" channel 2>/dev/null || echo "$channel")" \
         "$(update_state_value "$state_file" candidate 2>/dev/null || true)"
-    echo "Rollback completato. Riavviare la macchina."
+    echo "Rollback completed. Reboot the workstation."
     exit 0
 fi
 exec 3>&1
@@ -213,7 +212,7 @@ if ((!plan_only)); then
 fi
 ((verbose)) && { export PS4='+ ${BASH_SOURCE##*/}:${LINENO}: '; set -x; }
 
-phase="Preparazione"
+phase="Preparation"
 if [[ -t 3 ]]; then
     brand=$'\033[1;38;2;118;189;34m'
     green=$'\033[1;32m'; amber=$'\033[1;33m'; red=$'\033[1;31m'
@@ -278,11 +277,11 @@ _run_with_progress() {
     printf '\r%s' "$clear_line" >&3
     ((verbose)) && cat "$raw_output" >&3
     if ((rc == 0)); then
-        printf '%s  ✓%s  %s completato (%02d:%02d)\n' \
+        printf '%s  ✓%s  %s completed (%02d:%02d)\n' \
             "$green" "$reset" "$label" "$((elapsed / 60))" "$((elapsed % 60))"
     else
-        printf '%s  ✗%s  %s non riuscito\n' "$red" "$reset" "$label" >&3
-        printf '%sUltime righe del log:%s\n' "$amber" "$reset" >&3
+        printf '%s  ✗%s  %s failed\n' "$red" "$reset" "$label" >&3
+        printf '%sLast log lines:%s\n' "$amber" "$reset" >&3
         tail -n 24 "$raw_output" >&3 || true
     fi
     rm -f -- "$raw_output"
@@ -311,12 +310,12 @@ run_with_progress_capture() {
 update_failed() {
     local rc=$1 line=$2 command=$3 failed_checkout
     trap - ERR
-    printf '\n%sERRORE%s · aggiornamento interrotto nella fase: %s\n' \
+    printf '\n%sERROR%s · update interrupted during phase: %s\n' \
         "$red" "$reset" "$phase" >&2
-    printf 'Comando: %s\nLinea: %s · codice: %s\n' "$command" "$line" "$rc" >&2
-    echo "La macchina non verrà riavviata." >&2
+    printf 'Command: %s\nLine: %s · exit code: %s\n' "$command" "$line" "$rc" >&2
+    echo "The workstation will not reboot." >&2
     if ((checkout_activated)) && [[ -d $previous_checkout/.git ]]; then
-        echo "Ripristino del checkout precedente…" >&2
+        echo "Restoring the previous checkout…" >&2
         failed_checkout="${checkout}.failed"
         rm -rf -- "$failed_checkout"
         mv "$checkout" "$failed_checkout"
@@ -324,7 +323,7 @@ update_failed() {
         rm -rf -- "$failed_checkout"
         checkout_activated=0
     elif ((checkout_activated)) && [[ ${existing_checkout:-0} == 0 ]]; then
-        echo "Rimuovo il checkout attivato dalla transazione non riuscita…" >&2
+        echo "Removing the checkout activated by the failed transaction…" >&2
         rm -rf -- "$checkout"
         checkout_activated=0
     fi
@@ -343,50 +342,50 @@ update_failed() {
             "$transaction_started" "$channel" "${candidate_checkout:-}" || true
     fi
     if [[ -n ${snapshot:-} && -r ${snapshot_tool:-} ]]; then
-        echo "Ripristino automatico della configurazione precedente…" >&2
+        echo "Automatically restoring the previous configuration…" >&2
         if bash "$snapshot_tool" restore "$snapshot"; then
-            echo "Configurazione precedente ripristinata. Riavviare prima dell'uso." >&2
+            echo "Previous configuration restored. Reboot before use." >&2
             transaction_status=rolled-back
             [[ -z ${transaction_started:-} ]] || update_state_write "$state_file" \
                 rolled-back "$phase" "${available_version:-}" "${downloaded_commit:-}" \
                 "$snapshot" "$transaction_started" "$channel" "${candidate_checkout:-}" || true
         else
             transaction_status=failed
-            echo "ATTENZIONE: rollback automatico non riuscito; snapshot: $snapshot" >&2
+            echo "WARNING: automatic rollback failed; snapshot: $snapshot" >&2
         fi
     fi
-    echo "Log completo: $log_file" >&2
-    [[ $current_log == /dev/null ]] || echo "Log cumulativo: $current_log" >&2
+    echo "Full log: $log_file" >&2
+    [[ $current_log == /dev/null ]] || echo "Cumulative log: $current_log" >&2
     exit "$rc"
 }
 trap 'update_failed "$?" "$LINENO" "$BASH_COMMAND"' ERR
 
 banner
-echo "Avvio: $(date --iso-8601=seconds)"
-echo "Log di questa esecuzione: $log_file"
-installed_version=$(cat /etc/wasalight/version 2>/dev/null || echo non-installata)
-echo "Versione installata: $installed_version"
+echo "Started: $(date --iso-8601=seconds)"
+echo "Run log: $log_file"
+installed_version=$(cat /etc/wasalight/version 2>/dev/null || echo not-installed)
+echo "Installed version: $installed_version"
 installed_commit=$(cat /etc/wasalight/commit 2>/dev/null || echo unknown)
-echo "Commit installato: ${installed_commit:0:12}"
-echo "Canale aggiornamenti: $channel"
+echo "Installed commit: ${installed_commit:0:12}"
+echo "Update channel: $channel"
 update_preflight
 
 if [[ -r $state_file ]]; then
     transaction_status=$(update_state_value "$state_file" status 2>/dev/null || true)
     if [[ $transaction_status == running || $transaction_status == failed ]]; then
-        interrupted_phase=$(update_state_value "$state_file" phase 2>/dev/null || echo sconosciuta)
+        interrupted_phase=$(update_state_value "$state_file" phase 2>/dev/null || echo unknown)
         interrupted_snapshot=$(update_state_value "$state_file" snapshot 2>/dev/null || true)
         if ((plan_only)); then
-            echo "ATTENZIONE: transazione precedente $transaction_status (fase: $interrupted_phase)."
+            echo "WARNING: previous transaction is $transaction_status (phase: $interrupted_phase)."
         elif ((resume || repair)); then
             snapshot=$interrupted_snapshot
-            echo "Ripresa della transazione precedente dalla fase: $interrupted_phase"
+            echo "Resuming the previous transaction from phase: $interrupted_phase"
             [[ -z $snapshot || -r $snapshot ]] || {
-                echo "Snapshot registrato ma non leggibile: $snapshot" >&2
+                echo "The recorded snapshot is not readable: $snapshot" >&2
                 exit 1
             }
             if [[ -d $previous_checkout/.git && -d $checkout/.git ]]; then
-                echo "Ripristino il checkout precedente lasciato da un'attivazione interrotta."
+                echo "Restoring the previous checkout left by an interrupted activation."
                 interrupted_checkout="${checkout}.interrupted"
                 rm -rf -- "$interrupted_checkout"
                 mv "$checkout" "$interrupted_checkout"
@@ -395,8 +394,8 @@ if [[ -r $state_file ]]; then
             fi
         else
             cat >&2 <<EOF
-Esiste una transazione Wasalight non conclusa (stato: $transaction_status, fase: $interrupted_phase).
-Scegli esplicitamente una delle operazioni:
+An unfinished Wasalight transaction exists (status: $transaction_status, phase: $interrupted_phase).
+Explicitly select one operation:
   sudo wasalight-update --resume
   sudo wasalight-update --repair
   sudo wasalight-update --rollback
@@ -404,7 +403,7 @@ EOF
             exit 3
         fi
     elif ((resume)); then
-        echo "Nessuna transazione interrotta da riprendere." >&2
+        echo "No interrupted transaction is available to resume." >&2
         exit 2
     elif ((!plan_only)) && [[ $transaction_status == complete && -d $previous_checkout/.git && -d $checkout/.git ]]; then
         completed_commit=$(update_state_value "$state_file" commit 2>/dev/null || true)
@@ -414,17 +413,17 @@ EOF
         fi
     fi
 elif ((resume)); then
-    echo "Nessuna transazione interrotta da riprendere." >&2
+    echo "No interrupted transaction is available to resume." >&2
     exit 2
 fi
 
-step "1/5 · Controllo dei pacchetti MagicQ"
+step "1/5 · Checking MagicQ packages"
 if ((plan_only)); then
-    echo "Simulazione: le USB vengono ispezionate solo durante un aggiornamento reale."
+    echo "Simulation: USB drives are inspected only during a real update."
 else
     find "$package_store" -maxdepth 1 -type f -name '.magicq-import.*' -delete
     while IFS= read -r usb_mount; do
-        echo "Controllo USB montata: $usb_mount"
+        echo "Checking mounted USB drive: $usb_mount"
         while IFS= read -r -d '' usb_package; do
             import_magicq_package "$usb_package" 0
         done < <(find "$usb_mount" -maxdepth 1 -type f -name '*.deb' -print0 2>/dev/null)
@@ -448,20 +447,20 @@ else
 fi
 
 if ((!plan_only)) && [[ ! -e $checkout && -d $previous_checkout/.git ]]; then
-    echo "Ripristino il checkout precedente dopo un aggiornamento interrotto."
+    echo "Restoring the previous checkout after an interrupted update."
     mv "$previous_checkout" "$checkout"
 fi
 if [[ -e $checkout && ! -d $checkout/.git ]]; then
-    echo "Il percorso aggiornamenti esiste ma non è un repository Git: $checkout" >&2
+    echo "The update path exists but is not a Git repository: $checkout" >&2
     exit 1
 fi
 
-step "2/5 · Download dell'ultima versione"
+step "2/5 · Downloading the latest version"
 existing_checkout=0
 old_checkout_commit=
 if [[ -d $checkout/.git ]]; then
     if [[ -n $(git -C "$checkout" status --porcelain) ]]; then
-        echo "Il repository persistente contiene modifiche locali: aggiornamento interrotto." >&2
+        echo "The persistent repository has local changes: update aborted." >&2
         exit 1
     fi
     existing_checkout=1
@@ -495,74 +494,74 @@ if [[ $channel == stable ]]; then
     release_json=$(mktemp /tmp/wasalight-release.XXXXXX)
     stable_tag=$(discover_stable_release "$stable_api" "$release_json") || {
         rm -f -- "$release_json"
-        echo "Impossibile trovare una release stable immutabile. Usa --channel debug solo per test." >&2
+        echo "Unable to find an immutable stable release. Use --channel debug only for testing." >&2
         exit 1
     }
     rm -f -- "$release_json"
     [[ $stable_tag == "$tag_prefix"* && ${stable_tag#"$tag_prefix"} =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]] || {
-        echo "Tag release stable non valido: $stable_tag" >&2; exit 1;
+        echo "Invalid stable release tag: $stable_tag" >&2; exit 1;
     }
     run_with_progress "Download release $stable_tag" \
         git_retry -C "$candidate_checkout" fetch --quiet origin \
         "refs/tags/$stable_tag:refs/tags/$stable_tag"
     verify_stable_tag "$candidate_checkout" "$stable_tag" "$signer_file" || {
-        echo "Firma della release stable non valida: $stable_tag" >&2
+        echo "Invalid stable release signature: $stable_tag" >&2
         exit 1
     }
     remote_commit=$(git -C "$candidate_checkout" rev-parse --verify "$stable_tag^{commit}")
 else
     if ((existing_checkout)); then
-        run_with_progress "Download canale debug" \
+        run_with_progress "Downloading debug channel" \
             git_retry -C "$candidate_checkout" fetch --quiet origin "$debug_ref"
     else
-        run_with_progress "Download canale debug" \
+        run_with_progress "Downloading debug channel" \
             git_retry -C "$candidate_checkout" fetch --quiet --depth=1 origin "$debug_ref"
     fi
     remote_commit=$(git -C "$candidate_checkout" rev-parse --verify FETCH_HEAD)
 fi
 [[ $remote_commit =~ ^[0-9a-f]{40}$ ]] || {
-    echo "Impossibile determinare il commit remoto del canale $channel." >&2; exit 1;
+    echo "Unable to determine the remote commit for channel $channel." >&2; exit 1;
 }
 if ((existing_checkout)) && \
    ! git -C "$candidate_checkout" merge-base --is-ancestor \
         "$old_checkout_commit" "$remote_commit"; then
-    echo "Il ramo remoto non è un avanzamento fast-forward del checkout verificato." >&2
+    echo "The remote branch is not a fast-forward of the verified checkout." >&2
     exit 1
 fi
 git -C "$candidate_checkout" checkout --quiet --detach "$remote_commit"
 downloaded_commit=$(git -C "$candidate_checkout" rev-parse --verify HEAD)
 [[ $downloaded_commit == "$remote_commit" ]] || {
-    echo "Il checkout candidato non corrisponde al commit remoto: $remote_commit" >&2
+    echo "The candidate checkout does not match the remote commit: $remote_commit" >&2
     exit 1
 }
 
-step "3/5 · Verifica del progetto scaricato"
-run_with_progress "Test del progetto" "$candidate_checkout/tests/verify-project.sh"
+step "3/5 · Verifying the downloaded project"
+run_with_progress "Project tests" "$candidate_checkout/tests/verify-project.sh"
 available_version=$(<"$candidate_checkout/VERSION")
 [[ $available_version =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]] || {
-    echo "VERSION scaricata non valida: $available_version" >&2
+    echo "Invalid downloaded VERSION: $available_version" >&2
     exit 1
 }
 if [[ $channel == stable && $stable_tag != "$tag_prefix$available_version" ]]; then
-    echo "Release incoerente: il tag $stable_tag contiene VERSION $available_version." >&2
+    echo "Inconsistent release: tag $stable_tag contains VERSION $available_version." >&2
     exit 1
 fi
 if [[ $installed_version =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]] && \
    [[ $(printf '%s\n%s\n' "$installed_version" "$available_version" | sort -V | tail -n1) == "$installed_version" ]] && \
    [[ $available_version != "$installed_version" ]]; then
-    echo "Downgrade bloccato: installata $installed_version, disponibile $available_version." >&2
+    echo "Downgrade blocked: installed $installed_version, available $available_version." >&2
     exit 1
 fi
 if [[ $installed_version == "$available_version" && \
       $installed_commit =~ ^[0-9a-f]{40}$ && \
       $installed_commit != "$downloaded_commit" ]]; then
-    echo "Release incoerente: la versione $available_version è associata a un commit differente." >&2
-    echo "Pubblicare un nuovo numero VERSION prima di aggiornare." >&2
+    echo "Inconsistent release: version $available_version is associated with a different commit." >&2
+    echo "Publish a new VERSION number before updating." >&2
     exit 1
 fi
-echo "Versione disponibile: $available_version"
-echo "Commit disponibile: ${downloaded_commit:0:12}"
-echo "Codice candidato verificato."
+echo "Available version: $available_version"
+echo "Available commit: ${downloaded_commit:0:12}"
+echo "Candidate code verified."
 
 installer_args=()
 ((protect)) || installer_args+=(--no-protection)
@@ -602,22 +601,22 @@ if [[ -n $selected_package ]]; then
     if [[ -z $installed_magicq_version ]] || \
        dpkg --compare-versions "$selected_package_version" gt "$installed_magicq_version" || \
        ((repair)); then
-        echo "Pacchetto MagicQ da installare: $selected_package (versione $selected_package_version)"
+        echo "MagicQ package to install: $selected_package (version $selected_package_version)"
         installer_args+=("$selected_package")
         magicq_change=1
     elif dpkg --compare-versions "$selected_package_version" eq "$installed_magicq_version"; then
-        echo "MagicQ $installed_magicq_version è già installato; reinstallazione evitata."
+        echo "MagicQ $installed_magicq_version is already installed; reinstall avoided."
     else
-        echo "MagicQ installato $installed_magicq_version è più recente del pacchetto conservato $selected_package_version; downgrade evitato."
+        echo "Installed MagicQ $installed_magicq_version is newer than stored package $selected_package_version; downgrade avoided."
     fi
 elif [[ -n $installed_magicq_version ]]; then
-    echo "MagicQ $installed_magicq_version è già installato; nessun pacchetto locale necessario."
+    echo "MagicQ $installed_magicq_version is already installed; no local package is required."
 elif ((allow_missing_magicq)); then
-    echo "ATTENZIONE: assenza di MagicQ ignorata esplicitamente." >&2
+    echo "WARNING: missing MagicQ was explicitly allowed." >&2
     installer_args+=(--allow-missing-magicq)
 else
-    echo "ERRORE: MagicQ non è installato e nessun pacchetto valido è stato trovato." >&2
-    echo "Per continuare intenzionalmente senza MagicQ, ripeti con:" >&2
+    echo "ERROR: MagicQ is not installed and no valid package was found." >&2
+    echo "To continue intentionally without MagicQ, run again with:" >&2
     echo "  sudo wasalight-update --allow-missing-magicq" >&2
     exit 2
 fi
@@ -628,26 +627,26 @@ if [[ $installed_version == "$available_version" && \
     same_release=1
 fi
 
-printf '\nPIANO AGGIORNAMENTO\n'
+printf '\nUPDATE PLAN\n'
 printf '  Wasalight: %s (%s) → %s (%s)\n' \
     "$installed_version" "${installed_commit:0:12}" \
     "$available_version" "${downloaded_commit:0:12}"
 if ((magicq_change)); then
-    printf '  MagicQ:    %s → %s\n' "${installed_magicq_version:-non installato}" "$selected_package_version"
+    printf '  MagicQ:    %s → %s\n' "${installed_magicq_version:-not installed}" "$selected_package_version"
 else
-    printf '  MagicQ:    invariato (%s)\n' "${installed_magicq_version:-non installato}"
+    printf '  MagicQ:    unchanged (%s)\n' "${installed_magicq_version:-not installed}"
 fi
-printf '  Snapshot:  %s\n' "$([[ $plan_only == 1 ]] && echo 'non creata (--plan)' || echo 'creata prima delle modifiche')"
-printf '  Modalità:  %s\n' "$([[ $protect == 1 ]] && echo 'SHOW al prossimo avvio' || echo 'MAINTENANCE al prossimo avvio')"
+printf '  Snapshot:  %s\n' "$([[ $plan_only == 1 ]] && echo 'not created (--plan)' || echo 'created before changes')"
+printf '  Mode:      %s\n' "$([[ $protect == 1 ]] && echo 'SHOW on next boot' || echo 'MAINTENANCE on next boot')"
 
 if ((plan_only)); then
-    echo "Piano completato: nessuna configurazione di sistema è stata modificata."
+    echo "Plan completed: no system configuration was changed."
     exit 0
 fi
 if ((same_release && !explicit_state_change && !magicq_change && !repair && !resume)); then
     atomic_text_write "$channel_file" "$channel
 " root:root 0644
-    printf '%sOK%s · sistema già aggiornato; snapshot, APT e installer non necessari.\n' \
+    printf '%sOK%s · system already up to date; snapshot, APT and installer not required.\n' \
         "$green" "$reset"
     exit 0
 fi
@@ -674,7 +673,7 @@ activate_candidate() {
     mv "$candidate_checkout" "$checkout"
     candidate_checkout=
     checkout_activated=1
-    echo "Checkout attivo aggiornato atomicamente in $checkout"
+    echo "Active checkout atomically updated at $checkout"
 }
 
 if ((code_only)); then
@@ -686,7 +685,7 @@ if ((code_only)); then
     rm -rf -- "$previous_checkout"
     checkout_activated=0
     echo
-    printf '%sOK%s · codice aggiornato e verificato; configurazione non reinstallata.\n' \
+    printf '%sOK%s · code updated and verified; configuration was not reinstalled.\n' \
         "$green" "$reset"
     exit 0
 fi
@@ -697,12 +696,12 @@ install -o root -g root -m 0755 "$candidate_checkout/libexec/wasalight-update-sn
     "$snapshot_tool"
 bash -n "$snapshot_tool"
 if [[ -n $snapshot ]]; then
-    echo "Riutilizzo snapshot della transazione: $snapshot"
+    echo "Reusing transaction snapshot: $snapshot"
 else
     update_state_write "$state_file" running snapshot "$available_version" \
         "$downloaded_commit" "" "$transaction_started" "$channel" "$candidate_checkout"
     snapshot_output=$(mktemp /run/wasalight-update-snapshot-output.XXXXXX)
-    if run_with_progress_capture "$snapshot_output" "Creazione snapshot" \
+    if run_with_progress_capture "$snapshot_output" "Creating snapshot" \
             bash "$snapshot_tool" create; then
         snapshot=$(tail -n 1 "$snapshot_output")
         rm -f -- "$snapshot_output"
@@ -714,25 +713,25 @@ else
     update_state_write "$state_file" running snapshot-ready "$available_version" \
         "$downloaded_commit" "$snapshot" "$transaction_started" "$channel" "$candidate_checkout"
 fi
-echo "Snapshot pre-aggiornamento: $snapshot"
+echo "Pre-update snapshot: $snapshot"
 
-step "4/5 · Installazione della configurazione Wasalight"
+step "4/5 · Installing Wasalight configuration"
 update_state_write "$state_file" running installing "$available_version" \
     "$downloaded_commit" "$snapshot" "$transaction_started" "$channel" "$candidate_checkout"
-run_with_progress "Installazione Wasalight" \
+run_with_progress "Installing Wasalight" \
     env NEEDRESTART_SUSPEND=1 WASALIGHT_UPDATE_TRANSACTION=1 \
     WASALIGHT_PROGRESS_FILE="$progress_file" \
     "$candidate_checkout/install.sh" "${installer_args[@]}"
 
-step "5/5 · Verifica finale e attivazione"
+step "5/5 · Final verification and activation"
 update_state_write "$state_file" running health-check "$available_version" \
     "$downloaded_commit" "$snapshot" "$transaction_started" "$channel" "$candidate_checkout"
 [[ $(cat /etc/wasalight/version 2>/dev/null || true) == "$available_version" ]] || {
-    echo "La versione installata non corrisponde al candidato verificato." >&2
+    echo "The installed version does not match the verified candidate." >&2
     false
 }
 [[ $(cat /etc/wasalight/commit 2>/dev/null || true) == "$downloaded_commit" ]] || {
-    echo "Il commit installato non corrisponde al candidato verificato." >&2
+    echo "The installed commit does not match the verified candidate." >&2
     false
 }
 bash -n /usr/local/sbin/wasalight-update
@@ -749,21 +748,21 @@ touch /run/wasalight-update-reboot-required
 
 trap - ERR
 printf '\n%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓%s\n' "$green" "$reset"
-printf '%s┃%s  %sAGGIORNAMENTO COMPLETATO%s                         %s┃%s\n' \
+printf '%s┃%s  %sUPDATE COMPLETED%s                               %s┃%s\n' \
     "$green" "$reset" "$white" "$reset" "$green" "$reset"
 printf '%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛%s\n' "$green" "$reset"
-echo "Fine: $(date --iso-8601=seconds)"
-printf '%sOK%s · tutte le fasi sono terminate correttamente.\n' "$green" "$reset"
+echo "Finished: $(date --iso-8601=seconds)"
+printf '%sOK%s · all phases completed successfully.\n' "$green" "$reset"
 if ((protect)); then
-    echo "Prossimo avvio: SHOW / PROTECTED"
+    echo "Next boot: SHOW / PROTECTED"
 else
-    echo "Prossimo avvio: MAINTENANCE"
+    echo "Next boot: MAINTENANCE"
 fi
 
 if ((reboot_after)); then
-    echo "Riavvio in corso…"
+    echo "Rebooting…"
     sync
     systemctl reboot
 else
-    echo "Riavvia per rendere effettive tutte le modifiche."
+    echo "Reboot to apply all changes."
 fi

@@ -2,6 +2,7 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
+. /usr/local/libexec/wasalight-i18n
 [[ $(id -un) == chamsys ]] || {
     echo "Run this command as the chamsys desktop user." >&2
     exit 1
@@ -10,8 +11,8 @@ set -Eeuo pipefail
 if pgrep -u chamsys -x x11vnc >/dev/null 2>&1; then
     /usr/local/bin/wasalight-dialog --question \
         --icon=/usr/local/share/icons/wasalight/vnc.svg --width=460 --title="VNC · Wasalight" \
-        --text="<big><b>VNC è attivo.</b></big>\n\nFermare la condivisione della sessione corrente?" \
-        --ok-label="Stop VNC" --cancel-label="Cancel" || exit 0
+        --text="$( _ '<big><b>VNC is active.</b></big>\n\nStop sharing the current session?' )" \
+        --ok-label="$( _ "Stop VNC" )" --cancel-label="$( _ "Cancel" )" || exit 0
     output=$(/usr/local/bin/wasalight-vnc-stop 2>&1) || {
         /usr/local/bin/wasalight-dialog --error --width=460 --title="VNC · Wasalight" --text="$output"
         exit 1
@@ -25,8 +26,9 @@ password_file=/home/chamsys/.config/wasalight-vnc/passwd
 if [[ ! -r $password_file ]]; then
     # x11vnc deliberately reads the new password from a terminal so it never
     # appears in a process argument, temporary file or Wasalight log.
-    lxterminal --title="VNC password · Wasalight" -e bash -lc \
-        '/usr/local/bin/wasalight-vnc-start; rc=$?; echo; echo "Premere Invio per chiudere."; read -r _; exit "$rc"'
+    close_prompt=$( _ "Press Enter to close." )
+    lxterminal --title="$( _ "VNC password · Wasalight" )" -e bash -lc \
+        '/usr/local/bin/wasalight-vnc-start; rc=$?; echo; printf "%s\n" "$1"; read -r _; exit "$rc"' bash "$close_prompt"
     exit 0
 fi
 
@@ -36,4 +38,4 @@ output=$(/usr/local/bin/wasalight-vnc-start 2>&1) || {
 }
 ip_address=$(hostname -I 2>/dev/null | awk '{print $1}')
 /usr/local/bin/wasalight-dialog --info --width=500 --title="VNC · Wasalight" \
-    --text="<big><b>VNC attivo nella sessione corrente</b></big>\n\nIndirizzo: vnc://${ip_address:-SERVER_IP}:5900\n\nUsare soltanto su una rete locale fidata."
+    --text="$(printf "$(_ '<big><b>VNC active in the current session</b></big>\n\nAddress: vnc://%s:5900\n\nUse it only on a trusted local network.')" "${ip_address:-SERVER_IP}")"

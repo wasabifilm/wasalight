@@ -2,6 +2,7 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
+. /usr/local/libexec/wasalight-i18n
 [[ $(id -un) == chamsys ]] || {
     echo "Run this command as the chamsys desktop user." >&2
     exit 1
@@ -12,12 +13,12 @@ if systemctl is-active --quiet ssh.service; then
     next_boot=""
     if [[ -r /data/system/service-flags/ssh-autostart && \
          $(</data/system/service-flags/ssh-autostart) == enabled ]]; then
-        next_boot="\n\nNota: SSH è configurato per riattivarsi al prossimo avvio."
+        next_boot="\n\n$( _ "Note: SSH is configured to start again on the next boot." )"
     fi
     /usr/local/bin/wasalight-dialog --question \
         --icon=/usr/local/share/icons/wasalight/ssh.svg --width=500 --title="SSH · Wasalight" \
-        --text="<big><b>SSH è attivo.</b></big>\n\nIndirizzo: ssh://chamsys@${ip_address:-SERVER_IP}:22${next_boot}\n\nFermare ora l’accesso SSH?" \
-        --ok-label="Stop SSH" --cancel-label="Cancel" || exit 0
+        --text="$(printf "$(_ '<big><b>SSH is active.</b></big>\n\nAddress: ssh://chamsys@%s:22%s\n\nStop SSH access now?')" "${ip_address:-SERVER_IP}" "$next_boot")" \
+        --ok-label="$( _ "Stop SSH" )" --cancel-label="$( _ "Cancel" )" || exit 0
     output=$(sudo -n /usr/local/sbin/wasalight-ssh-control stop 2>&1) || {
         /usr/local/bin/wasalight-dialog --error --width=500 --title="SSH · Wasalight" --text="$output"
         exit 1
@@ -28,12 +29,12 @@ fi
 
 /usr/local/bin/wasalight-dialog --question \
     --icon=/usr/local/share/icons/wasalight/ssh.svg --width=520 --title="SSH · Wasalight" \
-    --text="<big><b>Attivare SSH?</b></big>\n\nL’accesso userà l’utente chamsys e la sua password Linux. Attivarlo soltanto su una rete fidata." \
-    --ok-label="Start SSH" --cancel-label="Cancel" || exit 0
+    --text="$( _ '<big><b>Enable SSH?</b></big>\n\nAccess will use the chamsys account and its Linux password. Enable it only on a trusted network.' )" \
+    --ok-label="$( _ "Start SSH" )" --cancel-label="$( _ "Cancel" )" || exit 0
 output=$(sudo -n /usr/local/sbin/wasalight-ssh-control start 2>&1) || {
     /usr/local/bin/wasalight-dialog --error --width=500 --title="SSH · Wasalight" --text="$output"
     exit 1
 }
 ip_address=$(hostname -I 2>/dev/null | awk '{print $1}')
 /usr/local/bin/wasalight-dialog --info --width=500 --title="SSH · Wasalight" \
-    --text="<big><b>SSH attivo</b></big>\n\nIndirizzo: ssh://chamsys@${ip_address:-SERVER_IP}:22\nUtente: chamsys\nPassword: la password Linux di chamsys"
+    --text="$(printf "$(_ '<big><b>SSH active</b></big>\n\nAddress: ssh://chamsys@%s:22\nUser: chamsys\nPassword: the Linux password for chamsys')" "${ip_address:-SERVER_IP}")"

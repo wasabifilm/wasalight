@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
 Name=Rollback Wasalight
-Comment=Ripristina una configurazione precedente in MAINTENANCE
+Name[it]=Rollback Wasalight
+Comment=Restore a previous configuration in MAINTENANCE
+Comment[it]=Ripristina una configurazione precedente in MAINTENANCE
 Exec=/usr/local/bin/wasalight-rollback-ui
 Icon=document-revert
 TryExec=/usr/local/bin/wasalight-rollback-ui

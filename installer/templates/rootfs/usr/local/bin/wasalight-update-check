@@ -2,6 +2,7 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
+. /usr/local/libexec/wasalight-i18n
 readonly state_dir=/data/system/update-check
 . /usr/local/libexec/wasalight-release-manifest.sh
 readonly version_url="$(require_manifest_value /etc/wasalight/release-manifest.ini Wasalight VersionURL)"
@@ -73,6 +74,6 @@ if [[ $(printf '%s\n%s\n' "$installed" "$latest" | sort -V | tail -n1) == "$late
     logger -t wasalight-update-check "Wasalight $latest available on $channel (installed $installed)"
     command -v notify-send >/dev/null 2>&1 && notify-send \
         --app-name=Wasalight --icon=system-software-update \
-        "Aggiornamento Wasalight disponibile" \
-        "Versione $latest. Apri Wasalight Control in MAINTENANCE per aggiornare." || true
+        "$( _ "Wasalight update available" )" \
+        "$(printf "$(_ 'Version %s. Open Wasalight Control in MAINTENANCE to update.')" "$latest")" || true
 fi

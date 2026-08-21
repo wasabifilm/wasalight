@@ -43,7 +43,7 @@ retry_output=$(PATH="$mock_bin:$PATH" GIT_RETRY_COUNT="$retry_count" \
     fail "git_retry non recupera dopo errori temporanei"
 [[ $(<"$retry_count") == 3 ]] || fail "git_retry non esegue tre tentativi"
 [[ $retry_output == 'mock commit' ]] || fail "output del tentativo riuscito inatteso"
-[[ $(grep -c 'nuovo tentativo' "$tmp_dir/retry.stderr") == 2 ]] || \
+[[ $(grep -c 'retrying' "$tmp_dir/retry.stderr") == 2 ]] || \
     fail "i retry non vengono segnalati correttamente"
 
 printf '0\n' >"$retry_count"

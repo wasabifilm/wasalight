@@ -2,6 +2,7 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
+. /usr/local/libexec/wasalight-i18n
 log_dir=/tmp
 [[ -d /data/log && -w /data/log ]] && log_dir=/data/log
 log_file="$log_dir/wasalight-control.log"
@@ -23,6 +24,6 @@ else
 fi
 details=$(tail -n 18 "$log_file" 2>/dev/null || true)
 /usr/local/bin/wasalight-dialog --error --width=640 --title="Wasalight Control" \
-    --text="<big><b>Wasalight Control non è riuscito ad avviarsi.</b></big>\n\n$details\n\nLog: $log_file" \
+    --text="$(printf "$(_ '<big><b>Wasalight Control could not start.</b></big>\n\n%s\n\nLog: %s')" "$details" "$log_file")" \
     2>/dev/null || true
 exit "$rc"

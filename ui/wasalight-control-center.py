@@ -185,7 +185,7 @@ class ControlCenter(Gtk.Window):
             dialog = Gtk.MessageDialog(
                 transient_for=self, modal=True, destroy_with_parent=True,
                 message_type=Gtk.MessageType.QUESTION,
-                buttons=Gtk.ButtonsType.OK_CANCEL, text=_(action["confirm"]))
+                buttons=Gtk.ButtonsType.OK_CANCEL, text=action["confirm"])
             prepare_dialog(dialog, self)
             accepted = dialog.run() == Gtk.ResponseType.OK
             dialog.destroy()

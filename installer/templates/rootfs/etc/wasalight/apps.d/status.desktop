@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=Stato sistema
-Comment=Mostra lo stato completo Wasalight
+Name=System status
+Name[it]=Stato sistema
+Comment=Show the complete Wasalight status
+Comment[it]=Mostra lo stato completo Wasalight
 Exec=/usr/local/bin/wasalight-terminal-tool status
 Icon=utilities-system-monitor
 TryExec=/usr/local/bin/wasalight-status

@@ -2,6 +2,7 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
+. /usr/local/libexec/wasalight-i18n
 [[ $(id -un) == chamsys ]] || {
     echo "Run this command as the chamsys desktop user." >&2
     exit 1
@@ -10,28 +11,28 @@ set -Eeuo pipefail
 if [[ $(findmnt -n -o FSTYPE / 2>/dev/null) == overlay ]]; then
     target=MAINTENANCE
     command=/usr/local/sbin/wasalight-maintenance
-    explanation="Il prossimo avvio userà il filesystem scrivibile per aggiornamenti e manutenzione."
+    explanation=$( _ "The next boot will use the writable filesystem for updates and maintenance." )
 else
     target=SHOW
     command=/usr/local/sbin/wasalight-protect
-    explanation="Il prossimo avvio userà la protezione overlayroot per lo show."
+    explanation=$( _ "The next boot will use overlayroot protection for the show." )
 fi
 
 /usr/local/bin/wasalight-dialog --question --icon=preferences-system --width=560 \
-    --title="Modalità $target · Wasalight" \
-    --text="<big><b>Preparare la modalità $target?</b></big>\n\n$explanation\n\nLa modalità cambierà soltanto dopo il riavvio." \
-    --ok-label="Prepara $target" --cancel-label="Annulla" || exit 0
+    --title="$(printf "$(_ '%s mode · Wasalight')" "$target")" \
+    --text="$(printf "$(_ '<big><b>Prepare %s mode?</b></big>\n\n%s\n\nThe mode will change only after rebooting.')" "$target" "$explanation")" \
+    --ok-label="$(printf "$(_ 'Prepare %s')" "$target")" --cancel-label="$( _ "Cancel" )" || exit 0
 
 output=$(sudo -n "$command" 2>&1) || {
     /usr/local/bin/wasalight-dialog --error --width=540 \
-        --title="Modalità Wasalight" --text="$output"
+        --title="$( _ "Wasalight mode" )" --text="$output"
     exit 1
 }
 
 if /usr/local/bin/wasalight-dialog --question \
     --icon=/usr/local/share/icons/wasalight/reboot.svg --width=520 \
-    --title="$target pronto · Wasalight" \
-    --text="<big><b>Modalità $target preparata.</b></big>\n\nRiavviare adesso per applicarla?" \
-    --ok-label="Riavvia ora" --cancel-label="Più tardi"; then
+    --title="$(printf "$(_ '%s ready · Wasalight')" "$target")" \
+    --text="$(printf "$(_ '<big><b>%s mode is ready.</b></big>\n\nRestart now to apply it?')" "$target")" \
+    --ok-label="$( _ "Restart now" )" --cancel-label="$( _ "Later" )"; then
     exec sudo -n /usr/local/sbin/wasalight-power-control reboot
 fi

@@ -197,8 +197,8 @@ grep -Fq 'timeout=20' "$control_core/system.py" || \
     fail "Control usa ancora un timeout troppo breve per i sistemi lenti"
 grep -Fq '/usr/local/libexec/wasalight_control' "$INSTALLER" || \
     fail "l'installer non installa il core Python di Wasalight Control"
-grep -Fq 'gettext arp-scan' "$INSTALLER" || \
-    fail "l'installer non installa gli strumenti gettext"
+grep -Fq 'gettext locales arp-scan' "$INSTALLER" || \
+    fail "l'installer non installa gettext e le locale supportate"
 grep -Fq 'msgfmt --check' "$INSTALLER" || \
     fail "l'installer non compila i cataloghi di Wasalight Control"
 grep -Fq "printf 'it\\n' >\"\$DATA_MOUNT/system/control/language\"" "$INSTALLER" || \
@@ -208,11 +208,39 @@ grep -Fq '/usr/local/share/wasalight-control/themes/console-dark.ini' "$INSTALLE
 grep -Fq 'wasalight_control/pages/' "$INSTALLER" || \
     fail "l'installer non installa i moduli pagina di Wasalight Control"
 for locale in en it; do
-    catalog="$PROJECT_DIR/ui/locale/$locale/LC_MESSAGES/wasalight-control.po"
-    [[ -s $catalog ]] || fail "catalogo Control mancante: $locale"
-    grep -Fq "Language: $locale" "$catalog" || \
-        fail "catalogo Control privo della lingua dichiarata: $locale"
+    for domain in wasalight-control wasalight-system; do
+        catalog="$PROJECT_DIR/ui/locale/$locale/LC_MESSAGES/$domain.po"
+        [[ -s $catalog ]] || fail "catalogo $domain mancante: $locale"
+        grep -Fq "Language: $locale" "$catalog" || \
+            fail "catalogo $domain privo della lingua dichiarata: $locale"
+    done
 done
+for manifest in "$PROJECT_DIR"/plugins/*/manifest.ini; do
+    for key in Description ActiveLabel InactiveLabel; do
+        grep -Eq "^${key}=.+$" "$manifest" || \
+            fail "manifest plugin senza testo inglese $key: $manifest"
+        grep -Eq "^${key}\[it\]=.+$" "$manifest" || \
+            fail "manifest plugin senza testo italiano $key: $manifest"
+    done
+    while IFS= read -r key; do
+        grep -Fq "${key}[it]=" "$manifest" || \
+            fail "campo plugin senza variante italiana $key: $manifest"
+    done < <(sed -n 's/^\(Name\|Label\|Confirm\)=.*/\1/p' "$manifest" | sort -u)
+done
+grep -Fq 'def localized(section, key, fallback=""):' "$plugin_command" || \
+    fail "il registro plugin non seleziona i campi localizzati"
+while IFS= read -r desktop_file; do
+    grep -Eq '^Name=.+$' "$desktop_file" || \
+        fail "launcher senza nome inglese: $desktop_file"
+    grep -Eq '^Name\[it\]=.+$' "$desktop_file" || \
+        fail "launcher senza nome italiano: $desktop_file"
+    grep -Eq '^Comment=.+$' "$desktop_file" || \
+        fail "launcher senza descrizione inglese: $desktop_file"
+    grep -Eq '^Comment\[it\]=.+$' "$desktop_file" || \
+        fail "launcher senza descrizione italiana: $desktop_file"
+done < <(find "$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d" \
+    "$INSTALLER_TEMPLATE_ROOT/usr/local/share/wasalight/desktop" \
+    -type f -name '*.desktop' -print | sort)
 grep -Fq 'control_language_file: str = "/data/system/control/language"' \
     "$control_core/models.py" || fail "la lingua Control non è persistente su /data"
 grep -Fq 'control_theme_path: str = "/usr/local/share/wasalight-control/themes/console-dark.ini"' \
@@ -294,6 +322,7 @@ plugin_json=$(WASALIGHT_PLUGIN_ROOT="$plugin_fixture" \
     WASALIGHT_SERVICE_FLAG_ROOT="$service_flag_fixture" \
     WASALIGHT_PLUGIN_TEST_MODE=maintenance \
     WASALIGHT_VERSION_OVERRIDE="$project_version" \
+    LANGUAGE=it_IT.UTF-8 \
     python3 "$plugin_command" list --json)
 python3 - "$plugin_json" <<'PY' || fail "registro plugin Wasalight non valido"
 import json

@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=Monitor sistema
-Comment=Mostra processi e utilizzo di CPU e memoria
+Name=System monitor
+Name[it]=Monitor sistema
+Comment=Show processes, CPU usage and memory usage
+Comment[it]=Mostra processi e utilizzo di CPU e memoria
 Exec=lxtask
 Icon=/usr/local/share/icons/wasalight/system-monitor.svg
 TryExec=lxtask

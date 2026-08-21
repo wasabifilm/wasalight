@@ -9,7 +9,7 @@ mapfile -t interfaces < <(
     nmcli -t -f DEVICE,TYPE,STATE device status 2>/dev/null | \
         awk -F: '($2 == "ethernet" || $2 == "wifi") && $3 == "connected" { print $1 }'
 )
-((${#interfaces[@]} > 0)) || { echo "!\tNessuna interfaccia di rete connessa"; exit 0; }
+((${#interfaces[@]} > 0)) || { echo "!\tNo network interface is connected"; exit 0; }
 
 for interface in "${interfaces[@]}"; do
     echo "#\t$interface"

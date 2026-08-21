@@ -11,12 +11,14 @@ import re
 import shutil
 from collections.abc import Callable
 
+from .i18n import current_language
 from .models import ControlPaths, Launcher
 
 
 COMPANION = re.compile(
     r"magicvis|magichd|magicq[ -]?remote|chamsys.*(?:remote|viewer|media)", re.I)
 SECTIONS = ("MagicQ", "Applications", "Support")
+SUPPORTED_DESKTOP_LANGUAGES = ("en", "it")
 
 
 def _desktop_bool(item, key, default=False):
@@ -26,7 +28,25 @@ def _desktop_bool(item, key, default=False):
         return default
 
 
-def read_launcher(path: str, forced_section: str | None = None, *,
+def _effective_language(language=None, environment=os.environ):
+    requested = current_language() if language is None else language
+    if requested in SUPPORTED_DESKTOP_LANGUAGES:
+        return requested
+    for variable in ("LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"):
+        value = environment.get(variable, "")
+        for candidate in value.split(":"):
+            normalized = candidate.split(".", 1)[0].split("@", 1)[0]
+            normalized = normalized.split("_", 1)[0].lower()
+            if normalized in SUPPORTED_DESKTOP_LANGUAGES:
+                return normalized
+    return "en"
+
+
+def _localized_value(item, key, language):
+    return item.get(f"{key}[{language}]", fallback=item.get(key, "")).strip()
+
+
+def read_launcher(path: str, forced_section: str | None = None, *, language=None,
                   which: Callable[[str], str | None] = shutil.which) -> Launcher | None:
     parser = configparser.RawConfigParser(interpolation=None, strict=False)
     try:
@@ -38,7 +58,8 @@ def read_launcher(path: str, forced_section: str | None = None, *,
         return None
     if _desktop_bool(item, "Hidden") or _desktop_bool(item, "NoDisplay"):
         return None
-    name = item.get("Name", "").strip()
+    selected_language = _effective_language(language)
+    name = _localized_value(item, "Name", selected_language)
     command = item.get("Exec", "").strip()
     try_exec = item.get("TryExec", "").strip()
     if not name or not command:
@@ -53,7 +74,7 @@ def read_launcher(path: str, forced_section: str | None = None, *,
         order = 500
     return Launcher(
         name=name,
-        comment=item.get("Comment", ""),
+        comment=_localized_value(item, "Comment", selected_language),
         command=command,
         icon=item.get("Icon", "application-x-executable"),
         terminal=_desktop_bool(item, "Terminal"),
