@@ -181,10 +181,15 @@ configurazione realmente applicata:
       della stessa versione con contenuto diverso.
 - [~] Integrazione in Wasalight Control, policy Polkit, log dedicato e opzioni
       `--scan-only` e `--reinstall`.
-- [ ] Pubblicare il ramo `codex/magicq-offline-installer`.
-- [ ] Installare la build `2026.08.21.1` in UTM.
-- [ ] Collaudare installazione e aggiornamento reali con rete scollegata.
-- [ ] Verificare che il `.deb` originale sulla USB resti invariato.
+- [x] Pubblicare il ramo `codex/magicq-offline-installer` e aprire la draft PR
+      #31 con CI verde.
+- [x] Installare la build `2026.08.21.1` in UTM.
+- [x] Collaudare `--scan-only` e una reinstallazione reale dentro un namespace
+      UTM senza rete, verificando dpkg, librerie e launcher.
+- [ ] Ripetere il collaudo usando il `.deb` nella root e in `packages/` di una
+      USB fisica assegnata alla VM.
+- [ ] Verificare che il `.deb` originale sulla USB resti invariato; il pacchetto
+      persistente in `/data` è già risultato invariato nel test offline UTM.
 - [ ] Unire la fase in `main` dopo il collaudo.
 
 ## Fase 7 — Localizzazione completa

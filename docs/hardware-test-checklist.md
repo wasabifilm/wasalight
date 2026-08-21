@@ -9,6 +9,12 @@ uno spettacolo.
       sulla VM UTM senza problemi apparenti. Questo esito conferma
       l’installazione iniziale, ma non sostituisce le prove di interruzione,
       ripresa, rollback e idempotenza elencate più avanti.
+- [x] 2026-08-21 — La PR #31 / build `2026.08.21.1` è stata installata in UTM.
+      `wasalight-magicq-install --scan-only` ha selezionato il pacchetto
+      persistente e `--reinstall` ha reinstallato realmente MagicQ 1.9.8.3
+      dentro un namespace senza rete. Dpkg è rimasto `ii`, `ldd` non ha trovato
+      librerie mancanti, il checksum del `.deb` è rimasto invariato e il
+      launcher risultava `root:root 0444`. Resta da ripetere con una USB fisica.
 
 ## Avvio e protezione
 
