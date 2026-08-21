@@ -23,6 +23,14 @@ printf '%s\n' \
     '[Companion]' \
     'Branch=stable' >"$fixture"
 
+# Consumers may legitimately use a readonly variable named manifest. Library
+# locals must not collide with it because Bash inherits readonly attributes
+# through dynamic scope.
+(
+    readonly manifest="$fixture"
+    [[ $(require_manifest_value "$manifest" Wasalight Branch) == main ]]
+) || fail "le funzioni collidono con una variabile readonly manifest del chiamante"
+
 [[ $(require_manifest_value "$fixture" Wasalight Repository) == \
     https://example.invalid/wasalight.git ]] || fail "spazi nel valore non normalizzati"
 [[ $(require_manifest_value "$fixture" Wasalight Branch) == main ]] || \

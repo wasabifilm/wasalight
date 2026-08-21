@@ -4,7 +4,7 @@
 # Strict reader for Wasalight's declarative release manifest.
 
 manifest_value() {
-    local manifest=$1 section=$2 key=$3
+    local manifest_path=$1 section=$2 key=$3
     awk -F= -v wanted_section="$section" -v wanted_key="$key" '
         /^[[:space:]]*\[/ {
             current=$0
@@ -21,12 +21,12 @@ manifest_value() {
             exit
         }
         END { if (!found) exit 1 }
-    ' "$manifest"
+    ' "$manifest_path"
 }
 
 require_manifest_value() {
-    local manifest=$1 section=$2 key=$3 value
-    value=$(manifest_value "$manifest" "$section" "$key") || {
+    local manifest_path=$1 section=$2 key=$3 value
+    value=$(manifest_value "$manifest_path" "$section" "$key") || {
         printf 'Missing release manifest value: [%s] %s\n' "$section" "$key" >&2
         return 1
     }
@@ -38,8 +38,8 @@ require_manifest_value() {
 }
 
 require_manifest_value_matching() {
-    local manifest=$1 section=$2 key=$3 pattern=$4 description=$5 value
-    value=$(require_manifest_value "$manifest" "$section" "$key") || return 1
+    local manifest_path=$1 section=$2 key=$3 pattern=$4 description=$5 value
+    value=$(require_manifest_value "$manifest_path" "$section" "$key") || return 1
     [[ $value =~ $pattern ]] || {
         printf 'Invalid release manifest value: [%s] %s must be %s (got: %s)\n' \
             "$section" "$key" "$description" "$value" >&2
@@ -49,8 +49,8 @@ require_manifest_value_matching() {
 }
 
 require_manifest_positive_integer() {
-    local manifest=$1 section=$2 key=$3 value
+    local manifest_path=$1 section=$2 key=$3 value
     value=$(require_manifest_value_matching \
-        "$manifest" "$section" "$key" '^[1-9][0-9]*$' 'a positive integer') || return 1
+        "$manifest_path" "$section" "$key" '^[1-9][0-9]*$' 'a positive integer') || return 1
     printf '%s\n' "$value"
 }
