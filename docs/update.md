@@ -79,8 +79,9 @@ non il nome del file.
 Prima di modificare MagicQ viene simulata l’installazione con download
 disabilitati. Se manca anche una sola dipendenza o APT dovrebbe installare un
 altro pacchetto, l’operazione termina lasciando MagicQ invariato e indica i
-componenti da predisporre. L’installazione reale usa ancora `--no-download`,
-quindi resta offline anche quando la macchina ha una connessione di rete.
+componenti da predisporre. L’installazione reale passa direttamente a `dpkg`
+l’archivio locale verificato, quindi resta offline anche quando la macchina ha
+una connessione di rete e non può modificare altre dipendenze.
 `--scan-only` importa e mostra il candidato senza installarlo; `--reinstall`
 consente di reinstallare intenzionalmente la stessa versione. I downgrade sono
 bloccati.
