@@ -28,7 +28,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y \
-            desktop-file-utils gettext shellcheck
+            desktop-file-utils gettext locales shellcheck
+          sudo locale-gen it_IT.UTF-8 en_US.UTF-8
           pipx install ruff==0.12.10
 
       - name: Verify installer and management tools
