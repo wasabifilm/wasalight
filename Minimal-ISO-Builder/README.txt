@@ -55,7 +55,8 @@ Entrambe includono:
 - esclusione del supporto USB di installazione, anche nel doppio avvio NETBOOT;
 - conferma distruttiva digitando esattamente CANCELLA;
 - GPT ibrida con BIOS GRUB, EFI, /boot, LVM, root al 50% e /data sul resto;
-- scelta della tastiera e password chamsys durante l'installazione;
+- scelta della tastiera, del fuso orario e della password chamsys durante
+  l'installazione;
 - SSH inizialmente disabilitato;
 - UI Wasalight alimentata dagli eventi Subiquity/curtin su Ctrl+Alt+F2;
 - log tecnici su Ctrl+Alt+F1.
@@ -64,6 +65,9 @@ In caso di errore l'hash della password viene oscurato prima di mostrare
 autoinstall.yaml. Premendo INVIO viene aperta una shell con controlling terminal
 sulla console 3. Il firmware usato (BIOS oppure UEFI) viene rilevato durante la
 scelta del disco e Curtin riceve il dispositivo GRUB appropriato.
+Il fuso orario predefinito e' Europe/Rome; il menu propone anche le principali
+zone europee, UTC e l'inserimento manuale di un identificatore IANA validato
+contro il database zoneinfo incluso nell'ambiente di installazione.
 
 MAGICQ E SICUREZZA
 ------------------

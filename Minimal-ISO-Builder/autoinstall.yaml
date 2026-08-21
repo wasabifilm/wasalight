@@ -2,6 +2,7 @@
 autoinstall:
   version: 1
   locale: en_US.UTF-8
+  timezone: "__WASALIGHT_TIMEZONE__"
   keyboard:
     layout: "__WASALIGHT_KEYBOARD_LAYOUT__"
     variant: "__WASALIGHT_KEYBOARD_VARIANT__"
