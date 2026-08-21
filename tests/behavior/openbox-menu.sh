@@ -39,5 +39,5 @@ grep -Fq 'label="Update Wasalight"' "$english_menu" || \
 grep -Fq 'label="Power off"' "$english_menu" || \
     fail "il menu inglese non traduce lo spegnimento"
 
-[[ $(stat -f '%Lp' "$english_menu" 2>/dev/null || stat -c '%a' "$english_menu") == 644 ]] || \
+[[ $(stat -c '%a' "$english_menu" 2>/dev/null || stat -f '%Lp' "$english_menu") == 644 ]] || \
     fail "il menu generato non ha permessi 0644"
