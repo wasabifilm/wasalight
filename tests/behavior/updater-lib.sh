@@ -71,6 +71,15 @@ update_state_write "$state_file" running installing 2026.08.20.1 \
 # back to the BSD/macOS spelling used by local development machines.
 state_mode=$(stat -c '%a' "$state_file" 2>/dev/null || stat -f '%Lp' "$state_file")
 [[ $state_mode == 640 ]] || fail "lo stato transazionale non usa permessi 0640"
+(
+    readonly state_file=/data/system/update-state
+    readonly_collision_file="$tmp_dir/readonly-collision-state"
+    WASALIGHT_UPDATE_STATE_OWNER="$(id -un):$(id -gn)" \
+    update_state_write "$readonly_collision_file" running verified 2026.08.20.1 \
+        0123456789012345678901234567890123456789 '' \
+        2026-08-20T10:00:00+02:00 debug /data/system/wasalight.candidate
+    [[ $(update_state_value "$readonly_collision_file" phase) == verified ]]
+) || fail "le funzioni di stato collidono con la variabile readonly dell’updater"
 WASALIGHT_UPDATE_STATE_OWNER="$(id -un):$(id -gn)" \
 update_state_write "$state_file" complete complete 2026.08.20.1 \
     0123456789012345678901234567890123456789 /data/snapshot.tar.zst \

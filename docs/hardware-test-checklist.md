@@ -3,6 +3,13 @@
 Eseguire questi controlli su una macchina di prova prima dell’impiego durante
 uno spettacolo.
 
+## Esiti registrati
+
+- [x] 2026-08-20 — La fase 2 dell’updater transazionale è stata installata
+      sulla VM UTM senza problemi apparenti. Questo esito conferma
+      l’installazione iniziale, ma non sostituisce le prove di interruzione,
+      ripresa, rollback e idempotenza elencate più avanti.
+
 ## Avvio e protezione
 
 - [ ] `wasalight-status`, il pannello desktop e `/etc/wasalight/version` mostrano
@@ -36,6 +43,20 @@ uno spettacolo.
 
 - [ ] Senza MagicQ installato e senza `.deb`, l’installer si ferma mostrando
       `--allow-missing-magicq`; ripetendo con l’opzione prosegue consapevolmente.
+- [ ] Durante la prima configurazione, se MagicQ non è installato, Wasalight
+      propone esplicitamente **Installa MagicQ** oppure **Continua senza
+      MagicQ** e spiega dove collocare il pacchetto proprietario.
+- [ ] Se si continua senza MagicQ, sul desktop compare un grande pulsante touch
+      **Installa MagicQ**; dopo un’installazione riuscita viene sostituito dal
+      normale collegamento **MagicQ** e non resta un promemoria obsoleto.
+- [ ] Il flusso dedicato **Installa/Aggiorna MagicQ** cerca il `.deb` in
+      `/data/system/packages`, nella root e in `packages/` di tutte le USB,
+      installa soltanto MagicQ e non avvia un aggiornamento Wasalight completo.
+- [ ] Installazione iniziale e aggiornamento del solo MagicQ funzionano senza
+      Internet: nessun clone, fetch, `apt update` o download; vengono usati
+      esclusivamente il `.deb` locale e le dipendenze già predisposte da
+      Wasalight. Se manca una dipendenza, l’operazione si ferma prima di
+      modificare MagicQ e indica chiaramente il pacchetto mancante.
 - [ ] `./install.sh -help` e `wasalight-update -help` mostrano tutte le opzioni.
 - [ ] La versione nella riga `MAGICQ` del pannello e di `wasalight-status`
       coincide con `dpkg-query -W -f='${Version}\n' magicq` (per esempio
@@ -63,9 +84,10 @@ uno spettacolo.
       prima dell’installazione Wasalight e un solo `autoremove --purge` finale.
 - [ ] Ripetendo l’update della stessa versione/commit compare **sistema già
       aggiornato** senza snapshot, APT, installer o richiesta di riavvio.
-- [ ] `wasalight-update --plan` mostra versione, commit, MagicQ, snapshot e
+- [x] `wasalight-update --plan` mostra versione, commit, MagicQ, snapshot e
       modalità prevista senza modificare `/data`, configurazione, pacchetti USB,
-      canale o checkout; `tests/utm/verify-update-plan.sh` termina con `PASS`.
+      canale o checkout; `tests/utm/verify-update-plan.sh` termina con `PASS`
+      (verificato in UTM il 2026-08-20 sulla versione `2026.08.20.2`).
 - [ ] `wasalight-update --channel debug` segue `main`, salva `debug` soltanto a
       esito positivo e il pannello mostra `CHANNEL DEBUG`.
 - [ ] Senza una chiave reale in `/etc/wasalight/update-signers`, il canale
@@ -132,6 +154,19 @@ uno spettacolo.
       grande, facilmente premibile al touch e diventa rosso quando evidenziato.
 - [ ] Wasalight Control mostra Stato, MagicQ, Servizi, Applicazioni,
       Supporto, Plugin e Crediti con pulsanti grandi e lascia Tint2 visibile.
+- [ ] Il selettore lingua esistente governa l’intera sessione Wasalight usando
+      la sola preferenza persistente `/data/system/control/language`; `auto`
+      segue la locale, mentre `it` ed `en` si applicano al successivo accesso.
+- [ ] In italiano e inglese sono tradotti pagine Control, plugin, nomi e
+      descrizioni sotto le icone, menu Openbox, tooltip, dialoghi, pulsanti,
+      strumenti autonomi, messaggi d’errore e testi dell’updater; non restano
+      stringhe dell’altra lingua nelle normali operazioni dell’utente.
+- [ ] I launcher usano `Name`/`Comment` localizzati secondo lo standard
+      `.desktop`; le icone non contengono testo traducibile e mantengono lo
+      stesso simbolo in ogni lingua, con etichetta e descrizione localizzate.
+- [ ] I controlli qualità validano i domini gettext `wasalight-control` e
+      `wasalight-system`, i campi localizzati di launcher e manifest e segnalano
+      nuovi testi utente non inseriti nei cataloghi.
 - [ ] MagicQ e Servizi condividono intestazione, griglia a tre colonne e schede
       uniformi; testi, toggle e azioni restano allineati.
 - [ ] File, Scanner IP e Art-Net Monitor compaiono in Applicazioni e non in
@@ -266,6 +301,9 @@ uno spettacolo.
 - [ ] Con un `.deb` MagicQ più recente nella root della USB, **Update
       Wasalight** lo valida, lo copia in `/data/system/packages` e lo installa.
 - [ ] La stessa prova riesce collocando il file in `packages/` sulla USB.
+- [ ] Con la rete scollegata, il pulsante desktop **Installa MagicQ** installa
+      un `.deb` valido dalla USB; ripetendo la prova con una versione successiva
+      esegue soltanto l’aggiornamento MagicQ e conserva show e configurazioni.
 - [ ] Il `.deb` originale resta invariato sulla chiavetta dopo l’aggiornamento.
 - [ ] Un pacchetto non `magicq`, non `amd64` o precedente viene ignorato e due
       file della stessa versione con contenuto diverso bloccano l’operazione.
