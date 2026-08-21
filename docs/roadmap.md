@@ -204,10 +204,12 @@ stessi percorsi di ricerca e preservazione del pacchetto.
       applicazione alla sessione implementata, ancora da collaudare in UTM.
 - [~] Supportare italiano, inglese e modalità automatica per tutta la sessione;
       ambiente Openbox implementato, ancora da verificare dopo un nuovo login.
-- [ ] Conservare `wasalight-control` per la GUI e introdurre il dominio gettext
-      `wasalight-system` per script, updater, dialoghi e strumenti.
+- [~] Conservare `wasalight-control` per la GUI e introdurre il dominio gettext
+      `wasalight-system`; infrastruttura e dialoghi alimentazione completati,
+      migrazione degli altri strumenti in corso.
 - [ ] Tradurre menu Openbox, tooltip, conferme, errori e testi dell’updater.
-- [ ] Usare campi standard `Name[it]` e `Comment[it]` nei launcher `.desktop`.
+- [~] Usare campi standard `Name[it]` e `Comment[it]` nei launcher `.desktop`;
+      icone di spegnimento e riavvio completate, altri launcher in corso.
 - [ ] Aggiungere campi localizzati ai manifest dei plugin.
 - [ ] Eliminare testo traducibile incorporato nelle icone.
 - [ ] Estendere i controlli qualità per rilevare stringhe utente non catalogate.

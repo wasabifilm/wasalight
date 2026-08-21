@@ -2,28 +2,32 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
+. /usr/local/libexec/wasalight-i18n
 
 action=${1:-}
 case "$action" in
     poweroff)
-        title="Spegni Wasalight"
-        question="Spegnere completamente la postazione?"
-        confirm="Spegni"
+        title=$( _ "Power off Wasalight" )
+        question=$( _ "Shut down the workstation completely?" )
+        confirm=$( _ "Power off" )
         icon=/usr/local/share/icons/wasalight/power.svg
         ;;
     reboot)
-        title="Riavvia Wasalight"
-        question="Riavviare adesso la postazione?"
-        confirm="Riavvia"
+        title=$( _ "Restart Wasalight" )
+        question=$( _ "Restart the workstation now?" )
+        confirm=$( _ "Restart" )
         icon=/usr/local/share/icons/wasalight/reboot.svg
         ;;
     *)
-        echo "Usage: wasalight-power poweroff|reboot" >&2
+        _ "Usage: wasalight-power poweroff|reboot" >&2
+        printf '\n' >&2
         exit 2
         ;;
 esac
 
+detail=$( _ "Shows saved in /data will remain persistent." )
+cancel=$( _ "Cancel" )
 /usr/local/bin/wasalight-dialog --question --icon="$icon" --width=460 --title="$title" \
-    --text="<big><b>$question</b></big>\n\nGli show salvati in /data resteranno persistenti." \
-    --ok-label="$confirm" --cancel-label="Annulla" || exit 0
+    --text="<big><b>$question</b></big>\n\n$detail" \
+    --ok-label="$confirm" --cancel-label="$cancel" || exit 0
 sudo -n /usr/local/sbin/wasalight-power-control "$action"

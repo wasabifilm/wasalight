@@ -7,10 +7,26 @@ bash -n "$system_audit"
 session_language="$INSTALLER_TEMPLATE_ROOT/usr/local/libexec/wasalight-session-language"
 [[ -s $session_language ]] || fail "helper lingua della sessione mancante"
 sh -n "$session_language"
+i18n_helper="$INSTALLER_TEMPLATE_ROOT/usr/local/libexec/wasalight-i18n"
+[[ -s $i18n_helper ]] || fail "helper gettext di sistema mancante"
+bash -n "$i18n_helper"
+grep -Fq '. /usr/local/libexec/wasalight-i18n' \
+    "$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-power" || \
+    fail "i dialoghi di alimentazione non usano il dominio gettext di sistema"
 grep -Fq '. /usr/local/libexec/wasalight-session-language' "$INSTALLER" || \
     fail "la sessione grafica non applica la preferenza lingua persistente"
 grep -Fq 'locale-gen en_US.UTF-8 it_IT.UTF-8' "$INSTALLER" || \
     fail "l'installer non genera entrambe le locale supportate"
+for localized_desktop_field in \
+    'Name=Power off' 'Name[it]=Spegni' \
+    'Comment=Shut down the workstation after confirmation' \
+    'Comment[it]=Spegne la postazione dopo una conferma' \
+    'Name=Restart' 'Name[it]=Riavvia' \
+    'Comment=Restart the workstation after confirmation' \
+    'Comment[it]=Riavvia la postazione dopo una conferma'; do
+    grep -Fq "$localized_desktop_field" "$INSTALLER" || \
+        fail "campo desktop localizzato mancante: $localized_desktop_field"
+done
 grep -Fq 'wasalight-system-audit' "$PROJECT_DIR/installer/modules/70-management.sh" || \
     fail "l'installer non installa l'audit di sistema"
 grep -Fq 'audit) command_to_run=/usr/local/bin/wasalight-system-audit' \

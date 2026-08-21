@@ -208,10 +208,12 @@ grep -Fq '/usr/local/share/wasalight-control/themes/console-dark.ini' "$INSTALLE
 grep -Fq 'wasalight_control/pages/' "$INSTALLER" || \
     fail "l'installer non installa i moduli pagina di Wasalight Control"
 for locale in en it; do
-    catalog="$PROJECT_DIR/ui/locale/$locale/LC_MESSAGES/wasalight-control.po"
-    [[ -s $catalog ]] || fail "catalogo Control mancante: $locale"
-    grep -Fq "Language: $locale" "$catalog" || \
-        fail "catalogo Control privo della lingua dichiarata: $locale"
+    for domain in wasalight-control wasalight-system; do
+        catalog="$PROJECT_DIR/ui/locale/$locale/LC_MESSAGES/$domain.po"
+        [[ -s $catalog ]] || fail "catalogo $domain mancante: $locale"
+        grep -Fq "Language: $locale" "$catalog" || \
+            fail "catalogo $domain privo della lingua dichiarata: $locale"
+    done
 done
 grep -Fq 'control_language_file: str = "/data/system/control/language"' \
     "$control_core/models.py" || fail "la lingua Control non è persistente su /data"

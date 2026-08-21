@@ -1,0 +1,38 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Wasalight System\n"
+"PO-Revision-Date: 2026-08-21 00:00+0200\n"
+"Last-Translator: Michele Moser\n"
+"Language-Team: Italian\n"
+"Language: it\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Power off Wasalight"
+msgstr "Spegni Wasalight"
+
+msgid "Shut down the workstation completely?"
+msgstr "Spegnere completamente la postazione?"
+
+msgid "Power off"
+msgstr "Spegni"
+
+msgid "Restart Wasalight"
+msgstr "Riavvia Wasalight"
+
+msgid "Restart the workstation now?"
+msgstr "Riavviare adesso la postazione?"
+
+msgid "Restart"
+msgstr "Riavvia"
+
+msgid "Usage: wasalight-power poweroff|reboot"
+msgstr "Uso: wasalight-power poweroff|reboot"
+
+msgid "Shows saved in /data will remain persistent."
+msgstr "Gli show salvati in /data resteranno persistenti."
+
+msgid "Cancel"
+msgstr "Annulla"

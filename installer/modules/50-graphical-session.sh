@@ -9,6 +9,7 @@ configure_graphical_session() {
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0755 \
         "$TARGET_HOME/.config/wasalight/dock"
     install_template /usr/local/bin/wasalight-dialog 0755
+    install_template /usr/local/libexec/wasalight-i18n 0644
     install_template /usr/local/libexec/wasalight-session-language 0644
 
     install_template /etc/X11/Xwrapper.config 0644
@@ -171,8 +172,10 @@ EOF
     write_file "$TARGET_HOME/Desktop/Power-Off.desktop" 0755 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Spegni
-Comment=Spegne la postazione dopo una conferma
+Name=Power off
+Name[it]=Spegni
+Comment=Shut down the workstation after confirmation
+Comment[it]=Spegne la postazione dopo una conferma
 Exec=/usr/local/bin/wasalight-power poweroff
 Icon=/usr/local/share/icons/wasalight/power.svg
 Terminal=false
@@ -182,8 +185,10 @@ EOF
     write_file "$TARGET_HOME/Desktop/Reboot.desktop" 0755 <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Riavvia
-Comment=Riavvia la postazione dopo una conferma
+Name=Restart
+Name[it]=Riavvia
+Comment=Restart the workstation after confirmation
+Comment[it]=Riavvia la postazione dopo una conferma
 Exec=/usr/local/bin/wasalight-power reboot
 Icon=/usr/local/share/icons/wasalight/reboot.svg
 Terminal=false

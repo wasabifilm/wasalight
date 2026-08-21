@@ -349,6 +349,7 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-artnet-monitor
     bash -n /usr/local/sbin/wasalight-app-register
     bash -n /usr/local/bin/wasalight-control
+    bash -n /usr/local/libexec/wasalight-i18n
     sh -n /usr/local/libexec/wasalight-session-language
     locale -a | grep -Fqx 'en_US.utf8'
     locale -a | grep -Fqx 'it_IT.utf8'
@@ -360,6 +361,8 @@ final_checks() {
         /usr/local/libexec/wasalight_control/pages/*.py
     test -s /usr/local/share/locale/it/LC_MESSAGES/wasalight-control.mo
     test -s /usr/local/share/locale/en/LC_MESSAGES/wasalight-control.mo
+    test -s /usr/local/share/locale/it/LC_MESSAGES/wasalight-system.mo
+    test -s /usr/local/share/locale/en/LC_MESSAGES/wasalight-system.mo
     WASALIGHT_VERSION_OVERRIDE="$PROJECT_VERSION" /usr/local/bin/wasalight-plugin doctor
     if [[ -d /opt/companion ]]; then
         bash -n /usr/local/bin/wasalight-companion-version
