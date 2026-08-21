@@ -2,29 +2,30 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
+. /usr/local/libexec/wasalight-i18n
 [[ $(id -un) == chamsys ]] || {
     echo "Run the Companion browser as the chamsys desktop user." >&2
     exit 1
 }
 command -v falkon >/dev/null 2>&1 || {
     /usr/local/bin/wasalight-dialog --error --title="Companion Web UI" \
-        --text="Falkon is not installed. Run Wasalight update again." 2>/dev/null
+        --text="$( _ "Falkon is not installed. Run Wasalight update again." )" 2>/dev/null
     exit 1
 }
 [[ -d /opt/companion ]] || {
     /usr/local/bin/wasalight-dialog --error --title="Companion Web UI" \
-        --text="Bitfocus Companion is not installed." 2>/dev/null
+        --text="$( _ "Bitfocus Companion is not installed." )" 2>/dev/null
     exit 1
 }
 
 if ! systemctl is-active --quiet companion.service; then
     /usr/local/bin/wasalight-dialog --question \
         --icon=/usr/local/share/icons/wasalight/companion.svg --width=520 --title="Companion Web UI" \
-        --text="Bitfocus Companion is stopped. Start it for this session?" \
+        --text="$( _ "Bitfocus Companion is stopped. Start it for this session?" )" \
         2>/dev/null || exit 0
     sudo -n /usr/local/sbin/wasalight-companion-control start || {
         /usr/local/bin/wasalight-dialog --error --title="Companion Web UI" \
-            --text="Unable to start Bitfocus Companion." 2>/dev/null
+            --text="$( _ "Unable to start Bitfocus Companion." )" 2>/dev/null
         exit 1
     }
 fi
@@ -40,7 +41,7 @@ for _ in {1..30}; do
 done
 ((ready)) || {
     /usr/local/bin/wasalight-dialog --error --width=560 --title="Companion Web UI" \
-        --text="Companion is running but its web interface did not respond on $url." \
+        --text="$(printf "$(_ 'Companion is running but its web interface did not respond on %s.')" "$url")" \
         2>/dev/null
     exit 1
 }

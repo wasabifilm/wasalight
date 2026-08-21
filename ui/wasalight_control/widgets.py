@@ -128,12 +128,12 @@ def plugin_card(item, *, management, change_state, install, run_action,
     title = Gtk.Label()
     title.set_xalign(0)
     title.set_line_wrap(True)
-    shown_state = _(item["state_label"]) if item["installed"] else _("Not installed")
+    shown_state = item["state_label"] if item["installed"] else _("Not installed")
     if item["installed"] and not item["compatible"]:
         shown_state = _("Requires Wasalight {version}").format(
             version=item["minimum_wasalight"])
     title.set_markup(
-        f"<span size='13000' weight='bold'>{GLib.markup_escape_text(_(item['name']))}</span>")
+        f"<span size='13000' weight='bold'>{GLib.markup_escape_text(item['name'])}</span>")
     state = Gtk.Label(label=f"●  {shown_state}")
     state.set_xalign(0)
     state.get_style_context().add_class("status-pill")
@@ -153,7 +153,7 @@ def plugin_card(item, *, management, change_state, install, run_action,
         heading_text.pack_start(endpoint, False, False, 0)
     heading.pack_start(heading_text, True, True, 0)
     box.pack_start(heading, False, False, 0)
-    description = Gtk.Label(label=_(item["description"]))
+    description = Gtk.Label(label=item["description"])
     description.set_xalign(0)
     description.set_line_wrap(True)
     box.pack_start(description, True, True, 0)
@@ -202,7 +202,7 @@ def plugin_card(item, *, management, change_state, install, run_action,
             for action in item["actions"]:
                 if not action["management"]:
                     continue
-                button = Gtk.Button(label=_(action["label"]))
+                button = Gtk.Button(label=action["label"])
                 button.set_sensitive(action["available"])
                 button.connect("clicked", run_action, item, action)
                 add_action(button)
@@ -212,11 +212,11 @@ def plugin_card(item, *, management, change_state, install, run_action,
             switch.set_active(control["checked"])
             switch.set_sensitive(control["available"])
             switch.connect("state-set", control_changed, item, control)
-            add_action(toggle_row(_(control["label"]), switch), True)
+            add_action(toggle_row(control["label"], switch), True)
         for action in item["actions"]:
             if action["management"] or action.get("control"):
                 continue
-            button = Gtk.Button(label=_(action["label"]))
+            button = Gtk.Button(label=action["label"])
             button.get_style_context().add_class("secondary-button")
             button.set_sensitive(action["available"])
             button.connect("clicked", run_action, item, action)

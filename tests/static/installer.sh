@@ -63,7 +63,7 @@ magicq_installer="$INSTALLER_TEMPLATE_ROOT/usr/local/sbin/wasalight-magicq-insta
 magicq_installer_ui="$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-magicq-install-ui"
 [[ -x $magicq_installer ]] || fail "installer MagicQ offline mancante o non eseguibile"
 bash -n "$magicq_installer" "$magicq_installer_ui"
-grep -Fq 'wasalight_acquire_operation_lock "installazione MagicQ"' "$magicq_installer" || \
+grep -Fq 'wasalight_acquire_operation_lock "MagicQ installation"' "$magicq_installer" || \
     fail "l'installer MagicQ offline non usa il lock globale"
 grep -Fq 'apt-get --simulate --no-download install' "$magicq_installer" || \
     fail "l'installer MagicQ non verifica offline le dipendenze prima di modificare il sistema"
@@ -87,9 +87,9 @@ grep -Fq 'pkexec /usr/local/sbin/wasalight-rollback restore' "$rollback_ui" || \
     fail "l’interfaccia rollback non richiede autenticazione amministrativa"
 grep -Fq 'pkexec /usr/local/sbin/wasalight-rollback delete' "$rollback_ui" || \
     fail "l’interfaccia rollback non protegge l’eliminazione con autenticazione"
-grep -Fq 'Elimina definitivamente' "$rollback_ui" || \
+grep -Fq '_ "Delete permanently"' "$rollback_ui" || \
     fail "l’interfaccia rollback elimina snapshot senza seconda conferma"
-delete_branch_line=$(grep -n "^if \[\[ \$action == 'Elimina snapshot' \]\]; then$" \
+delete_branch_line=$(grep -n '^if \[\[ \$action == "$( _ "Delete snapshot" )" \]\]; then$' \
     "$rollback_ui" | cut -d: -f1)
 integrity_block_line=$(grep -n '^if \[\[ \$integrity != OK \]\]; then$' \
     "$rollback_ui" | cut -d: -f1)

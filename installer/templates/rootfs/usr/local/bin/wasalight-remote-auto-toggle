@@ -2,6 +2,7 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
+. /usr/local/libexec/wasalight-i18n
 [[ $(id -un) == chamsys ]] || { echo "Run as the chamsys desktop user." >&2; exit 1; }
 service=${1:-}
 case $service in
@@ -14,15 +15,15 @@ current=disabled
 [[ -r $flag ]] && current=$(<"$flag")
 if [[ $current == enabled ]]; then
     next=disable
-    question="Disabilitare l'avvio automatico di $title?\n\nIl servizio corrente non verrà fermato."
-    button="Disabilita automatico"
+    question=$(printf "$(_ 'Disable automatic startup for %s?\n\nThe running service will not be stopped.')" "$title")
+    button=$( _ "Disable automatic startup" )
 else
     next=enable
-    question="Abilitare l'avvio automatico di $title dopo ogni riavvio?"
-    button="Abilita automatico"
+    question=$(printf "$(_ 'Enable automatic startup for %s after every reboot?')" "$title")
+    button=$( _ "Enable automatic startup" )
 fi
 /usr/local/bin/wasalight-dialog --question --icon="$icon" --width=520 --title="$title · Wasalight" \
-    --text="<big><b>$question</b></big>" --ok-label="$button" --cancel-label="Annulla" || exit 0
+    --text="<big><b>$question</b></big>" --ok-label="$button" --cancel-label="$( _ "Cancel" )" || exit 0
 output=$(sudo -n /usr/local/sbin/wasalight-remote-persistence "$service" "$next" 2>&1) || {
     /usr/local/bin/wasalight-dialog --error --width=540 --title="$title · Wasalight" --text="$output"
     exit 1

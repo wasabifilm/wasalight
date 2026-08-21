@@ -2,6 +2,7 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
+. /usr/local/libexec/wasalight-i18n
 
 [[ $(id -un) == chamsys ]] || {
     echo "Run as the chamsys desktop user." >&2
@@ -11,9 +12,9 @@ set -Eeuo pipefail
 command -v i3lock >/dev/null 2>&1 || { echo "i3lock is unavailable." >&2; exit 1; }
 
 /usr/local/bin/wasalight-dialog --question --icon=system-lock-screen --width=560 \
-    --title="Blocca schermo · Wasalight" \
-    --text="<big><b>Bloccare lo schermo adesso?</b></big>\n\nLo sblocco richiede la password Linux di chamsys e una tastiera.\nIl display resterà acceso: sospensione, salvaschermo e DPMS rimangono disattivati." \
-    --ok-label="Blocca" --cancel-label="Annulla" || exit 0
+    --title="$( _ "Lock screen · Wasalight" )" \
+    --text="$( _ '<big><b>Lock the screen now?</b></big>\n\nUnlocking requires the Linux password for chamsys and a keyboard.\nThe display will stay on: suspend, screensaver and DPMS remain disabled.' )" \
+    --ok-label="$( _ "Lock" )" --cancel-label="$( _ "Cancel" )" || exit 0
 
 # The appliance never arms an idle locker. Reassert the no-blanking policy
 # immediately before and after this explicit, foreground-only lock.

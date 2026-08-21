@@ -1,12 +1,23 @@
 #!/usr/bin/env python3
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
+import gettext
+import os
 import subprocess
 import threading
 
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, GLib, Gtk
+
+_ = gettext.translation(
+    "wasalight-system",
+    localedir=os.environ.get("WASALIGHT_LOCALE_DIR", "/usr/local/share/locale"),
+    fallback=True,
+).gettext
+BACKEND_MESSAGES = {
+    "No network interface is connected": _("No network interface is connected"),
+}
 
 
 class Scanner(Gtk.Window):
@@ -19,14 +30,14 @@ class Scanner(Gtk.Window):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         box.set_border_width(16)
         title = Gtk.Label()
-        title.set_markup("<span size='18000' weight='bold'>IP Scanner</span>\n"
-                         "<span size='10000'>Dispositivi raggiungibili nella rete locale</span>")
+        title.set_markup(_("<span size='18000' weight='bold'>IP Scanner</span>\n"
+                           "<span size='10000'>Reachable devices on the local network</span>"))
         title.set_xalign(0)
         box.pack_start(title, False, False, 0)
 
         self.store = Gtk.ListStore(str, str, str, str)
         view = Gtk.TreeView(model=self.store)
-        for index, label in enumerate(("Interfaccia", "Indirizzo IP", "MAC", "Produttore")):
+        for index, label in enumerate((_("Interface"), _("IP address"), "MAC", _("Vendor"))):
             renderer = Gtk.CellRendererText()
             renderer.set_property("ypad", 9)
             column = Gtk.TreeViewColumn(label, renderer, text=index)
@@ -38,12 +49,12 @@ class Scanner(Gtk.Window):
         box.pack_start(scroll, True, True, 0)
 
         controls = Gtk.Box(spacing=10)
-        self.status = Gtk.Label(label="Pronto")
+        self.status = Gtk.Label(label=_("Ready"))
         self.status.set_xalign(0)
-        self.scan_button = Gtk.Button(label="Scansiona rete")
+        self.scan_button = Gtk.Button(label=_("Scan network"))
         self.scan_button.set_size_request(210, 58)
         self.scan_button.connect("clicked", self.start_scan)
-        close = Gtk.Button(label="Chiudi")
+        close = Gtk.Button(label=_("Close"))
         close.set_size_request(150, 58)
         close.connect("clicked", lambda _button: self.destroy())
         controls.pack_start(self.status, True, True, 0)
@@ -55,7 +66,7 @@ class Scanner(Gtk.Window):
 
     def start_scan(self, _button=None):
         self.store.clear()
-        self.status.set_text("Scansione in corso…")
+        self.status.set_text(_("Scanning…"))
         self.scan_button.set_sensitive(False)
         threading.Thread(target=self.scan_worker, daemon=True).start()
 
@@ -73,7 +84,7 @@ class Scanner(Gtk.Window):
                     if len(fields) == 4:
                         rows.append(fields)
             if result.returncode and not message:
-                message = result.stderr.strip() or "Scansione non riuscita"
+                message = result.stderr.strip() or _("Scan failed")
             GLib.idle_add(self.finish_scan, rows, message)
         except Exception as error:
             GLib.idle_add(self.finish_scan, [], str(error))
@@ -81,7 +92,8 @@ class Scanner(Gtk.Window):
     def finish_scan(self, rows, message):
         for row in rows:
             self.store.append(row)
-        self.status.set_text(message or f"{len(rows)} dispositivi trovati")
+        self.status.set_text(BACKEND_MESSAGES.get(message, message) if message else
+                             _("{count} devices found").format(count=len(rows)))
         self.scan_button.set_sensitive(True)
         return False
 

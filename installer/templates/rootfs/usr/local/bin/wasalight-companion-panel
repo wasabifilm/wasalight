@@ -2,33 +2,36 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -u
-state=STOPPED
-systemctl is-active --quiet companion.service && state=RUNNING
+. /usr/local/libexec/wasalight-i18n
+state=$( _ "STOPPED" )
+systemctl is-active --quiet companion.service && state=$( _ "RUNNING" )
 installed=$(/usr/local/bin/wasalight-companion-version 2>/dev/null | head -n1)
 ip_address=$(hostname -I 2>/dev/null | awk '{print $1}')
 url="http://${ip_address:-SERVER_IP}:8000"
 action=$(/usr/local/bin/wasalight-dialog --list --width=720 --height=470 \
     --title="Bitfocus Companion" \
-    --text="<big><b>Bitfocus Companion $installed · $state</b></big>\n\nWeb UI: $url\nMagicQ locale: 127.0.0.1" \
-    --column="Action" --column="Description" \
-    web "Open the local Companion Web UI" \
-    info "Show connection information" \
-    start "Start the Companion service" \
-    stop "Stop the Companion service" \
-    restart "Restart the Companion service" \
-    backup "Create a persistent backup (MAINTENANCE)" \
-    update "Install the Wasalight-approved Companion build (MAINTENANCE)" \
+    --text="$(printf "$(_ '<big><b>Bitfocus Companion %s · %s</b></big>\n\nWeb UI: %s\nLocal MagicQ: 127.0.0.1')" "$installed" "$state" "$url")" \
+    --column="$( _ "Action" )" --column="$( _ "Description" )" \
+    web "$( _ "Open the local Companion Web UI" )" \
+    info "$( _ "Show connection information" )" \
+    start "$( _ "Start the Companion service" )" \
+    stop "$( _ "Stop the Companion service" )" \
+    restart "$( _ "Restart the Companion service" )" \
+    backup "$( _ "Create a persistent backup (MAINTENANCE)" )" \
+    update "$( _ "Install the Wasalight-approved Companion build (MAINTENANCE)" )" \
     2>/dev/null) || exit 0
 case $action in
     web) exec /usr/local/bin/wasalight-companion-browser ;;
     info)
         /usr/local/bin/wasalight-dialog --info --width=560 --title="Bitfocus Companion" \
-            --text="Web interface:\n<b>$url</b>\n\nOpen this address from a Mac, tablet or another computer.\nFor MagicQ on this console use 127.0.0.1." ;;
+            --text="$(printf "$(_ 'Web interface:\n<b>%s</b>\n\nOpen this address from a Mac, tablet or another computer.\nFor MagicQ on this console use 127.0.0.1.')" "$url")" ;;
     start|stop|restart)
         sudo -n /usr/local/sbin/wasalight-companion-control "$action" || \
-            /usr/local/bin/wasalight-dialog --error --text="Companion action failed: $action" ;;
+            /usr/local/bin/wasalight-dialog --error \
+                --text="$(printf "$(_ 'Companion action failed: %s')" "$action")" ;;
     backup)
         sudo -n /usr/local/sbin/wasalight-companion-backup 2>&1 | \
-            /usr/local/bin/wasalight-dialog --text-info --width=720 --height=320 --title="Companion Backup" ;;
+            /usr/local/bin/wasalight-dialog --text-info --width=720 --height=320 \
+                --title="$( _ "Companion Backup" )" ;;
     update) exec /usr/local/bin/wasalight-companion-update-terminal ;;
 esac

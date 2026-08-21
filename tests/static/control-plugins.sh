@@ -215,6 +215,20 @@ for locale in en it; do
             fail "catalogo $domain privo della lingua dichiarata: $locale"
     done
 done
+for manifest in "$PROJECT_DIR"/plugins/*/manifest.ini; do
+    for key in Description ActiveLabel InactiveLabel; do
+        grep -Eq "^${key}=.+$" "$manifest" || \
+            fail "manifest plugin senza testo inglese $key: $manifest"
+        grep -Eq "^${key}\[it\]=.+$" "$manifest" || \
+            fail "manifest plugin senza testo italiano $key: $manifest"
+    done
+    while IFS= read -r key; do
+        grep -Fq "${key}[it]=" "$manifest" || \
+            fail "campo plugin senza variante italiana $key: $manifest"
+    done < <(sed -n 's/^\(Name\|Label\|Confirm\)=.*/\1/p' "$manifest" | sort -u)
+done
+grep -Fq 'def localized(section, key, fallback=""):' "$plugin_command" || \
+    fail "il registro plugin non seleziona i campi localizzati"
 while IFS= read -r desktop_file; do
     grep -Eq '^Name=.+$' "$desktop_file" || \
         fail "launcher senza nome inglese: $desktop_file"
@@ -308,6 +322,7 @@ plugin_json=$(WASALIGHT_PLUGIN_ROOT="$plugin_fixture" \
     WASALIGHT_SERVICE_FLAG_ROOT="$service_flag_fixture" \
     WASALIGHT_PLUGIN_TEST_MODE=maintenance \
     WASALIGHT_VERSION_OVERRIDE="$project_version" \
+    LANGUAGE=it_IT.UTF-8 \
     python3 "$plugin_command" list --json)
 python3 - "$plugin_json" <<'PY' || fail "registro plugin Wasalight non valido"
 import json

@@ -2,21 +2,27 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -u
+. /usr/local/libexec/wasalight-i18n
 clear
 echo "BITFOCUS COMPANION UPDATE"
-echo "Gli aggiornamenti sono consentiti solo in modalità MAINTENANCE."
-echo "Autorizza l’operazione nella finestra grafica con la password di chamsys."
+_ "Updates are allowed only in MAINTENANCE mode."
+echo
+_ "Authorize the operation in the graphical window using the chamsys password."
+echo
 echo
 pkexec /usr/local/sbin/wasalight-companion-update
 rc=$?
 echo
 if ((rc == 0)); then
-    echo "Aggiornamento Companion completato."
+    _ "Companion update completed."
+    echo
 elif ((rc == 126)); then
-    echo "Autenticazione annullata: Companion non è stato modificato."
+    _ "Authentication cancelled: Companion was not modified."
+    echo
 else
-    echo "Aggiornamento Companion non riuscito (codice $rc)."
+    printf "$(_ 'Companion update failed (exit code %s).')\n" "$rc"
 fi
-echo "Premi Invio per chiudere."
+_ "Press Enter to close."
+echo
 read -r _
 exit "$rc"

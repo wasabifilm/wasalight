@@ -54,9 +54,9 @@ dinamici si usano placeholder nominati, ad esempio
 `_("Version {version}").format(version=value)`. I plurali devono usare
 `ngettext`.
 
-I manifest plugin incorporati usano ancora testo italiano. Il catalogo inglese
-ne contiene temporaneamente le traduzioni; i futuri manifest potranno esporre
-campi localizzati senza modificare l’interfaccia GTK.
+I manifest plugin usano inglese nei campi base e varianti `[it]` per i testi
+italiani. Il registro seleziona nome, descrizione, stato, controlli, azioni e
+conferme in base alla lingua della sessione, con fallback sicuro all’inglese.
 
 ## Lingua dell'intera sessione
 
@@ -85,9 +85,9 @@ La localizzazione verrà estesa conservando i formati standard già utilizzati:
    `Comment=` e le varianti standard `Name[it]=` e `Comment[it]=`. Wasalight
    Control seleziona la variante coerente con la propria preferenza; in modalità
    `auto` segue `LANGUAGE`, `LC_ALL`, `LC_MESSAGES` e `LANG`.
-4. **Manifest dei plugin** adotteranno campi localizzati equivalenti, con
-   fallback alla lingua base, eliminando progressivamente le traduzioni
-   temporanee di stringhe italiane dal catalogo inglese.
+4. **Manifest dei plugin** usano campi localizzati equivalenti, con fallback
+   alla lingua base; non dipendono da traduzioni temporanee nel catalogo della
+   GUI.
 
 Le icone grafiche non devono contenere parole e restano quindi indipendenti
 dalla lingua. Vengono invece tradotti il nome mostrato sotto l’icona, la
@@ -112,3 +112,8 @@ inglese tecnico unico. Questo mantiene ricercabili gli errori, rende confrontabi
 i log tra macchine con lingue diverse e non gonfia i cataloghi con stringhe che
 non fanno parte dell'interfaccia. L'updater root segue questa regola; il wrapper
 grafico continua a essere bilingue.
+
+La stessa separazione vale per l’installazione offline di MagicQ e per i
+backend di data/ora e scansione rete: le finestre e le notifiche sono bilingui,
+mentre help da terminale, output dei comandi e dettagli amministrativi sono in
+inglese tecnico.

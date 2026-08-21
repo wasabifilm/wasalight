@@ -2,21 +2,22 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
+. /usr/local/libexec/wasalight-i18n
 
 title='Wasalight · MagicQ'
 if [[ $(findmnt -n -o FSTYPE / 2>/dev/null) == overlay ]]; then
     /usr/local/bin/wasalight-dialog --error \
         --icon=/usr/local/share/icons/wasalight/magicq-install.svg \
         --width=580 --title="$title" \
-        --text="<big><b>Modalità MAINTENANCE richiesta.</b></big>\n\nPassa a MAINTENANCE e riavvia, poi ripeti l’installazione di MagicQ."
+        --text="$( _ '<big><b>MAINTENANCE mode required.</b></big>\n\nSwitch to MAINTENANCE and reboot, then try the MagicQ installation again.' )"
     exit 1
 fi
 
 if ! /usr/local/bin/wasalight-dialog --question \
     --icon=/usr/local/share/icons/wasalight/magicq-install.svg \
     --width=620 --title="$title" \
-    --text="<big><b>Installare o aggiornare MagicQ?</b></big>\n\nInserisci una chiavetta con il pacchetto MagicQ nella root o nella cartella packages. L’operazione funziona senza Internet e non aggiorna Wasalight." \
-    --ok-label="Cerca e installa" --cancel-label="Annulla"; then
+    --text="$( _ '<big><b>Install or update MagicQ?</b></big>\n\nInsert a USB drive containing the MagicQ package in its root or packages folder. This works without Internet and does not update Wasalight.' )" \
+    --ok-label="$( _ "Find and install" )" --cancel-label="$( _ "Cancel" )"; then
     exit 0
 fi
 
@@ -27,7 +28,7 @@ pkexec /usr/local/sbin/wasalight-magicq-install >"$log_file" 2>&1 &
 install_pid=$!
 (
     while kill -0 "$install_pid" 2>/dev/null; do
-        echo "# Ricerca e verifica del pacchetto MagicQ…"
+        printf '# %s\n' "$( _ "Searching for and verifying the MagicQ package…" )"
         sleep 1
     done
 ) | zenity --progress --pulsate --auto-close --no-cancel --modal \
@@ -41,10 +42,10 @@ if ((rc != 0)); then
     /usr/local/bin/wasalight-dialog --error \
         --icon=/usr/local/share/icons/wasalight/magicq-install.svg \
         --width=680 --title="$title" \
-        --text="<big><b>Installazione MagicQ non riuscita.</b></big>\n\n$details"
+        --text="$(printf "$(_ '<big><b>MagicQ installation failed.</b></big>\n\n%s')" "$details")"
     exit "$rc"
 fi
 
 /usr/local/bin/wasalight-dialog --info \
     --icon=/usr/share/pixmaps/magicq.png --width=620 --title="$title" \
-    --text="<big><b>MagicQ è pronto.</b></big>\n\n$details"
+    --text="$(printf "$(_ '<big><b>MagicQ is ready.</b></big>\n\n%s')" "$details")"

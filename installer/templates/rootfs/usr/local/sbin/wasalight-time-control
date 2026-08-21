@@ -13,7 +13,7 @@ Usage:
 EOF
 }
 
-[[ $EUID -eq 0 ]] || { echo "Questo comando richiede privilegi amministrativi." >&2; exit 1; }
+[[ $EUID -eq 0 ]] || { echo "This command requires administrative privileges." >&2; exit 1; }
 (($# >= 1)) || { usage >&2; exit 2; }
 
 sync_clock() {
@@ -24,7 +24,7 @@ sync_clock() {
     sleep 2
     chronyc -a makestep
     timeout 25 chronyc waitsync 25 1 >/dev/null || {
-        echo "Chrony non riesce a sincronizzare l’orologio. Controlla rete e sorgenti NTP." >&2
+        echo "Chrony could not synchronize the clock. Check the network and NTP sources." >&2
         return 1
     }
     hwclock --systohc 2>/dev/null || true
@@ -38,7 +38,7 @@ case $1 in
     timezone)
         (($# == 2)) || { usage >&2; exit 2; }
         timedatectl list-timezones | grep -Fqx -- "$2" || {
-            echo "Fuso orario non valido: $2" >&2
+            echo "Invalid time zone: $2" >&2
             exit 2
         }
         timedatectl set-timezone "$2"
@@ -46,15 +46,15 @@ case $1 in
     manual)
         (($# == 2)) || { usage >&2; exit 2; }
         [[ $2 =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}$ ]] || {
-            echo "Data non valida. Formato richiesto: YYYY-MM-DD HH:MM:SS" >&2
+            echo "Invalid date. Required format: YYYY-MM-DD HH:MM:SS" >&2
             exit 2
         }
         canonical=$(date --date="$2" '+%Y-%m-%d %H:%M:%S') || {
-            echo "Data o ora non valida: $2" >&2
+            echo "Invalid date or time: $2" >&2
             exit 2
         }
         [[ $canonical == "$2" ]] || {
-            echo "Data o ora non valida: $2" >&2
+            echo "Invalid date or time: $2" >&2
             exit 2
         }
         timedatectl set-ntp false

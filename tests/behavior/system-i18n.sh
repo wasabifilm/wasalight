@@ -25,6 +25,14 @@ translated=$(
 [[ $translated == 'Riavviare adesso la postazione?' ]] || \
     fail "il catalogo italiano non viene caricato"
 
+multiline=$(
+    LANG=it_IT.UTF-8 LANGUAGE=it LC_ALL=it_IT.UTF-8 \
+        WASALIGHT_LOCALE_DIR="$tmp_dir" bash -c \
+        '. "$1"; _ "<big><b>MagicQ is ready.</b></big>\n\n%s"' bash "$helper"
+)
+[[ $multiline == '<big><b>MagicQ è pronto.</b></big>\n\n%s' ]] || \
+    fail "le stringhe multilinea dei dialoghi non vengono tradotte"
+
 fallback=$(
     LANG=en_US.UTF-8 LANGUAGE=en LC_ALL=en_US.UTF-8 \
         WASALIGHT_LOCALE_DIR="$tmp_dir" bash -c \

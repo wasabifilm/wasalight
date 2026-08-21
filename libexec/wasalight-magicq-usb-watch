@@ -2,6 +2,7 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -u
+. /usr/local/libexec/wasalight-i18n
 
 [[ $(id -un) == chamsys ]] || exit 1
 state_dir=/data/system/magicq-updates
@@ -31,8 +32,8 @@ while :; do
         mv -f "$state_dir/available.tmp" "$state_dir/available"
         if [[ $notice != "$last" ]]; then
             notify-send --app-name=Wasalight --icon=/usr/share/pixmaps/magicq.png \
-                "Aggiornamento MagicQ su USB" \
-                "Versione $candidate_version disponibile. Installa da Wasalight Control in MAINTENANCE." 2>/dev/null || true
+                "$( _ "MagicQ update on USB" )" \
+                "$(printf "$(_ 'Version %s is available. Install it from Wasalight Control in MAINTENANCE.')" "$candidate_version")" 2>/dev/null || true
         fi
     else
         rm -f "$state_dir/available"
