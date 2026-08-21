@@ -651,6 +651,35 @@ if ((same_release && !explicit_state_change && !magicq_change && !repair && !res
     exit 0
 fi
 
+# Correct large clock drift before creating a snapshot or invoking APT. This
+# matters after hardware clock errors and virtual-machine suspend/resume. The
+# helper comes from the verified candidate so older installations benefit on
+# their first update to this release.
+clock_helper="$candidate_checkout/installer/templates/rootfs/usr/local/sbin/wasalight-time-control"
+if command -v chronyc >/dev/null 2>&1 && [[ -x $clock_helper ]]; then
+    echo "Synchronizing the system clock before package operations…"
+    if timeout 35 "$clock_helper" sync; then
+        echo "System clock synchronized."
+    else
+        echo "WARNING: automatic clock synchronization did not complete." >&2
+    fi
+
+    clock_offset=$(LC_ALL=C chronyc tracking 2>/dev/null | awk '
+        $1 == "System" && $2 == "time" {
+            offset=$4 + 0
+            if (offset < 0) offset=-offset
+            print offset
+            exit
+        }
+    ')
+    if [[ $clock_offset =~ ^[0-9]+([.][0-9]+)?$ ]] && \
+       awk -v offset="$clock_offset" 'BEGIN { exit !(offset > 300) }'; then
+        echo "System clock is still more than five minutes from NTP time." >&2
+        echo "Correct date/time in Wasalight Control before updating." >&2
+        exit 1
+    fi
+fi
+
 transaction_started=$(update_state_value "$state_file" started 2>/dev/null || true)
 [[ -n $transaction_started ]] || transaction_started=$(date --iso-8601=seconds)
 transaction_status=running

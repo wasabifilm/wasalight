@@ -505,6 +505,10 @@ required_install_line=$(grep -n '^        apt_install "${missing_packages\[@\]}"
 grep -Fq 'all required packages are installed; skipping apt metadata refresh' \
     <<<"$install_packages_body" || \
     fail "l'installer aggiorna APT anche quando tutti i pacchetti sono presenti"
+grep -Fq "makestep 1.0 -1" "$INSTALLER" || \
+    fail "Chrony non corregge gli scarti elevati dopo l'avvio iniziale"
+grep -Fq 'configure_time_synchronization' <<<"$install_packages_body" || \
+    fail "l'installer non applica la configurazione persistente dell'orologio"
 [[ $(grep -Fc 'apt-get autoremove --purge -y' "$INSTALLER") == 1 ]] || \
     fail "autoremove deve essere eseguito una sola volta alla fine"
 
@@ -860,6 +864,12 @@ grep -Fq -- '--repair' "$tmp_dir/wasalight-update" || \
 grep -Fq 'same_release && !explicit_state_change && !magicq_change && !repair' \
     "$tmp_dir/wasalight-update" || \
     fail "l'updater non evita una reinstallazione identica"
+grep -Fq 'Synchronizing the system clock before package operations' \
+    "$tmp_dir/wasalight-update" || \
+    fail "l'updater non sincronizza l'orologio prima di APT"
+grep -Fq 'System clock is still more than five minutes from NTP time.' \
+    "$tmp_dir/wasalight-update" || \
+    fail "l'updater non blocca uno scarto NTP ancora pericoloso"
 grep -Fq 'touch /run/wasalight-update-reboot-required' "$tmp_dir/wasalight-update" || \
     fail "l'updater non registra quando serve davvero un riavvio"
 grep -Fq '[[ ! -e /run/wasalight-update-reboot-required ]]' \
