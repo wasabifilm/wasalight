@@ -256,6 +256,27 @@ purge_safe_unused_packages() {
     fi
 }
 
+configure_time_synchronization() {
+    local chrony_config=/etc/chrony/chrony.conf
+
+    # Ubuntu's default permits clock steps only during the first three Chrony
+    # updates. Appliances and virtual machines can resume with a large offset
+    # much later, leaving APT unable to validate repository metadata for hours.
+    if grep -Eq '^[[:space:]]*makestep[[:space:]]+' "$chrony_config"; then
+        sed -Ei \
+            's/^[[:space:]]*makestep[[:space:]].*/makestep 1.0 -1/' \
+            "$chrony_config"
+    else
+        printf '\nmakestep 1.0 -1\n' >>"$chrony_config"
+    fi
+
+    systemctl enable chrony.service
+    systemctl restart chrony.service
+    chronyc -a online >/dev/null 2>&1 || true
+    chronyc -a makestep >/dev/null 2>&1 || \
+        warn "Chrony could not step the clock immediately; it will retry automatically"
+}
+
 install_packages() {
     # Prevent background APT jobs from competing for dpkg while the installer
     # owns package management. PackageKit is deliberately masked only after all
@@ -321,7 +342,8 @@ install_packages() {
     # session without changing Ubuntu's global locale.
     locale-gen en_US.UTF-8 it_IT.UTF-8
 
-    systemctl enable NetworkManager.service chrony.service
+    systemctl enable NetworkManager.service
+    configure_time_synchronization
     # SSH reboot persistence is deliberately stored on /data instead of in
     # systemd's root-filesystem state, which is volatile in protected mode.
     systemctl disable ssh.service 2>/dev/null || true

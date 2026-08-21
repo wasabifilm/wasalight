@@ -138,3 +138,9 @@ anche l’orologio hardware quando il sistema lo consente.
 Uno scarto elevato può far rifiutare i repository Ubuntu con `Release file ...
 is not valid yet`. In quel caso aprire lo strumento e usare **Sincronizza ora**
 prima di rilanciare l’aggiornamento Wasalight.
+
+L’installer imposta inoltre Chrony con `makestep 1.0 -1`: scarti superiori a un
+secondo possono quindi essere corretti anche dopo i primi aggiornamenti NTP,
+caso comune dopo sospensione o ripristino di una macchina virtuale. Prima di
+avviare APT, l’updater richiede comunque una sincronizzazione immediata e blocca
+le modifiche se rimangono più di cinque minuti di differenza.

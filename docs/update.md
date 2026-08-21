@@ -246,11 +246,19 @@ Ad ogni utilizzo il comando:
 4. prepara un checkout candidato separato con timeout e fino a tre tentativi;
 5. verifica fast-forward, commit, `VERSION` e assenza di downgrade;
 6. esegue `tests/verify-project.sh` sul checkout candidato;
-7. mostra il piano e termina subito se release, commit, MagicQ e stato richiesto
+7. sincronizza l’orologio tramite Chrony prima di snapshot e operazioni APT;
+8. mostra il piano e termina subito se release, commit, MagicQ e stato richiesto
    sono già identici;
-8. crea lo snapshot e rilancia l’installer dal candidato soltanto quando serve;
-9. controlla versione, commit, sintassi dell’updater installato e mount `/data`;
-10. attiva atomicamente il checkout soltanto dopo tutti i controlli finali.
+9. crea lo snapshot e rilancia l’installer dal candidato soltanto quando serve;
+10. controlla versione, commit, sintassi dell’updater installato e mount `/data`;
+11. attiva atomicamente il checkout soltanto dopo tutti i controlli finali.
+
+La sincronizzazione avviene dopo `--plan` e dopo il controllo di aggiornamento
+già installato, quindi una semplice simulazione o un no-op non modifica
+l’orologio. Se dopo il tentativo automatico Chrony rileva ancora uno scarto
+superiore a cinque minuti, l’updater termina prima dello snapshot con
+un’indicazione esplicita: questo evita l’errore poco leggibile `Release file ...
+is not valid yet` di APT.
 
 Lo scambio del checkout avviene soltanto dopo test e installazione riuscita. Se l’alimentazione viene
 interrotta nel breve passaggio di rinomina, l’esecuzione successiva recupera
