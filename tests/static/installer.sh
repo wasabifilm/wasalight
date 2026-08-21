@@ -410,7 +410,7 @@ required_patterns=(
     '98-wasalight-early-display.cfg'
     'grep -qxF i915 /etc/initramfs-tools/modules'
     'remote_commit=$(git -C "$candidate_checkout" rev-parse --verify FETCH_HEAD)'
-    'run_with_progress_capture "$snapshot_output" "Creazione snapshot"'
+    'run_with_progress_capture "$snapshot_output" "Creating snapshot"'
     'bash "$snapshot_tool" restore "$snapshot"'
     'SSH:        $ssh'
     'MAINTENANCE mode: automatic MagicQ start skipped'
@@ -781,7 +781,7 @@ grep -Fq '[[ $(dpkg-deb -f "$source" Package 2>/dev/null) == "$magicq_package" ]
     fail "l'updater non verifica che il pacchetto USB sia MagicQ"
 grep -Fq 'dpkg --compare-versions' "$tmp_dir/wasalight-update" || \
     fail "l'updater non confronta le vere versioni Debian di MagicQ"
-grep -Fq 'CONFLITTO: MagicQ $version' "$tmp_dir/wasalight-update-lib.sh" || \
+grep -Fq 'CONFLICT: MagicQ $version' "$tmp_dir/wasalight-update-lib.sh" || \
     fail "l'updater non blocca pacchetti della stessa versione ma differenti"
 if grep -Fq 'find "$package_store" -maxdepth 1 -type f -name '"'"'*.deb'"'"' -print | sort -V' \
     "$tmp_dir/wasalight-update-lib.sh"; then
@@ -835,7 +835,7 @@ grep -Fq -- '--plan' "$tmp_dir/wasalight-update" || \
 grep -Fq 'candidate_checkout=$(mktemp -d /tmp/wasalight-plan.XXXXXX)' \
     "$tmp_dir/wasalight-update" || \
     fail "--plan non usa un checkout temporaneo esterno a /data"
-grep -Fq 'Simulazione: le USB vengono ispezionate solo durante un aggiornamento reale.' \
+grep -Fq 'Simulation: USB drives are inspected only during a real update.' \
     "$tmp_dir/wasalight-update" || \
     fail "--plan può ancora importare pacchetti dalle USB"
 grep -Fq -- '--resume' "$tmp_dir/wasalight-update" || \
@@ -865,11 +865,11 @@ grep -Fq 'touch /run/wasalight-update-reboot-required' "$tmp_dir/wasalight-updat
 grep -Fq '[[ ! -e /run/wasalight-update-reboot-required ]]' \
     "$tmp_dir/wasalight-update-session" || \
     fail "la GUI updater propone un riavvio anche dopo un no-op"
-grep -Fq 'Downgrade bloccato:' "$tmp_dir/wasalight-update" || \
+grep -Fq 'Downgrade blocked:' "$tmp_dir/wasalight-update" || \
     fail "l'updater non blocca downgrade Wasalight"
-grep -Fq 'Release incoerente:' "$tmp_dir/wasalight-update" || \
+grep -Fq 'Inconsistent release:' "$tmp_dir/wasalight-update" || \
     fail "l'updater accetta lo stesso VERSION da commit differenti"
-grep -Fq 'downgrade evitato' "$tmp_dir/wasalight-update" || \
+grep -Fq 'downgrade avoided' "$tmp_dir/wasalight-update" || \
     fail "l'updater può installare un vecchio pacchetto MagicQ persistente"
 grep -Fq '/data/log/wasalight/updates' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non crea un log separato per ogni esecuzione"
@@ -878,7 +878,7 @@ grep -Fq 'tail -n +21' "$tmp_dir/wasalight-update" || \
 grep -Fq '/data/log/wasalight-update.log' \
     "$INSTALLER_TEMPLATE_ROOT/etc/wasalight/wasalight-logrotate.conf" || \
     fail "il log cumulativo updater non viene ruotato"
-grep -Fq 'Comando: %s' "$tmp_dir/wasalight-update" || \
+grep -Fq 'Command: %s' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non riporta il comando che ha causato l'errore"
 grep -Fq -- '--with-companion' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non espone --with-companion"

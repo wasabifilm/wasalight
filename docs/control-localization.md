@@ -79,8 +79,8 @@ La localizzazione verrà estesa conservando i formati standard già utilizzati:
    `wasalight-system`. L'helper comune root-owned `wasalight-i18n` configura il
    catalogo e offre un fallback inglese anche se gettext non è disponibile. I
    dialoghi di spegnimento e riavvio e l'interfaccia guidata dell'updater sono
-   già migrati; il motore root dell'updater mantiene separata la propria
-   migrazione per non mescolare testi e logica transazionale.
+   già migrati. Il motore root emette invece diagnostica tecnica in inglese,
+   secondo la politica descritta sotto.
 3. **Launcher e file `.desktop`** usano inglese nei campi base `Name=` e
    `Comment=` e le varianti standard `Name[it]=` e `Comment[it]=`. Wasalight
    Control seleziona la variante coerente con la propria preferenza; in modalità
@@ -102,3 +102,13 @@ automatica, riaprendo la sessione grafica dopo ogni cambio lingua.
 
 Il menu Openbox non duplica file XML: `wasalight-openbox-menu` lo rigenera in
 modo atomico a ogni login, dopo l'applicazione della lingua di sessione.
+
+## Log e diagnostica tecnica
+
+I testi destinati all'operatore — pulsanti, conferme, errori sintetici e stato
+della procedura guidata — sono localizzati. Log persistenti, tracce dei comandi,
+nomi delle fasi transazionali e diagnostica amministrativa usano invece un
+inglese tecnico unico. Questo mantiene ricercabili gli errori, rende confrontabili
+i log tra macchine con lingue diverse e non gonfia i cataloghi con stringhe che
+non fanno parte dell'interfaccia. L'updater root segue questa regola; il wrapper
+grafico continua a essere bilingue.

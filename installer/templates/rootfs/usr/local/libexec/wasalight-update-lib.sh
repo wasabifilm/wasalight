@@ -13,7 +13,7 @@ git_retry() {
             rc=$?
         fi
         ((attempt == 3)) && break
-        echo "Git non ha risposto (tentativo $attempt/3); nuovo tentativo…" >&2
+        echo "Git did not respond (attempt $attempt/3); retrying…" >&2
         sleep "$attempt"
     done
     return "$rc"
@@ -70,7 +70,7 @@ normalize_update_channel() {
     case $normalized in
         stable|normal|normale) printf '%s\n' stable ;;
         debug|development|sviluppo) printf '%s\n' debug ;;
-        *) echo "Canale aggiornamenti non valido: $1 (usare stable o debug)" >&2; return 2 ;;
+        *) echo "Invalid update channel: $1 (use stable or debug)" >&2; return 2 ;;
     esac
 }
 
@@ -101,7 +101,7 @@ PY
 verify_stable_tag() {
     local repository_dir=$1 tag=$2 signer_file=$3
     [[ -r $signer_file ]] && grep -Eq '^[^#[:space:]].*[[:space:]]ssh-(ed25519|rsa)[[:space:]]' "$signer_file" || {
-        echo "Chiave pubblica release assente: $signer_file" >&2
+        echo "Release public key is missing: $signer_file" >&2
         return 1
     }
     git -C "$repository_dir" \
@@ -118,26 +118,26 @@ update_preflight() {
     local root_free data_free required_command
     for required_command in curl git python3 ssh-keygen timeout dpkg dpkg-deb sha256sum tar; do
         command -v "$required_command" >/dev/null 2>&1 || {
-            echo "Comando necessario non disponibile: $required_command" >&2
+            echo "Required command is unavailable: $required_command" >&2
             return 1
         }
     done
     root_free=$(free_kib /)
     data_free=$(free_kib /data)
     ((root_free >= 262144)) || {
-        echo "Spazio insufficiente su /: servono almeno 256 MiB liberi." >&2
+        echo "Insufficient space on /: at least 256 MiB must be free." >&2
         return 1
     }
     ((data_free >= 131072)) || {
-        echo "Spazio insufficiente su /data: servono almeno 128 MiB liberi." >&2
+        echo "Insufficient space on /data: at least 128 MiB must be free." >&2
         return 1
     }
     if dpkg --audit | grep -q .; then
-        echo "dpkg segnala pacchetti incompleti; correggere APT prima dell'update." >&2
+        echo "dpkg reports incomplete packages; repair APT before updating." >&2
         dpkg --audit >&2
         return 1
     fi
-    echo "Preflight: spazio / $((root_free / 1024)) MiB · /data $((data_free / 1024)) MiB · dpkg OK"
+    echo "Preflight: / free $((root_free / 1024)) MiB · /data free $((data_free / 1024)) MiB · dpkg OK"
 }
 
 magicq_version_of() {
@@ -169,7 +169,7 @@ import_magicq_package() {
 
     [[ -f $source ]] || return 0
     version=$(magicq_version_of "$source") || {
-        echo "Ignoro un file che non è MagicQ amd64 valido: $source" >&2
+        echo "Ignoring a file that is not a valid MagicQ amd64 package: $source" >&2
         return 0
     }
 
@@ -177,11 +177,11 @@ import_magicq_package() {
         stored_version=$(magicq_version_of "$stored") || continue
         if dpkg --compare-versions "$version" eq "$stored_version"; then
             if ! cmp -s -- "$source" "$stored"; then
-                echo "CONFLITTO: MagicQ $version esiste già con contenuto differente: $stored" >&2
+                echo "CONFLICT: MagicQ $version already exists with different content: $stored" >&2
                 return 1
             fi
             ((remove_source)) && rm -f -- "$source"
-            echo "MagicQ $version è già conservato in $stored"
+            echo "MagicQ $version is already stored in $stored"
             return 0
         fi
     done < <(find "$package_store" -maxdepth 1 -type f -name '*.deb' -print0)
@@ -196,7 +196,7 @@ import_magicq_package() {
         baseline=$installed_magicq_version
     fi
     if [[ -n $baseline ]] && dpkg --compare-versions "$version" lt "$baseline"; then
-        echo "Ignoro MagicQ $version da $source: è precedente alla versione $baseline"
+        echo "Ignoring MagicQ $version from $source: it is older than version $baseline"
         ((remove_source)) && rm -f -- "$source"
         return 0
     fi
@@ -205,13 +205,13 @@ import_magicq_package() {
     temporary=$(mktemp "$package_store/.magicq-import.XXXXXX")
     install -o root -g root -m 0640 "$source" "$temporary"
     cmp -s -- "$source" "$temporary" || {
-        echo "Verifica della copia del pacchetto non riuscita: $destination" >&2
+        echo "Package copy verification failed: $destination" >&2
         rm -f -- "$temporary"
         return 1
     }
     mv -f -- "$temporary" "$destination"
     ((remove_source)) && rm -f -- "$source"
-    echo "MagicQ $version importato e conservato in $destination"
+    echo "MagicQ $version imported and stored in $destination"
 }
 
 select_newest_magicq_package() {
@@ -221,7 +221,7 @@ select_newest_magicq_package() {
     [[ -d $package_store ]] || return 0
     while IFS= read -r -d '' stored; do
         version=$(magicq_version_of "$stored") || {
-            echo "Ignoro un pacchetto persistente non valido: $stored" >&2
+            echo "Ignoring an invalid persistent package: $stored" >&2
             continue
         }
         if [[ -z $selected_package ]] || \
@@ -230,7 +230,7 @@ select_newest_magicq_package() {
             selected_package_version=$version
         elif dpkg --compare-versions "$version" eq "$selected_package_version" && \
              ! cmp -s -- "$stored" "$selected_package"; then
-            echo "CONFLITTO: due pacchetti MagicQ $version persistenti hanno contenuto differente." >&2
+            echo "CONFLICT: two persistent MagicQ $version packages have different content." >&2
             return 1
         fi
     done < <(find "$package_store" -maxdepth 1 -type f -name '*.deb' -print0)

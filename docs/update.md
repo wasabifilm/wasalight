@@ -3,6 +3,10 @@
 Wasalight mantiene codice e pacchetti necessari agli aggiornamenti sulla
 partizione persistente `/data`, fuori dall’overlay del sistema.
 
+L'interfaccia guidata segue la lingua selezionata in Wasalight Control. L'output
+del motore root e i log persistenti restano intenzionalmente in inglese tecnico,
+così una stessa diagnosi è ricercabile e confrontabile su tutte le appliance.
+
 Installer, aggiornamento, snapshot, backup e ripristino condividono un lock
 globale basato su `flock`. Se una seconda operazione mutante viene avviata
 mentre la prima è ancora attiva, termina senza modificare dati e mostra
