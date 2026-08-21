@@ -33,16 +33,16 @@ atomic_text_write() {
 }
 
 update_state_value() {
-    local state_file=$1 key=$2
-    [[ -r $state_file ]] || return 1
+    local state_path=$1 key=$2
+    [[ -r $state_path ]] || return 1
     awk -F= -v wanted="$key" '
         $1 == wanted { print substr($0, index($0, "=") + 1); found=1; exit }
         END { if (!found) exit 1 }
-    ' "$state_file"
+    ' "$state_path"
 }
 
 update_state_write() {
-    local state_file=$1 status=$2 phase=$3 version=$4 commit=$5
+    local state_path=$1 status=$2 phase=$3 version=$4 commit=$5
     local snapshot=$6 started=$7 channel=$8 candidate=$9
     local value
     for value in "$status" "$phase" "$version" "$commit" "$snapshot" \
@@ -52,7 +52,7 @@ update_state_write() {
             return 1
         }
     done
-    atomic_text_write "$state_file" \
+    atomic_text_write "$state_path" \
         "status=$status
 phase=$phase
 version=$version
