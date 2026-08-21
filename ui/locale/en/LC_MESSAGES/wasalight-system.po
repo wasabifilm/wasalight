@@ -45,3 +45,135 @@ msgstr "Terminal"
 
 msgid "Update Wasalight"
 msgstr "Update Wasalight"
+
+msgid "--channel requires stable or debug"
+msgstr "--channel requires stable or debug"
+
+msgid "--plugin requires an ID"
+msgstr "--plugin requires an ID"
+
+msgid "An incomplete update is present."
+msgstr "An incomplete update is present."
+
+msgid "Authentication cancelled: Wasalight was not modified."
+msgstr "Authentication cancelled: Wasalight was not modified."
+
+msgid "Authentication was cancelled."
+msgstr "Authentication was cancelled."
+
+msgid "Channel:"
+msgstr "Channel:"
+
+msgid "Check: /data/log/wasalight-update.log"
+msgstr "Check: /data/log/wasalight-update.log"
+
+msgid "Close"
+msgstr "Close"
+
+msgid "Continue"
+msgstr "Continue"
+
+msgid "Download, verify and install the latest version."
+msgstr "Download, verify and install the latest version."
+
+msgid "Later"
+msgstr "Later"
+
+msgid "MagicQ is not installed."
+msgstr "MagicQ is not installed."
+
+msgid "MagicQ not installed"
+msgstr "MagicQ not installed"
+
+msgid "No changes were applied and no reboot is required."
+msgstr "No changes were applied and no reboot is required."
+
+msgid "Only one recovery operation may be requested."
+msgstr "Only one recovery operation may be requested."
+
+msgid "Remember to restart before the next use."
+msgstr "Remember to restart before the next use."
+
+msgid "Restart now"
+msgstr "Restart now"
+
+msgid "Restart now to apply the new configuration?"
+msgstr "Restart now to apply the new configuration?"
+
+msgid "Restarting…"
+msgstr "Restarting…"
+
+msgid "Resume"
+msgstr "Resume"
+
+msgid "Resume the verified transaction now?"
+msgstr "Resume the verified transaction now?"
+
+msgid "Status: %s"
+msgstr "Status: %s"
+
+msgid "The full log remains available with the compact view."
+msgstr "The full log remains available with the compact view."
+
+msgid "The machine will not restart."
+msgstr "The machine will not restart."
+
+msgid "The requested password is the Linux password for chamsys."
+msgstr "The requested password is the Linux password for chamsys."
+
+msgid "The system is already up to date."
+msgstr "The system is already up to date."
+
+msgid "The system is already up to date; no reboot is required."
+msgstr "The system is already up to date; no reboot is required."
+
+msgid "The update will still search for a valid package in /data and on USB drives. If none is found, do you want to update only Wasalight and the other components?"
+msgstr "The update will still search for a valid package in /data and on USB drives. If none is found, do you want to update only Wasalight and the other components?"
+
+msgid "Unknown option"
+msgstr "Unknown option"
+
+msgid "Unknown plugin"
+msgstr "Unknown plugin"
+
+msgid "Unknown update channel"
+msgstr "Unknown update channel"
+
+msgid "Update cancelled"
+msgstr "Update cancelled"
+
+msgid "Update completed successfully."
+msgstr "Update completed successfully."
+
+msgid "Update completed."
+msgstr "Update completed."
+
+msgid "Update failed"
+msgstr "Update failed"
+
+msgid "Update installed."
+msgstr "Update installed."
+
+msgid "Update interrupted"
+msgstr "Update interrupted"
+
+msgid "Update not completed. The machine will not restart."
+msgstr "Update not completed. The machine will not restart."
+
+msgid "Usage: wasalight-update-terminal [--channel stable|debug] [--resume|--repair|--rollback] [--plugin ID]"
+msgstr "Usage: wasalight-update-terminal [--channel stable|debug] [--resume|--repair|--rollback] [--plugin ID]"
+
+msgid "Waiting for authorization…"
+msgstr "Waiting for authorization…"
+
+msgid "Wasalight Update"
+msgstr "Wasalight Update"
+
+msgid "Wasalight updated"
+msgstr "Wasalight updated"
+
+msgid "Wasalight was not modified."
+msgstr "Wasalight was not modified."
+
+msgid "Wasalight was not updated."
+msgstr "Wasalight was not updated."

@@ -808,11 +808,17 @@ grep -Fq 'update_args+=(--resume)' "$tmp_dir/wasalight-update-session" || \
     fail "la sessione Update non propone la ripresa di una transazione interrotta"
 grep -Fq 'pkexec /usr/local/sbin/wasalight-update' "$tmp_dir/wasalight-update-session" || \
     fail "la sessione guidata non usa l'autenticazione grafica Polkit"
-grep -Fq 'In attesa dell’autorizzazione…' "$tmp_dir/wasalight-update-session" || \
+grep -Fq '_ "Waiting for authorization…"' "$tmp_dir/wasalight-update-session" || \
     fail "la sessione guidata non spiega l'attesa della finestra Polkit"
-grep -Fq 'Il log completo resta disponibile anche con la vista compatta.' \
+grep -Fq '_ "The full log remains available with the compact view."' \
     "$tmp_dir/wasalight-update-session" || \
     fail "la sessione guidata non chiarisce che l'output completo viene conservato"
+for localized_update_ui in \
+    "$tmp_dir/wasalight-update-terminal" "$tmp_dir/wasalight-update-session"; do
+    grep -Fq 'WASALIGHT_I18N_HELPER:-/usr/local/libexec/wasalight-i18n' \
+        "$localized_update_ui" || \
+        fail "componente updater privo del dominio gettext: $localized_update_ui"
+done
 if grep -Fq 'sudo /usr/local/sbin/wasalight-update' "$tmp_dir/wasalight-update-session"; then
     fail "la sessione guidata richiede ancora la password nel terminale"
 fi

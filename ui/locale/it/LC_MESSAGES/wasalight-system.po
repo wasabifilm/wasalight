@@ -45,3 +45,135 @@ msgstr "Terminale"
 
 msgid "Update Wasalight"
 msgstr "Aggiorna Wasalight"
+
+msgid "--channel requires stable or debug"
+msgstr "--channel richiede stable o debug"
+
+msgid "--plugin requires an ID"
+msgstr "--plugin richiede un ID"
+
+msgid "An incomplete update is present."
+msgstr "È presente un aggiornamento incompleto."
+
+msgid "Authentication cancelled: Wasalight was not modified."
+msgstr "Autenticazione annullata: Wasalight non è stato modificato."
+
+msgid "Authentication was cancelled."
+msgstr "L’autenticazione è stata annullata."
+
+msgid "Channel:"
+msgstr "Canale:"
+
+msgid "Check: /data/log/wasalight-update.log"
+msgstr "Controlla: /data/log/wasalight-update.log"
+
+msgid "Close"
+msgstr "Chiudi"
+
+msgid "Continue"
+msgstr "Continua"
+
+msgid "Download, verify and install the latest version."
+msgstr "Scarico, verifico e installo l’ultima versione."
+
+msgid "Later"
+msgstr "Più tardi"
+
+msgid "MagicQ is not installed."
+msgstr "MagicQ non è installato."
+
+msgid "MagicQ not installed"
+msgstr "MagicQ non installato"
+
+msgid "No changes were applied and no reboot is required."
+msgstr "Non sono state applicate modifiche e non serve riavviare."
+
+msgid "Only one recovery operation may be requested."
+msgstr "È possibile richiedere una sola operazione di recupero."
+
+msgid "Remember to restart before the next use."
+msgstr "Ricordati di riavviare prima del prossimo utilizzo."
+
+msgid "Restart now"
+msgstr "Riavvia ora"
+
+msgid "Restart now to apply the new configuration?"
+msgstr "Riavviare ora per applicare la nuova configurazione?"
+
+msgid "Restarting…"
+msgstr "Riavvio in corso…"
+
+msgid "Resume"
+msgstr "Riprendi"
+
+msgid "Resume the verified transaction now?"
+msgstr "Riprendere ora la transazione verificata?"
+
+msgid "Status: %s"
+msgstr "Stato: %s"
+
+msgid "The full log remains available with the compact view."
+msgstr "Il log completo resta disponibile anche con la vista compatta."
+
+msgid "The machine will not restart."
+msgstr "La macchina non verrà riavviata."
+
+msgid "The requested password is the Linux password for chamsys."
+msgstr "La password richiesta è quella Linux di chamsys."
+
+msgid "The system is already up to date."
+msgstr "Il sistema è già aggiornato."
+
+msgid "The system is already up to date; no reboot is required."
+msgstr "Il sistema è già aggiornato; nessun riavvio necessario."
+
+msgid "The update will still search for a valid package in /data and on USB drives. If none is found, do you want to update only Wasalight and the other components?"
+msgstr "L’aggiornamento cercherà comunque un pacchetto valido in /data e nelle USB. Se non lo trova, vuoi aggiornare soltanto Wasalight e gli altri componenti?"
+
+msgid "Unknown option"
+msgstr "Opzione sconosciuta"
+
+msgid "Unknown plugin"
+msgstr "Plugin sconosciuto"
+
+msgid "Unknown update channel"
+msgstr "Canale di aggiornamento sconosciuto"
+
+msgid "Update cancelled"
+msgstr "Aggiornamento annullato"
+
+msgid "Update completed successfully."
+msgstr "Aggiornamento completato correttamente."
+
+msgid "Update completed."
+msgstr "Aggiornamento completato."
+
+msgid "Update failed"
+msgstr "Aggiornamento non riuscito"
+
+msgid "Update installed."
+msgstr "Aggiornamento installato."
+
+msgid "Update interrupted"
+msgstr "Aggiornamento interrotto"
+
+msgid "Update not completed. The machine will not restart."
+msgstr "Aggiornamento non completato. La macchina non verrà riavviata."
+
+msgid "Usage: wasalight-update-terminal [--channel stable|debug] [--resume|--repair|--rollback] [--plugin ID]"
+msgstr "Uso: wasalight-update-terminal [--channel stable|debug] [--resume|--repair|--rollback] [--plugin ID]"
+
+msgid "Waiting for authorization…"
+msgstr "In attesa dell’autorizzazione…"
+
+msgid "Wasalight Update"
+msgstr "Aggiornamento Wasalight"
+
+msgid "Wasalight updated"
+msgstr "Wasalight aggiornato"
+
+msgid "Wasalight was not modified."
+msgstr "Wasalight non è stato modificato."
+
+msgid "Wasalight was not updated."
+msgstr "Wasalight non è stato aggiornato."

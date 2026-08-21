@@ -78,7 +78,9 @@ La localizzazione verrà estesa conservando i formati standard già utilizzati:
 2. **Dialoghi, script e utility autonome** usano il dominio gettext separato
    `wasalight-system`. L'helper comune root-owned `wasalight-i18n` configura il
    catalogo e offre un fallback inglese anche se gettext non è disponibile. I
-   dialoghi di spegnimento e riavvio sono i primi strumenti migrati.
+   dialoghi di spegnimento e riavvio e l'interfaccia guidata dell'updater sono
+   già migrati; il motore root dell'updater mantiene separata la propria
+   migrazione per non mescolare testi e logica transazionale.
 3. **Launcher e file `.desktop`** usano inglese nei campi base `Name=` e
    `Comment=` e le varianti standard `Name[it]=` e `Comment[it]=`. Wasalight
    Control seleziona la variante coerente con la propria preferenza; in modalità

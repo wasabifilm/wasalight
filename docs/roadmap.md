@@ -208,7 +208,8 @@ stessi percorsi di ricerca e preservazione del pacchetto.
       `wasalight-system`; infrastruttura e dialoghi alimentazione completati,
       migrazione degli altri strumenti in corso.
 - [~] Tradurre menu Openbox, tooltip, conferme, errori e testi dell’updater;
-      menu e alimentazione completati, altri strumenti in corso.
+      menu, alimentazione e interfaccia guidata updater completati; motore
+      updater e altri strumenti in corso.
 - [x] Usare campi standard `Name[it]` e `Comment[it]` nei launcher `.desktop`.
 - [ ] Aggiungere campi localizzati ai manifest dei plugin.
 - [ ] Eliminare testo traducibile incorporato nelle icone.
