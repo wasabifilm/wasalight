@@ -39,8 +39,10 @@ grep -Fq 'wasalight_acquire_operation_lock "installazione MagicQ"' "$magicq_inst
     fail "l'installer MagicQ offline non usa il lock globale"
 grep -Fq 'apt-get --simulate --no-download install' "$magicq_installer" || \
     fail "l'installer MagicQ non verifica offline le dipendenze prima di modificare il sistema"
-grep -Fq 'apt-get --no-download install -y' "$magicq_installer" || \
+grep -Fq 'apt_arguments=(--no-download install -y)' "$magicq_installer" || \
     fail "l'installer MagicQ può scaricare dipendenze da Internet"
+grep -Fq 'apt_arguments+=(--reinstall)' "$magicq_installer" || \
+    fail "--reinstall non forza una reinstallazione reale del pacchetto MagicQ"
 grep -Fq 'find "$usb_mount/packages" -maxdepth 1' "$magicq_installer" || \
     fail "l'installer MagicQ non cerca nella cartella packages della USB"
 grep -Fq 'pkexec /usr/local/sbin/wasalight-magicq-install' "$magicq_installer_ui" || \

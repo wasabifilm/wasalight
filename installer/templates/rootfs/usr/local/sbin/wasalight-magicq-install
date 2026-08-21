@@ -142,7 +142,9 @@ extra_packages=$(awk '/^Inst / && $2 != "magicq" {print $2}' <<<"$simulation" | 
 }
 
 echo "Verifica dipendenze completata. Installazione offline di MagicQ…"
-DEBIAN_FRONTEND=noninteractive apt-get --no-download install -y "$selected_package"
+apt_arguments=(--no-download install -y)
+((reinstall)) && apt_arguments+=(--reinstall)
+DEBIAN_FRONTEND=noninteractive apt-get "${apt_arguments[@]}" "$selected_package"
 [[ -x /opt/magicq/runmagicq.sh || -x /opt/magicq/bin/mqqt ]] || {
     echo "MagicQ installato, ma gli eseguibili attesi sotto /opt/magicq mancano." >&2
     exit 6
