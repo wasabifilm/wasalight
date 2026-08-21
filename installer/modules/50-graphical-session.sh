@@ -8,12 +8,14 @@ configure_graphical_session() {
     local companion_icon
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0755 \
         "$TARGET_HOME/.config/wasalight/dock"
-install_template /usr/local/bin/wasalight-dialog 0755
+    install_template /usr/local/bin/wasalight-dialog 0755
+    install_template /usr/local/libexec/wasalight-session-language 0644
 
     install_template /etc/X11/Xwrapper.config 0644
 
     write_file "$TARGET_HOME/.xinitrc" 0755 <<'EOF'
 #!/bin/sh
+. /usr/local/libexec/wasalight-session-language
 exec dbus-run-session -- openbox-session
 EOF
 

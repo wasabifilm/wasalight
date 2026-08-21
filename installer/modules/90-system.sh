@@ -349,6 +349,9 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-artnet-monitor
     bash -n /usr/local/sbin/wasalight-app-register
     bash -n /usr/local/bin/wasalight-control
+    sh -n /usr/local/libexec/wasalight-session-language
+    locale -a | grep -Fqx 'en_US.utf8'
+    locale -a | grep -Fqx 'it_IT.utf8'
     python3 -m py_compile \
         /usr/local/bin/wasalight-plugin \
         /usr/local/sbin/wasalight-plugin-admin \

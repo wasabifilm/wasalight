@@ -25,9 +25,9 @@ L’installer inizializza le appliance esistenti e nuove con `it`, preservando l
 lingua storica dell’interfaccia; `auto` rimane una scelta esplicita.
 La variabile `WASALIGHT_CONTROL_LANGUAGE` è riservata a test e diagnostica.
 
-Il selettore grafico verrà esposto nella pagina **Sistema → Lingua**. La nuova
-preferenza sarà applicata al successivo avvio di Control, evitando di dover
-ricostruire a caldo l’intero albero GTK.
+Il selettore grafico è esposto nel menu lingua separato dalle pagine operative.
+La nuova preferenza viene applicata al successivo accesso grafico, evitando di
+dover ricostruire a caldo l'intero desktop e l'albero GTK.
 
 ## Aggiornare i cataloghi
 
@@ -58,13 +58,18 @@ I manifest plugin incorporati usano ancora testo italiano. Il catalogo inglese
 ne contiene temporaneamente le traduzioni; i futuri manifest potranno esporre
 campi localizzati senza modificare l’interfaccia GTK.
 
-## Estensione pianificata all’intero desktop
+## Lingua dell'intera sessione
 
-La preferenza già salvata in `/data/system/control/language` diventerà la fonte
-unica anche per la sessione Wasalight, senza aggiungere un secondo selettore o
-un altro file di configurazione. Al successivo accesso Openbox, `auto` seguirà
-la locale di sistema, mentre `it` ed `en` imposteranno la lingua della sessione
-e di tutti gli strumenti Wasalight.
+La preferenza salvata in `/data/system/control/language` è la fonte unica anche
+per la sessione Wasalight, senza un secondo selettore o un altro file di
+configurazione. `.xinitrc` carica l'helper root-owned
+`/usr/local/libexec/wasalight-session-language` prima di Openbox. `auto`
+conserva la locale ereditata dal sistema; `it` ed `en` impostano `LANG`,
+`LANGUAGE` e `LC_MESSAGES` per il desktop e tutte le applicazioni avviate dalla
+sessione. Valori assenti o non validi tornano in modo sicuro ad `auto`.
+
+L'installer genera esplicitamente `en_US.UTF-8` e `it_IT.UTF-8`, senza cambiare
+la locale globale di Ubuntu.
 
 La localizzazione verrà estesa conservando i formati standard già utilizzati:
 

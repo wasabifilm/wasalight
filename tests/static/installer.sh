@@ -4,6 +4,13 @@
 system_audit="$PROJECT_DIR/libexec/wasalight-system-audit"
 [[ -x $system_audit ]] || fail "audit di sistema mancante o non eseguibile"
 bash -n "$system_audit"
+session_language="$INSTALLER_TEMPLATE_ROOT/usr/local/libexec/wasalight-session-language"
+[[ -s $session_language ]] || fail "helper lingua della sessione mancante"
+sh -n "$session_language"
+grep -Fq '. /usr/local/libexec/wasalight-session-language' "$INSTALLER" || \
+    fail "la sessione grafica non applica la preferenza lingua persistente"
+grep -Fq 'locale-gen en_US.UTF-8 it_IT.UTF-8' "$INSTALLER" || \
+    fail "l'installer non genera entrambe le locale supportate"
 grep -Fq 'wasalight-system-audit' "$PROJECT_DIR/installer/modules/70-management.sh" || \
     fail "l'installer non installa l'audit di sistema"
 grep -Fq 'audit) command_to_run=/usr/local/bin/wasalight-system-audit' \

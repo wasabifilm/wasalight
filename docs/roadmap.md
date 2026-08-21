@@ -200,8 +200,10 @@ stessi percorsi di ricerca e preservazione del pacchetto.
 
 ## Fase 7 — Localizzazione completa
 
-- [ ] Usare `/data/system/control/language` come unica preferenza di lingua.
-- [ ] Supportare italiano, inglese e modalità automatica per tutta la sessione.
+- [~] Usare `/data/system/control/language` come unica preferenza di lingua;
+      applicazione alla sessione implementata, ancora da collaudare in UTM.
+- [~] Supportare italiano, inglese e modalità automatica per tutta la sessione;
+      ambiente Openbox implementato, ancora da verificare dopo un nuovo login.
 - [ ] Conservare `wasalight-control` per la GUI e introdurre il dominio gettext
       `wasalight-system` per script, updater, dialoghi e strumenti.
 - [ ] Tradurre menu Openbox, tooltip, conferme, errori e testi dell’updater.
