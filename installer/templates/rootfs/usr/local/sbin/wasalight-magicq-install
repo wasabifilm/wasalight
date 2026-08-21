@@ -1,0 +1,164 @@
+#!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+set -Eeuo pipefail
+IFS=$'\n\t'
+umask 022
+
+readonly package_store=/data/system/packages
+readonly magicq_log=/data/log/wasalight-magicq-install.log
+readonly manifest=/etc/wasalight/release-manifest.ini
+readonly usb_root=/stick
+scan_only=0
+reinstall=0
+selected_package=
+selected_package_version=
+
+usage() {
+    cat <<'EOF'
+Uso: sudo wasalight-magicq-install [opzioni]
+
+Installa o aggiorna soltanto ChamSys MagicQ usando pacchetti locali. Non usa
+Git, apt update o download da Internet. Cerca i .deb in /data/system/packages,
+nella root e nella cartella packages di tutte le USB montate sotto /stick.
+
+Opzioni:
+  --scan-only   Cerca, importa e mostra il pacchetto selezionato senza installare.
+  --reinstall   Reinstalla anche quando la stessa versione è già presente.
+  -h, --help    Mostra questo aiuto.
+EOF
+}
+
+while (($#)); do
+    case $1 in
+        --scan-only) scan_only=1 ;;
+        --reinstall) reinstall=1 ;;
+        -h|--help) usage; exit 0 ;;
+        *) echo "Opzione sconosciuta: $1" >&2; usage >&2; exit 2 ;;
+    esac
+    shift
+done
+
+[[ $EUID -eq 0 ]] || { echo "Eseguire con sudo o dall’interfaccia Wasalight." >&2; exit 1; }
+[[ -r $manifest ]] || { echo "Manifest Wasalight mancante: $manifest" >&2; exit 1; }
+. /usr/local/libexec/wasalight-release-manifest.sh
+. /usr/local/libexec/wasalight-operation-lock.sh
+magicq_package=$(require_manifest_value "$manifest" MagicQ Package)
+magicq_architecture=$(require_manifest_value "$manifest" MagicQ Architecture)
+. /usr/local/libexec/wasalight-update-lib.sh
+
+wasalight_acquire_operation_lock "installazione MagicQ"
+[[ $(findmnt -n -o FSTYPE / 2>/dev/null) != overlay ]] || {
+    echo "Serve la modalità MAINTENANCE. Passa a MAINTENANCE e riavvia." >&2
+    exit 1
+}
+mountpoint -q /data || { echo "/data non è montata: operazione interrotta." >&2; exit 1; }
+install -d -o root -g root -m 0750 "$package_store"
+install -d -o chamsys -g chamsys -m 0750 /data/log
+touch "$magicq_log"
+chown root:adm "$magicq_log" 2>/dev/null || chown root:root "$magicq_log"
+chmod 0640 "$magicq_log"
+exec > >(tee -a "$magicq_log") 2>&1
+
+echo "Ricerca locale di MagicQ (nessun accesso Internet)."
+# Re-trigger the installed udev rules so a stick inserted before login is also
+# mounted. The service itself rejects non-USB and unsupported devices.
+udevadm trigger --subsystem-match=block --action=add 2>/dev/null || true
+udevadm settle --timeout=10 2>/dev/null || true
+if [[ -x /usr/local/libexec/wasalight-usb-mount ]]; then
+    while IFS=$' \t' read -r device device_type filesystem; do
+        [[ $device_type == part || $device_type == disk ]] || continue
+        [[ -n $filesystem ]] || continue
+        /usr/local/libexec/wasalight-usb-mount "${device##*/}" || true
+    done < <(lsblk -rpno NAME,TYPE,FSTYPE 2>/dev/null)
+fi
+
+find "$package_store" -maxdepth 1 -type f -name '.magicq-import.*' -delete
+while IFS= read -r usb_mount; do
+    [[ -d $usb_mount ]] || continue
+    echo "Controllo USB: $usb_mount"
+    while IFS= read -r -d '' usb_package; do
+        import_magicq_package "$usb_package" 0
+    done < <(find "$usb_mount" -maxdepth 1 -type f -iname '*.deb' -print0 2>/dev/null)
+    if [[ -d $usb_mount/packages ]]; then
+        while IFS= read -r -d '' usb_package; do
+            import_magicq_package "$usb_package" 0
+        done < <(find "$usb_mount/packages" -maxdepth 1 -type f -iname '*.deb' -print0 2>/dev/null)
+    fi
+    while IFS= read -r -d '' apfs_volume; do
+        while IFS= read -r -d '' usb_package; do
+            import_magicq_package "$usb_package" 0
+        done < <(find "$apfs_volume" -maxdepth 1 -type f -iname '*.deb' -print0 2>/dev/null)
+        if [[ -d $apfs_volume/packages ]]; then
+            while IFS= read -r -d '' usb_package; do
+                import_magicq_package "$usb_package" 0
+            done < <(find "$apfs_volume/packages" -maxdepth 1 -type f -iname '*.deb' -print0 2>/dev/null)
+        fi
+    done < <(find "$usb_mount" -mindepth 1 -maxdepth 1 -type d \
+        -name 'fsapfs[0-9]*' -print0 2>/dev/null)
+done < <(findmnt -rn -o TARGET 2>/dev/null | awk '$0 ~ "^/stick/[^/]+$"')
+
+select_newest_magicq_package
+[[ -n $selected_package ]] || {
+    echo "Nessun pacchetto MagicQ amd64 valido trovato." >&2
+    echo "Copia il .deb nella root o in packages/ della chiavetta e riprova." >&2
+    exit 2
+}
+echo "Pacchetto selezionato: MagicQ $selected_package_version"
+echo "Origine persistente: $selected_package"
+((scan_only)) && exit 0
+
+installed_record=$(dpkg-query -W -f='${db:Status-Abbrev}\t${Version}' magicq 2>/dev/null || true)
+installed_version=
+[[ $installed_record == ii*$'\t'* ]] && installed_version=${installed_record#*$'\t'}
+if [[ -n $installed_version ]]; then
+    if dpkg --compare-versions "$selected_package_version" lt "$installed_version"; then
+        echo "Downgrade bloccato: installato $installed_version, disponibile $selected_package_version." >&2
+        exit 3
+    fi
+    if dpkg --compare-versions "$selected_package_version" eq "$installed_version" && ((reinstall == 0)); then
+        echo "MagicQ $installed_version è già installato; nessuna modifica necessaria."
+        /usr/local/sbin/wasalight-magicq-desktop-refresh
+        exit 0
+    fi
+fi
+
+if dpkg --audit | grep -q .; then
+    echo "dpkg segnala pacchetti incompleti; correggere APT prima di installare MagicQ." >&2
+    dpkg --audit >&2
+    exit 4
+fi
+
+simulation=$(apt-get --simulate --no-download install "$selected_package" 2>&1) || {
+    echo "Dipendenze MagicQ non soddisfatte. Nessuna modifica eseguita." >&2
+    echo "$simulation" >&2
+    exit 5
+}
+extra_packages=$(awk '/^Inst / && $2 != "magicq" {print $2}' <<<"$simulation" | sort -u | paste -sd, -)
+[[ -z $extra_packages ]] || {
+    echo "Dipendenze non già installate: $extra_packages" >&2
+    echo "Installazione bloccata prima di modificare MagicQ; prepara prima queste dipendenze." >&2
+    exit 5
+}
+
+echo "Verifica dipendenze completata. Installazione offline di MagicQ…"
+DEBIAN_FRONTEND=noninteractive apt-get --no-download install -y "$selected_package"
+[[ -x /opt/magicq/runmagicq.sh || -x /opt/magicq/bin/mqqt ]] || {
+    echo "MagicQ installato, ma gli eseguibili attesi sotto /opt/magicq mancano." >&2
+    exit 6
+}
+if [[ -x /opt/magicq/bin/mqqt ]]; then
+    missing_libraries=$(ldd /opt/magicq/bin/mqqt 2>/dev/null | \
+        awk '/not found/ {print $1}' | sort -u | paste -sd, - || true)
+    [[ -z $missing_libraries ]] || {
+        echo "Librerie runtime MagicQ mancanti: $missing_libraries" >&2
+        exit 6
+    }
+fi
+
+install -d -o chamsys -g chamsys -m 0770 \
+    /data/magicq/Documents/MagicQ /data/magicq/.local/share
+chown -R chamsys:chamsys /data/magicq/Documents/MagicQ /data/magicq/.local/share
+/usr/local/sbin/wasalight-magicq-desktop-refresh
+rm -f /data/system/magicq-updates/available
+echo "MagicQ $selected_package_version installato correttamente senza Internet."

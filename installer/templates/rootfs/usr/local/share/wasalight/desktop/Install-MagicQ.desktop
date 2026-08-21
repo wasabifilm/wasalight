@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Installa MagicQ
+Comment=Installa MagicQ da una chiavetta USB senza Internet
+Exec=/usr/local/bin/wasalight-magicq-desktop-action
+Icon=/usr/local/share/icons/wasalight/magicq-install.svg
+Terminal=false
+StartupNotify=true

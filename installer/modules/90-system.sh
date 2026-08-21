@@ -338,6 +338,10 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-data-transfer-terminal
     bash -n /usr/local/bin/wasalight-plugin-bundle-terminal
     bash -n /usr/local/bin/wasalight-screen-lock
+    bash -n /usr/local/bin/wasalight-magicq-install-ui
+    bash -n /usr/local/bin/wasalight-magicq-desktop-action
+    bash -n /usr/local/sbin/wasalight-magicq-install
+    bash -n /usr/local/sbin/wasalight-magicq-desktop-refresh
     bash -n /usr/local/sbin/wasalight-time-control
     python3 -m py_compile /usr/local/bin/wasalight-date-time
     bash -n /usr/local/sbin/wasalight-ip-scan

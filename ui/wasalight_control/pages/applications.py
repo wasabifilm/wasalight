@@ -24,11 +24,14 @@ class ApplicationsPage:
             False, False, 0)
 
         magicq_flow = card_flow()
+        magicq_installed = os.path.exists("/opt/magicq")
         magicq = software_button(
-            "MagicQ", _("Main lighting console"),
-            "/usr/share/pixmaps/magicq.png",
-            lambda button: run_command(button, [paths.magicq_start]))
-        magicq.set_sensitive(os.path.exists("/opt/magicq"))
+            "MagicQ" if magicq_installed else _("Install MagicQ"),
+            _("Main lighting console") if magicq_installed else
+            _("Install from USB without Internet"),
+            "/usr/share/pixmaps/magicq.png" if magicq_installed else
+            "/usr/local/share/icons/wasalight/magicq-install.svg",
+            lambda button: run_command(button, [paths.magicq_action]))
         magicq_flow.add(magicq)
         for item in (item for item in launchers if item.section == "MagicQ"):
             magicq_flow.add(software_button(

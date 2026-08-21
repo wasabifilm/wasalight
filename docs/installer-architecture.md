@@ -73,11 +73,26 @@ volatile `/run/wasalight-update-progress-detail`. L’orchestratore pubblica lì
 nome dei 25 passaggi con una sostituzione atomica; l’updater lo mostra senza
 mescolare l’intero output di APT nel terminale touch-friendly.
 
+## Installazione MagicQ offline
+
+`wasalight-magicq-install` è separato dall’updater Wasalight. Riutilizza soltanto
+le funzioni pure di validazione, confronto Debian e importazione contenute in
+`wasalight-update-lib.sh`; non scarica codice e non richiama l’orchestratore
+principale. Monta in modo sincrono i supporti USB già rilevati, importa i `.deb`
+validi in `/data/system/packages`, simula APT con download disabilitati e procede
+solo quando nessun’altra dipendenza deve essere modificata.
+
+Il frontend `wasalight-magicq-install-ui` richiede l’autorizzazione tramite una
+policy Polkit dedicata. `wasalight-magicq-desktop-refresh` copia uno dei due
+template statici del launcher: **Installa MagicQ** quando il pacchetto manca e
+**MagicQ** dopo un’installazione riuscita. In questo modo il desktop non contiene
+logica generata con heredoc e lo stato visualizzato deriva sempre da dpkg.
+
 ## Lock delle operazioni
 
 `lib/wasalight-operation-lock.sh` gestisce
-`/run/lock/wasalight-operation.lock`. Installer, updater, snapshot e trasferimento
-dati acquisiscono lo stesso lock non bloccante. Il descrittore viene ereditato
+`/run/lock/wasalight-operation.lock`. Installer, updater, installazione MagicQ,
+snapshot e trasferimento dati acquisiscono lo stesso lock non bloccante. Il descrittore viene ereditato
 dai processi figli: una singola procedura può quindi chiamare snapshot e
 installer, mentre una seconda procedura indipendente viene respinta. Il lock è
 rilasciato automaticamente dal kernel alla terminazione del processo, anche in

@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+set -Eeuo pipefail
+
+readonly desktop=/home/chamsys/Desktop
+readonly templates=/usr/local/share/wasalight/desktop
+
+[[ $EUID -eq 0 ]] || { echo "Eseguire come root." >&2; exit 1; }
+install -d -o root -g root -m 0755 "$desktop"
+
+if dpkg-query -W -f='${db:Status-Abbrev}' magicq 2>/dev/null | grep -q '^ii'; then
+    source_file="$templates/MagicQ.desktop"
+    destination="$desktop/MagicQ.desktop"
+    obsolete="$desktop/Install-MagicQ.desktop"
+else
+    source_file="$templates/Install-MagicQ.desktop"
+    destination="$desktop/Install-MagicQ.desktop"
+    obsolete="$desktop/MagicQ.desktop"
+fi
+
+[[ -s $source_file ]] || { echo "Template desktop mancante: $source_file" >&2; exit 1; }
+rm -f -- "$obsolete"
+install -o root -g root -m 0444 "$source_file" "$destination"

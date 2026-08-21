@@ -91,7 +91,7 @@ if grep -Fq '("File", ["pcmanfm", "/data"])' "$control_center"; then
 fi
 grep -Fq 'self.applications_page = ApplicationsPage(' "$control_center" || \
     fail "Wasalight Control non espone il pannello MagicQ dedicato"
-grep -Fq '"/usr/share/pixmaps/magicq.png",' "$control_core/pages/applications.py" || \
+grep -Fq '"/usr/share/pixmaps/magicq.png"' "$control_core/pages/applications.py" || \
     fail "Wasalight Control non usa l'icona originale MagicQ"
 grep -Fq 'CARD_WIDTH = 290' "$control_core/widgets.py" || \
     fail "le schede software e servizi di Control non hanno una misura comune"

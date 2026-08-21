@@ -77,7 +77,7 @@ class OverviewPage(Gtk.Box):
         self.magicq_button = Gtk.Button(label=f"{_('Open MagicQ')}  →")
         self.magicq_button.get_style_context().add_class("primary-button")
         self.magicq_button.set_size_request(190, 48)
-        self.magicq_button.connect("clicked", run_command, [paths.magicq_start])
+        self.magicq_button.connect("clicked", run_command, [paths.magicq_action])
         magicq_actions.pack_start(self.magicq_button, False, False, 0)
         magicq_row.pack_start(magicq_actions, False, False, 0)
         magicq.add(magicq_row)
@@ -162,8 +162,14 @@ class OverviewPage(Gtk.Box):
         self.summary_detail.set_text(detail)
 
         self.magicq_detail.set_text(snapshot.magicq_detail)
-        self.magicq_button.set_label(
-            f"{_('Bring to foreground') if snapshot.magicq_running else _('Open MagicQ')}  →")
+        magicq_missing = snapshot.magicq_detail.lower() in {"missing", "not installed"}
+        if magicq_missing:
+            magicq_action = _("Install MagicQ")
+        elif snapshot.magicq_running:
+            magicq_action = _("Bring to foreground")
+        else:
+            magicq_action = _("Open MagicQ")
+        self.magicq_button.set_label(f"{magicq_action}  →")
         self.magicq_auto_switch.handler_block(self.magicq_auto_handler)
         self.magicq_auto_switch.set_active(snapshot.magicq_automatic)
         self.magicq_auto_switch.handler_unblock(self.magicq_auto_handler)

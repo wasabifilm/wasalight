@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=MagicQ
+Comment=Avvia ChamSys MagicQ
+Exec=/usr/local/bin/wasalight-magicq-desktop-action
+Icon=/usr/share/pixmaps/magicq.png
+Terminal=false
+StartupNotify=false

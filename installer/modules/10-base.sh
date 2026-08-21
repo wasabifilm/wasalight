@@ -169,11 +169,44 @@ discover_magicq_from_usb() {
 }
 
 require_magicq_or_override() {
-    if [[ -z $DEB_PATH ]] && ! is_installed magicq && ((ALLOW_MISSING_MAGICQ == 0)); then
-        die "MagicQ is not installed and no valid .deb was found locally or on USB.
+    [[ -z $DEB_PATH ]] && ! is_installed magicq || return 0
+    ((ALLOW_MISSING_MAGICQ == 0)) || return 0
+
+    if [[ -t 0 && -t 1 && ${WASALIGHT_UPDATE_TRANSACTION:-0} != 1 ]]; then
+        local choice
+        while :; do
+            cat <<'EOF'
+
+MagicQ non è ancora installato e non è stato trovato un pacchetto valido.
+
+  1) Installa MagicQ da USB
+     Inserisci la chiavetta con il .deb nella root o in packages/, poi premi 1.
+  2) Continua senza MagicQ
+     Sul desktop resterà il pulsante «Installa MagicQ» per completare offline.
+  3) Interrompi l'installazione
+EOF
+            read -r -p "Scelta [1-3]: " choice
+            case $choice in
+                1)
+                    discover_magicq_from_usb
+                    persist_magicq_package
+                    [[ -n $DEB_PATH ]] && return 0
+                    warn "nessun pacchetto MagicQ amd64 valido trovato; controlla la chiavetta"
+                    ;;
+                2)
+                    ALLOW_MISSING_MAGICQ=1
+                    log "continuing without MagicQ at the operator's request"
+                    return 0
+                    ;;
+                3) die "installation cancelled by the operator" ;;
+                *) warn "scegli 1, 2 oppure 3" ;;
+            esac
+        done
+    fi
+
+    die "MagicQ is not installed and no valid .deb was found locally or on USB.
 To continue intentionally without MagicQ, add: --allow-missing-magicq
 Example: sudo ./install.sh --allow-missing-magicq [other options]"
-    fi
 }
 
 persist_magicq_package() {
