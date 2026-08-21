@@ -168,6 +168,10 @@ configurazione realmente applicata:
 
 ## Fase 6 — Installazione e aggiornamento MagicQ offline
 
+Il collaudo con una USB fisica è esplicitamente differito alla Fase 8 e non
+blocca l'integrazione della funzione, già verificata offline in UTM usando gli
+stessi percorsi di ricerca e preservazione del pacchetto.
+
 - [~] Durante la prima installazione proporre ricerca USB, continuazione senza
       MagicQ oppure annullamento.
 - [~] Mostrare **Installa MagicQ** sul desktop quando il pacchetto manca e
@@ -186,11 +190,13 @@ configurazione realmente applicata:
 - [x] Installare la build `2026.08.21.1` in UTM.
 - [x] Collaudare `--scan-only` e una reinstallazione reale dentro un namespace
       UTM senza rete, verificando dpkg, librerie e launcher.
-- [ ] Ripetere il collaudo usando il `.deb` nella root e in `packages/` di una
-      USB fisica assegnata alla VM.
-- [ ] Verificare che il `.deb` originale sulla USB resti invariato; il pacchetto
-      persistente in `/data` è già risultato invariato nel test offline UTM.
-- [ ] Unire la fase in `main` dopo il collaudo.
+- [ ] Ripetere durante il collaudo hardware della Fase 8 la prova con il `.deb`
+      nella root e in `packages/` di una USB fisica assegnata alla VM.
+- [ ] Verificare nella stessa prova differita che il `.deb` originale sulla USB
+      resti invariato; il pacchetto persistente in `/data` è già risultato
+      invariato nel test offline UTM.
+- [~] Unire la fase in `main` dopo il collaudo UTM; la prova USB fisica resta
+      tracciata come verifica hardware successiva.
 
 ## Fase 7 — Localizzazione completa
 
