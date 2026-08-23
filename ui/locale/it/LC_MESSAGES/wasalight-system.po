@@ -1270,3 +1270,26 @@ msgstr ""
 "\n"
 "SSH e VNC possono essere attivati dalla scheda Servizi. Backup, diagnostica "
 "e salute del sistema sono disponibili nella scheda Supporto."
+msgid "MAINTENANCE mode required"
+msgstr "Modalità MAINTENANCE necessaria"
+
+msgid "Restart in MAINTENANCE and update Wasalight?"
+msgstr "Riavviare in MAINTENANCE e aggiornare Wasalight?"
+
+msgid "Wasalight will run the update automatically after reboot. If it succeeds, the workstation will restart in SHOW mode. If it fails, it will remain in MAINTENANCE for recovery."
+msgstr "Wasalight eseguirà automaticamente l’aggiornamento dopo il riavvio. Se riesce, la postazione si riavvierà in modalità SHOW. Se fallisce, resterà in MAINTENANCE per il recupero."
+
+msgid "Restart and update"
+msgstr "Riavvia e aggiorna"
+
+msgid "Restarting in MAINTENANCE…"
+msgstr "Riavvio in MAINTENANCE…"
+
+msgid "The automatic update could not be scheduled. The workstation will remain in SHOW mode."
+msgstr "Impossibile programmare l’aggiornamento automatico. La postazione resterà in modalità SHOW."
+
+msgid "Automatic update failed"
+msgstr "Aggiornamento automatico fallito"
+
+msgid "Wasalight remains in MAINTENANCE. Check the terminal and update logs before retrying."
+msgstr "Wasalight resta in MAINTENANCE. Controllare il terminale e i log dell’aggiornamento prima di riprovare."

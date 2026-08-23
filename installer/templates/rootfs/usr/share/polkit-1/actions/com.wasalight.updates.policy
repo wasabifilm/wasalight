@@ -17,6 +17,17 @@
     <annotate key="org.freedesktop.policykit.exec.path">/usr/local/sbin/wasalight-update</annotate>
   </action>
 
+  <action id="com.wasalight.update.schedule">
+    <description>Prepara aggiornamento automatico Wasalight</description>
+    <message>Inserisci la password amministratore per preparare l’aggiornamento</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/sbin/wasalight-update-schedule</annotate>
+  </action>
+
   <action id="com.wasalight.companion.update">
     <description>Aggiorna Bitfocus Companion</description>
     <message>Inserisci la password amministratore per aggiornare Bitfocus Companion</message>

@@ -9,6 +9,7 @@ readonly package_store=/data/system/packages
 readonly log_root=/data/log/wasalight/updates
 readonly state_file=/data/system/update-state
 readonly channel_file=/data/system/update-channel
+readonly boot_failed_file=/data/system/update-boot-failed
 readonly progress_file=/run/wasalight-update-progress-detail
 
 . /usr/local/libexec/wasalight-release-manifest.sh
@@ -643,6 +644,7 @@ if ((same_release && !explicit_state_change && !magicq_change && !repair && !res
 " root:root 0644
     printf '%sOK%s · system already up to date; snapshot, APT and installer not required.\n' \
         "$green" "$reset"
+    rm -f -- "$boot_failed_file"
     exit 0
 fi
 
@@ -769,6 +771,7 @@ transaction_status=complete
 rm -rf -- "$previous_checkout"
 checkout_activated=0
 touch /run/wasalight-update-reboot-required
+rm -f -- "$boot_failed_file"
 
 trap - ERR
 printf '\n%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓%s\n' "$green" "$reset"

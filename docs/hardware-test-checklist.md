@@ -105,6 +105,10 @@ build, macchina e percorso del support bundle o del log conservato.
       prima dell’installazione Wasalight e un solo `autoremove --purge` finale.
 - [ ] Ripetendo l’update della stessa versione/commit compare **sistema già
       aggiornato** senza snapshot, APT, installer o richiesta di riavvio.
+- [ ] Avviando **Aggiorna Wasalight** da SHOW, la conferma prepara MAINTENANCE,
+      riavvia, apre il terminale dell’update automaticamente e, dopo un esito
+      positivo, riavvia in SHOW. Un errore simulato blocca il secondo riavvio,
+      lascia la macchina in MAINTENANCE e conserva log e stato di recupero.
 - [ ] `wasalight-update --plan` mostra versione, commit, MagicQ, snapshot e
       modalità prevista senza modificare `/data`, configurazione, pacchetti USB,
       canale o checkout; `tests/utm/verify-update-plan.sh` termina con `PASS`.

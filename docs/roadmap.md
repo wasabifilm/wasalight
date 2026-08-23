@@ -161,6 +161,9 @@ configurazione realmente applicata:
 - [x] `--plan`, `--repair`, `--resume`, `--rollback` e `--code-only`.
 - [x] Snapshot, stato transazionale, log per esecuzione e rollback automatico.
 - [x] Interfaccia touch con autenticazione grafica Polkit e avanzamento visibile.
+- [x] Da SHOW, conferma e riavvio guidato in MAINTENANCE, aggiornamento
+      automatico visibile e ritorno a SHOW soltanto dopo verifica riuscita;
+      gli errori lasciano la macchina in MAINTENANCE senza ciclo di reboot.
 - [x] Nessuna reinstallazione se versione, commit e stato richiesto coincidono.
 - [x] Protezione da modifiche Git locali, downgrade e riscritture non
       fast-forward.
