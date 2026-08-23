@@ -34,6 +34,10 @@ for localized_desktop_field in \
 done
 grep -Fq 'wasalight-system-audit' "$PROJECT_DIR/installer/modules/70-management.sh" || \
     fail "l'installer non installa l'audit di sistema"
+grep -Fq 'lsblk -bdnro DISC-MAX' "$PROJECT_DIR/installer/modules/90-system.sh" || \
+    fail "l'installer non rileva il supporto discard prima di abilitare TRIM"
+grep -Fq 'systemctl enable fstrim.timer' "$PROJECT_DIR/installer/modules/90-system.sh" || \
+    fail "l'installer non abilita il TRIM periodico sui dispositivi compatibili"
 grep -Fq 'audit) command_to_run=/usr/local/bin/wasalight-system-audit' \
     "$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-terminal-tool" || \
     fail "l'audit non è apribile dal terminale grafico"
