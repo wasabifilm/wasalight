@@ -88,7 +88,9 @@ class OverviewPage(Gtk.Box):
 
         cards = Gtk.Box(spacing=12)
         self.network_card = self._status_card(
-            _("Network"), lambda _button: open_page("system"))
+            _("Network"),
+            lambda button: run_command(button, [paths.network_settings]),
+            _("Configure"))
         self.remote_card = self._status_card(
             _("Remote access"), lambda _button: open_page("system"))
         self.update_card = self._status_card(
@@ -111,7 +113,7 @@ class OverviewPage(Gtk.Box):
         self.pack_start(details, True, True, 0)
 
     @staticmethod
-    def _status_card(title, callback):
+    def _status_card(title, callback, action_label=None):
         frame = Gtk.Frame()
         frame.get_style_context().add_class("flat-card")
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
@@ -129,7 +131,7 @@ class OverviewPage(Gtk.Box):
         detail.set_line_wrap(True)
         detail.set_max_width_chars(30)
         detail.get_style_context().add_class("section-subtitle")
-        button = Gtk.Button(label=f"{_('Open')}  →")
+        button = Gtk.Button(label=f"{action_label or _('Open')}  →")
         button.set_halign(Gtk.Align.START)
         button.get_style_context().add_class("text-button")
         button.connect("clicked", callback)

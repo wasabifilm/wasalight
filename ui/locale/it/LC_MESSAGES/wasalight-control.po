@@ -452,3 +452,6 @@ msgstr "CONTROLLO IN CORSO"
 
 msgid "NOT CHECKED"
 msgstr "NON CONTROLLATO"
+
+msgid "Configure"
+msgstr "Configura"
