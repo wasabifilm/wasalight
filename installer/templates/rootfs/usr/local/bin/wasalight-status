@@ -84,6 +84,9 @@ update_transaction=$(awk -F= '$1 == "status" {print $2; exit}' \
 case $update_transaction in
     running|failed) update="RECOVERY REQUIRED ($update_transaction)" ;;
 esac
+if [[ -f /data/system/update-boot-failed ]]; then
+    update="RECOVERY REQUIRED (automatic update failed)"
+fi
 health="NOT CHECKED"
 if IFS=$'\t' read -r health_state health_checked health_summary \
     </run/wasalight-health-status 2>/dev/null; then

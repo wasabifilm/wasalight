@@ -20,7 +20,13 @@ configure_update() {
 
     install_template /usr/local/libexec/wasalight-update-session 0755
 
+    install_template /usr/local/libexec/wasalight-update-auto-session 0755
+
     install_template /usr/local/bin/wasalight-update-terminal 0755
+
+    install_template /usr/local/sbin/wasalight-update-schedule 0755
+
+    install_template /usr/local/sbin/wasalight-update-auto 0755
 
     install_template /usr/local/bin/wasalight-update-check 0755
 

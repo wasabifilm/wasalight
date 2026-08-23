@@ -288,11 +288,14 @@ installer e riavvio. `--plan` mostra le operazioni previste e `--repair` forza
 una reinstallazione intenzionale. La procedura completa è descritta nella
 [guida aggiornamenti](docs/update.md).
 
-La voce grafica **Aggiorna Wasalight** mostra chiaramente le quattro fasi e, solo
-dopo un aggiornamento riuscito, propone **Riavvia ora** oppure **Più tardi**. È
-interamente utilizzabile al touch. Da terminale si può ottenere lo stesso
-risultato senza domanda finale con `sudo wasalight-update --reboot`, combinabile
-con `--protect` quando il prossimo avvio deve tornare direttamente in SHOW mode.
+Da SHOW, la voce grafica **Aggiorna Wasalight** propone il riavvio guidato in
+MAINTENANCE, esegue automaticamente le fasi in un terminale visibile e torna in
+SHOW soltanto dopo un esito positivo. Un errore blocca il riavvio e lascia la
+postazione in MAINTENANCE per il recupero. Se la GUI viene aperta quando il
+sistema è già scrivibile, al termine propone invece **Riavvia ora** oppure
+**Più tardi**. Da terminale resta disponibile `sudo wasalight-update --reboot`,
+combinabile con `--protect` quando il prossimo avvio deve tornare direttamente
+in SHOW mode.
 
 ### Logo e avvio silenzioso
 

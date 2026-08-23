@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+set -Eeuo pipefail
+
+readonly request_file=/data/system/update-boot-request
+readonly failed_file=/data/system/update-boot-failed
+readonly transaction_file=/data/system/update-state
+channel=
+operation=
+plugin=
+allow_missing_magicq=0
+
+[[ $EUID -eq 0 ]] || { echo "Run through sudo." >&2; exit 1; }
+(($# == 0)) || { echo "wasalight-update-auto does not accept arguments." >&2; exit 2; }
+[[ $(findmnt -n -o FSTYPE / 2>/dev/null) != overlay ]] || {
+    echo "Automatic update requires MAINTENANCE mode." >&2
+    exit 1
+}
+[[ -f $request_file && ! -L $request_file ]] || {
+    echo "No automatic update request is pending." >&2
+    exit 1
+}
+[[ $(stat -c '%U:%G:%a' "$request_file") == root:root:600 ]] || {
+    echo "Unsafe automatic update request permissions." >&2
+    exit 1
+}
+
+while IFS='=' read -r key value; do
+    case $key in
+        channel)
+            case $value in ''|stable|debug) channel=$value ;; *) echo "Invalid stored channel." >&2; exit 2 ;; esac
+            ;;
+        operation)
+            case $value in ''|--resume|--repair) operation=$value ;; *) echo "Invalid stored operation." >&2; exit 2 ;; esac
+            ;;
+        plugin)
+            case $value in ''|companion|ssh|vnc) plugin=$value ;; *) echo "Invalid stored plugin." >&2; exit 2 ;; esac
+            ;;
+        allow_missing_magicq)
+            case $value in 0|1) allow_missing_magicq=$value ;; *) echo "Invalid stored MagicQ choice." >&2; exit 2 ;; esac
+            ;;
+        *) echo "Unknown automatic update request field." >&2; exit 2 ;;
+    esac
+done <"$request_file"
+
+transaction_status=$(awk -F= '$1 == "status" {print $2; exit}' \
+    "$transaction_file" 2>/dev/null || true)
+if [[ $transaction_status == running || $transaction_status == failed ]]; then
+    operation=--resume
+fi
+
+args=()
+[[ -z $channel ]] || args+=(--channel "$channel")
+[[ -z $operation ]] || args+=("$operation")
+[[ -z $plugin ]] || args+=(--plugin "$plugin")
+((allow_missing_magicq == 0)) || args+=(--allow-missing-magicq)
+
+echo "Starting the scheduled Wasalight update in MAINTENANCE mode."
+echo "The machine will return to SHOW only after a successful update."
+set +e
+/usr/local/sbin/wasalight-update "${args[@]}"
+rc=$?
+set -e
+if ((rc == 0)); then
+    set +e
+    /usr/local/sbin/wasalight-protect
+    rc=$?
+    set -e
+    if ((rc != 0)); then
+        echo "Update succeeded, but SHOW mode could not be prepared." >&2
+    fi
+fi
+if ((rc == 0)); then
+    rm -f -- "$request_file" "$failed_file"
+    echo "Update completed. Rebooting into SHOW / PROTECTED mode."
+    sync
+    systemctl reboot
+    exit 0
+fi
+
+mv -f -- "$request_file" "$failed_file"
+chmod 0600 "$failed_file"
+echo "Automatic update failed with exit code $rc." >&2
+echo "The workstation remains in MAINTENANCE mode; automatic reboot was blocked." >&2
+exit "$rc"

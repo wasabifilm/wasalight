@@ -54,6 +54,8 @@ backup_data() (
     echo "Creating verified backup on $usb ..."
     tar --acls --xattrs --numeric-owner \
         --exclude='./lost+found' --exclude='./.wasalight-restore-stage' \
+        --exclude='./system/update-boot-request' \
+        --exclude='./system/update-boot-failed' \
         -C "$manifest_dir" -cf - manifest.json -C /data . | zstd -T0 -10 -o "$temporary"
     mv -f -- "$temporary" "$archive"
     if [[ $encrypted == yes ]]; then
@@ -98,6 +100,8 @@ restore_data() (
     if [[ $mode == complete ]]; then
         rsync -aHAX --numeric-ids --delete \
             --exclude lost+found --exclude .wasalight-restore-stage \
+            --exclude system/update-boot-request \
+            --exclude system/update-boot-failed \
             "$stage/" /data/
     else
         for item in magicq companion system/plugins-state system/apps.d system/packages; do

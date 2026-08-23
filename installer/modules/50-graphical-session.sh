@@ -453,6 +453,11 @@ nm-applet --indicator &
 /usr/local/bin/wasalight-magicq-usb-watch &
 ( sleep 8; /usr/local/bin/wasalight-first-run ) &
 ( sleep 15; /usr/local/bin/wasalight-update-check ) &
+if ! findmnt -n -o FSTYPE / 2>/dev/null | grep -qx overlay && \
+   [ -f /data/system/update-boot-request ]; then
+    lxterminal --title="Wasalight · Update" \
+        -e /usr/local/libexec/wasalight-update-auto-session &
+fi
 magicq_auto=enabled
 [[ ! -r /data/system/service-flags/magicq-autostart ]] || \
     magicq_auto=$(cat /data/system/service-flags/magicq-autostart)

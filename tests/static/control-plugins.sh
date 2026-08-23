@@ -487,6 +487,7 @@ import xml.etree.ElementTree as ET
 root = ET.parse(sys.argv[1]).getroot()
 expected = {
     "com.wasalight.update": "/usr/local/sbin/wasalight-update",
+    "com.wasalight.update.schedule": "/usr/local/sbin/wasalight-update-schedule",
     "com.wasalight.companion.update": "/usr/local/sbin/wasalight-companion-update",
 }
 actions = {action.attrib.get("id"): action for action in root.findall("action")}

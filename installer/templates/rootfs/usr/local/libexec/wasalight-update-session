@@ -56,6 +56,41 @@ if [[ -z ${WASALIGHT_UPDATE_OPERATION:-} && \
         exit 0
     fi
 fi
+
+if [[ $(findmnt -n -o FSTYPE / 2>/dev/null) == overlay ]]; then
+    maintenance_title=$( _ "MAINTENANCE mode required" )
+    maintenance_heading=$( _ "Restart in MAINTENANCE and update Wasalight?" )
+    maintenance_detail=$( _ "Wasalight will run the update automatically after reboot. If it succeeds, the workstation will restart in SHOW mode. If it fails, it will remain in MAINTENANCE for recovery." )
+    if ! /usr/local/bin/wasalight-dialog --question \
+        --icon=system-software-update --width=620 --title="$maintenance_title" \
+        --text="<big><b>$maintenance_heading</b></big>\n\n$maintenance_detail" \
+        --ok-label="$( _ "Restart and update" )" --cancel-label="$( _ "Cancel" )"; then
+        exit 0
+    fi
+
+    set +e
+    pkexec /usr/local/sbin/wasalight-update-schedule "${update_args[@]}"
+    rc=$?
+    set -e
+    if ((rc == 0)); then
+        _ "Restarting in MAINTENANCE…"
+        printf '\n'
+        sudo -n /usr/local/sbin/wasalight-power-control reboot
+        exit $?
+    fi
+    if ((rc == 126)); then
+        /usr/local/bin/wasalight-dialog --info --width=520 \
+            --title="$( _ "Update cancelled" )" \
+            --text="$( _ "Authentication was cancelled." )\n\n$( _ "Wasalight was not modified." )" \
+            --ok-label="$( _ "Close" )" 2>/dev/null || true
+        exit "$rc"
+    fi
+    /usr/local/bin/wasalight-dialog --error --icon=system-software-update --width=600 \
+        --title="$( _ "Update failed" )" \
+        --text="$( _ "The automatic update could not be scheduled. The workstation will remain in SHOW mode." )" \
+        --ok-label="$( _ "Close" )" 2>/dev/null || true
+    exit "$rc"
+fi
 display_channel=${WASALIGHT_UPDATE_CHANNEL:-$(cat /data/system/update-channel 2>/dev/null || echo stable)}
 
 if [[ -t 1 ]]; then

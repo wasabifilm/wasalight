@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+set -Eeuo pipefail
+
+readonly request_file=/data/system/update-boot-request
+readonly failed_file=/data/system/update-boot-failed
+channel=
+operation=
+plugin=
+allow_missing_magicq=0
+
+[[ $EUID -eq 0 ]] || { echo "Run through Polkit." >&2; exit 1; }
+[[ $(findmnt -n -o FSTYPE / 2>/dev/null) == overlay ]] || {
+    echo "Scheduling is only required from SHOW mode." >&2
+    exit 1
+}
+mountpoint -q /data || { echo "/data is not mounted." >&2; exit 1; }
+
+while (($#)); do
+    case $1 in
+        --channel)
+            (($# >= 2)) || { echo "--channel requires stable or debug." >&2; exit 2; }
+            case $2 in stable|debug) channel=$2 ;; *) echo "Invalid channel." >&2; exit 2 ;; esac
+            shift 2
+            ;;
+        --resume|--repair)
+            [[ -z $operation ]] || { echo "Only one recovery operation is allowed." >&2; exit 2; }
+            operation=$1
+            shift
+            ;;
+        --rollback)
+            echo "Rollback must be started manually in MAINTENANCE." >&2
+            exit 2
+            ;;
+        --plugin)
+            (($# >= 2)) || { echo "--plugin requires an ID." >&2; exit 2; }
+            case $2 in companion|ssh|vnc) plugin=$2 ;; *) echo "Invalid plugin." >&2; exit 2 ;; esac
+            shift 2
+            ;;
+        --allow-missing-magicq)
+            allow_missing_magicq=1
+            shift
+            ;;
+        *)
+            echo "Unsupported scheduled update option: $1" >&2
+            exit 2
+            ;;
+    esac
+done
+
+temporary=$(mktemp /data/system/.update-boot-request.XXXXXX)
+trap 'rm -f -- "$temporary"' EXIT
+{
+    printf 'channel=%s\n' "$channel"
+    printf 'operation=%s\n' "$operation"
+    printf 'plugin=%s\n' "$plugin"
+    printf 'allow_missing_magicq=%s\n' "$allow_missing_magicq"
+} >"$temporary"
+chown root:root "$temporary"
+chmod 0600 "$temporary"
+mv -f -- "$temporary" "$request_file"
+rm -f -- "$failed_file"
+trap - EXIT
+
+if ! /usr/local/sbin/wasalight-maintenance; then
+    rm -f -- "$request_file"
+    echo "Unable to prepare MAINTENANCE mode; update request removed." >&2
+    exit 1
+fi
+echo "Automatic update scheduled for the next MAINTENANCE boot."

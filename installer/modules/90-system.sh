@@ -358,9 +358,12 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-ssh-toggle
     bash -n /usr/local/sbin/wasalight-ssh-control
     bash -n /usr/local/sbin/wasalight-update
+    bash -n /usr/local/sbin/wasalight-update-schedule
+    bash -n /usr/local/sbin/wasalight-update-auto
     bash -n /usr/local/libexec/wasalight-update-lib.sh
     bash -n /usr/local/bin/wasalight-update-check
     bash -n /usr/local/libexec/wasalight-update-session
+    bash -n /usr/local/libexec/wasalight-update-auto-session
     bash -n /usr/local/bin/wasalight-update-terminal
     bash -n /usr/local/bin/wasalight-terminal-tool
     bash -n /usr/local/bin/wasalight-health

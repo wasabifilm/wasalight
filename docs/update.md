@@ -153,14 +153,25 @@ modo esplicito; `debug` rimane disponibile per il collaudo.
 
 ## Primo aggiornamento
 
-Entrare in MAINTENANCE:
+Da SHOW non è più necessario cambiare modalità manualmente. Aprendo
+**Aggiorna Wasalight**, l’interfaccia spiega il percorso e chiede conferma:
 
-```bash
-sudo wasalight-maintenance
-sudo reboot
-```
+1. prepara il prossimo avvio in MAINTENANCE e salva in `/data` una richiesta
+   root con i soli parametri ammessi;
+2. riavvia la postazione;
+3. avvia automaticamente l’aggiornamento in un terminale visibile;
+4. soltanto dopo un esito positivo prepara SHOW e riavvia nuovamente.
 
-Poi eseguire:
+Se download, firma, snapshot, installer o verifica finale falliscono, il secondo
+riavvio viene bloccato e la postazione resta in MAINTENANCE. La richiesta viene
+marcata come fallita e non crea un ciclo di riavvii; terminale, stato
+transazionale e log restano disponibili per `--resume`, `--repair` o rollback.
+Le richieste pendenti o fallite sono stato operativo della singola macchina e
+vengono escluse dai backup di `/data`, così un ripristino non può avviare per
+errore un aggiornamento automatico.
+
+Il comando diretto resta disponibile dopo essere entrati manualmente in
+MAINTENANCE:
 
 ```bash
 sudo wasalight-update
@@ -380,7 +391,9 @@ sudo wasalight-update --help
 
 ## Protezioni
 
-- Il comando rifiuta di operare in SHOW mode con overlay attivo.
+- Il backend `wasalight-update` rifiuta sempre di modificare SHOW con overlay
+  attivo; l’interfaccia grafica può soltanto registrare una richiesta validata,
+  preparare MAINTENANCE e affidare l’esecuzione al boot successivo.
 - Un aggiornamento Git deve essere un avanzamento lineare (`fast-forward`) e
   download lenti o bloccati terminano entro 120 secondi per tentativo.
 - Le modifiche locali, compresi i file non tracciati, interrompono l’operazione
@@ -391,8 +404,10 @@ sudo wasalight-update --help
 - Il codice scaricato viene verificato prima di eseguire l’installer.
 - Le release `stable` devono essere immutabili e avere un tag SSH firmato da una
   chiave autorizzata localmente; non esiste fallback automatico al canale debug.
-- L’interfaccia usa `pkexec` con due azioni Polkit vincolate agli updater
-  Wasalight e Companion; non concede un comando root generico o `NOPASSWD`.
+- L’interfaccia usa `pkexec` con azioni Polkit vincolate all’updater, allo
+  scheduler Wasalight e all’updater Companion. L’unico helper automatico
+  `NOPASSWD` non accetta argomenti e legge una richiesta `root:root 0600` con
+  campi rigidamente validati; non concede un comando root generico.
 - Nel canale debug il commit installato deve coincidere con `refs/heads/main`;
   nel canale stable deve coincidere col commit del tag firmato.
 - Lo stesso numero di versione non può indicare due commit differenti.

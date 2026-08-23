@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+set -u
+. /usr/local/libexec/wasalight-i18n
+
+set +e
+sudo -n /usr/local/sbin/wasalight-update-auto
+rc=$?
+set -e
+if ((rc == 0)); then
+    exit 0
+fi
+printf '\n%s\n' "$( _ "Automatic update failed" )"
+printf '%s\n' "$( _ "Wasalight remains in MAINTENANCE. Check the terminal and update logs before retrying." )"
+/usr/local/bin/wasalight-dialog --error --icon=system-software-update --width=620 \
+    --title="$( _ "Update failed" )" \
+    --text="<big><b>$( _ "Automatic update failed" )</b></big>\n\n$( _ "Wasalight remains in MAINTENANCE. Check the terminal and update logs before retrying." )" \
+    --ok-label="$( _ "Close" )" 2>/dev/null || true
+printf '\n%s' "$( _ "Press Enter to close." )"
+read -r _
+exit "$rc"

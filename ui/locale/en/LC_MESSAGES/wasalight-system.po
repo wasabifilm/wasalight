@@ -1312,3 +1312,26 @@ msgstr ""
 "\n"
 "SSH and VNC can be enabled from Services. Backup, diagnostics and system "
 "health are available under Support."
+msgid "MAINTENANCE mode required"
+msgstr "MAINTENANCE mode required"
+
+msgid "Restart in MAINTENANCE and update Wasalight?"
+msgstr "Restart in MAINTENANCE and update Wasalight?"
+
+msgid "Wasalight will run the update automatically after reboot. If it succeeds, the workstation will restart in SHOW mode. If it fails, it will remain in MAINTENANCE for recovery."
+msgstr "Wasalight will run the update automatically after reboot. If it succeeds, the workstation will restart in SHOW mode. If it fails, it will remain in MAINTENANCE for recovery."
+
+msgid "Restart and update"
+msgstr "Restart and update"
+
+msgid "Restarting in MAINTENANCE…"
+msgstr "Restarting in MAINTENANCE…"
+
+msgid "The automatic update could not be scheduled. The workstation will remain in SHOW mode."
+msgstr "The automatic update could not be scheduled. The workstation will remain in SHOW mode."
+
+msgid "Automatic update failed"
+msgstr "Automatic update failed"
+
+msgid "Wasalight remains in MAINTENANCE. Check the terminal and update logs before retrying."
+msgstr "Wasalight remains in MAINTENANCE. Check the terminal and update logs before retrying."
