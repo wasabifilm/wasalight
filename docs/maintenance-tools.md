@@ -15,8 +15,8 @@ falso guasto.
 
 Un timer systemd ripete il controllo ogni 15 minuti, conserva l’ultimo stato in
 `/data/system/health/status` e ruota lo storico
-`/data/log/wasalight-health.log`. Il pannello desktop mostra `HEALTH OK` oppure
-`HEALTH WARNING` senza interrogare continuamente l’hardware.
+`/data/log/wasalight-health.log`. Il risultato resta consultabile da **Salute
+sistema** e dall’audit senza aggiungere una riga tecnica al pannello desktop.
 
 ```bash
 wasalight-health
