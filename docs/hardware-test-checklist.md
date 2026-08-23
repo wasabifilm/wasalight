@@ -22,6 +22,11 @@ uno spettacolo.
       Il test ha inoltre individuato e corretto gli ultimi stati dinamici non
       tradotti nella Panoramica e il mancato primo piano al primo avvio di
       Control; queste due correzioni richiedono la build `2026.08.22.1`.
+- [x] 2026-08-23 — La build `2026.08.22.1` è stata collaudata in UTM: Control
+      compare in primo piano, gli stati dinamici seguono la lingua della
+      sessione e il toggle Onboard supera tre cicli completi, inclusa la
+      riapertura con un solo tocco dopo la X interna, senza processi duplicati.
+      `verify-update-idempotency.sh` è terminato con `PASS` dopo due repair.
 
 ## Gate per la prima release stable
 
@@ -32,8 +37,8 @@ build, macchina e percorso del support bundle o del log conservato.
 
 | Gate | Ambiente minimo | Evidenza richiesta | Stato |
 | --- | --- | --- | --- |
-| CI completa | GitHub Actions Ubuntu 24.04 | URL dell'esecuzione verde sul commit candidato | [ ] |
-| Idempotenza updater | UTM in MAINTENANCE | Output `PASS` di `tests/utm/verify-update-idempotency.sh` | [ ] |
+| CI completa | GitHub Actions Ubuntu 24.04 | [PR #36: static-verification](https://github.com/wasabifilm/wasalight/actions/runs/32628816964/job/97168283951?pr=36) | [x] |
+| Idempotenza updater | UTM in MAINTENANCE | `PASS` registrato il 2026-08-23 sulla build `2026.08.22.1` | [x] |
 | Ripresa dopo interruzione | UTM usa-e-getta | Stato `RECOVERY REQUIRED`, log di `--resume` e support bundle | [ ] |
 | Rollback dopo errore | UTM usa-e-getta | Checkout, canale e configurazione ripristinati con relativi checksum | [ ] |
 | Aggiornamento firmato | UTM | Tag autorizzato accettato e tag non autorizzato rifiutato | [ ] |
@@ -140,7 +145,7 @@ build, macchina e percorso del support bundle o del log conservato.
       **Riprendi** e `--resume` riutilizza lo snapshot registrato.
 - [ ] Dopo un errore successivo all’installazione, configurazione, canale e
       checkout precedente vengono ripristinati insieme.
-- [ ] Il test UTM `verify-update-idempotency.sh`, avviato con la conferma
+- [x] Il test UTM `verify-update-idempotency.sh`, avviato con la conferma
       `WASALIGHT_IDEMPOTENCY_CONFIRM=UTM-ONLY`, termina con `PASS` dopo due repair.
 - [ ] Il log cumulativo ruota a 5 MiB e in `updates/` restano al massimo venti
       esecuzioni, nessuna più vecchia di trenta giorni.
@@ -270,7 +275,7 @@ build, macchina e percorso del support bundle o del log conservato.
 - [ ] Rotazione del touch coerente con l'orientamento del monitor.
 - [ ] Scollegamento e ricollegamento a caldo riapplicano la configurazione.
 - [ ] Associazione e rotazione restano corrette dopo un riavvio protetto.
-- [ ] Il pulsante Tastiera accanto alla rete apre e chiude Onboard; dopo averla
+- [x] Il pulsante Tastiera accanto alla rete apre e chiude Onboard; dopo averla
       chiusa con la X interna, un solo tocco la riapre. Ripetere almeno tre
       cicli e verificare che resti un solo processo `onboard`.
 - [ ] Monitor, risoluzioni e accelerazione grafica corretti.

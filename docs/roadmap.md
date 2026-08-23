@@ -158,7 +158,8 @@ configurazione realmente applicata:
       fast-forward.
 - [x] Correzione della collisione tra stato readonly e libreria updater.
 - [x] Test UTM di `--plan` senza modifiche persistenti.
-- [ ] Completare `verify-update-idempotency.sh` dopo due repair consecutivi.
+- [x] Completare `verify-update-idempotency.sh` dopo due repair consecutivi;
+      verificato in UTM il 23 agosto 2026 sulla build `2026.08.22.1`.
 - [ ] Interrompere volontariamente la VM durante l’installer e verificare
       `RECOVERY REQUIRED` e `--resume`.
 - [ ] Provocare un errore successivo all’installazione e verificare il ripristino
