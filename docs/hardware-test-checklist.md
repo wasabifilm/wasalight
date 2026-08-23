@@ -15,6 +15,33 @@ uno spettacolo.
       dentro un namespace senza rete. Dpkg è rimasto `ii`, `ldd` non ha trovato
       librerie mancanti, il checksum del `.deb` è rimasto invariato e il
       launcher risultava `root:root 0444`. Resta da ripetere con una USB fisica.
+- [x] 2026-08-22 — Localizzazione collaudata in UTM con nuovi login in `en`,
+      `it` e `auto`. Desktop, Control, menu Openbox, updater e conferma di
+      riavvio seguono la lingua attesa; `auto` ha ereditato `C.UTF-8` e quindi
+      l’inglese. La preferenza iniziale `en` è stata ripristinata al termine.
+      Il test ha inoltre individuato e corretto gli ultimi stati dinamici non
+      tradotti nella Panoramica e il mancato primo piano al primo avvio di
+      Control; queste due correzioni richiedono la build `2026.08.22.1`.
+
+## Gate per la prima release stable
+
+Questa tabella è il riepilogo decisionale. Una release stable può essere
+pubblicata soltanto quando tutti i gate sono completati; i controlli dettagliati
+nelle sezioni successive restano la procedura e l'evidenza deve indicare data,
+build, macchina e percorso del support bundle o del log conservato.
+
+| Gate | Ambiente minimo | Evidenza richiesta | Stato |
+| --- | --- | --- | --- |
+| CI completa | GitHub Actions Ubuntu 24.04 | URL dell'esecuzione verde sul commit candidato | [ ] |
+| Idempotenza updater | UTM in MAINTENANCE | Output `PASS` di `tests/utm/verify-update-idempotency.sh` | [ ] |
+| Ripresa dopo interruzione | UTM usa-e-getta | Stato `RECOVERY REQUIRED`, log di `--resume` e support bundle | [ ] |
+| Rollback dopo errore | UTM usa-e-getta | Checkout, canale e configurazione ripristinati con relativi checksum | [ ] |
+| Aggiornamento firmato | UTM | Tag autorizzato accettato e tag non autorizzato rifiutato | [ ] |
+| Resistenza agli spegnimenti | Hardware fisico | Serie di riavvii in SHOW senza perdita dello show o corruzione | [ ] |
+| MagicQ e I/O show | Hardware fisico | MagicQ, USB ChamSys, Art-Net, sACN, OSC e audio verificati | [ ] |
+| Touch e display | Hardware fisico | Touch, rotazione, hot-plug, fullscreen e più risoluzioni verificati | [ ] |
+| Backup bare-machine | Seconda installazione | Ripristino completo con show, rete, plugin, ACL e attributi estesi | [ ] |
+| ISO candidata | UTM e hardware fisico | Checksum ISO e installazione completa ripetibile su entrambi | [ ] |
 
 ## Avvio e protezione
 
@@ -243,7 +270,9 @@ uno spettacolo.
 - [ ] Rotazione del touch coerente con l'orientamento del monitor.
 - [ ] Scollegamento e ricollegamento a caldo riapplicano la configurazione.
 - [ ] Associazione e rotazione restano corrette dopo un riavvio protetto.
-- [ ] Tastiera Onboard avviabile dal menu, se installata con l'opzione dedicata.
+- [ ] Il pulsante Tastiera accanto alla rete apre e chiude Onboard; dopo averla
+      chiusa con la X interna, un solo tocco la riapre. Ripetere almeno tre
+      cicli e verificare che resti un solo processo `onboard`.
 - [ ] Monitor, risoluzioni e accelerazione grafica corretti.
 - [ ] Interfacce USB ChamSys rilevate e utilizzabili.
 - [ ] Art-Net, sACN e le altre uscite richieste funzionano sulla rete show.

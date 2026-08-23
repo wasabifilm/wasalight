@@ -16,6 +16,7 @@ for test_script in \
     "$TEST_DIR/updater-lib.sh" \
     "$TEST_DIR/session-language.sh" \
     "$TEST_DIR/system-i18n.sh" \
+    "$TEST_DIR/keyboard-toggle.sh" \
     "$TEST_DIR/openbox-menu.sh" \
     "$TEST_DIR/update-ui-i18n.sh" \
     "$TEST_DIR/plugin-localization.sh"; do

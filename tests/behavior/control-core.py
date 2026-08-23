@@ -21,6 +21,7 @@ from wasalight_control import i18n
 from wasalight_control.launchers import installed_launchers, read_launcher
 from wasalight_control.models import ControlPaths
 from wasalight_control.models import MagicQState
+from wasalight_control import overview_state
 from wasalight_control.overview_state import parse_status_report
 from wasalight_control.system import magicq_state, mode_and_version, read_plugins, read_status
 from wasalight_control import theme
@@ -239,6 +240,51 @@ class ThemeTests(unittest.TestCase):
             self.assertEqual(theme.current_palette(), theme.DEFAULT_PALETTE)
 
 class OverviewStateTests(unittest.TestCase):
+    def test_operator_status_details_are_localized_without_changing_values(self):
+        translations = {
+            "RUNNING": "IN ESECUZIONE",
+            "AUTOMATIC": "AUTOMATICO",
+            "automatic": "automatico",
+            "manual": "manuale",
+            "running on TCP {port} ({mode})":
+                "in esecuzione su TCP {port} ({mode})",
+            "stopped ({mode})": "arrestato ({mode})",
+            "up to date": "aggiornato",
+            "available: {version}": "disponibile: {version}",
+            "recovery required": "ripristino necessario",
+            "recovery required ({reason})":
+                "ripristino necessario ({reason})",
+        }
+        with mock.patch.object(
+                overview_state, "_", side_effect=lambda text: translations.get(text, text)):
+            self.assertEqual(
+                overview_state.localized_magicq_detail(
+                    "RUNNING · 1.9.8.3 · AUTOMATIC"),
+                "IN ESECUZIONE · 1.9.8.3 · AUTOMATICO")
+            self.assertEqual(
+                overview_state.localized_service_detail(
+                    "running on TCP 22 (automatic)"),
+                "in esecuzione su TCP 22 (automatico)")
+            self.assertEqual(
+                overview_state.localized_service_detail("stopped (manual)"),
+                "arrestato (manuale)")
+            self.assertEqual(
+                overview_state.localized_update_detail("AVAILABLE: 2026.08.22.1"),
+                "disponibile: 2026.08.22.1")
+            self.assertEqual(
+                overview_state.localized_update_detail("up to date"),
+                "aggiornato")
+            self.assertEqual(
+                overview_state.localized_update_detail("RECOVERY REQUIRED"),
+                "ripristino necessario")
+            self.assertEqual(
+                overview_state.localized_update_detail(
+                    "RECOVERY REQUIRED (install interrupted)"),
+                "ripristino necessario (install interrupted)")
+            self.assertEqual(
+                overview_state.localized_update_detail("custom status"),
+                "custom status")
+
     def test_ready_report_exposes_real_operational_states(self):
         report = """MagicQ Appliance
 MODE:       PROTECTED
@@ -258,6 +304,8 @@ UPDATE:     up to date
         self.assertEqual(snapshot.network_ip, "192.168.10.20")
         self.assertTrue(snapshot.ssh_running)
         self.assertFalse(snapshot.vnc_running)
+        self.assertEqual(snapshot.ssh_detail, "running on TCP 22 (automatic)")
+        self.assertEqual(snapshot.vnc_detail, "stopped (manual)")
         self.assertEqual(snapshot.update_level, "good")
 
     def test_missing_data_or_unmanaged_network_requires_attention(self):

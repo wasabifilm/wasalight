@@ -1,6 +1,6 @@
 # Roadmap Wasalight
 
-Ultimo aggiornamento: 21 agosto 2026.
+Ultimo aggiornamento: 22 agosto 2026.
 
 Questo documento è la fonte permanente per le funzionalità richieste e il loro
 stato. La [checklist hardware](hardware-test-checklist.md) resta invece la fonte
@@ -90,7 +90,8 @@ configurazione realmente applicata:
 - [x] MagicHD e MagicVis eseguiti tramite wrapper root ristretto.
 - [x] File, Scanner IP e Art-Net Monitor nella pagina Applicazioni.
 - [x] File manager, Mousepad, calcolatrice e monitor grafico LXTask.
-- [x] Tastiera virtuale nel tray, eliminata dalla lista duplicata delle app.
+- [x] Tastiera virtuale nel tray, eliminata dalla lista duplicata delle app;
+      il toggle recupera anche un processo Onboard rimasto vivo ma invisibile.
 - [x] Blocco schermo manuale con password e senza risparmio energetico.
 - [x] Strumento grafico per data, ora, sincronizzazione NTP e fuso orario.
 - [x] Crediti, contatti, licenza, citazione e proprietà del logo.
@@ -183,7 +184,7 @@ stessi percorsi di ricerca e preservazione del pacchetto.
 - [~] Installazione senza Internet, Git, `apt update` o download di dipendenze.
 - [~] Simulazione preventiva, blocco dipendenze mancanti, downgrade e pacchetti
       della stessa versione con contenuto diverso.
-- [~] Integrazione in Wasalight Control, policy Polkit, log dedicato e opzioni
+- [x] Integrazione in Wasalight Control, policy Polkit, log dedicato e opzioni
       `--scan-only` e `--reinstall`.
 - [x] Pubblicare il ramo `codex/magicq-offline-installer` e aprire la draft PR
       #31 con CI verde.
@@ -195,15 +196,16 @@ stessi percorsi di ricerca e preservazione del pacchetto.
 - [ ] Verificare nella stessa prova differita che il `.deb` originale sulla USB
       resti invariato; il pacchetto persistente in `/data` è già risultato
       invariato nel test offline UTM.
-- [~] Unire la fase in `main` dopo il collaudo UTM; la prova USB fisica resta
+- [x] Unire la fase in `main` dopo il collaudo UTM; la prova USB fisica resta
       tracciata come verifica hardware successiva.
 
 ## Fase 7 — Localizzazione completa
 
-- [~] Usare `/data/system/control/language` come unica preferenza di lingua;
-      applicazione alla sessione implementata, ancora da collaudare in UTM.
-- [~] Supportare italiano, inglese e modalità automatica per tutta la sessione;
-      ambiente Openbox implementato, ancora da verificare dopo un nuovo login.
+- [x] Usare `/data/system/control/language` come unica preferenza di lingua;
+      applicazione alla sessione verificata in UTM dopo un nuovo login.
+- [x] Supportare italiano, inglese e modalità automatica per tutta la sessione;
+      `it` ed `en` sono espliciti, mentre `auto` segue correttamente la locale
+      di sistema (`C.UTF-8`, quindi inglese, nella VM di prova).
 - [x] Conservare `wasalight-control` per la GUI e introdurre il dominio gettext
       `wasalight-system`; infrastruttura, dialoghi e utility grafiche completati.
 - [x] Tradurre menu Openbox, tooltip, conferme, errori e testi dell’updater;
@@ -215,7 +217,12 @@ stessi percorsi di ricerca e preservazione del pacchetto.
       non contengono elementi testuali.
 - [x] Estendere i controlli qualità per validare i cataloghi, bloccare traduzioni
       italiane mancanti e verificare campi localizzati di launcher e plugin.
-- [ ] Collaudare il cambio lingua dopo un nuovo accesso in `it`, `en` e `auto`.
+- [x] Collaudare in UTM il cambio lingua dopo un nuovo accesso in `it`, `en` e
+      `auto`, includendo desktop, Control, menu Openbox, updater e conferme.
+- [x] Localizzare anche gli stati dinamici della Panoramica (MagicQ, SSH, VNC e
+      aggiornamenti) senza tradurre numeri di versione, porte o dati tecnici.
+- [x] Portare esplicitamente in primo piano la prima finestra di Wasalight
+      Control dopo il mapping, evitando che PCManFM la lasci dietro al desktop.
 
 ## Fase 8 — Collaudo hardware e prima release stabile
 
@@ -262,5 +269,5 @@ riportate esplicitamente per evitare che vadano perse:
 - [ ] monitor OSC;
 - [ ] politica firewall e ottimizzazioni misurate;
 - [ ] TRIM periodico e politica swap;
-- [ ] localizzazione completa dell’intero desktop;
+- [x] localizzazione completa dell’intero desktop, collaudata in UTM;
 - [ ] collaudo hardware e prima release stable firmata.

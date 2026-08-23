@@ -323,4 +323,8 @@ class ControlCenter(Gtk.Window):
 install_style()
 window = ControlCenter()
 window.show_all()
+# PCManFM owns the desktop window and can otherwise remain above Control on its
+# first launch.  Present after mapping so a dock or desktop touch reliably
+# brings the newly-created window to the foreground.
+window.present()
 Gtk.main()

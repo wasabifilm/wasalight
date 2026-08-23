@@ -370,6 +370,54 @@ msgstr "SSH e VNC disattivati"
 msgid "System up to date"
 msgstr "Sistema aggiornato"
 
+msgid "automatic"
+msgstr "automatico"
+
+msgid "manual"
+msgstr "manuale"
+
+msgid "READY"
+msgstr "PRONTO"
+
+msgid "RUNNING"
+msgstr "IN ESECUZIONE"
+
+msgid "MISSING"
+msgstr "MANCANTE"
+
+msgid "NOT INSTALLED"
+msgstr "NON INSTALLATO"
+
+msgid "AUTOMATIC"
+msgstr "AUTOMATICO"
+
+msgid "MANUAL"
+msgstr "MANUALE"
+
+msgid "running on TCP {port} ({mode})"
+msgstr "in esecuzione su TCP {port} ({mode})"
+
+msgid "stopped ({mode})"
+msgstr "arrestato ({mode})"
+
+msgid "up to date"
+msgstr "aggiornato"
+
+msgid "not checked"
+msgstr "non verificato"
+
+msgid "available: {version}"
+msgstr "disponibile: {version}"
+
+msgid "recovery required"
+msgstr "ripristino richiesto"
+
+msgid "recovery required ({reason})"
+msgstr "ripristino richiesto ({reason})"
+
+msgid "SSH: {ssh} · VNC: {vnc}"
+msgstr "SSH: {ssh} · VNC: {vnc}"
+
 #: ui/wasalight_control/pages/overview.py:201
 msgid "Update available"
 msgstr "Aggiornamento disponibile"

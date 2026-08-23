@@ -150,6 +150,13 @@ il focus e viene chiuso soltanto premendo di nuovo il pulsante verde. Su Ubuntu
 contemporaneamente touchscreen/tablet e mouse; l'installer include inoltre il
 typelib AT-SPI raccomandato da Onboard.
 
+Il toggle distingue la finestra realmente visibile dal solo processo Python.
+Se Onboard viene chiuso con il proprio pulsante X ma resta attivo senza alcuna
+finestra mappata, il tocco successivo elimina l'istanza nascosta e apre subito
+una nuova tastiera. La chiusura attende prima l'uscita normale e usa un arresto
+forzato soltanto se Onboard interpreta `SIGTERM` come semplice richiesta di
+nascondersi.
+
 La geometria viene calcolata dalla risoluzione corrente e occupa il 90% della
 larghezza e il 38% dell’altezza. Se il window manager non riesce a posizionarla,
 Onboard resta comunque disponibile usando la propria geometria salvata.

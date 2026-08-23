@@ -586,10 +586,19 @@ if grep -Eq '(^|[[:space:]])(xss-lock|xautolock)([[:space:]]|$)' "$INSTALLER"; t
 fi
 
 keyboard_toggle="$tmp_dir/wasalight-keyboard-toggle"
+grep -Fq 'WASALIGHT_I18N_HELPER:-/usr/local/libexec/wasalight-i18n' \
+    "$keyboard_toggle" || \
+    fail "il toggle tastiera non permette un helper i18n isolato nei test"
 grep -Fq 'pgrep -u "$(id -u)" -x onboard' "$keyboard_toggle" || \
     fail "il pulsante Tastiera non rileva un'istanza Onboard esistente"
 grep -Fq 'pkill -TERM -u "$(id -u)" -x onboard' "$keyboard_toggle" || \
     fail "il pulsante Tastiera non permette di chiudere Onboard"
+grep -Fq 'pkill -KILL -u "$(id -u)" -x onboard' "$keyboard_toggle" || \
+    fail "il pulsante Tastiera non elimina un processo Onboard nascosto"
+grep -Fq "grep -Fq 'Map State: IsViewable'" "$keyboard_toggle" || \
+    fail "il pulsante Tastiera confonde ancora processo e finestra visibile"
+grep -Fq 'stop_onboard || exit 1' "$keyboard_toggle" || \
+    fail "la tastiera nascosta non viene ripulita e riaperta nello stesso tocco"
 grep -Fq 'gsettings set org.onboard show-status-icon false' "$keyboard_toggle" || \
     fail "Onboard mostra ancora un'icona duplicata che interferisce col toggle"
 grep -Fq 'gsettings set org.onboard.auto-show enabled false' "$keyboard_toggle" || \

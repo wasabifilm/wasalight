@@ -5,8 +5,63 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from dataclasses import dataclass
+import re
 
+from .i18n import _
 from .models import MagicQState
+
+
+def localized_mode(value):
+    return {
+        "automatic": _("automatic"),
+        "manual": _("manual"),
+    }.get(value.lower(), value)
+
+
+def localized_magicq_detail(value):
+    """Translate status tokens while preserving MagicQ's version verbatim."""
+    tokens = [token.strip() for token in value.split("·")]
+    states = {
+        "READY": _("READY"),
+        "RUNNING": _("RUNNING"),
+        "MISSING": _("MISSING"),
+        "NOT INSTALLED": _("NOT INSTALLED"),
+        "AUTOMATIC": _("AUTOMATIC"),
+        "MANUAL": _("MANUAL"),
+    }
+    return " · ".join(states.get(token.upper(), token) for token in tokens)
+
+
+def localized_service_detail(value):
+    running = re.fullmatch(r"running on TCP ([0-9]+) \(([^)]+)\)", value,
+                           flags=re.IGNORECASE)
+    if running:
+        return _("running on TCP {port} ({mode})").format(
+            port=running.group(1), mode=localized_mode(running.group(2)))
+    stopped = re.fullmatch(r"stopped \(([^)]+)\)", value,
+                           flags=re.IGNORECASE)
+    if stopped:
+        return _("stopped ({mode})").format(
+            mode=localized_mode(stopped.group(1)))
+    return value
+
+
+def localized_update_detail(value):
+    lower = value.lower()
+    if lower == "up to date":
+        return _("up to date")
+    if lower == "not checked":
+        return _("not checked")
+    prefix, separator, suffix = value.partition(":")
+    if separator and prefix.strip().lower() == "available":
+        return _("available: {version}").format(version=suffix.strip())
+    recovery = re.fullmatch(r"recovery required(?: \((.*)\))?", value,
+                            flags=re.IGNORECASE)
+    if recovery:
+        reason = recovery.group(1)
+        return (_("recovery required ({reason})").format(reason=reason)
+                if reason else _("recovery required"))
+    return value
 
 
 @dataclass(frozen=True)
@@ -21,6 +76,8 @@ class OverviewSnapshot:
     network_ip: str
     ssh_running: bool
     vnc_running: bool
+    ssh_detail: str
+    vnc_detail: str
     remote_detail: str
     update_level: str
     update_detail: str
@@ -96,6 +153,8 @@ def parse_status_report(report: str,
         network_ip=network_ip,
         ssh_running=ssh_running,
         vnc_running=vnc_running,
+        ssh_detail=ssh_detail,
+        vnc_detail=vnc_detail,
         remote_detail=" · ".join(remote_parts),
         update_level=update_level,
         update_detail=update_detail,
