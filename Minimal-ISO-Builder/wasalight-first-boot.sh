@@ -162,3 +162,11 @@ touch "$complete_file"
 chmod 0644 "$complete_file"
 sync
 systemctl reboot --no-block
+
+# Keep this Type=oneshot service in its activating state until systemd stops
+# it during the reboot transaction. If ExecStart returned here, the ordering
+# Before=getty@tty1.service would be released and autologin could start
+# Openbox in the short interval before shutdown actually takes control.
+while :; do
+    sleep 60
+done

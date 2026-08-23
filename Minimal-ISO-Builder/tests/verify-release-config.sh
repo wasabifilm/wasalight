@@ -102,6 +102,11 @@ grep -Fq "overlayroot=\"disabled\"" "$ISO_BUILDER_DIR/wasalight-first-boot.sh" |
     fail "first boot non verifica la modalita' MAINTENANCE"
 grep -Fq 'rebooting into MAINTENANCE' "$ISO_BUILDER_DIR/wasalight-first-boot.sh" || \
     fail "stato finale first boot non dichiara MAINTENANCE"
+reboot_line=$(grep -nF 'systemctl reboot --no-block' \
+    "$ISO_BUILDER_DIR/wasalight-first-boot.sh" | cut -d: -f1)
+hold_line=$(grep -nF 'while :; do' "$ISO_BUILDER_DIR/wasalight-first-boot.sh" | tail -n1 | cut -d: -f1)
+[[ $reboot_line =~ ^[0-9]+$ && $hold_line =~ ^[0-9]+$ && $hold_line -gt $reboot_line ]] || \
+    fail "first boot termina prima che systemd completi il riavvio"
 grep -Fq '/target/etc/wasalight/release-manifest.ini' \
     "$ISO_BUILDER_DIR/autoinstall.yaml" || \
     fail "autoinstall non installa il manifest nel target"

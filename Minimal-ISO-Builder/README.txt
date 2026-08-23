@@ -49,6 +49,9 @@ falliscono, il servizio non dichiara il completamento e riprova dopo 60 secondi.
 Durante questo bootstrap tty1 resta testuale e mostra l'avanzamento: Openbox e
 l'autologin grafico sono bloccati da un marker volatile. Il marker scompare con
 il riavvio conclusivo, quindi la grafica parte soltanto dal boot successivo.
+Anche dopo aver richiesto il riavvio, il servizio resta attivo fino a quando
+systemd lo termina durante lo shutdown: tty1 non puo' quindi avviare Openbox
+nel breve intervallo tra la richiesta e l'effettivo riavvio.
 Dopo il boot in MAINTENANCE l'operatore puo' installare o verificare MagicQ e
 passare volontariamente a SHOW con il comando o il controllo grafico gia'
 previsto.
