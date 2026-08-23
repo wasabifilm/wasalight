@@ -287,6 +287,7 @@ required_patterns=(
     'border_inner_margin = 16'
     '/etc/wasalight/apps.d/ip-scanner.desktop'
     '/etc/wasalight/apps.d/artnet-monitor.desktop'
+    '/etc/wasalight/apps.d/osc-monitor.desktop'
     '/etc/wasalight/apps.d/system-monitor.desktop'
     '/usr/local/share/icons/wasalight/system-monitor.svg'
     'TryExec=lxtask'

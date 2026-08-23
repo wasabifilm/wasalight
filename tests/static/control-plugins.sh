@@ -171,7 +171,7 @@ for about_contact in \
     grep -Fq "$about_contact" "$control_core/pages/about.py" || \
         fail "contatto mancante dalla pagina Crediti: $about_contact"
 done
-for launcher in files ip-scanner artnet-monitor; do
+for launcher in files ip-scanner artnet-monitor osc-monitor; do
     launcher_body=$(cat "$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/$launcher.desktop")
     grep -Fq 'X-Wasalight-Section=Applications' <<<"$launcher_body" || \
         fail "$launcher non è classificato in Applicazioni"
@@ -402,7 +402,8 @@ grep -Fq 'Port=8000' "$PROJECT_DIR/plugins/companion/manifest.ini" || \
 for embedded in \
     'wasalight-ip-scanner.py:/usr/local/libexec/wasalight-ip-scanner.py' \
     'wasalight-artnet-capture:/usr/local/sbin/wasalight-artnet-capture' \
-    'wasalight-artnet-monitor.py:/usr/local/libexec/wasalight-artnet-monitor.py'; do
+    'wasalight-artnet-monitor.py:/usr/local/libexec/wasalight-artnet-monitor.py' \
+    'wasalight-osc-monitor.py:/usr/local/libexec/wasalight-osc-monitor.py'; do
     output=${embedded%%:*}
     marker=${embedded#*:}
     cp "$INSTALLER_TEMPLATE_ROOT$marker" "$tmp_dir/$output"
@@ -410,6 +411,14 @@ for embedded in \
     python3 -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' \
         "$tmp_dir/$output"
 done
+osc_capture="$INSTALLER_TEMPLATE_ROOT/usr/local/sbin/wasalight-artnet-capture"
+grep -Fq 'socket.AF_PACKET' "$osc_capture" || \
+    fail "OSC Monitor non usa una cattura passiva dei pacchetti"
+if grep -Fq '.bind(' "$osc_capture"; then
+    fail "OSC Monitor occupa una porta UDP invece di ascoltare passivamente"
+fi
+grep -Fq 'len(sys.argv) != 1' "$osc_capture" || \
+    fail "il catturatore di rete root accetta argomenti non previsti"
 window_icon="$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-x11-window-icon"
 [[ -s $window_icon ]] || fail "helper icona X11 Companion mancante"
 python3 -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' \

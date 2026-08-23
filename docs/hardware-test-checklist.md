@@ -217,7 +217,7 @@ build, macchina e percorso del support bundle o del log conservato.
       nuovi testi utente non inseriti nei cataloghi.
 - [ ] MagicQ e Servizi condividono intestazione, griglia a tre colonne e schede
       uniformi; testi, toggle e azioni restano allineati.
-- [ ] File, Scanner IP e Art-Net Monitor compaiono in Applicazioni e non in
+- [ ] File, Scanner IP, Art-Net Monitor e OSC Monitor compaiono in Applicazioni e non in
       Supporto.
 - [ ] Mousepad compare in Applicazioni e apre l’editor di testo con un solo
       tocco.

@@ -347,6 +347,7 @@ final_checks() {
     bash -n /usr/local/sbin/wasalight-ip-scan
     bash -n /usr/local/bin/wasalight-ip-scanner
     bash -n /usr/local/bin/wasalight-artnet-monitor
+    bash -n /usr/local/bin/wasalight-osc-monitor
     bash -n /usr/local/sbin/wasalight-app-register
     bash -n /usr/local/bin/wasalight-control
     bash -n /usr/local/bin/wasalight-openbox-menu
@@ -397,6 +398,7 @@ final_checks() {
     python3 -c 'compile(open("/usr/local/libexec/wasalight-ip-scanner.py", encoding="utf-8").read(), "/usr/local/libexec/wasalight-ip-scanner.py", "exec")'
     python3 -c 'compile(open("/usr/local/sbin/wasalight-artnet-capture", encoding="utf-8").read(), "/usr/local/sbin/wasalight-artnet-capture", "exec")'
     python3 -c 'compile(open("/usr/local/libexec/wasalight-artnet-monitor.py", encoding="utf-8").read(), "/usr/local/libexec/wasalight-artnet-monitor.py", "exec")'
+    python3 -c 'compile(open("/usr/local/libexec/wasalight-osc-monitor.py", encoding="utf-8").read(), "/usr/local/libexec/wasalight-osc-monitor.py", "exec")'
     [[ -s /usr/share/plymouth/themes/wasalight/boot-logo.png ]] || \
         die "Wasalight Plymouth boot logo is unavailable"
     [[ $(readlink -f /usr/share/plymouth/themes/default.plymouth) == \
