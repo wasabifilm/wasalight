@@ -7,7 +7,6 @@ IFS=$'\n\t'
 readonly checkout=/data/system/wasalight
 readonly package_store=/data/system/packages
 readonly log_root=/data/log/wasalight/updates
-readonly legacy_log=/data/log/wasalight-update.log
 readonly state_file=/data/system/update-state
 readonly channel_file=/data/system/update-channel
 readonly progress_file=/run/wasalight-update-progress-detail
@@ -181,7 +180,6 @@ fi
 exec 3>&1
 if ((plan_only)); then
     log_file=/dev/null
-    current_log=/dev/null
     export GIT_OPTIONAL_LOCKS=0
 else
     install -d -o root -g root -m 0755 /data/system
@@ -190,11 +188,9 @@ else
     install -d -o root -g root -m 0750 "$package_store"
     run_stamp=$(date +%Y%m%d-%H%M%S)
     log_file="$log_root/update-$run_stamp.log"
-    current_log=$legacy_log
-    touch "$log_file" "$current_log"
-    chown root:adm "$log_file" "$current_log" 2>/dev/null || \
-        chown root:root "$log_file" "$current_log"
-    chmod 0640 "$log_file" "$current_log"
+    touch "$log_file"
+    chown root:adm "$log_file" 2>/dev/null || chown root:root "$log_file"
+    chmod 0640 "$log_file"
 fi
 # Individual run logs are intentionally self-contained. Keep the most recent
 # twenty and remove files older than thirty days so /data cannot grow forever.
@@ -205,10 +201,10 @@ if ((!plan_only)); then
     ((${#stale_run_logs[@]} == 0)) || rm -f -- "${stale_run_logs[@]}"
 fi
 # Keep a direct descriptor for the operator terminal. Long-running commands
-# write their complete output only to the persistent logs while this descriptor
+# write their complete output only to the persistent run log while this descriptor
 # receives the compact progress UI.
 if ((!plan_only)); then
-    exec > >(tee -a "$current_log" "$log_file") 2>&1
+    exec > >(tee -a "$log_file") 2>&1
 fi
 ((verbose)) && { export PS4='+ ${BASH_SOURCE##*/}:${LINENO}: '; set -x; }
 
@@ -230,7 +226,7 @@ banner() {
 }
 
 # Run a potentially slow command without flooding the touch-friendly terminal.
-# Raw stdout/stderr are always retained in both update logs. The indicator is a
+# Raw stdout/stderr are always retained in the run log. The indicator is a
 # separate child: the real command stays in the foreground, so its completion is
 # observed directly instead of polling a PID that could remain as a zombie.
 progress_indicator() {
@@ -261,11 +257,11 @@ _run_with_progress() {
     started=$SECONDS
     progress_indicator "$label" &
     indicator_pid=$!
-    # Tee writes the hidden output to both persistent logs while the command is
+    # Tee writes the hidden output to the persistent run log while the command is
     # still running. This preserves diagnostics even after a power interruption.
     set +e
     (trap - ERR; set +e; "$@") 2>&1 | \
-        tee -a "$current_log" "$log_file" >"$raw_output"
+        tee -a "$log_file" >"$raw_output"
     command_status=("${PIPESTATUS[@]}")
     set -e
     rc=${command_status[0]}
@@ -355,7 +351,6 @@ update_failed() {
         fi
     fi
     echo "Full log: $log_file" >&2
-    [[ $current_log == /dev/null ]] || echo "Cumulative log: $current_log" >&2
     exit "$rc"
 }
 trap 'update_failed "$?" "$LINENO" "$BASH_COMMAND"' ERR
@@ -653,8 +648,8 @@ fi
 
 # Correct large clock drift before creating a snapshot or invoking APT. This
 # matters after hardware clock errors and virtual-machine suspend/resume. The
-# helper comes from the verified candidate so older installations benefit on
-# their first update to this release.
+# helper comes from the verified candidate, which is authoritative for the
+# update being installed.
 clock_helper="$candidate_checkout/installer/templates/rootfs/usr/local/sbin/wasalight-time-control"
 if command -v chronyc >/dev/null 2>&1 && [[ -x $clock_helper ]]; then
     echo "Synchronizing the system clock before package operations…"
@@ -719,8 +714,8 @@ if ((code_only)); then
     exit 0
 fi
 
-# The helper is taken from the checkout just verified, so even the first
-# upgrade to this release can create and automatically restore a snapshot.
+# The helper is taken from the checkout just verified, so every update creates
+# and can automatically restore a snapshot with matching code.
 install -o root -g root -m 0755 "$candidate_checkout/libexec/wasalight-update-snapshot" \
     "$snapshot_tool"
 bash -n "$snapshot_tool"

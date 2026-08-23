@@ -64,8 +64,8 @@ msgstr "L’autenticazione è stata annullata."
 msgid "Channel:"
 msgstr "Canale:"
 
-msgid "Check: /data/log/wasalight-update.log"
-msgstr "Controlla: /data/log/wasalight-update.log"
+msgid "Check: /data/log/wasalight/updates/"
+msgstr "Controlla: /data/log/wasalight/updates/"
 
 msgid "Close"
 msgstr "Chiudi"

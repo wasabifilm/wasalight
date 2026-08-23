@@ -160,24 +160,22 @@ configurazione realmente applicata:
 - [x] Protezione da modifiche Git locali, downgrade e riscritture non
       fast-forward.
 - [x] Correzione della collisione tra stato readonly e libreria updater.
-- [x] Test UTM di `--plan` senza modifiche persistenti.
-- [x] Completare `verify-update-idempotency.sh` dopo due repair consecutivi;
-      verificato in UTM il 23 agosto 2026 sulla build `2026.08.22.1`.
-- [x] Interrompere volontariamente la VM durante l’installer e verificare
-      `RECOVERY REQUIRED` e `--resume`; collaudato in UTM il 23 agosto 2026
-      sulla build `2026.08.22.1`.
-- [x] Provocare un errore successivo all’installazione e verificare il ripristino
-      coordinato di configurazione, canale e checkout; collaudato in UTM il
-      23 agosto 2026 sulla build `2026.08.22.1`.
+- [~] Ripetere sulla ISO candidata il test UTM di `--plan` senza modifiche
+      persistenti.
+- [~] Ripetere `verify-update-idempotency.sh` dopo due repair consecutivi.
+- [~] Verificare sulla ISO candidata `RECOVERY REQUIRED` e `--resume` dopo
+      un’interruzione volontaria durante l’installer.
+- [~] Verificare sulla ISO candidata il ripristino coordinato di configurazione,
+      canale e checkout dopo un errore post-installazione.
 - [ ] Creare chiave, tag e prima GitHub Release stable immutabile e firmata.
 - [ ] Verificare il rifiuto di tag stable non firmati o firmati da chiavi non
       autorizzate.
 
 ## Fase 6 — Installazione e aggiornamento MagicQ offline
 
-Il collaudo con una USB fisica è esplicitamente differito alla Fase 8 e non
-blocca l'integrazione della funzione, già verificata offline in UTM usando gli
-stessi percorsi di ricerca e preservazione del pacchetto.
+Il collaudo con una USB fisica è esplicitamente differito alla Fase 8. La nuova
+installazione da zero deve verificare anche i percorsi offline prima della
+prima release stable.
 
 - [~] Durante la prima installazione proporre ricerca USB, continuazione senza
       MagicQ oppure annullamento.
@@ -192,18 +190,13 @@ stessi percorsi di ricerca e preservazione del pacchetto.
       della stessa versione con contenuto diverso.
 - [x] Integrazione in Wasalight Control, policy Polkit, log dedicato e opzioni
       `--scan-only` e `--reinstall`.
-- [x] Pubblicare il ramo `codex/magicq-offline-installer` e aprire la draft PR
-      #31 con CI verde.
-- [x] Installare la build `2026.08.21.1` in UTM.
-- [x] Collaudare `--scan-only` e una reinstallazione reale dentro un namespace
-      UTM senza rete, verificando dpkg, librerie e launcher.
+- [~] Collaudare `--scan-only` e una reinstallazione reale dentro un namespace
+      UTM senza rete, verificando dpkg, librerie e launcher sulla ISO candidata.
 - [ ] Ripetere durante il collaudo hardware della Fase 8 la prova con il `.deb`
       nella root e in `packages/` di una USB fisica assegnata alla VM.
 - [ ] Verificare nella stessa prova differita che il `.deb` originale sulla USB
-      resti invariato; il pacchetto persistente in `/data` è già risultato
-      invariato nel test offline UTM.
-- [x] Unire la fase in `main` dopo il collaudo UTM; la prova USB fisica resta
-      tracciata come verifica hardware successiva.
+      resti invariato e che la copia persistente in `/data` abbia lo stesso
+      checksum.
 
 ## Fase 7 — Localizzazione completa
 
@@ -245,35 +238,3 @@ stessi percorsi di ricerca e preservazione del pacchetto.
 - [ ] Eseguire prove di spegnimento improvviso e riavvio ripetuto in SHOW.
 - [ ] Eseguire backup, sostituzione macchina e ripristino completo.
 - [ ] Pubblicare la prima release stable soltanto dopo il collaudo firmato.
-
-## Richieste precedenti recuperate dalla cronologia
-
-Queste richieste erano presenti nelle liste e conversazioni precedenti. Sono
-riportate esplicitamente per evitare che vadano perse:
-
-- [x] logo Wasabi nel boot e come sfondo desktop;
-- [x] avvio Xorg senza testi visibili;
-- [x] icone touch e barra scura non auto-nascosta;
-- [x] pulsanti spegnimento, riavvio, rete, tastiera e Companion;
-- [x] una sola istanza di Wasalight Control;
-- [x] avvio MagicQ automatico una volta, ma non riavvio dopo la chiusura;
-- [x] persistenza separata di log nativi MagicQ e log Wasalight;
-- [x] più USB contemporanee visibili in `/stick`;
-- [x] APFS in sola lettura;
-- [x] Companion opzionale e aggiornabile;
-- [x] Falkon personalizzato con icona Companion;
-- [x] plugin, applicazioni future e interfaccia unificata;
-- [x] aggiornamento grafico con password Polkit;
-- [x] rollback grafico e cancellazione snapshot;
-- [x] backup/ripristino completo di `/data`;
-- [x] calcolatrice, Mousepad, monitor sistema, data/ora e lock screen;
-- [x] tastiera virtuale nel tray;
-- [x] audit di sistema e CI completa;
-- [x] installer modulare, lock globale e manifest unico;
-- [x] canali aggiornamento stable/debug;
-- [~] installazione e aggiornamento MagicQ offline;
-- [x] monitor OSC;
-- [x] politica firewall definita e documentata;
-- [~] TRIM periodico implementato; politica swap da decidere dopo le misure;
-- [x] localizzazione completa dell’intero desktop, collaudata in UTM;
-- [ ] collaudo hardware e prima release stable firmata.

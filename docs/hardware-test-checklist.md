@@ -3,31 +3,6 @@
 Eseguire questi controlli su una macchina di prova prima dell’impiego durante
 uno spettacolo.
 
-## Esiti registrati
-
-- [x] 2026-08-20 — La fase 2 dell’updater transazionale è stata installata
-      sulla VM UTM senza problemi apparenti. Questo esito conferma
-      l’installazione iniziale, ma non sostituisce le prove di interruzione,
-      ripresa, rollback e idempotenza elencate più avanti.
-- [x] 2026-08-21 — La PR #31 / build `2026.08.21.1` è stata installata in UTM.
-      `wasalight-magicq-install --scan-only` ha selezionato il pacchetto
-      persistente e `--reinstall` ha reinstallato realmente MagicQ 1.9.8.3
-      dentro un namespace senza rete. Dpkg è rimasto `ii`, `ldd` non ha trovato
-      librerie mancanti, il checksum del `.deb` è rimasto invariato e il
-      launcher risultava `root:root 0444`. Resta da ripetere con una USB fisica.
-- [x] 2026-08-22 — Localizzazione collaudata in UTM con nuovi login in `en`,
-      `it` e `auto`. Desktop, Control, menu Openbox, updater e conferma di
-      riavvio seguono la lingua attesa; `auto` ha ereditato `C.UTF-8` e quindi
-      l’inglese. La preferenza iniziale `en` è stata ripristinata al termine.
-      Il test ha inoltre individuato e corretto gli ultimi stati dinamici non
-      tradotti nella Panoramica e il mancato primo piano al primo avvio di
-      Control; queste due correzioni richiedono la build `2026.08.22.1`.
-- [x] 2026-08-23 — La build `2026.08.22.1` è stata collaudata in UTM: Control
-      compare in primo piano, gli stati dinamici seguono la lingua della
-      sessione e il toggle Onboard supera tre cicli completi, inclusa la
-      riapertura con un solo tocco dopo la X interna, senza processi duplicati.
-      `verify-update-idempotency.sh` è terminato con `PASS` dopo due repair.
-
 ## Gate per la prima release stable
 
 Questa tabella è il riepilogo decisionale. Una release stable può essere
@@ -37,10 +12,10 @@ build, macchina e percorso del support bundle o del log conservato.
 
 | Gate | Ambiente minimo | Evidenza richiesta | Stato |
 | --- | --- | --- | --- |
-| CI completa | GitHub Actions Ubuntu 24.04 | [PR #36: static-verification](https://github.com/wasabifilm/wasalight/actions/runs/32628816964/job/97168283951?pr=36) | [x] |
-| Idempotenza updater | UTM in MAINTENANCE | `PASS` registrato il 2026-08-23 sulla build `2026.08.22.1` | [x] |
-| Ripresa dopo interruzione | UTM usa-e-getta | `PASS` registrato il 2026-08-23 sulla build `2026.08.22.1` | [x] |
-| Rollback dopo errore | UTM usa-e-getta | `PASS` registrato il 2026-08-23 sulla build `2026.08.22.1` | [x] |
+| CI completa | GitHub Actions Ubuntu 24.04 | Workflow `static-verification` verde sul commit candidato | [ ] |
+| Idempotenza updater | UTM in MAINTENANCE | `verify-update-idempotency.sh` termina con `PASS` | [ ] |
+| Ripresa dopo interruzione | UTM usa-e-getta | Snapshot riutilizzato e transazione completata | [ ] |
+| Rollback dopo errore | UTM usa-e-getta | Configurazione, canale e checkout ripristinati | [ ] |
 | Aggiornamento firmato | UTM | Tag autorizzato accettato e tag non autorizzato rifiutato | [ ] |
 | Resistenza agli spegnimenti | Hardware fisico | Serie di riavvii in SHOW senza perdita dello show o corruzione | [ ] |
 | MagicQ e I/O show | Hardware fisico | MagicQ, USB ChamSys, Art-Net, sACN, OSC e audio verificati | [ ] |
@@ -126,31 +101,28 @@ build, macchina e percorso del support bundle o del log conservato.
 - [ ] `systemctl status wasalight-logrotate.timer` mostra il timer abilitato.
 - [ ] Un log di prova oltre 5 MiB viene ruotato senza interrompere MagicQ e
       restano al massimo cinque copie.
-- [ ] Il log `wasalight-update.log` mostra la pulizia dei pacchetti estranei
+- [ ] Il log più recente in `/data/log/wasalight/updates/` mostra la pulizia dei pacchetti estranei
       prima dell’installazione Wasalight e un solo `autoremove --purge` finale.
 - [ ] Ripetendo l’update della stessa versione/commit compare **sistema già
       aggiornato** senza snapshot, APT, installer o richiesta di riavvio.
-- [x] `wasalight-update --plan` mostra versione, commit, MagicQ, snapshot e
+- [ ] `wasalight-update --plan` mostra versione, commit, MagicQ, snapshot e
       modalità prevista senza modificare `/data`, configurazione, pacchetti USB,
-      canale o checkout; `tests/utm/verify-update-plan.sh` termina con `PASS`
-      (verificato in UTM il 2026-08-20 sulla versione `2026.08.20.2`).
+      canale o checkout; `tests/utm/verify-update-plan.sh` termina con `PASS`.
 - [ ] `wasalight-update --channel debug` segue `main`, salva `debug` soltanto a
       esito positivo e il pannello mostra `CHANNEL DEBUG`.
 - [ ] Senza una chiave reale in `/etc/wasalight/update-signers`, il canale
       `stable` si ferma chiaramente e non ripiega su `main`.
 - [ ] Con una release stable immutabile e firmata, tag, `VERSION`, commit
       installato e chiave autorizzata coincidono; un tag non firmato viene rifiutato.
-- [x] Interrompendo intenzionalmente la VM durante l’installer, il pannello
+- [ ] Interrompendo intenzionalmente la VM durante l’installer, il pannello
       mostra `RECOVERY REQUIRED`; l’avvio grafico dell’update propone
-      **Riprendi** e `--resume` riutilizza lo snapshot registrato (verificato in
-      UTM il 2026-08-23 sulla build `2026.08.22.1`).
-- [x] Dopo un errore successivo all’installazione, configurazione, canale e
-      checkout precedente vengono ripristinati insieme (verificato in UTM il
-      2026-08-23 sulla build `2026.08.22.1`).
-- [x] Il test UTM `verify-update-idempotency.sh`, avviato con la conferma
+      **Riprendi** e `--resume` riutilizza lo snapshot registrato.
+- [ ] Dopo un errore successivo all’installazione, configurazione, canale e
+      checkout precedente vengono ripristinati insieme.
+- [ ] Il test UTM `verify-update-idempotency.sh`, avviato con la conferma
       `WASALIGHT_IDEMPOTENCY_CONFIRM=UTM-ONLY`, termina con `PASS` dopo due repair.
-- [ ] Il log cumulativo ruota a 5 MiB e in `updates/` restano al massimo venti
-      esecuzioni, nessuna più vecchia di trenta giorni.
+- [ ] In `/data/log/wasalight/updates/` restano al massimo venti esecuzioni e
+      nessuna più vecchia di trenta giorni.
 - [ ] Il controllo di `libqxcb.so`, eseguito con le librerie incluse da MagicQ,
       non mostra dipendenze `not found`.
 - [ ] `/usr/share/alsa/alsa.conf` esiste e `wasalight-audio-test` riproduce una
