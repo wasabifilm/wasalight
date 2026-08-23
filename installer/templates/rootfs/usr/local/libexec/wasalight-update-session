@@ -68,8 +68,8 @@ else
 fi
 clear
 printf '%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓%s\n' "$brand" "$reset"
-printf '%s┃%s  %sWASALIGHT UPDATE%s                                  %s┃%s\n' \
-    "$brand" "$reset" "$white" "$reset" "$brand" "$reset"
+printf '%s┃%s  %s%-52s%s%s┃%s\n' \
+    "$brand" "$reset" "$white" 'WASALIGHT UPDATE' "$reset" "$brand" "$reset"
 printf '%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛%s\n\n' "$brand" "$reset"
 printf '  %s●%s %s\n' "$brand" "$reset" \
     "$( _ "Download, verify and install the latest version." )"
