@@ -93,17 +93,6 @@ if [[ -d /opt/companion ]]; then
     fi
 fi
 
-if [[ -r /data/system/health/status ]]; then
-    IFS=$'\t' read -r health_state health_time </data/system/health/status || true
-    if [[ ${health_state:-} == OK ]]; then
-        status_line "$green" 'HEALTH' "OK · ${health_time:-unknown}"
-    else
-        status_line "$red" 'HEALTH' "WARNING · ${health_time:-unknown}"
-    fi
-else
-    status_line "$yellow" 'HEALTH' 'NOT CHECKED'
-fi
-
 if mountpoint -q /data; then
     data_free=$(df -h --output=avail /data 2>/dev/null | tail -n 1 | xargs)
     status_line "$green" 'DATA' "MOUNTED · ${data_free:-?} free"
