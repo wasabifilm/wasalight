@@ -30,6 +30,7 @@ readonly log_file="$log_dir/wasalight-first-boot.log"
 readonly status_file="$log_dir/wasalight-first-boot.status"
 readonly version_file="$log_dir/wasalight-first-boot.version"
 readonly complete_file="/var/lib/wasalight/first-boot-complete"
+readonly active_file="/run/wasalight-first-boot-active"
 
 status_ready=0
 current_phase="Startup"
@@ -72,6 +73,10 @@ esac
 if [[ -e $complete_file ]]; then
     echo "Wasalight is already installed: no action is required."
     exit 0
+fi
+if ((download_only == 0)); then
+    touch "$active_file"
+    chmod 0644 "$active_file"
 fi
 mountpoint -q /data || die "/data is not mounted"
 [[ $(findmnt -n -o FSTYPE -M /data) == ext4 ]] || die "/data is not ext4"
@@ -139,17 +144,19 @@ current_phase="3/4 · Install Wasalight"
 write_status running "Running install.sh"
 echo "[$current_phase]"
 echo "Installing Wasalight from commit $commit..."
-"$checkout/install.sh" --allow-missing-magicq
+"$checkout/install.sh" --no-protection --allow-missing-magicq
+grep -qxF 'overlayroot="disabled"' /etc/overlayroot.local.conf || \
+    die "the next boot was not configured for MAINTENANCE mode"
 
 current_phase="4/4 · Finalization"
-write_status running "Recording completion and rebooting"
+write_status running "Recording completion and rebooting into MAINTENANCE"
 echo "[$current_phase]"
 printf '\n========================================\n'
 printf '  WASALIGHT INSTALLED SUCCESSFULLY\n'
 printf '========================================\n'
 echo "Commit: $commit"
-echo "Rebooting into protected mode..."
-write_status complete "Wasalight installed from commit $commit; reboot required"
+echo "Rebooting into MAINTENANCE mode..."
+write_status complete "Wasalight installed from commit $commit; rebooting into MAINTENANCE"
 systemctl disable wasalight-first-boot.service
 touch "$complete_file"
 chmod 0644 "$complete_file"

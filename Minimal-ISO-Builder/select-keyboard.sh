@@ -16,6 +16,51 @@ case "$INSTALLER_VERSION" in
   ''|*[!0-9]*) echo "ERROR: invalid VERSION."; exit 1 ;;
 esac
 
+XKB_ROOT=${WASALIGHT_XKB_ROOT:-/usr/share/X11/xkb}
+
+valid_xkb_token() {
+  candidate=$1
+  case "$candidate" in
+    ''|*[!A-Za-z0-9_+-]*) return 1 ;;
+  esac
+}
+
+valid_xkb_layout() {
+  candidate=$1
+  valid_xkb_token "$candidate" && [ -r "$XKB_ROOT/symbols/$candidate" ]
+}
+
+valid_xkb_variant() {
+  candidate_layout=$1
+  candidate_variant=$2
+  [ -z "$candidate_variant" ] && return 0
+  valid_xkb_token "$candidate_variant" || return 1
+  awk -v requested="$candidate_variant" '
+    /xkb_symbols[[:space:]]+"/ {
+      count = split($0, fields, "\"")
+      if (count >= 3 && fields[2] == requested) found = 1
+    }
+    END { exit found ? 0 : 1 }
+  ' "$XKB_ROOT/symbols/$candidate_layout"
+}
+
+valid_xkb_selection() {
+  valid_xkb_layout "$1" && valid_xkb_variant "$1" "$2"
+}
+
+apply_live_keyboard() {
+  command -v ckbcomp >/dev/null 2>&1 || return 1
+  command -v loadkeys >/dev/null 2>&1 || return 1
+
+  keymap_file=/run/wasalight-console-keymap
+  if [ -n "$2" ]; then
+    ckbcomp -layout "$1" -variant "$2" >"$keymap_file" || return 1
+  else
+    ckbcomp -layout "$1" >"$keymap_file" || return 1
+  fi
+  loadkeys "$keymap_file"
+}
+
 valid_timezone() {
   candidate=$1
   case "$candidate" in
@@ -32,6 +77,11 @@ case "${1:-}" in
   --validate-timezone)
     [ "$#" -eq 2 ] || exit 2
     valid_timezone "$2"
+    exit $?
+    ;;
+  --validate-layout)
+    [ "$#" -ge 2 ] && [ "$#" -le 3 ] || exit 2
+    valid_xkb_selection "$2" "${3:-}"
     exit $?
     ;;
   *)
@@ -68,6 +118,8 @@ while :; do
   green "                WASALIGHT INSTALLER v$INSTALLER_VERSION"
   echo "=============================================================="
   echo
+  echo "The installer language is English; this choice only affects the keyboard."
+  echo
   echo "Select the keyboard layout:"
   echo
   echo "   1) Italian"
@@ -78,6 +130,7 @@ while :; do
   echo "   6) Espanol"
   echo "   7) Swiss German"
   echo "   8) Swiss French"
+  echo "   9) Other XKB layout"
   echo
   printf "Selection: "
   IFS= read -r choice
@@ -123,21 +176,46 @@ while :; do
       variant="fr"
       label="Swiss French"
       ;;
+    9)
+      echo
+      printf "XKB layout code (for example pl, pt or no): "
+      IFS= read -r layout
+      printf "XKB variant (leave empty for the default): "
+      IFS= read -r variant
+      if ! valid_xkb_selection "$layout" "$variant"; then
+        pause_error "Invalid or unavailable XKB layout/variant: $layout ${variant:-default}"
+        continue
+      fi
+      label="$layout"
+      [ -z "$variant" ] || label="$layout ($variant)"
+      ;;
     *)
       pause_error "Invalid selection."
       continue
       ;;
   esac
 
+  if ! apply_live_keyboard "$layout" "$variant"; then
+    pause_error "Unable to apply this keyboard layout to the live console."
+    continue
+  fi
+
   clear_screen
   echo "=============================================================="
-  echo "                 CONFIRM KEYBOARD"
+  echo "                   TEST KEYBOARD"
   echo "=============================================================="
   echo
   echo "Layout: $label"
   echo
-  printf "Confirm? [Y/n]: "
+  echo "Type a short test, including symbols such as @, /, - or _, then press ENTER."
+  printf "> "
+  IFS= read -r keyboard_test
+  echo
+  printf 'You typed: %s\n' "$keyboard_test"
+  echo
+  printf "Is the keyboard correct? [Y/n]: "
   IFS= read -r confirm
+  keyboard_test=""
 
   case "$confirm" in
     ""|y|Y|yes|YES|Yes)
@@ -225,7 +303,7 @@ while :; do
   echo
   echo "Set the password for the chamsys administrator account."
   echo
-  echo "The password must contain at least 10 characters."
+  echo "The password must contain at least 6 characters."
   echo "It will not be displayed while you type."
   echo
 
@@ -237,7 +315,7 @@ while :; do
   echo_disabled=0
   echo
 
-  if [ "${#password}" -lt 10 ]; then
+  if [ "${#password}" -lt 6 ]; then
     password=""
     pause_error "The password is too short."
     continue

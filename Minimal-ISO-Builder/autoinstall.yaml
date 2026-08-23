@@ -136,8 +136,9 @@ autoinstall:
         echo "UI not ready after 60 seconds; text installation remains active" >>/run/wasalight-ui.log;
       fi;
       true'
-  - sh /cdrom/wasalight/select-disk.sh
+  - sh /cdrom/wasalight/preflight.sh
   - sh /cdrom/wasalight/select-keyboard.sh
+  - sh /cdrom/wasalight/select-disk.sh
   - chvt 2 || true
   late-commands:
   - install -D -m 0755 /cdrom/wasalight/wasalight-first-boot.sh /target/usr/local/sbin/wasalight-first-boot
@@ -146,9 +147,11 @@ autoinstall:
   - install -D -m 0644 /cdrom/wasalight/wasalight-release-manifest.sh /target/usr/local/libexec/wasalight-release-manifest.sh
   - __WASALIGHT_NETWORK_PRELOAD__
   - curtin in-target --target=/target -- systemctl enable wasalight-first-boot.service
+  - sh /cdrom/wasalight/save-installer-logs.sh success
   - touch /run/wasalight-install-success
   - sh /cdrom/wasalight/wait-for-poweroff.sh
   error-commands:
+  - sh /cdrom/wasalight/save-installer-logs.sh failed || true
   - >-
     sh -c '{
       echo "Installation failed" >/run/wasalight-install-failed;

@@ -38,10 +38,20 @@ servizio systemd completa automaticamente Wasalight al primo avvio reale:
 4. esegue tests/verify-project.sh;
 5. registra il commit in /data/log/wasalight-first-boot.version;
 6. pubblica fase ed esito in /data/log/wasalight-first-boot.status;
-7. esegue install.sh e riavvia in modalita' protetta.
+7. installa MagicQ quando trova un pacchetto amd64 valido in /data o su una
+   USB, senza incorporarlo nella ISO o nel repository;
+8. in assenza del pacchetto continua con gli strumenti per installarlo in un
+   secondo momento;
+9. esegue install.sh senza attivare overlayroot e riavvia in MAINTENANCE.
 
 Il log si trova in /data/log/wasalight-first-boot.log. Se rete o installazione
 falliscono, il servizio non dichiara il completamento e riprova dopo 60 secondi.
+Durante questo bootstrap tty1 resta testuale e mostra l'avanzamento: Openbox e
+l'autologin grafico sono bloccati da un marker volatile. Il marker scompare con
+il riavvio conclusivo, quindi la grafica parte soltanto dal boot successivo.
+Dopo il boot in MAINTENANCE l'operatore puo' installare o verificare MagicQ e
+passare volontariamente a SHOW con il comando o il controllo grafico gia'
+previsto.
 
 La variante NETBOOT prepara gia' il checkout Git durante l'autoinstall, poi lo
 aggiorna nuovamente al primo avvio per installare il main piu' recente. Ogni
@@ -59,11 +69,26 @@ Entrambe includono:
 - interfaccia di installazione interamente in inglese;
 - conferma distruttiva digitando esattamente ERASE;
 - GPT ibrida con BIOS GRUB, EFI, /boot, LVM, root al 50% e /data sul resto;
-- scelta della tastiera, del fuso orario e della password chamsys durante
+- scelta del layout tastiera indipendente dalla lingua inglese dell'installer,
+  con preset oppure codice XKB personalizzato, applicazione immediata alla
+  console live e schermata di prova;
+- scelta del fuso orario e della password chamsys (minimo 6 caratteri) durante
   l'installazione;
+- riepilogo di modalita', tastiera, fuso orario, boot e disco prima di ERASE;
+- preflight bloccante prima della formattazione: almeno 2 GiB di RAM e Internet
+  funzionante con interfaccia, IP, route, DNS e HTTPS verso il repository
+  Wasalight; tra 2 e 4 GiB viene mostrato un avviso;
 - SSH inizialmente disabilitato;
 - UI Wasalight alimentata dagli eventi Subiquity/curtin su Ctrl+Alt+F2;
 - log tecnici su Ctrl+Alt+F1.
+
+Internet e' obbligatoria sia in FULL sia in NETBOOT: FULL contiene Ubuntu ma
+scarica comunque Wasalight e i relativi componenti durante il completamento.
+
+I log Subiquity, curtin e Wasalight vengono salvati anche nel sistema installato
+in /data/log/installer. Il file autoinstall e gli hash password presenti nei log
+vengono oscurati durante la copia. Se l'installazione fallisce prima che il
+volume /data sia montato, la copia persistente non e' tecnicamente possibile.
 
 Al termine, l'installer non riavvia immediatamente dal supporto ancora
 inserito. Mostra invece una schermata finale in inglese: premendo ENTER il

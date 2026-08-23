@@ -23,6 +23,16 @@ case "$INSTALLER_VERSION" in
   ''|*[!0-9]*) echo "ERROR: invalid VERSION."; exit 1 ;;
 esac
 
+if [ -d /sys/firmware/efi ]; then
+  boot_mode=UEFI
+  disk_grub_device=false
+  efi_grub_device=true
+else
+  boot_mode=BIOS
+  disk_grub_device=true
+  efi_grub_device=false
+fi
+
 clear_screen() { printf '\033[2J\033[H'; }
 green() { printf '\033[1;32m%s\033[0m\n' "$1"; }
 
@@ -34,6 +44,17 @@ pause_error() {
 
 clean_field() {
   printf '%s' "$1" | tr '\n|' '  '
+}
+
+required_runtime_value() {
+  runtime_file=$1
+  runtime_name=$2
+  runtime_value=$(sed -n '1p' "$runtime_file" 2>/dev/null || true)
+  if [ -z "$runtime_value" ]; then
+    echo "ERROR: $runtime_name is unavailable." >&2
+    return 1
+  fi
+  printf '%s\n' "$runtime_value"
 }
 
 installation_disks() {
@@ -151,16 +172,40 @@ while :; do
   size=$(printf '%s' "$line" | cut -d'|' -f3)
   model=$(printf '%s' "$line" | cut -d'|' -f4)
   serial=$(printf '%s' "$line" | cut -d'|' -f5)
+  keyboard_label=$(required_runtime_value /run/wasalight-keyboard-label \
+    "keyboard selection") || exit 1
+  install_variant=$(required_runtime_value /run/wasalight-install-variant \
+    "installation mode") || exit 1
+  preflight_status=$(required_runtime_value /run/wasalight-preflight-status \
+    "preflight status") || exit 1
+  timezone_label=$(required_runtime_value /run/wasalight-timezone-label \
+    "time zone selection") || exit 1
+  password_status=$(required_runtime_value /run/wasalight-password-status \
+    "password status") || exit 1
+  [ "$password_status" = "configured" ] || {
+    echo "ERROR: the administrator password is not configured."
+    exit 1
+  }
 
   clear_screen
   echo "=============================================================="
-  echo "                     CONFIRM DISK"
+  echo "              REVIEW AND CONFIRM INSTALLATION"
   echo "=============================================================="
+  echo
+  echo "Installer:  v$INSTALLER_VERSION"
+  echo "Mode:       $install_variant"
+  echo "Preflight:  $preflight_status"
+  echo "Keyboard:   $keyboard_label"
+  echo "Time zone:  $timezone_label"
+  echo "Password:   configured"
+  echo "Boot mode:  $boot_mode"
   echo
   echo "Disk:   $target"
   echo "Size:   $size"
   echo "Model:  $model"
   [ -z "$serial" ] || echo "Serial: $serial"
+  echo
+  echo "Storage: GPT, EFI, /boot and LVM; / uses 50%, /data uses the rest."
   echo
   echo "ALL DATA ON THIS DISK WILL BE ERASED."
   echo
@@ -221,16 +266,6 @@ grep -Fq '__WASALIGHT_EFI_GRUB_DEVICE__' /autoinstall.yaml || {
   IFS= read -r _dummy
   exec sh
 }
-
-if [ -d /sys/firmware/efi ]; then
-  boot_mode=UEFI
-  disk_grub_device=false
-  efi_grub_device=true
-else
-  boot_mode=BIOS
-  disk_grub_device=true
-  efi_grub_device=false
-fi
 
 escaped_target=$(printf '%s' "$target" | sed 's/[\/&]/\\&/g')
 sed "s/__WASALIGHT_TARGET_DISK__/$escaped_target/g" \

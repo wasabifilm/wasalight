@@ -176,6 +176,7 @@ required_patterns=(
     'require_magicq_or_override'
     'readonly USB_MOUNT="/stick"'
     'mountpoint="$base/$dev_name"'
+    '/run/wasalight-first-boot-active'
     'state="$state_dir/$dev_name.mount"'
     '[[ $(dpkg-deb -f "$DEB_PATH" Package) == "$MAGICQ_PACKAGE_NAME" ]]'
     'wasalight-maintenance'

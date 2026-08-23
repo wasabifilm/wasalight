@@ -146,7 +146,8 @@ EOF
     fi
 
     write_file "$TARGET_HOME/.bash_profile" 0644 <<'EOF'
-if [ -z "${DISPLAY:-}" ] && [ "$(tty)" = /dev/tty1 ]; then
+if [ -z "${DISPLAY:-}" ] && [ "$(tty)" = /dev/tty1 ] && \
+   [ ! -e /run/wasalight-first-boot-active ]; then
     xorg_log=/data/log/wasalight-xorg-startup.log
     if [ ! -d /data/log ] || [ ! -w /data/log ]; then
         xorg_log=/tmp/wasalight-xorg-startup.log

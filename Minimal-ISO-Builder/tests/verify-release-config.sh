@@ -85,6 +85,23 @@ grep -Fq 'require_manifest_value_matching "$release_manifest" Wasalight Reposito
 grep -Fq 'git -C "$checkout" fetch origin "$branch"' \
     "$ISO_BUILDER_DIR/wasalight-first-boot.sh" || \
     fail "first boot non usa il branch centralizzato"
+grep -Fq 'Before=getty@tty1.service' "$ISO_BUILDER_DIR/wasalight-first-boot.service" || \
+    fail "first boot non precede la console grafica su tty1"
+grep -Fq 'RequiresMountsFor=/data' "$ISO_BUILDER_DIR/wasalight-first-boot.service" || \
+    fail "first boot non attende il volume /data"
+grep -Fq 'active_file="/run/wasalight-first-boot-active"' \
+    "$ISO_BUILDER_DIR/wasalight-first-boot.sh" || \
+    fail "first boot privo del marker grafico volatile"
+grep -Fq '[ ! -e /run/wasalight-first-boot-active ]' \
+    "$PROJECT_DIR/installer/modules/20-network-services.sh" || \
+    fail "Openbox non rispetta il marker del primo avvio"
+grep -Fq '"$checkout/install.sh" --no-protection --allow-missing-magicq' \
+    "$ISO_BUILDER_DIR/wasalight-first-boot.sh" || \
+    fail "first boot non prepara MAINTENANCE con MagicQ opzionale"
+grep -Fq "overlayroot=\"disabled\"" "$ISO_BUILDER_DIR/wasalight-first-boot.sh" || \
+    fail "first boot non verifica la modalita' MAINTENANCE"
+grep -Fq 'rebooting into MAINTENANCE' "$ISO_BUILDER_DIR/wasalight-first-boot.sh" || \
+    fail "stato finale first boot non dichiara MAINTENANCE"
 grep -Fq '/target/etc/wasalight/release-manifest.ini' \
     "$ISO_BUILDER_DIR/autoinstall.yaml" || \
     fail "autoinstall non installa il manifest nel target"
@@ -112,6 +129,12 @@ grep -Fq 'Preparing the installation' "$ISO_BUILDER_DIR/install-ui.sh" || \
     fail "UI installer non tradotta in inglese"
 grep -Fq 'To confirm, type exactly: ERASE' "$ISO_BUILDER_DIR/select-disk.sh" || \
     fail "conferma distruttiva inglese mancante"
+grep -Fq 'REVIEW AND CONFIRM INSTALLATION' "$ISO_BUILDER_DIR/select-disk.sh" || \
+    fail "riepilogo finale prima di ERASE mancante"
+for summary_value in 'Installer:' 'Mode:' 'Keyboard:' 'Time zone:' 'Password:' 'Boot mode:' 'Storage:'; do
+    grep -Fq "$summary_value" "$ISO_BUILDER_DIR/select-disk.sh" || \
+        fail "riepilogo installazione privo di $summary_value"
+done
 if grep -Fq 'CANCELLA' "$ISO_BUILDER_DIR/select-disk.sh"; then
     fail "il selettore disco usa ancora la conferma italiana"
 fi
@@ -128,10 +151,16 @@ grep -Fq 'PID_FILE = Path("/run/wasalight-ui.pid")' \
     "$ISO_BUILDER_DIR/install-ui.sh" || \
     fail "UI installer priva del PID per il passaggio sicuro della console"
 sh -n "$ISO_BUILDER_DIR/wait-for-poweroff.sh"
+sh -n "$ISO_BUILDER_DIR/save-installer-logs.sh"
 for builder in make-wasalight-minimal.sh make-wasalight-netboot.sh; do
     grep -Fq 'wait-for-poweroff.sh' "$ISO_BUILDER_DIR/$builder" || \
         fail "$builder non incorpora il prompt di spegnimento"
+    grep -Fq 'save-installer-logs.sh' "$ISO_BUILDER_DIR/$builder" || \
+        fail "$builder non incorpora il salvataggio log installer"
+    grep -Fq 'preflight.sh' "$ISO_BUILDER_DIR/$builder" || \
+        fail "$builder non incorpora il preflight"
 done
+sh -n "$ISO_BUILDER_DIR/preflight.sh"
 "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-timezone Europe/Rome || \
     fail "Europe/Rome non riconosciuto come fuso orario valido"
 if "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-timezone ../Etc/UTC; then
@@ -140,6 +169,84 @@ fi
 if "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-timezone Invalid; then
     fail "il selettore accetta un fuso orario non valido"
 fi
+
+mkdir -p "$tmp_dir/xkb/symbols"
+printf 'default partial alphanumeric_keys\nxkb_symbols "basic" { };\nxkb_symbols "intl" { };\n' \
+    >"$tmp_dir/xkb/symbols/us"
+WASALIGHT_XKB_ROOT="$tmp_dir/xkb" \
+    "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-layout us intl || \
+    fail "layout e variante XKB disponibili non riconosciuti"
+WASALIGHT_XKB_ROOT="$tmp_dir/xkb" \
+    "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-layout us || \
+    fail "layout XKB predefinito non riconosciuto"
+if WASALIGHT_XKB_ROOT="$tmp_dir/xkb" \
+        "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-layout ../us; then
+    fail "il selettore accetta un layout XKB con traversal"
+fi
+if WASALIGHT_XKB_ROOT="$tmp_dir/xkb" \
+        "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-layout us unavailable; then
+    fail "il selettore accetta una variante XKB non disponibile"
+fi
+grep -Fq 'The installer language is English; this choice only affects the keyboard.' \
+    "$ISO_BUILDER_DIR/select-keyboard.sh" || \
+    fail "indipendenza tra lingua installer e tastiera non esplicitata"
+grep -Fq 'at least 6 characters' "$ISO_BUILDER_DIR/select-keyboard.sh" || \
+    fail "minimo password di 6 caratteri non mostrato"
+grep -Fq '[ "${#password}" -lt 6 ]' "$ISO_BUILDER_DIR/select-keyboard.sh" || \
+    fail "minimo password di 6 caratteri non applicato"
+grep -Fq 'ckbcomp -layout' "$ISO_BUILDER_DIR/select-keyboard.sh" || \
+    fail "layout XKB non convertito per la console live"
+grep -Fq 'loadkeys "$keymap_file"' "$ISO_BUILDER_DIR/select-keyboard.sh" || \
+    fail "layout tastiera non applicato alla console live"
+grep -Fq 'TEST KEYBOARD' "$ISO_BUILDER_DIR/select-keyboard.sh" || \
+    fail "schermata di prova tastiera mancante"
+
+keyboard_command_line=$(grep -nF 'sh /cdrom/wasalight/select-keyboard.sh' \
+    "$ISO_BUILDER_DIR/autoinstall.yaml" | cut -d: -f1)
+disk_command_line=$(grep -nF 'sh /cdrom/wasalight/select-disk.sh' \
+    "$ISO_BUILDER_DIR/autoinstall.yaml" | cut -d: -f1)
+[[ $keyboard_command_line -lt $disk_command_line ]] || \
+    fail "la tastiera deve essere configurata prima del riepilogo disco"
+grep -Fq 'save-installer-logs.sh success' "$ISO_BUILDER_DIR/autoinstall.yaml" || \
+    fail "log installer non salvati in caso di successo"
+grep -Fq 'save-installer-logs.sh failed' "$ISO_BUILDER_DIR/autoinstall.yaml" || \
+    fail "log installer non salvati in caso di errore"
+grep -Fq 'log_dir=/target/data/log/installer' \
+    "$ISO_BUILDER_DIR/save-installer-logs.sh" || \
+    fail "log installer non destinati a /data/log/installer"
+grep -Fq '<redacted-password-hash>' "$ISO_BUILDER_DIR/save-installer-logs.sh" || \
+    fail "hash password non oscurato nei log persistenti"
+
+[[ $($ISO_BUILDER_DIR/preflight.sh --classify-memory 1900000) == insufficient ]] || \
+    fail "preflight non blocca una RAM inferiore a 2 GiB nominali"
+[[ $($ISO_BUILDER_DIR/preflight.sh --classify-memory 2097152) == warning ]] || \
+    fail "preflight non avvisa tra 2 e 4 GiB"
+[[ $($ISO_BUILDER_DIR/preflight.sh --classify-memory 4194304) == recommended ]] || \
+    fail "preflight non accetta 4 GiB"
+expected_repository_host=${repository#https://}
+expected_repository_host=${expected_repository_host%%/*}
+expected_repository_host=${expected_repository_host%%:*}
+[[ $($ISO_BUILDER_DIR/preflight.sh --repository-host "$repository") == \
+    "$expected_repository_host" ]] || \
+    fail "preflight non ricava l'host dal repository centralizzato"
+if "$ISO_BUILDER_DIR/preflight.sh" --repository-host http://github.com/example; then
+    fail "preflight accetta un repository senza HTTPS"
+fi
+for network_check in \
+    'ip -o link show up' \
+    'ip -o addr show scope global' \
+    'route show default' \
+    'getent ahosts "$host"' \
+    'curl --fail --silent --show-error --location --head'; do
+    grep -Fq "$network_check" "$ISO_BUILDER_DIR/preflight.sh" || \
+        fail "preflight privo del controllo rete: $network_check"
+done
+preflight_command_line=$(grep -nF 'sh /cdrom/wasalight/preflight.sh' \
+    "$ISO_BUILDER_DIR/autoinstall.yaml" | cut -d: -f1)
+[[ $preflight_command_line -lt $keyboard_command_line ]] || \
+    fail "preflight eseguito dopo la configurazione interattiva"
+grep -Fq 'Preflight:' "$ISO_BUILDER_DIR/select-disk.sh" || \
+    fail "riepilogo finale privo dell'esito preflight"
 
 sed \
     -e "s|__WASALIGHT_SERVER_ISO_URL__|$live_url|g" \
@@ -167,6 +274,8 @@ release_sources=(
     "$ISO_BUILDER_DIR/make-wasalight-netboot.sh"
     "$ISO_BUILDER_DIR/netboot-copy-seed.sh"
     "$ISO_BUILDER_DIR/netboot-iso-loader.sh"
+    "$ISO_BUILDER_DIR/preflight.sh"
+    "$ISO_BUILDER_DIR/save-installer-logs.sh"
     "$ISO_BUILDER_DIR/select-disk.sh"
     "$ISO_BUILDER_DIR/select-keyboard.sh"
     "$ISO_BUILDER_DIR/wait-for-poweroff.sh"
