@@ -99,12 +99,6 @@ if mountpoint -q /data; then
 else
     status_line "$red" 'DATA' 'NOT MOUNTED'
 fi
-if [[ -d /data/log && -w /data/log ]]; then
-    status_line "$green" 'LOGS' 'PERSISTENT'
-else
-    status_line "$red" 'LOGS' 'UNAVAILABLE'
-fi
-
 unmanaged=$(nmcli -t -f DEVICE,TYPE,STATE device status 2>/dev/null | \
     awk -F: '$2 == "ethernet" || $2 == "wifi" { if ($3 == "unmanaged") print $1 }' | \
     paste -sd, -)

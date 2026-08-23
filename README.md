@@ -498,12 +498,11 @@ restano sopra le altre finestre fino alla conferma o all'annullamento. Le
 conferme mostrano l'icona dell'azione effettiva (spegnimento, riavvio, blocco,
 SSH, VNC, rollback o eliminazione) al posto del simbolo interrogativo generico.
 
-Sul lato destro Conky mostra un pannello aggiornato ogni due secondi con:
+Sul lato destro Conky mostra un pannello aggiornato ogni cinque secondi con:
 
 - modalità corrente e modalità prevista al prossimo avvio;
 - stato operativo di MagicQ;
 - montaggio e spazio libero di `/data`;
-- persistenza dei log;
 - rete e indirizzo IP, evidenziando dispositivi `unmanaged`;
 - touchscreen, chiavette USB, VNC, SSH, Bitfocus Companion e audio ALSA.
 
@@ -512,7 +511,9 @@ necessariamente errato, rosso richiede attenzione. Il pannello esegue solo
 letture, non produce log e non scrive periodicamente su `/data`. Il fondo scuro
 è semitrasparente grazie a una configurazione Picom minimale, senza ombre o
 animazioni; le applicazioni fullscreen vengono escluse automaticamente dal
-compositing per non aggiungere latenza a MagicQ.
+compositing per non aggiungere latenza a MagicQ. L'intervallo di cinque secondi
+riduce del 60% i controlli di sistema rispetto al precedente aggiornamento ogni
+due secondi, mantenendo reattiva la visualizzazione degli stati operativi.
 
 Il clic destro sullo sfondo continua ad aprire il menu Openbox. I pulsanti sono
 visibili quando MagicQ è chiuso, in particolare durante la modalità
