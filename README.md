@@ -91,7 +91,7 @@ descritti nella [guida alla licenza](docs/licensing.md) e in `CITATION.cff`.
 ## Versione Wasalight
 
 La release dell’installer usa il formato `AAAA.MM.GG.BUILD`, per esempio
-`2026.08.08.1`. La sorgente unica è il file `VERSION`; per leggerla senza
+`2027.03.14.2`. La sorgente unica è il file `VERSION`; per leggerla senza
 installare nulla:
 
 ```bash
@@ -214,10 +214,10 @@ vengono attivati esplicitamente.
 ./tests/verify-project.sh
 ```
 
-Questa release è la prima base supportata di Wasalight. Non contiene procedure
-di aggiornamento o migrazione da prototipi precedenti: l'installazione parte da
-Ubuntu Server 24.04 LTS minimale e da una partizione `/data` preparata secondo
-questa guida.
+La prima release stable sarà l’unica base supportata di Wasalight. Le build di
+sviluppo precedenti non si aggiornano: vanno sostituite con un’installazione
+pulita che parte da Ubuntu Server 24.04 LTS minimale e da una partizione `/data`
+preparata secondo questa guida.
 
 ## Installazione
 

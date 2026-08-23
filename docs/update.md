@@ -21,8 +21,6 @@ stesso lock e possono completare la transazione senza bloccarsi tra loro.
 /data/system/packages   pacchetti MagicQ proprietari
 /data/log/wasalight/updates/update-AAAAMMGG-HHMMSS.log
                          log completo della singola esecuzione
-/data/log/wasalight-update.log
-                         registro cumulativo compatibile
 /data/system/update-check
                          ultima versione rilevata e data del controllo
 /data/system/update-channel
@@ -192,11 +190,8 @@ chiudere la finestra, quindi il flusso è utilizzabile interamente al touch.
 In caso di errore non viene mai eseguito il riavvio automatico: il terminale
 mostra le ultime righe dell’output grezzo, poi fase, comando, linea e codice di
 uscita. Il log completo della singola esecuzione resta in
-`/data/log/wasalight/updates/`, mentre
-`/data/log/wasalight-update.log` conserva la cronologia cumulativa. Il registro
-cumulativo viene ruotato a 5 MiB mantenendo cinque copie compresse; dei log per
-singola esecuzione restano al massimo i venti più recenti e nessuno oltre
-trenta giorni.
+`/data/log/wasalight/updates/`. Restano al massimo i venti log più recenti e
+nessuno oltre trenta giorni; non viene mantenuto un secondo registro cumulativo.
 Prima di modificare il sistema viene creato uno snapshot verificato della
 configurazione Wasalight, dei manifest e dei comandi installati. Se l’installer
 fallisce, l’updater tenta automaticamente di ripristinarlo e indica il percorso
@@ -402,7 +397,7 @@ sudo wasalight-update --help
   nel canale stable deve coincidere col commit del tag firmato.
 - Lo stesso numero di versione non può indicare due commit differenti.
 - Lo snapshot precedente viene verificato con SHA-256 prima del ripristino.
-- Il log completo resta in `/data/log/wasalight-update.log`.
+- Il log completo di ogni esecuzione resta in `/data/log/wasalight/updates/`.
 
 L’interfaccia grafica dell’aggiornamento disabilita AT-SPI soltanto per i propri
 popup Zenity, perché la sessione Openbox minimale non avvia il relativo bus di
@@ -428,11 +423,5 @@ sudo WASALIGHT_IDEMPOTENCY_CONFIRM=UTM-ONLY \
 Il primo confronta gli hash dei file persistenti prima e dopo `--plan`. Il
 secondo, destinato esclusivamente alla VM usa-e-getta, esegue due installazioni
 `--repair` dal canale debug e verifica che la configurazione gestita risultante
-sia identica. Entrambi richiedono MAINTENANCE.
-
-Sulla build `2026.08.22.1` sono stati inoltre collaudati in UTM, il 23 agosto
-2026, sia la ripresa dopo un arresto durante l’installazione sia il rollback
-dopo un errore post-installazione. Nel primo caso il pannello ha segnalato
-`RECOVERY REQUIRED` e `--resume` ha riutilizzato lo snapshot della transazione;
-nel secondo configurazione, canale e checkout precedenti sono stati ripristinati
-insieme.
+sia identica. Entrambi richiedono MAINTENANCE e devono essere ripetuti sulla ISO
+candidata alla prima release.

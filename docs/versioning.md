@@ -1,7 +1,8 @@
 # Versionamento Wasalight
 
-La prima base supportata del progetto è `2026.08.09.6`. Versioni e prototipi
-precedenti non fanno parte del percorso di aggiornamento supportato.
+La prima release stable sarà l’unico punto di partenza supportato. Le build di
+sviluppo precedenti non fanno parte del percorso di aggiornamento: devono essere
+sostituite da un’installazione pulita della ISO candidata.
 
 ## Formato
 
@@ -11,7 +12,7 @@ Wasalight usa un numero CalVer nel formato:
 AAAA.MM.GG.BUILD
 ```
 
-Esempio: `2026.08.08.1` è la prima build pubblicata l’8 agosto 2026. Il numero
+Esempio: `2027.03.14.2` è la seconda build pubblicata il 14 marzo 2027. Il numero
 `BUILD` parte da `1` e aumenta quando vengono pubblicate più build nello stesso
 giorno. Una nuova data riparte dalla build `1`.
 

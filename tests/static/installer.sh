@@ -774,7 +774,7 @@ grep -Fq 'kill "$indicator_pid"' "$tmp_dir/wasalight-update" || \
 if grep -Fq 'while kill -0 "$pid"' "$tmp_dir/wasalight-update"; then
     fail "l'avanzamento updater può restare bloccato su un processo zombie"
 fi
-grep -Fq 'tee -a "$current_log" "$log_file" >"$raw_output"' \
+grep -Fq 'tee -a "$log_file" >"$raw_output"' \
     "$tmp_dir/wasalight-update" || \
     fail "la vista compatta dell'updater non conserva l'output completo in tempo reale"
 grep -Fq 'tail -n 24 "$raw_output"' "$tmp_dir/wasalight-update" || \
@@ -903,9 +903,14 @@ grep -Fq '/data/log/wasalight/updates' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non crea un log separato per ogni esecuzione"
 grep -Fq 'tail -n +21' "$tmp_dir/wasalight-update" || \
     fail "i log delle singole esecuzioni updater non hanno retention"
-grep -Fq '/data/log/wasalight-update.log' \
-    "$INSTALLER_TEMPLATE_ROOT/etc/wasalight/wasalight-logrotate.conf" || \
-    fail "il log cumulativo updater non viene ruotato"
+for legacy_update_log_source in \
+    "$tmp_dir/wasalight-update" \
+    "$tmp_dir/wasalight-update-session" \
+    "$INSTALLER_TEMPLATE_ROOT/etc/wasalight/wasalight-logrotate.conf"; do
+    if grep -Fq '/data/log/wasalight-update.log' "$legacy_update_log_source"; then
+        fail "l'updater conserva ancora il log cumulativo della base precedente"
+    fi
+done
 grep -Fq 'Command: %s' "$tmp_dir/wasalight-update" || \
     fail "wasalight-update non riporta il comando che ha causato l'errore"
 grep -Fq -- '--with-companion' "$tmp_dir/wasalight-update" || \
