@@ -122,7 +122,9 @@ configurazione realmente applicata:
 
 ## Fase 3 — Manutenzione, backup e diagnostica
 
-- [x] Salute periodica di filesystem, spazio, RAM, temperatura e SMART.
+- [x] Controllo salute di filesystem, spazio, RAM, temperatura e SMART una
+      volta all’avvio e all’apertura di Wasalight Control, senza timer o log
+      periodici persistenti.
 - [x] Audit di sistema in sola lettura con boot, servizi, porte, CPU, memoria,
       storage, TRIM, rete e processi.
 - [x] Esportazione di un pacchetto diagnostico con checksum.
@@ -132,7 +134,8 @@ configurazione realmente applicata:
 - [x] Snapshot Wasalight prima degli aggiornamenti.
 - [x] Interfaccia rollback con verifica checksum e cancellazione protetta da
       doppia conferma.
-- [x] Log MagicQ, updater, salute e servizi persistenti con rotazione limitata.
+- [x] Log MagicQ, updater e servizi persistenti con rotazione limitata; stato
+      salute conservato soltanto nel runtime volatile.
 - [ ] Collaudare backup e ripristino completi su una seconda installazione reale,
       verificando show, rete, Companion, plugin, permessi, ACL e attributi estesi.
 

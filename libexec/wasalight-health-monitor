@@ -6,22 +6,37 @@ set -u
 [[ $EUID -eq 0 ]] || { echo "Run through systemd or sudo." >&2; exit 1; }
 mountpoint -q /data || exit 0
 
-install -d -o root -g root -m 0755 /data/system/health
-install -d -o chamsys -g chamsys -m 0750 /data/log
+readonly status_file=/run/wasalight-health-status
+exec 9>/run/wasalight-health.lock
+flock -n 9 || exit 0
+
+write_status() {
+    local state=$1 summary=$2 temporary
+    temporary=$(mktemp /run/.wasalight-health-status.XXXXXX)
+    printf '%s\t%s\t%s\n' "$state" "$(date -Is)" "$summary" >"$temporary"
+    chmod 0644 "$temporary"
+    mv -f -- "$temporary" "$status_file"
+}
+
+write_status CHECKING "check in progress"
 output=$(/usr/local/bin/wasalight-health 2>&1)
 rc=$?
-state=OK
-((rc == 0)) || state=WARNING
-temporary=$(mktemp /data/system/health/.status.XXXXXX)
-trap 'rm -f -- "$temporary"' EXIT
-printf '%s\t%s\n' "$state" "$(date -Is)" >"$temporary"
-chmod 0644 "$temporary"
-mv -f -- "$temporary" /data/system/health/status
-trap - EXIT
-{
-    printf '\n[%s] %s\n' "$(date -Is)" "$state"
-    printf '%s\n' "$output"
-} >>/data/log/wasalight-health.log
-chown chamsys:chamsys /data/log/wasalight-health.log
-chmod 0640 /data/log/wasalight-health.log
+data=$(awk -F: '$1 == "DATA" {sub(/^[[:space:]]+/, "", $2); print $2; exit}' <<<"$output")
+disk=$(awk -F: '$1 == "DISK" {sub(/^[[:space:]]+/, "", $2); print $2; exit}' <<<"$output")
+case $rc in
+    0)
+        write_status OK "system check passed"
+        ;;
+    1)
+        summary="DATA ${data:-unavailable} · DISK ${disk:-unavailable}"
+        write_status WARNING "$summary"
+        logger -p user.warning -t wasalight-health -- "$summary"
+        ;;
+    *)
+        summary=$(printf '%s' "$output" | tr '\n\t' '  ' | cut -c1-240)
+        write_status CHECK_FAILED "${summary:-health command failed}"
+        logger -p user.warning -t wasalight-health -- \
+            "health check failed with exit code $rc: ${summary:-no output}"
+        ;;
+esac
 exit 0

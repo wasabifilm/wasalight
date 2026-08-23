@@ -441,3 +441,14 @@ msgstr "Diagnostica e utilità"
 #: ui/wasalight_control/pages/tools.py:22
 msgid "Diagnostics, support and data management utilities."
 msgstr "Strumenti di diagnostica, supporto e gestione dei dati."
+msgid "WARNING"
+msgstr "ATTENZIONE"
+
+msgid "CHECK FAILED"
+msgstr "CONTROLLO FALLITO"
+
+msgid "CHECKING"
+msgstr "CONTROLLO IN CORSO"
+
+msgid "NOT CHECKED"
+msgstr "NON CONTROLLATO"

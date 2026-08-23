@@ -379,7 +379,7 @@ required_patterns=(
     'configure_management_tools'
     'wasalight-support-bundle'
     'wasalight-health-monitor'
-    'wasalight-health.timer'
+    'systemctl enable wasalight-health.service'
     'wasalight-data-transfer'
     'wasalight-update-snapshot'
     'wasalight-rollback-ui'

@@ -15,8 +15,7 @@ trap 'rm -rf -- "$temporary"' EXIT
 inventory() {
     local output=$1
     find /etc/wasalight /data/system -xdev -type f \
-        ! -path '/data/system/update-check/*' \
-        ! -path '/data/system/health/*' -print0 2>/dev/null | \
+        ! -path '/data/system/update-check/*' -print0 2>/dev/null | \
         sort -z | xargs -0 sha256sum >"$output"
 }
 

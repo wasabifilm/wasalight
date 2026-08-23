@@ -10,8 +10,8 @@ from gi.repository import Gtk
 
 from ..i18n import _
 from ..overview_state import (
-    OverviewSnapshot, localized_magicq_detail, localized_service_detail,
-    localized_update_detail,
+    OverviewSnapshot, localized_health_detail, localized_magicq_detail,
+    localized_service_detail, localized_update_detail,
 )
 from ..widgets import toggle_row
 
@@ -149,7 +149,10 @@ class OverviewPage(Gtk.Box):
         context.add_class(f"status-{level}")
 
     def set_snapshot(self, snapshot: OverviewSnapshot):
-        if snapshot.level == "error":
+        if snapshot.health_level == "error":
+            title = _("Attention required")
+            detail = localized_health_detail(snapshot.health_detail)
+        elif snapshot.level == "error":
             title = _("Attention required")
             detail = _("One or more essential appliance components are unavailable.")
         elif snapshot.mode == "MAINTENANCE":
