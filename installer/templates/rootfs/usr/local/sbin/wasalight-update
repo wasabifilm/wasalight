@@ -224,8 +224,8 @@ fi
 step() { phase=$*; printf '\n%s▶ %s%s\n' "$brand" "$phase" "$reset"; }
 banner() {
     printf '\n%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓%s\n' "$brand" "$reset"
-    printf '%s┃%s  %sWASALIGHT UPDATE%s                                  %s┃%s\n' \
-        "$brand" "$reset" "$white" "$reset" "$brand" "$reset"
+    printf '%s┃%s  %s%-52s%s%s┃%s\n' \
+        "$brand" "$reset" "$white" 'WASALIGHT UPDATE' "$reset" "$brand" "$reset"
     printf '%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛%s\n' "$brand" "$reset"
 }
 
@@ -777,8 +777,8 @@ touch /run/wasalight-update-reboot-required
 
 trap - ERR
 printf '\n%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓%s\n' "$green" "$reset"
-printf '%s┃%s  %sUPDATE COMPLETED%s                               %s┃%s\n' \
-    "$green" "$reset" "$white" "$reset" "$green" "$reset"
+printf '%s┃%s  %s%-52s%s%s┃%s\n' \
+    "$green" "$reset" "$white" 'UPDATE COMPLETED' "$reset" "$green" "$reset"
 printf '%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛%s\n' "$green" "$reset"
 echo "Finished: $(date --iso-8601=seconds)"
 printf '%sOK%s · all phases completed successfully.\n' "$green" "$reset"
