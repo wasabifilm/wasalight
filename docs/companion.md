@@ -110,10 +110,11 @@ necessario incrementare `profile_schema` nello script di installazione; non si
 deve cancellare il profilo dell'utente. Falkon resta massimizzato, non in vero
 fullscreen, così Tint2 rimane sempre accessibile sul touchscreen.
 
-Il profilo, i cookie e le preferenze del browser restano in
+Il profilo, i cookie e le preferenze del browser Companion restano in
 `/data/companion/browser`; la cache viene invece collocata nella directory
-runtime temporanea e viene persa al riavvio. Falkon viene installato soltanto
-quando Companion è richiesto oppure è già presente.
+runtime temporanea e viene persa al riavvio. Il browser web generico usa invece
+un profilo indipendente sotto `/data/browser`, quindi cronologia, schede e
+preferenze dell’operatore non si mescolano con l’interfaccia locale Companion.
 
 Il profilo dedicato mantiene AdBlock disattivato. Wasalight rimuove soltanto il
 plugin interno `internal:adblock` dall'elenco Falkon e conserva eventuali altri

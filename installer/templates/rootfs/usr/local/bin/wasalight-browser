@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+set -Eeuo pipefail
+. /usr/local/libexec/wasalight-i18n
+[[ $(id -un) == chamsys ]] || {
+    echo "Run the web browser as the chamsys desktop user." >&2
+    exit 1
+}
+command -v falkon >/dev/null 2>&1 || {
+    /usr/local/bin/wasalight-dialog --error --title="$( _ "Web browser" )" \
+        --text="$( _ "Falkon is not installed. Run Wasalight update again." )" 2>/dev/null
+    exit 1
+}
+
+export XDG_CONFIG_HOME=/data/browser/config
+export XDG_DATA_HOME=/data/browser/data
+runtime_base=${XDG_RUNTIME_DIR:-/tmp}
+export XDG_CACHE_HOME="$runtime_base/wasalight-browser-cache"
+install -d -m 0700 "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME" \
+    /data/browser/downloads
+if [[ ! -e $XDG_CONFIG_HOME/user-dirs.dirs ]]; then
+    printf 'XDG_DOWNLOAD_DIR="/data/browser/downloads"\n' \
+        >"$XDG_CONFIG_HOME/user-dirs.dirs"
+    chmod 0600 "$XDG_CONFIG_HOME/user-dirs.dirs"
+fi
+/usr/local/bin/wasalight-browser-profile
+
+# This full browser remains independent from Companion: it has its own profile,
+# visible address bar, tabs, search, downloads and application identity.
+falkon --wmclass=WasalightBrowser --profile wasalight-browser &
+browser_pid=$!
+for _ in {1..30}; do
+    window_id=$(wmctrl -lx 2>/dev/null | \
+        awk 'tolower($3) ~ /wasalightbrowser/ { print $1; exit }')
+    [[ -n $window_id ]] || \
+        window_id=$(wmctrl -lp 2>/dev/null | \
+            awk -v pid="$browser_pid" '$3 == pid { print $1; exit }')
+    if [[ -n $window_id ]]; then
+        wmctrl -ir "$window_id" -b add,maximized_vert,maximized_horz || true
+        for _ in {1..4}; do
+            /usr/local/bin/wasalight-x11-window-icon \
+                "$window_id" /usr/local/share/icons/wasalight/browser.svg || true
+            sleep 0.4
+        done
+        break
+    fi
+    sleep 0.2
+done
+wait "$browser_pid"

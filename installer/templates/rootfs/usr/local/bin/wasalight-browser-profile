@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+set -Eeuo pipefail
+profile_root=${WASALIGHT_BROWSER_PROFILE_ROOT:-/data/browser/config/falkon/profiles/wasalight-browser}
+if [[ -z ${WASALIGHT_BROWSER_PROFILE_ROOT:-} && $(id -un) != chamsys ]]; then
+    echo "Configure the browser profile as the chamsys desktop user." >&2
+    exit 1
+fi
+
+install -d -m 0700 "$profile_root"
+settings_file="$profile_root/settings.ini"
+touch "$settings_file"
+chmod 0600 "$settings_file"
+
+set_ini_value() {
+    local section=$1 key=$2 value=$3 temporary
+    temporary="${settings_file}.tmp.$$"
+    awk -v section="$section" -v key="$key" -v value="$value" '
+        BEGIN { active=0; found_section=0; wrote=0 }
+        $0 == "[" section "]" {
+            active=1; found_section=1; print; next
+        }
+        /^\[/ {
+            if (active && !wrote) { print key "=" value; wrote=1 }
+            active=0
+        }
+        active && $0 ~ ("^[[:space:]]*" key "[[:space:]]*=") {
+            print key "=" value; wrote=1; next
+        }
+        { print }
+        END {
+            if (active && !wrote) print key "=" value
+            else if (!found_section) {
+                if (NR) print ""
+                print "[" section "]"
+                print key "=" value
+            }
+        }
+    ' "$settings_file" >"$temporary"
+    mv -- "$temporary" "$settings_file"
+}
+
+# Apply only first-run touch defaults. Later operator preferences are preserved.
+profile_marker="$profile_root/.wasalight-browser-profile-1"
+if [[ ! -e $profile_marker ]]; then
+    set_ini_value Web-URL-Settings homepage about:blank
+    set_ini_value Web-URL-Settings newTabUrl about:blank
+    set_ini_value Web-URL-Settings afterLaunch 1
+    set_ini_value Browser-View-Settings showStatusBar false
+    set_ini_value Browser-View-Settings showNavigationToolbar true
+    set_ini_value Browser-View-Settings showMenubar false
+    set_ini_value Browser-View-Settings showBookmarksToolbar false
+    set_ini_value Browser-Tabs-Settings hideTabsWithOneTab false
+    set_ini_value Browser-Tabs-Settings AskOnClosing true
+    set_ini_value Web-Browser-Settings DefaultZoomLevel 8
+    set_ini_value Web-Browser-Settings CheckUpdates false
+    set_ini_value Web-Browser-Settings CheckDefaultBrowser false
+    set_ini_value NavigationBar ShowSearchBar true
+    set_ini_value NavigationBar Layout \
+        'button-backforward, button-reloadstop, locationbar, button-home, button-downloads, button-tools'
+
+    cat >"$profile_root/userChrome.css" <<'WASALIGHT_QSS'
+QWidget {
+    background-color: #11151b;
+    color: #f0f3f6;
+    font-size: 14px;
+}
+#navigationbar {
+    background-color: #11151b;
+    border-bottom: 1px solid #30363d;
+    min-height: 60px;
+    spacing: 5px;
+}
+#navigationbar QToolButton {
+    background-color: #1c222b;
+    border: 1px solid #303842;
+    border-radius: 7px;
+    margin: 3px;
+    min-height: 46px;
+    min-width: 46px;
+    padding: 2px;
+}
+#navigationbar QToolButton:hover,
+#navigationbar QToolButton:pressed {
+    background-color: #303842;
+    border-color: #76bd22;
+}
+#locationbar {
+    background-color: #20262e;
+    border: 1px solid #3a424d;
+    border-radius: 7px;
+    color: #ffffff;
+    font-size: 16px;
+    min-height: 44px;
+    selection-background-color: #76bd22;
+    selection-color: #080b10;
+}
+QMenu::item {
+    min-height: 40px;
+    padding: 5px 24px 5px 12px;
+}
+QTabBar::tab {
+    min-height: 42px;
+    min-width: 130px;
+    padding: 3px 12px;
+}
+QTabBar::tab:selected {
+    border-bottom: 3px solid #76bd22;
+}
+WASALIGHT_QSS
+    chmod 0600 "$profile_root/userChrome.css"
+    touch "$profile_marker"
+    chmod 0600 "$profile_marker"
+fi

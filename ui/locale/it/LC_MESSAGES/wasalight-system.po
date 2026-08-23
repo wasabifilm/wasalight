@@ -379,6 +379,10 @@ msgid "Falkon is not installed. Run Wasalight update again."
 msgstr ""
 "Falkon non è installato. Esegui nuovamente l’aggiornamento di Wasalight."
 
+#: installer/templates/rootfs/usr/local/bin/wasalight-browser:11
+msgid "Web browser"
+msgstr "Browser web"
+
 #: installer/templates/rootfs/usr/local/bin/wasalight-companion-browser:17
 msgid "Bitfocus Companion is not installed."
 msgstr "Bitfocus Companion non è installato."

@@ -295,7 +295,7 @@ install_packages() {
         libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0
         libasound2-data alsa-utils
         openbox tint2 picom pcmanfm lxterminal lxrandr lxtask x11vnc procps wmctrl x11-utils
-        galculator i3lock mousepad onboard gir1.2-atspi-2.0
+        galculator i3lock mousepad onboard gir1.2-atspi-2.0 falkon
         conky-all zenity libnotify-bin libglib2.0-bin desktop-file-utils librsvg2-common
         python3 python3-gi gir1.2-gtk-3.0 gettext locales arp-scan iproute2
         network-manager network-manager-gnome wpasupplicant policykit-1 policykit-1-gnome
@@ -307,7 +307,7 @@ install_packages() {
     if ((ENABLE_COMPANION)) || [[ -d /opt/companion ]]; then
         packages+=(
             adduser curl wget zip unzip libusb-1.0-0-dev libudev-dev
-            libfontconfig1 libatomic1 libasound2t64 falkon
+            libfontconfig1 libatomic1 libasound2t64
         )
     fi
 

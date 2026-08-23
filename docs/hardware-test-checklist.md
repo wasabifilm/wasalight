@@ -221,6 +221,9 @@ build, macchina e percorso del support bundle o del log conservato.
       Supporto.
 - [ ] Mousepad compare in Applicazioni e apre l’editor di testo con un solo
       tocco.
+- [ ] **Browser web** compare in Applicazioni, usa un profilo distinto da
+      Companion e mantiene indirizzi, ricerca, schede, download e controlli
+      touch dopo un riavvio protetto.
 - [ ] Crediti riporta Michele Moser / Wasabi Lightbulbfarm, Apache 2.0,
       protezione del logo, indirizzo, sito, email, GitHub, Instagram, Facebook,
       YouTube, LinkedIn e i riconoscimenti esterni.
