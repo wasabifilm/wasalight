@@ -429,3 +429,10 @@ Il primo confronta gli hash dei file persistenti prima e dopo `--plan`. Il
 secondo, destinato esclusivamente alla VM usa-e-getta, esegue due installazioni
 `--repair` dal canale debug e verifica che la configurazione gestita risultante
 sia identica. Entrambi richiedono MAINTENANCE.
+
+Sulla build `2026.08.22.1` sono stati inoltre collaudati in UTM, il 23 agosto
+2026, sia la ripresa dopo un arresto durante l’installazione sia il rollback
+dopo un errore post-installazione. Nel primo caso il pannello ha segnalato
+`RECOVERY REQUIRED` e `--resume` ha riutilizzato lo snapshot della transazione;
+nel secondo configurazione, canale e checkout precedenti sono stati ripristinati
+insieme.

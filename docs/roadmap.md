@@ -160,10 +160,12 @@ configurazione realmente applicata:
 - [x] Test UTM di `--plan` senza modifiche persistenti.
 - [x] Completare `verify-update-idempotency.sh` dopo due repair consecutivi;
       verificato in UTM il 23 agosto 2026 sulla build `2026.08.22.1`.
-- [ ] Interrompere volontariamente la VM durante l’installer e verificare
-      `RECOVERY REQUIRED` e `--resume`.
-- [ ] Provocare un errore successivo all’installazione e verificare il ripristino
-      coordinato di configurazione, canale e checkout.
+- [x] Interrompere volontariamente la VM durante l’installer e verificare
+      `RECOVERY REQUIRED` e `--resume`; collaudato in UTM il 23 agosto 2026
+      sulla build `2026.08.22.1`.
+- [x] Provocare un errore successivo all’installazione e verificare il ripristino
+      coordinato di configurazione, canale e checkout; collaudato in UTM il
+      23 agosto 2026 sulla build `2026.08.22.1`.
 - [ ] Creare chiave, tag e prima GitHub Release stable immutabile e firmata.
 - [ ] Verificare il rifiuto di tag stable non firmati o firmati da chiavi non
       autorizzate.
