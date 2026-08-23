@@ -50,7 +50,7 @@ done
 
 lock_library="$PROJECT_DIR/lib/wasalight-operation-lock.sh"
 [[ -s $lock_library ]] || fail "libreria lock globale mancante"
-grep -Fq 'wasalight_acquire_operation_lock "installazione Wasalight"' "$ENTRYPOINT" || \
+grep -Fq 'wasalight_acquire_operation_lock "Wasalight installation"' "$ENTRYPOINT" || \
     fail "install.sh non acquisisce il lock globale"
 for locked_tool in \
     "$INSTALLER_TEMPLATE_ROOT/usr/local/sbin/wasalight-update" \
@@ -179,26 +179,11 @@ required_patterns=(
     'wasalight-mode-toggle'
     'wasalight-status'
     'OS:         $os'
-    'xinput libinput-tools'
-    'libglu1-mesa libgl1-mesa-dri'
-    'libx11-xcb1 libxcb1 libxcb-glx0 libxcb-icccm4 libxcb-image0'
-    'libxcb-keysyms1 libxcb-randr0 libxcb-render0 libxcb-render-util0'
-    'libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0'
-    'libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0'
-    'libasound2-data alsa-utils'
-    'openbox tint2 picom pcmanfm lxterminal lxrandr lxtask x11vnc procps wmctrl x11-utils'
-    'galculator i3lock mousepad onboard gir1.2-atspi-2.0'
-    'conky-all zenity libnotify-bin libglib2.0-bin desktop-file-utils librsvg2-common'
-    'python3 python3-gi gir1.2-gtk-3.0'
-    'arp-scan iproute2'
-    'plymouth plymouth-themes file'
     '/etc/netplan/99-wasalight-networkmanager.yaml'
     'renderer: NetworkManager'
     'netplan apply'
-    'network-manager network-manager-gnome wpasupplicant'
     'systemd-networkd-wait-online.service systemd-networkd.service'
     'systemctl reset-failed systemd-networkd-wait-online.service'
-    'libfsapfs-utils util-linux udev logrotate'
     'fsapfsmount -X ro,allow_other,nosuid,nodev,noexec'
     'Mounted $dev (APFS) read-only'
     'ID_FS_TYPE}=="vfat|exfat|ntfs|apfs"'
@@ -310,8 +295,7 @@ required_patterns=(
     'wasalight-companion-launcher magichd'
     'wasalight-companion-launcher magicvis'
     'wasalight-vnc-password'
-    'cleanup_candidates=(pollinate os-prober)'
-    'purge_safe_unused_packages'
+    'unattended-upgrades pollinate os-prober'
     'apt-get autoremove --purge -y'
     'apt-get clean'
     'export GTK_A11Y=none'
@@ -397,7 +381,6 @@ required_patterns=(
     'wasalight-magicq-usb-watch'
     'wasalight-first-run'
     'wasalight-plugin-bundle'
-    'galculator i3lock mousepad'
     '/usr/local/bin/wasalight-screen-lock'
     '/etc/wasalight/apps.d/calculator.desktop'
     '/etc/wasalight/apps.d/mousepad.desktop'
@@ -419,6 +402,18 @@ required_patterns=(
 
 for pattern in "${required_patterns[@]}"; do
     grep -Fq -- "$pattern" "$INSTALLER" || fail "funzione richiesta non trovata: $pattern"
+done
+
+runtime_packages_file="$PROJECT_DIR/packages/wasalight-runtime.txt"
+[[ -s $runtime_packages_file ]] || fail "elenco pacchetti runtime condiviso mancante"
+for runtime_package in \
+    xinput libinput-tools libglu1-mesa libgl1-mesa-dri libxcb-cursor0 \
+    alsa-utils openbox picom x11vnc galculator i3lock mousepad onboard \
+    gir1.2-atspi-2.0 falkon conky-all \
+    python3-gi gir1.2-gtk-3.0 arp-scan network-manager wpasupplicant \
+    plymouth libfsapfs-utils openssh-server git curl; do
+    grep -Fxq "$runtime_package" "$runtime_packages_file" || \
+        fail "pacchetto runtime richiesto mancante: $runtime_package"
 done
 
 if grep -Fq -- '--with-onscreen-keyboard' "$INSTALLER" || \
@@ -489,20 +484,19 @@ fi
 if grep -Eq 'docker (run|compose)|ghcr\.io/bitfocus/companion' "$INSTALLER"; then
     fail "Companion non deve usare Docker: le superfici USB locali non sono supportate"
 fi
-grep -Fq 'galculator i3lock mousepad onboard gir1.2-atspi-2.0 falkon' "$INSTALLER" || \
-    fail "Falkon non viene installato come browser generico"
 grep -Fq -- "-name 'fsapfs[0-9]*'" "$ENTRYPOINT" || \
     fail "install.sh non cerca MagicQ nei volumi APFS esposti da libfsapfs"
 
 install_packages_body=$(awk '/^install_packages\(\) \{/,/^}/' "$INSTALLER")
 metadata_line=$(grep -n '^        apt-get update$' <<<"$install_packages_body" | head -n1 | cut -d: -f1)
-safe_purge_line=$(grep -n '^    purge_safe_unused_packages$' <<<"$install_packages_body" | cut -d: -f1)
 required_install_line=$(grep -n '^        apt_install "${missing_packages\[@\]}"$' <<<"$install_packages_body" | cut -d: -f1)
-[[ $metadata_line =~ ^[0-9]+$ && $safe_purge_line =~ ^[0-9]+$ && \
-   $required_install_line =~ ^[0-9]+$ ]] || \
-    fail "ordine della pulizia APT iniziale non verificabile"
-((safe_purge_line < metadata_line && metadata_line < required_install_line)) || \
-    fail "i pacchetti inutili non vengono rimossi prima dell'installazione Wasalight"
+[[ $metadata_line =~ ^[0-9]+$ && $required_install_line =~ ^[0-9]+$ ]] || \
+    fail "ordine dell'installazione APT non verificabile"
+((metadata_line < required_install_line)) || \
+    fail "i metadati APT non vengono aggiornati prima dei pacchetti mancanti"
+grep -Fq 'wasalight_runtime_packages "$RUNTIME_PACKAGES_FILE"' \
+    <<<"$install_packages_body" || \
+    fail "l'installer non usa l'elenco pacchetti runtime condiviso"
 grep -Fq 'all required packages are installed; skipping apt metadata refresh' \
     <<<"$install_packages_body" || \
     fail "l'installer aggiorna APT anche quando tutti i pacchetti sono presenti"
@@ -514,6 +508,8 @@ grep -Fq 'configure_time_synchronization' <<<"$install_packages_body" || \
     fail "autoremove deve essere eseguito una sola volta alla fine"
 
 optimize_body=$(awk '/^optimize_system\(\) \{/,/^}/' "$INSTALLER")
+grep -Fq 'snapd modemmanager cups cups-daemon bluez avahi-daemon whoopsie apport' \
+    <<<"$optimize_body" || fail "la pulizia finale non include i pacchetti appliance inutili"
 storage_purge_line=$(grep -n 'apt-get purge -y "${cleanup_installed\[@\]}"' \
     <<<"$optimize_body" | cut -d: -f1)
 autoremove_line=$(grep -n 'apt-get autoremove --purge -y' \

@@ -1,5 +1,9 @@
 # Pacchetto MagicQ
 
+Il file tracciato `wasalight-runtime.txt` contiene invece l'elenco validato dei
+pacchetti Ubuntu liberi installati da Wasalight e dalle ISO. Non contiene e non
+sostituisce il pacchetto proprietario MagicQ descritto qui sotto.
+
 Copiare in questa cartella il pacchetto originale:
 
 ```text

@@ -28,17 +28,17 @@ readonly FINAL_OVERLAY=/wasalight/final-overlay.cpio
 mount_mini_iso() {
     configure_networking
     device=$(blkid --match-token LABEL=ISOIMAGE | cut -d: -f1 | head -n 1)
-    [ -n "$device" ] || panic "Supporto Mini ISO non trovato"
+    [ -n "$device" ] || panic "Mini ISO media not found"
     modprobe isofs
     grep -qs " $MINI_MOUNT " /proc/mounts || mount -o ro "$device" "$MINI_MOUNT"
 }
 
 wasalight_step1() {
     mount_mini_iso
-    echo "WASALIGHT NETBOOT: preparo il download di Ubuntu Server __WASALIGHT_UBUNTU_POINT_RELEASE__..."
+    echo "WASALIGHT NETBOOT: preparing Ubuntu Server __WASALIGHT_UBUNTU_POINT_RELEASE__ download..."
 
     memmap_size=$(/usr/lib/mini-iso-tools/get_memmap_directive "$MEDIA_SIZE") || {
-        echo "RAM insufficiente. WASALIGHT NETBOOT richiede almeno 8 GiB."
+        echo "Insufficient RAM. WASALIGHT NETBOOT requires at least 8 GiB."
         /bin/sh
     }
 
@@ -56,19 +56,19 @@ wasalight_step1() {
 wasalight_step2() {
     configure_networking
     target=/dev/pmem0
-    [ -e "$target" ] || panic "Memoria riservata /dev/pmem0 non disponibile"
-    [ -n "${MEMMAP:-}" ] || panic "Direttiva memmap non disponibile"
+    [ -e "$target" ] || panic "Reserved memory device /dev/pmem0 is unavailable"
+    [ -n "${MEMMAP:-}" ] || panic "The memmap directive is unavailable"
 
-    echo "WASALIGHT NETBOOT: scarico Ubuntu Server __WASALIGHT_UBUNTU_POINT_RELEASE__..."
-    wget "$MEDIA_URL" -O "$target" || panic "Download Ubuntu non riuscito"
+    echo "WASALIGHT NETBOOT: downloading Ubuntu Server __WASALIGHT_UBUNTU_POINT_RELEASE__..."
+    wget "$MEDIA_URL" -O "$target" || panic "Ubuntu download failed"
 
-    echo "WASALIGHT NETBOOT: verifico SHA-256 Canonical..."
+    echo "WASALIGHT NETBOOT: verifying the Canonical SHA-256 checksum..."
     /usr/lib/mini-iso-tools/checksum-device \
         "$target" "$MEDIA_SIZE" "$MEDIA_256SUM" || \
-        panic "Checksum della ISO Ubuntu non valido"
+        panic "Invalid Ubuntu ISO checksum"
 
     mount -o ro "$target" "$MINI_MOUNT"
-    [ -f "$FINAL_OVERLAY" ] || panic "Overlay Wasalight non disponibile"
+    [ -f "$FINAL_OVERLAY" ] || panic "Wasalight overlay is unavailable"
 
     cat "$MINI_MOUNT/casper/initrd" "$FINAL_OVERLAY" \
         >/run/wasalight-server-initrd
@@ -77,7 +77,7 @@ wasalight_step2() {
     cmdline="$cmdline cloud-config-url=/dev/null autoinstall"
     cmdline="$cmdline subiquity.autoinstallpath=autoinstall.yaml ---"
 
-    echo "WASALIGHT NETBOOT: avvio l'installer verificato..."
+    echo "WASALIGHT NETBOOT: starting the verified installer..."
     kexec --command-line="$cmdline" \
         --load "$MINI_MOUNT/casper/vmlinuz" \
         --initrd=/run/wasalight-server-initrd

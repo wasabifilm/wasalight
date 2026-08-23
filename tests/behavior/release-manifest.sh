@@ -50,6 +50,7 @@ for requirement in \
     'Updates DefaultChannel' 'Updates StableAPI' 'Updates DebugRef' \
     'Updates TagPrefix' 'Updates SignerFile' \
     'Platform UbuntuVersion' 'Platform Architecture' \
+    'Wasalight RuntimePackagesFile' \
     'Companion Version' 'Companion Repository' 'Companion Commit' \
     'MagicQ Package' 'MagicQ Architecture'; do
     read -r section key <<<"$requirement"

@@ -8,6 +8,7 @@ ISO_BUILDER_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 PROJECT_DIR=$(cd -- "$ISO_BUILDER_DIR/.." && pwd)
 RELEASE_MANIFEST="$PROJECT_DIR/release-manifest.ini"
 MANIFEST_LIBRARY="$PROJECT_DIR/lib/wasalight-release-manifest.sh"
+PACKAGE_LIST_LIBRARY="$PROJECT_DIR/lib/wasalight-package-list.sh"
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
 
@@ -18,12 +19,18 @@ fail() {
 
 [[ -s $RELEASE_MANIFEST ]] || fail "release-manifest.ini centrale mancante"
 [[ -s $MANIFEST_LIBRARY ]] || fail "loader release manifest centrale mancante"
+[[ -s $PACKAGE_LIST_LIBRARY ]] || fail "loader pacchetti runtime mancante"
 # shellcheck source=../../lib/wasalight-release-manifest.sh
 . "$MANIFEST_LIBRARY"
+# shellcheck source=../../lib/wasalight-package-list.sh
+. "$PACKAGE_LIST_LIBRARY"
 
 version_file=$(require_manifest_value_matching "$RELEASE_MANIFEST" ISOBuilder VersionFile \
     '^Minimal-ISO-Builder/[A-Za-z0-9][A-Za-z0-9._-]*$' \
     'a path below Minimal-ISO-Builder')
+runtime_packages_file=$(require_manifest_value_matching \
+    "$RELEASE_MANIFEST" Wasalight RuntimePackagesFile \
+    '^packages/[A-Za-z0-9][A-Za-z0-9._/-]*$' 'a path below packages')
 ubuntu_version=$(require_manifest_value_matching "$RELEASE_MANIFEST" Platform UbuntuVersion \
     '^[0-9]+\.[0-9]+$' 'a major.minor version')
 architecture=$(require_manifest_value_matching "$RELEASE_MANIFEST" Platform Architecture \
@@ -47,6 +54,10 @@ branch=$(require_manifest_value_matching "$RELEASE_MANIFEST" Wasalight Branch \
     '^[A-Za-z0-9][A-Za-z0-9._/-]*$' 'a Git branch name')
 
 [[ -s $PROJECT_DIR/$version_file ]] || fail "VersionFile ISO Builder non trovato"
+[[ -s $PROJECT_DIR/$runtime_packages_file ]] || fail "elenco pacchetti runtime non trovato"
+runtime_packages_yaml=$(wasalight_runtime_packages_yaml "$PROJECT_DIR/$runtime_packages_file") || \
+    fail "elenco pacchetti runtime non valido"
+[[ $runtime_packages_yaml == *git* ]] || fail "Git manca dall'elenco pacchetti runtime"
 [[ $point_release == "$ubuntu_version".* ]] || \
     fail "UbuntuPointRelease non appartiene a Platform.UbuntuVersion"
 [[ $live_file == *"$point_release"* && $live_file == *"$architecture.iso" ]] || \
@@ -58,7 +69,16 @@ branch=$(require_manifest_value_matching "$RELEASE_MANIFEST" Wasalight Branch \
 for script in make-wasalight-minimal.sh make-wasalight-netboot.sh; do
     grep -Fq 'lib/wasalight-release-manifest.sh' "$ISO_BUILDER_DIR/$script" || \
         fail "$script non usa il loader manifest centrale"
+    grep -Fq 'wasalight_runtime_packages_yaml "$RUNTIME_PACKAGES_FILE"' \
+        "$ISO_BUILDER_DIR/$script" || \
+        fail "$script non usa l'elenco pacchetti runtime condiviso"
 done
+grep -Fq 'git clone --depth 1 --branch "$branch" --single-branch' \
+    "$ISO_BUILDER_DIR/wasalight-first-boot.sh" || \
+    fail "first boot non usa un clone shallow"
+[[ $(grep -Foc '"$checkout/tests/verify-project.sh"' \
+    "$ISO_BUILDER_DIR/wasalight-first-boot.sh") == 1 ]] || \
+    fail "first boot deve verificare il checkout una sola volta per esecuzione"
 grep -Fq 'require_manifest_value_matching "$release_manifest" Wasalight Repository' \
     "$ISO_BUILDER_DIR/wasalight-first-boot.sh" || \
     fail "first boot non legge il repository dal manifest"
@@ -88,6 +108,17 @@ grep -Fq 's/__WASALIGHT_TIMEZONE__/$escaped_timezone/g' \
     fail "selettore fuso orario non risolve il placeholder"
 grep -Fq '/run/wasalight-timezone-label' "$ISO_BUILDER_DIR/install-ui.sh" || \
     fail "UI installer non mostra il fuso orario scelto"
+grep -Fq 'Preparing the installation' "$ISO_BUILDER_DIR/install-ui.sh" || \
+    fail "UI installer non tradotta in inglese"
+grep -Fq 'To confirm, type exactly: ERASE' "$ISO_BUILDER_DIR/select-disk.sh" || \
+    fail "conferma distruttiva inglese mancante"
+if grep -Fq 'CANCELLA' "$ISO_BUILDER_DIR/select-disk.sh"; then
+    fail "il selettore disco usa ancora la conferma italiana"
+fi
+grep -Fq 'for index in (2, 4, 10):' "$ISO_BUILDER_DIR/apply-theme.sh" || \
+    fail "palette installer non uniformata"
+grep -Fq 'palette[i + 0] = 118' "$ISO_BUILDER_DIR/apply-theme.sh" || \
+    fail "verde Wasalight dell'updater non applicato all'installer"
 "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-timezone Europe/Rome || \
     fail "Europe/Rome non riconosciuto come fuso orario valido"
 if "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-timezone ../Etc/UTC; then
@@ -158,6 +189,15 @@ fi
 if require_manifest_value_matching "$invalid_manifest" Broken BadSHA \
         '^[0-9a-fA-F]{64}$' 'a SHA-256 digest' >/dev/null 2>&1; then
     fail "un checksum non valido viene accettato"
+fi
+
+printf 'git\ninvalid package\n' >"$tmp_dir/invalid-packages.txt"
+if wasalight_runtime_packages "$tmp_dir/invalid-packages.txt" >/dev/null 2>&1; then
+    fail "un nome pacchetto non valido viene accettato"
+fi
+printf 'git\ngit\n' >"$tmp_dir/duplicate-packages.txt"
+if wasalight_runtime_packages "$tmp_dir/duplicate-packages.txt" >/dev/null 2>&1; then
+    fail "un pacchetto duplicato viene accettato"
 fi
 
 printf 'Configurazione release ISO Builder verificata (%s, %s, %s, %s).\n' \

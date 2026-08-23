@@ -28,11 +28,12 @@ NETBOOT richiede:
 INSTALLAZIONE WASALIGHT
 ----------------------
 
-Entrambe le varianti installano Git. Dopo Ubuntu, un servizio systemd completa
-automaticamente Wasalight al primo avvio reale:
+Entrambe le varianti installano durante l'autoinstall Git e tutti i pacchetti
+runtime standard elencati in packages/wasalight-runtime.txt. Dopo Ubuntu, un
+servizio systemd completa automaticamente Wasalight al primo avvio reale:
 
 1. usa il checkout persistente /data/system/wasalight;
-2. scarica o aggiorna il branch main da github.com/wasabifilm/wasalight.git;
+2. scarica con un clone shallow o aggiorna il branch configurato nel manifest;
 3. accetta solo un checkout pulito e aggiornamenti fast-forward;
 4. esegue tests/verify-project.sh;
 5. registra il commit in /data/log/wasalight-first-boot.version;
@@ -43,7 +44,9 @@ Il log si trova in /data/log/wasalight-first-boot.log. Se rete o installazione
 falliscono, il servizio non dichiara il completamento e riprova dopo 60 secondi.
 
 La variante NETBOOT prepara gia' il checkout Git durante l'autoinstall, poi lo
-aggiorna nuovamente al primo avvio per installare il main piu' recente.
+aggiorna nuovamente al primo avvio per installare il main piu' recente. Ogni
+checkout viene verificato una sola volta per esecuzione; poiche' i pacchetti
+standard sono gia' presenti, install.sh salta il secondo aggiornamento APT.
 
 DISCO E INTERFACCIA
 -------------------
@@ -53,7 +56,8 @@ Entrambe includono:
 - boot BIOS e UEFI conservato dalle immagini Canonical;
 - selezione manuale del disco, minimo 32 GiB;
 - esclusione del supporto USB di installazione, anche nel doppio avvio NETBOOT;
-- conferma distruttiva digitando esattamente CANCELLA;
+- interfaccia di installazione interamente in inglese;
+- conferma distruttiva digitando esattamente ERASE;
 - GPT ibrida con BIOS GRUB, EFI, /boot, LVM, root al 50% e /data sul resto;
 - scelta della tastiera, del fuso orario e della password chamsys durante
   l'installazione;

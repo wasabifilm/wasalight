@@ -163,7 +163,7 @@ if [ -z "${DISPLAY:-}" ] && [ "$(tty)" = /dev/tty1 ]; then
     # to diagnose an Xorg failure.
     printf '\033[?25h\033[2J\033[H' >/dev/tty1
     if [ "$xorg_rc" -ne 0 ]; then
-        printf 'Avvio grafico non riuscito. Log: %s\n' "$xorg_log" >/dev/tty1
+        printf 'Graphical startup failed. Log: %s\n' "$xorg_log" >/dev/tty1
     fi
     exit "$xorg_rc"
 fi

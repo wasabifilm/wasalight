@@ -16,6 +16,8 @@ readonly PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly RELEASE_MANIFEST="$PROJECT_DIR/release-manifest.ini"
 # shellcheck source=../lib/wasalight-release-manifest.sh
 . "$PROJECT_DIR/lib/wasalight-release-manifest.sh"
+# shellcheck source=../lib/wasalight-package-list.sh
+. "$PROJECT_DIR/lib/wasalight-package-list.sh"
 # shellcheck source=../lib/wasalight-operation-lock.sh
 . "$PROJECT_DIR/lib/wasalight-operation-lock.sh"
 readonly VERSION_FILE_NAME="$(require_manifest_value "$RELEASE_MANIFEST" Wasalight VersionFile)"
@@ -45,6 +47,10 @@ readonly COMPANION_ICON_COMMIT="$(require_manifest_value "$RELEASE_MANIFEST" Com
 readonly COMPANION_ICON_SHA256="$(require_manifest_value "$RELEASE_MANIFEST" Companion IconSHA256)"
 readonly MAGICQ_PACKAGE_NAME="$(require_manifest_value "$RELEASE_MANIFEST" MagicQ Package)"
 readonly MAGICQ_ARCHITECTURE="$(require_manifest_value "$RELEASE_MANIFEST" MagicQ Architecture)"
+readonly RUNTIME_PACKAGES_FILE_NAME="$(require_manifest_value_matching \
+    "$RELEASE_MANIFEST" Wasalight RuntimePackagesFile \
+    '^packages/[A-Za-z0-9][A-Za-z0-9._/-]*$' 'a path below packages')"
+readonly RUNTIME_PACKAGES_FILE="$PROJECT_DIR/$RUNTIME_PACKAGES_FILE_NAME"
 
 DEB_PATH=""
 DATA_DEVICE=""
@@ -70,61 +76,61 @@ unset installer_module
 main() {
     parse_args "$@"
     require_host
-    wasalight_acquire_operation_lock "installazione Wasalight"
+    wasalight_acquire_operation_lock "Wasalight installation"
     log "starting Wasalight installer version $PROJECT_VERSION"
-    installer_progress "1/25 · Preparazione partizione dati"
+    installer_progress "1/25 · Prepare data partition"
     configure_data_mount
-    installer_progress "2/25 · Ricerca del pacchetto MagicQ"
+    installer_progress "2/25 · Find the MagicQ package"
     discover_magicq_from_usb
     persist_magicq_package
     require_magicq_or_override
-    installer_progress "3/25 · Installazione pacchetti di sistema"
+    installer_progress "3/25 · Install system packages"
     install_packages
-    installer_progress "4/25 · Configurazione utente chamsys"
+    installer_progress "4/25 · Configure the chamsys user"
     configure_user
-    installer_progress "5/25 · Configurazione rete persistente"
+    installer_progress "5/25 · Configure persistent networking"
     configure_networkmanager
-    installer_progress "6/25 · Configurazione log persistenti"
+    installer_progress "6/25 · Configure persistent logs"
     configure_persistent_logs
-    installer_progress "7/25 · Configurazione touchscreen"
+    installer_progress "7/25 · Configure the touchscreen"
     configure_touchscreen
-    installer_progress "8/25 · Configurazione VNC"
+    installer_progress "8/25 · Configure VNC"
     configure_vnc
-    installer_progress "9/25 · Configurazione SSH"
+    installer_progress "9/25 · Configure SSH"
     configure_ssh
     configure_remote_persistence
-    installer_progress "10/25 · Configurazione aggiornamenti"
+    installer_progress "10/25 · Configure updates"
     configure_update
-    installer_progress "11/25 · Configurazione Companion"
+    installer_progress "11/25 · Configure Companion"
     configure_companion
-    installer_progress "12/25 · Configurazione desktop"
+    installer_progress "12/25 · Configure the desktop"
     configure_graphical_session
-    installer_progress "13/25 · Configurazione plugin"
+    installer_progress "13/25 · Configure plugins"
     configure_plugins
-    installer_progress "14/25 · Installazione strumenti di gestione"
+    installer_progress "14/25 · Install management tools"
     configure_management_tools
-    installer_progress "15/25 · Configurazione supporti USB"
+    installer_progress "15/25 · Configure USB media"
     configure_usb
-    installer_progress "16/25 · Installazione MagicQ"
+    installer_progress "16/25 · Install MagicQ"
     install_magicq
-    installer_progress "17/25 · Verifica permessi MagicQ"
+    installer_progress "17/25 · Verify MagicQ permissions"
     repair_magicq_persistent_permissions
     /usr/local/sbin/wasalight-magicq-desktop-refresh
-    installer_progress "18/25 · Configurazione runtime volatile"
+    installer_progress "18/25 · Configure volatile runtime"
     configure_volatile_runtime
-    installer_progress "19/25 · Installazione licenze e crediti"
+    installer_progress "19/25 · Install licenses and credits"
     install_wasalight_legal_notices
-    installer_progress "20/25 · Ottimizzazione del sistema"
+    installer_progress "20/25 · Optimize the system"
     optimize_system
-    installer_progress "21/25 · Installazione comandi SHOW e MAINTENANCE"
+    installer_progress "21/25 · Install SHOW and MAINTENANCE commands"
     install_mode_commands
-    installer_progress "22/25 · Configurazione grafica di avvio"
+    installer_progress "22/25 · Configure boot graphics"
     configure_boot_branding
-    installer_progress "23/25 · Configurazione protezione overlayroot"
+    installer_progress "23/25 · Configure overlayroot protection"
     configure_overlay
-    installer_progress "24/25 · Controlli finali"
+    installer_progress "24/25 · Run final checks"
     final_checks
-    installer_progress "25/25 · Registrazione versione installata"
+    installer_progress "25/25 · Record the installed version"
     record_installed_version
 
     log "installation completed: Wasalight $PROJECT_VERSION"

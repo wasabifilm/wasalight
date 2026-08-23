@@ -19,11 +19,11 @@ esac
 set -eu
 
 [ -f /autoinstall.yaml ] || {
-    echo "WASALIGHT: autoinstall.yaml non disponibile nell'initramfs" >&2
+    echo "WASALIGHT: autoinstall.yaml is unavailable in the initramfs" >&2
     exit 1
 }
 [ -d /wasalight ] || {
-    echo "WASALIGHT: script di installazione non disponibili nell'initramfs" >&2
+    echo "WASALIGHT: installation scripts are unavailable in the initramfs" >&2
     exit 1
 }
 

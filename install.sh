@@ -35,8 +35,8 @@ done
 
 # shellcheck source=lib/wasalight-operation-lock.sh
 . "$PROJECT_DIR/lib/wasalight-operation-lock.sh"
-[[ $EUID -eq 0 ]] || { echo "Esegui l'installer con sudo." >&2; exit 1; }
-wasalight_acquire_operation_lock "installazione Wasalight"
+[[ $EUID -eq 0 ]] || { echo "Run the installer with sudo." >&2; exit 1; }
+wasalight_acquire_operation_lock "Wasalight installation"
 
 if ((deb_supplied == 0)); then
     shopt -s nullglob
@@ -74,7 +74,7 @@ if ((deb_supplied == 0)); then
     selected_version=
     for package in "${packages[@]}"; do
         version=$(magicq_version_of "$package") || {
-            printf 'Ignoro un file che non è MagicQ amd64 valido: %s\n' "$package" >&2
+            printf 'Ignoring a file that is not a valid MagicQ amd64 package: %s\n' "$package" >&2
             continue
         }
         if [[ -z $selected_package ]] || dpkg --compare-versions "$version" gt "$selected_version"; then
@@ -82,25 +82,25 @@ if ((deb_supplied == 0)); then
             selected_version=$version
         elif dpkg --compare-versions "$version" eq "$selected_version" && \
              ! cmp -s -- "$package" "$selected_package"; then
-            printf 'Conflitto: due pacchetti MagicQ %s hanno contenuto differente.\n' \
+            printf 'Conflict: two MagicQ %s packages have different contents.\n' \
                 "$version" >&2
             exit 2
         fi
     done
 
     if [[ -n $selected_package ]]; then
-        printf 'Pacchetto MagicQ selezionato: %s (versione %s)\n' \
+        printf 'Selected MagicQ package: %s (version %s)\n' \
             "$selected_package" "$selected_version"
         args+=("$selected_package")
     else
-        printf 'Pacchetto MagicQ non trovato nel progetto, in /data o nelle USB montate.\n' >&2
+        printf 'No MagicQ package was found in the project, /data or mounted USB media.\n' >&2
         if dpkg-query -W -f='${db:Status-Abbrev}' magicq 2>/dev/null | grep -q '^ii'; then
-            printf 'MagicQ è già installato: continuo senza reinstallare il pacchetto.\n' >&2
+            printf 'MagicQ is already installed; continuing without reinstalling it.\n' >&2
         elif ((allow_missing_magicq == 0)); then
-            printf 'Avvio la ricerca iniziale anche nelle USB non ancora montate.\n' >&2
-            printf 'Se non verrà trovato nulla, lo script indicherà --allow-missing-magicq.\n' >&2
+            printf 'The initial search will also scan USB media that is not yet mounted.\n' >&2
+            printf 'If nothing is found, the script will report --allow-missing-magicq.\n' >&2
         else
-            printf 'Assenza di MagicQ ignorata esplicitamente.\n' >&2
+            printf 'The missing MagicQ package was explicitly accepted.\n' >&2
         fi
     fi
 fi
