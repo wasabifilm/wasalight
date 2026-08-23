@@ -10,6 +10,7 @@ readonly log_root=/data/log/wasalight/updates
 readonly state_file=/data/system/update-state
 readonly channel_file=/data/system/update-channel
 readonly boot_failed_file=/data/system/update-boot-failed
+readonly stable_unavailable_file=/run/wasalight-update-stable-unavailable
 readonly progress_file=/run/wasalight-update-progress-detail
 
 . /usr/local/libexec/wasalight-release-manifest.sh
@@ -137,6 +138,7 @@ fi
 [[ $EUID -eq 0 ]] || { echo "Run with: sudo wasalight-update" >&2; exit 1; }
 wasalight_acquire_operation_lock "Wasalight update"
 rm -f /run/wasalight-update-reboot-required
+rm -f "$stable_unavailable_file"
 [[ $(findmnt -n -o FSTYPE / 2>/dev/null) != overlay ]] || {
     echo "MAINTENANCE mode is required. Run sudo wasalight-maintenance and reboot." >&2
     exit 1
@@ -488,11 +490,20 @@ else
 fi
 if [[ $channel == stable ]]; then
     release_json=$(mktemp /tmp/wasalight-release.XXXXXX)
-    stable_tag=$(discover_stable_release "$stable_api" "$release_json") || {
+    if stable_tag=$(discover_stable_release "$stable_api" "$release_json"); then
+        :
+    else
+        stable_rc=$?
         rm -f -- "$release_json"
-        echo "Unable to find an immutable stable release. Use --channel debug only for testing." >&2
+        if ((stable_rc == 44)); then
+            touch "$stable_unavailable_file"
+            echo "No signed stable release has been published yet." >&2
+            echo "Select Debug in Wasalight Control only on UTM or development machines." >&2
+        else
+            echo "Unable to retrieve and verify the latest stable release." >&2
+        fi
         exit 1
-    }
+    fi
     rm -f -- "$release_json"
     [[ $stable_tag == "$tag_prefix"* && ${stable_tag#"$tag_prefix"} =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]] || {
         echo "Invalid stable release tag: $stable_tag" >&2; exit 1;

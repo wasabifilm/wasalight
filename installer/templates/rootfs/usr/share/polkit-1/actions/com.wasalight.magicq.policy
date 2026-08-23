@@ -7,6 +7,7 @@
   <action id="com.wasalight.magicq.install">
     <description>Install or update ChamSys MagicQ from local media</description>
     <message>Authentication is required to install or update MagicQ</message>
+    <icon_name>wasalight-magicq-install</icon_name>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>auth_admin</allow_inactive>

@@ -455,3 +455,18 @@ msgstr "NON CONTROLLATO"
 
 msgid "Configure"
 msgstr "Configura"
+
+msgid "Stable uses signed releases. Debug follows the latest main branch."
+msgstr "Stable usa release firmate. Debug segue l’ultimo aggiornamento del ramo main."
+
+msgid "Enable Debug update channel?"
+msgstr "Abilitare il canale di aggiornamento Debug?"
+
+msgid "Debug follows the latest main branch and is intended for UTM and development machines. It is not a signed stable release."
+msgstr "Debug segue l’ultimo aggiornamento del ramo main ed è destinato a UTM e alle macchine di sviluppo. Non è una release stabile firmata."
+
+msgid "Use Debug"
+msgstr "Usa Debug"
+
+msgid "Update channel"
+msgstr "Canale di aggiornamento"
