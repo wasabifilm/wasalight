@@ -68,6 +68,7 @@ DISK_SELECTOR="$SCRIPT_DIR/select-disk.sh"
 KEYBOARD_SELECTOR="$SCRIPT_DIR/select-keyboard.sh"
 THEME_SCRIPT="$SCRIPT_DIR/apply-theme.sh"
 UI_TEMPLATE="$SCRIPT_DIR/install-ui.sh"
+POWEROFF_PROMPT="$SCRIPT_DIR/wait-for-poweroff.sh"
 FIRST_BOOT_SCRIPT="$SCRIPT_DIR/wasalight-first-boot.sh"
 FIRST_BOOT_SERVICE="$SCRIPT_DIR/wasalight-first-boot.service"
 
@@ -97,7 +98,8 @@ for dependency in xorriso cpio; do
 done
 for source in "$MINI_ISO" "$AUTOINSTALL" "$LOADER" "$COPY_SEED" \
   "$DISK_SELECTOR" "$KEYBOARD_SELECTOR" "$THEME_SCRIPT" "$UI_TEMPLATE" \
-  "$FIRST_BOOT_SCRIPT" "$FIRST_BOOT_SERVICE" "$RELEASE_MANIFEST" "$MANIFEST_LIBRARY" \
+  "$POWEROFF_PROMPT" "$FIRST_BOOT_SCRIPT" "$FIRST_BOOT_SERVICE" \
+  "$RELEASE_MANIFEST" "$MANIFEST_LIBRARY" \
   "$PACKAGE_LIST_LIBRARY" "$RUNTIME_PACKAGES_FILE"; do
   [[ -f $source ]] || die "File richiesto non trovato: $source"
 done
@@ -133,6 +135,7 @@ bash -n "$FIRST_BOOT_SCRIPT"
 sh -n "$DISK_SELECTOR"
 sh -n "$KEYBOARD_SELECTOR"
 sh -n "$THEME_SCRIPT"
+sh -n "$POWEROFF_PROMPT"
 python3 -c 'compile(open(__import__("sys").argv[1], encoding="utf-8").read(), __import__("sys").argv[1], "exec")' "$UI_TEMPLATE"
 
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/wasalight-netboot.XXXXXX")"
@@ -190,6 +193,7 @@ install -m 0755 "$DISK_SELECTOR" "$FINAL_ROOT/wasalight/select-disk.sh"
 install -m 0755 "$KEYBOARD_SELECTOR" "$FINAL_ROOT/wasalight/select-keyboard.sh"
 install -m 0755 "$THEME_SCRIPT" "$FINAL_ROOT/wasalight/apply-theme.sh"
 install -m 0755 "$UI_SCRIPT" "$FINAL_ROOT/wasalight/install-ui.sh"
+install -m 0755 "$POWEROFF_PROMPT" "$FINAL_ROOT/wasalight/wait-for-poweroff.sh"
 install -m 0644 "$VERSION_FILE" "$FINAL_ROOT/wasalight/VERSION"
 install -m 0644 "$RELEASE_MANIFEST" "$FINAL_ROOT/wasalight/release-manifest.ini"
 install -m 0644 "$MANIFEST_LIBRARY" "$FINAL_ROOT/wasalight/wasalight-release-manifest.sh"

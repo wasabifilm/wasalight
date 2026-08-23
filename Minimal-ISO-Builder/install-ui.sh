@@ -19,6 +19,7 @@ from typing import Any
 LISTEN_ADDRESS = "127.0.0.1"
 LISTEN_PORT = 8765
 READY_FILE = Path("/run/wasalight-ui-ready")
+PID_FILE = Path("/run/wasalight-ui.pid")
 SUCCESS_FILE = Path("/run/wasalight-install-success")
 FAILURE_FILE = Path("/run/wasalight-install-failed")
 
@@ -254,7 +255,7 @@ def render(tty: Any, spinner: str) -> None:
         message = snapshot["failure_message"] or "Installation failed"
         lines.append(f"┃   {RED}{message[:54]:<54}{RESET}   ┃")
     elif snapshot["finished"]:
-        lines.append(f"┃   {GREEN}{'Ubuntu is ready. First-boot setup will continue.':<54}{RESET}   ┃")
+        lines.append(f"┃   {GREEN}{'Installation complete. Preparing safe power-off.':<54}{RESET}   ┃")
     else:
         lines.append(f"┃   {WHITE}{snapshot['message'][:54]:<54}{RESET}   ┃")
 
@@ -289,6 +290,7 @@ def main() -> int:
         return 1
 
     READY_FILE.write_text(f"{LISTEN_ADDRESS}:{LISTEN_PORT}\n", encoding="utf-8")
+    PID_FILE.write_text(f"{os.getpid()}\n", encoding="ascii")
     server_thread = threading.Thread(target=server.serve_forever, daemon=True)
     server_thread.start()
 
@@ -318,6 +320,7 @@ def main() -> int:
             tty.flush()
             server.shutdown()
             READY_FILE.unlink(missing_ok=True)
+            PID_FILE.unlink(missing_ok=True)
     return 0
 
 

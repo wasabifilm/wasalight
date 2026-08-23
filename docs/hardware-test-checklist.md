@@ -295,9 +295,9 @@ build, macchina e percorso del support bundle o del log conservato.
 - [ ] `nm-connection-editor` salva DHCP e indirizzi statici.
 - [ ] Le connessioni sopravvivono a un riavvio protetto.
 - [ ] Nessun indirizzo o servizio inatteso interferisce con la rete show.
-- [ ] La politica firewall scelta e documentata espone soltanto i servizi
-      previsti oppure dichiara esplicitamente il firewall disabilitato; MagicQ,
-      Art-Net, sACN, OSC, Companion, SSH e VNC funzionano come progettato.
+- [ ] `dpkg-query -W ufw` conferma che UFW non è installato e non restano regole
+      UFW attive; MagicQ, Art-Net, sACN, OSC e Companion funzionano sulla rete
+      tecnica protetta a monte.
 - [ ] SSH non è raggiungibile finché non viene attivato dal pulsante oppure
       installato con `--with-ssh` per l’avvio automatico.
 

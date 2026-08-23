@@ -68,7 +68,14 @@ optimize_system() {
     disable_service_if_present \
         snapd.service snapd.socket ModemManager.service cups.service cups.socket \
         bluetooth.service avahi-daemon.service avahi-daemon.socket whoopsie.service \
-        apport.service unattended-upgrades.service
+        apport.service unattended-upgrades.service ufw.service
+
+    # Wasalight deliberately relies on the venue/control-network boundary
+    # instead of a host firewall: lighting protocols can use broad or dynamic
+    # port ranges. Flush any rules owned by Ubuntu's UFW before purging it.
+    if command -v ufw >/dev/null 2>&1; then
+        ufw disable || warn "UFW could not be disabled cleanly before removal"
+    fi
 
     # Cloud-init is disabled only after this script has completed the machine
     # configuration. A dedicated physical appliance does not need it after
@@ -85,7 +92,7 @@ optimize_system() {
     local uses_multipath=0 uses_iscsi=0
     local cleanup_candidates=(
         snapd modemmanager cups cups-daemon bluez avahi-daemon whoopsie apport
-        unattended-upgrades pollinate os-prober
+        unattended-upgrades ufw pollinate os-prober
     )
     local cleanup_installed=()
     root_source=$(findmnt -n -o SOURCE -M /)

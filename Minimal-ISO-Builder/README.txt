@@ -65,6 +65,12 @@ Entrambe includono:
 - UI Wasalight alimentata dagli eventi Subiquity/curtin su Ctrl+Alt+F2;
 - log tecnici su Ctrl+Alt+F1.
 
+Al termine, l'installer non riavvia immediatamente dal supporto ancora
+inserito. Mostra invece una schermata finale in inglese: premendo ENTER il
+sistema si spegne in sicurezza. Solo a macchina spenta si rimuove la USB (o si
+espelle la ISO virtuale), quindi si riaccende dal disco interno. Al primo avvio
+il servizio systemd completa Wasalight e riavvia in modalita' protetta.
+
 In caso di errore l'hash della password viene oscurato prima di mostrare
 autoinstall.yaml. Premendo INVIO viene aperta una shell con controlling terminal
 sulla console 3. Il firmware usato (BIOS oppure UEFI) viene rilevato durante la

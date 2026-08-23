@@ -133,6 +133,7 @@ DISK_SELECTOR="$SCRIPT_DIR/select-disk.sh"
 KEYBOARD_SELECTOR="$SCRIPT_DIR/select-keyboard.sh"
 THEME_SCRIPT="$SCRIPT_DIR/apply-theme.sh"
 UI_TEMPLATE="$SCRIPT_DIR/install-ui.sh"
+POWEROFF_PROMPT="$SCRIPT_DIR/wait-for-poweroff.sh"
 FIRST_BOOT_SCRIPT="$SCRIPT_DIR/wasalight-first-boot.sh"
 FIRST_BOOT_SERVICE="$SCRIPT_DIR/wasalight-first-boot.service"
 OUTPUT_ISO="${3:-$DEFAULT_OUTPUT}"
@@ -196,6 +197,7 @@ sha256sum_file() {
 [[ -f "$KEYBOARD_SELECTOR" ]] || die "select-keyboard.sh non trovato: $KEYBOARD_SELECTOR"
 [[ -f "$THEME_SCRIPT" ]] || die "apply-theme.sh non trovato: $THEME_SCRIPT"
 [[ -f "$UI_TEMPLATE" ]] || die "install-ui.sh non trovato: $UI_TEMPLATE"
+[[ -f "$POWEROFF_PROMPT" ]] || die "wait-for-poweroff.sh non trovato: $POWEROFF_PROMPT"
 [[ -f "$FIRST_BOOT_SCRIPT" ]] || die "wasalight-first-boot.sh non trovato: $FIRST_BOOT_SCRIPT"
 [[ -f "$FIRST_BOOT_SERVICE" ]] || die "wasalight-first-boot.service non trovato: $FIRST_BOOT_SERVICE"
 [[ -f "$RELEASE_MANIFEST" ]] || die "release-manifest.ini non trovato: $RELEASE_MANIFEST"
@@ -232,7 +234,7 @@ if grep -Eq 'password:[[:space:]]+["'\'']?\$[156y]\$' "$AUTOINSTALL"; then
 fi
 
 bash -n "$0" || die "Errore di sintassi nel builder."
-for script in "$DISK_SELECTOR" "$KEYBOARD_SELECTOR" "$THEME_SCRIPT"; do
+for script in "$DISK_SELECTOR" "$KEYBOARD_SELECTOR" "$THEME_SCRIPT" "$POWEROFF_PROMPT"; do
   sh -n "$script" || die "Errore di sintassi in: $script"
 done
 bash -n "$FIRST_BOOT_SCRIPT" || die "Errore di sintassi in: $FIRST_BOOT_SCRIPT"
@@ -458,6 +460,7 @@ if iso_has_path "$SOURCE_ISO" /md5sum.txt; then
     "./wasalight/select-keyboard.sh" \
     "./wasalight/apply-theme.sh" \
     "./wasalight/install-ui.sh" \
+    "./wasalight/wait-for-poweroff.sh" \
     "./wasalight/VERSION" \
     "./wasalight/release-manifest.ini" \
     "./wasalight/wasalight-release-manifest.sh" \
@@ -483,6 +486,7 @@ if iso_has_path "$SOURCE_ISO" /md5sum.txt; then
     printf '%s  ./wasalight/select-keyboard.sh\n' "$(md5sum_file "$KEYBOARD_SELECTOR")"
     printf '%s  ./wasalight/apply-theme.sh\n' "$(md5sum_file "$THEME_SCRIPT")"
     printf '%s  ./wasalight/install-ui.sh\n' "$(md5sum_file "$UI_SCRIPT")"
+    printf '%s  ./wasalight/wait-for-poweroff.sh\n' "$(md5sum_file "$POWEROFF_PROMPT")"
     printf '%s  ./wasalight/VERSION\n' "$(md5sum_file "$VERSION_FILE")"
     printf '%s  ./wasalight/release-manifest.ini\n' "$(md5sum_file "$RELEASE_MANIFEST")"
     printf '%s  ./wasalight/wasalight-release-manifest.sh\n' "$(md5sum_file "$MANIFEST_LIBRARY")"
@@ -507,6 +511,7 @@ ARGS+=(
   -map "$KEYBOARD_SELECTOR" /wasalight/select-keyboard.sh
   -map "$THEME_SCRIPT" /wasalight/apply-theme.sh
   -map "$UI_SCRIPT" /wasalight/install-ui.sh
+  -map "$POWEROFF_PROMPT" /wasalight/wait-for-poweroff.sh
   -map "$VERSION_FILE" /wasalight/VERSION
   -map "$RELEASE_MANIFEST" /wasalight/release-manifest.ini
   -map "$MANIFEST_LIBRARY" /wasalight/wasalight-release-manifest.sh
@@ -544,6 +549,8 @@ iso_has_path "$PARTIAL_OUTPUT" /wasalight/apply-theme.sh || \
   die "apply-theme.sh manca nella ISO finale."
 iso_has_path "$PARTIAL_OUTPUT" /wasalight/install-ui.sh || \
   die "install-ui.sh manca nella ISO finale."
+iso_has_path "$PARTIAL_OUTPUT" /wasalight/wait-for-poweroff.sh || \
+  die "wait-for-poweroff.sh manca nella ISO finale."
 iso_has_path "$PARTIAL_OUTPUT" /wasalight/VERSION || \
   die "VERSION manca nella ISO finale."
 iso_has_path "$PARTIAL_OUTPUT" /wasalight/release-manifest.ini || \
@@ -566,6 +573,7 @@ xorriso -osirrox on -indev "$PARTIAL_OUTPUT" \
   -extract /wasalight/select-keyboard.sh "$TMP/verify/select-keyboard.sh" \
   -extract /wasalight/apply-theme.sh "$TMP/verify/apply-theme.sh" \
   -extract /wasalight/install-ui.sh "$TMP/verify/install-ui.sh" \
+  -extract /wasalight/wait-for-poweroff.sh "$TMP/verify/wait-for-poweroff.sh" \
   -extract /wasalight/VERSION "$TMP/verify/VERSION" \
   -extract /wasalight/release-manifest.ini "$TMP/verify/release-manifest.ini" \
   -extract /wasalight/wasalight-release-manifest.sh "$TMP/verify/wasalight-release-manifest.sh" \
@@ -582,6 +590,8 @@ cmp -s "$THEME_SCRIPT" "$TMP/verify/apply-theme.sh" || \
   die "apply-theme.sh incorporato non corrisponde al sorgente."
 cmp -s "$UI_SCRIPT" "$TMP/verify/install-ui.sh" || \
   die "install-ui.sh incorporato non corrisponde al sorgente."
+cmp -s "$POWEROFF_PROMPT" "$TMP/verify/wait-for-poweroff.sh" || \
+  die "wait-for-poweroff.sh incorporato non corrisponde al sorgente."
 cmp -s "$VERSION_FILE" "$TMP/verify/VERSION" || \
   die "VERSION incorporato non corrisponde al sorgente."
 cmp -s "$RELEASE_MANIFEST" "$TMP/verify/release-manifest.ini" || \

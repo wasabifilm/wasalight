@@ -199,6 +199,15 @@ Ubuntu affinché Wasalight venga scaricato e installato al primo avvio. Immagini
 ISO sorgenti e generate, pacchetti `.deb`, cache e directory di lavoro sono
 esclusi dal repository Git.
 
+Quando Autoinstall termina, la macchina mostra una conferma e si spegne dopo
+ENTER invece di riavviarsi con il supporto ancora inserito. Rimuovere la USB o
+espellere l’ISO virtuale a macchina spenta, quindi avviare dal disco interno.
+
+Il profilo appliance rimuove UFW e non applica un firewall host, per non
+interferire con i protocolli di controllo luci. Usare Wasalight su una rete
+tecnica controllata o protetta a monte; SSH e VNC sono disabilitati finché non
+vengono attivati esplicitamente.
+
 ## Verifica del progetto
 
 ```bash

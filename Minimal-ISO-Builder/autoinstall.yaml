@@ -117,6 +117,7 @@ autoinstall:
       device: format-efi
       path: /boot/efi
   updates: security
+  shutdown: poweroff
   reporting:
     wasalight:
       type: webhook
@@ -146,6 +147,7 @@ autoinstall:
   - __WASALIGHT_NETWORK_PRELOAD__
   - curtin in-target --target=/target -- systemctl enable wasalight-first-boot.service
   - touch /run/wasalight-install-success
+  - sh /cdrom/wasalight/wait-for-poweroff.sh
   error-commands:
   - >-
     sh -c '{

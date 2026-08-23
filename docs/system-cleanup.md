@@ -40,10 +40,16 @@ manuale continua invece a installare soltanto ciò che manca.
 
 Dopo l’installazione di Wasalight e MagicQ vengono eseguiti i controlli reali
 su multipath e iSCSI. Snap, stampa, Bluetooth, ModemManager, Avahi, Whoopsie,
-Apport, aggiornamenti automatici e i componenti cloud/SAN non necessari sono
-quindi rimossi insieme in un’unica transazione `apt-get purge`. Segue un solo
-`apt-get autoremove --purge` e infine `apt-get clean`: APT conosce già l’insieme
-definitivo dei pacchetti e non elimina dipendenze da riscaricare poco dopo.
+Apport, aggiornamenti automatici, UFW e i componenti cloud/SAN non necessari
+sono quindi rimossi insieme in un’unica transazione `apt-get purge`. Prima
+della rimozione UFW viene disabilitato per eliminare le sue regole attive.
+Segue un solo `apt-get autoremove --purge` e infine `apt-get clean`: APT conosce
+già l’insieme definitivo dei pacchetti e non elimina dipendenze da riscaricare
+poco dopo.
+
+Wasalight non applica quindi un firewall host. La macchina deve essere usata su
+una rete tecnica controllata o protetta a monte; SSH e VNC restano disabilitati
+finché l’operatore non li abilita esplicitamente.
 
 ## Messaggio QEMU dopo APT
 

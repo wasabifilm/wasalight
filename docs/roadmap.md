@@ -41,10 +41,10 @@ Legenda:
 - [ ] Definire la politica swap sull’hardware reale dopo aver misurato RAM e
       carico MagicQ/Companion: conservare una swap di emergenza limitata oppure
       disabilitarla, senza confonderla con `overlayroot tmpfs:swap=0`.
-- [ ] Definire e documentare la politica firewall definitiva: inventariare
-      prima le porte necessarie a MagicQ, Companion, SSH, VNC, Art-Net, sACN e
-      OSC, quindi scegliere consapevolmente tra firewall disabilitato oppure
-      regole minime. Non rimuoverlo alla cieca prima del collaudo di rete.
+- [x] Politica firewall definita: UFW disabilitato e rimosso per non interferire
+      con MagicQ, Companion, Art-Net, sACN e OSC; protezione affidata alla rete
+      tecnica a monte. SSH e VNC restano disabilitati finché non vengono
+      attivati esplicitamente.
 - [ ] Misurare sul computer fisico tempi di boot, CPU, RAM, temperature,
       governor, latenza di rete e attività disco; applicare ulteriori
       ottimizzazioni solo se i dati mostrano un vantaggio reale.
@@ -69,7 +69,7 @@ configurazione realmente applicata:
 | SMART, temperature, governor e TRIM mostrati nell’audit | Implementata |
 | `fstrim.timer` condizionale al supporto discard | Implementata |
 | Politica swap | Da decidere dopo le misure |
-| Politica firewall | Da decidere dopo il collaudo delle porte |
+| Politica firewall | UFW rimosso; protezione affidata alla rete tecnica a monte |
 | Governor CPU e scheduler I/O personalizzati | Da misurare prima di cambiare |
 | `irqbalance` e `thermald` | Da valutare sull’hardware fisico |
 
@@ -273,7 +273,7 @@ riportate esplicitamente per evitare che vadano perse:
 - [x] canali aggiornamento stable/debug;
 - [~] installazione e aggiornamento MagicQ offline;
 - [x] monitor OSC;
-- [ ] politica firewall e ottimizzazioni misurate;
+- [x] politica firewall definita e documentata;
 - [~] TRIM periodico implementato; politica swap da decidere dopo le misure;
 - [x] localizzazione completa dell’intero desktop, collaudata in UTM;
 - [ ] collaudo hardware e prima release stable firmata.

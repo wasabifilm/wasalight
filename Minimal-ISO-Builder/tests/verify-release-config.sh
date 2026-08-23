@@ -119,6 +119,19 @@ grep -Fq 'for index in (2, 4, 10):' "$ISO_BUILDER_DIR/apply-theme.sh" || \
     fail "palette installer non uniformata"
 grep -Fq 'palette[i + 0] = 118' "$ISO_BUILDER_DIR/apply-theme.sh" || \
     fail "verde Wasalight dell'updater non applicato all'installer"
+grep -Fq 'shutdown: poweroff' "$ISO_BUILDER_DIR/autoinstall.yaml" || \
+    fail "autoinstall non spegne il sistema prima della rimozione USB"
+grep -Fq 'sh /cdrom/wasalight/wait-for-poweroff.sh' \
+    "$ISO_BUILDER_DIR/autoinstall.yaml" || \
+    fail "prompt di spegnimento non eseguito come ultimo late-command"
+grep -Fq 'PID_FILE = Path("/run/wasalight-ui.pid")' \
+    "$ISO_BUILDER_DIR/install-ui.sh" || \
+    fail "UI installer priva del PID per il passaggio sicuro della console"
+sh -n "$ISO_BUILDER_DIR/wait-for-poweroff.sh"
+for builder in make-wasalight-minimal.sh make-wasalight-netboot.sh; do
+    grep -Fq 'wait-for-poweroff.sh' "$ISO_BUILDER_DIR/$builder" || \
+        fail "$builder non incorpora il prompt di spegnimento"
+done
 "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-timezone Europe/Rome || \
     fail "Europe/Rome non riconosciuto come fuso orario valido"
 if "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-timezone ../Etc/UTC; then
@@ -156,6 +169,7 @@ release_sources=(
     "$ISO_BUILDER_DIR/netboot-iso-loader.sh"
     "$ISO_BUILDER_DIR/select-disk.sh"
     "$ISO_BUILDER_DIR/select-keyboard.sh"
+    "$ISO_BUILDER_DIR/wait-for-poweroff.sh"
     "$ISO_BUILDER_DIR/wasalight-first-boot.sh"
     "$ISO_BUILDER_DIR/wasalight-first-boot.service"
 )

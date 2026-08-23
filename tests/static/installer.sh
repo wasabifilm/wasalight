@@ -300,7 +300,7 @@ required_patterns=(
     'wasalight-companion-launcher magichd'
     'wasalight-companion-launcher magicvis'
     'wasalight-vnc-password'
-    'unattended-upgrades pollinate os-prober'
+    'unattended-upgrades ufw pollinate os-prober'
     'apt-get autoremove --purge -y'
     'apt-get clean'
     'export GTK_A11Y=none'
@@ -515,6 +515,13 @@ grep -Fq 'configure_time_synchronization' <<<"$install_packages_body" || \
 optimize_body=$(awk '/^optimize_system\(\) \{/,/^}/' "$INSTALLER")
 grep -Fq 'snapd modemmanager cups cups-daemon bluez avahi-daemon whoopsie apport' \
     <<<"$optimize_body" || fail "la pulizia finale non include i pacchetti appliance inutili"
+grep -Fq 'unattended-upgrades ufw pollinate os-prober' <<<"$optimize_body" || \
+    fail "la pulizia finale non rimuove UFW"
+grep -Fq 'ufw disable' <<<"$optimize_body" || \
+    fail "UFW viene rimosso senza disabilitare prima le regole attive"
+if grep -Eq 'ufw[[:space:]]+(enable|allow|default)' <<<"$optimize_body"; then
+    fail "l'installer abilita o configura ancora UFW"
+fi
 storage_purge_line=$(grep -n 'apt-get purge -y "${cleanup_installed\[@\]}"' \
     <<<"$optimize_body" | cut -d: -f1)
 autoremove_line=$(grep -n 'apt-get autoremove --purge -y' \
