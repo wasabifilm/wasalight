@@ -39,8 +39,8 @@ build, macchina e percorso del support bundle o del log conservato.
 | --- | --- | --- | --- |
 | CI completa | GitHub Actions Ubuntu 24.04 | [PR #36: static-verification](https://github.com/wasabifilm/wasalight/actions/runs/32628816964/job/97168283951?pr=36) | [x] |
 | Idempotenza updater | UTM in MAINTENANCE | `PASS` registrato il 2026-08-23 sulla build `2026.08.22.1` | [x] |
-| Ripresa dopo interruzione | UTM usa-e-getta | Stato `RECOVERY REQUIRED`, log di `--resume` e support bundle | [ ] |
-| Rollback dopo errore | UTM usa-e-getta | Checkout, canale e configurazione ripristinati con relativi checksum | [ ] |
+| Ripresa dopo interruzione | UTM usa-e-getta | `PASS` registrato il 2026-08-23 sulla build `2026.08.22.1` | [x] |
+| Rollback dopo errore | UTM usa-e-getta | `PASS` registrato il 2026-08-23 sulla build `2026.08.22.1` | [x] |
 | Aggiornamento firmato | UTM | Tag autorizzato accettato e tag non autorizzato rifiutato | [ ] |
 | Resistenza agli spegnimenti | Hardware fisico | Serie di riavvii in SHOW senza perdita dello show o corruzione | [ ] |
 | MagicQ e I/O show | Hardware fisico | MagicQ, USB ChamSys, Art-Net, sACN, OSC e audio verificati | [ ] |
@@ -140,11 +140,13 @@ build, macchina e percorso del support bundle o del log conservato.
       `stable` si ferma chiaramente e non ripiega su `main`.
 - [ ] Con una release stable immutabile e firmata, tag, `VERSION`, commit
       installato e chiave autorizzata coincidono; un tag non firmato viene rifiutato.
-- [ ] Interrompendo intenzionalmente la VM durante l’installer, il pannello
+- [x] Interrompendo intenzionalmente la VM durante l’installer, il pannello
       mostra `RECOVERY REQUIRED`; l’avvio grafico dell’update propone
-      **Riprendi** e `--resume` riutilizza lo snapshot registrato.
-- [ ] Dopo un errore successivo all’installazione, configurazione, canale e
-      checkout precedente vengono ripristinati insieme.
+      **Riprendi** e `--resume` riutilizza lo snapshot registrato (verificato in
+      UTM il 2026-08-23 sulla build `2026.08.22.1`).
+- [x] Dopo un errore successivo all’installazione, configurazione, canale e
+      checkout precedente vengono ripristinati insieme (verificato in UTM il
+      2026-08-23 sulla build `2026.08.22.1`).
 - [x] Il test UTM `verify-update-idempotency.sh`, avviato con la conferma
       `WASALIGHT_IDEMPOTENCY_CONFIRM=UTM-ONLY`, termina con `PASS` dopo due repair.
 - [ ] Il log cumulativo ruota a 5 MiB e in `updates/` restano al massimo venti
