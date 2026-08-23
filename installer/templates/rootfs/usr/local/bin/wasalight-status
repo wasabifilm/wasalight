@@ -84,6 +84,16 @@ update_transaction=$(awk -F= '$1 == "status" {print $2; exit}' \
 case $update_transaction in
     running|failed) update="RECOVERY REQUIRED ($update_transaction)" ;;
 esac
+health="NOT CHECKED"
+if IFS=$'\t' read -r health_state health_checked health_summary \
+    </run/wasalight-health-status 2>/dev/null; then
+    case $health_state in
+        OK) health="OK" ;;
+        CHECKING) health="CHECKING" ;;
+        WARNING) health="WARNING · ${health_summary:-attention required}" ;;
+        CHECK_FAILED) health="CHECK FAILED · ${health_summary:-unavailable}" ;;
+    esac
+fi
 
 cat <<EOT
 MagicQ Appliance
@@ -103,4 +113,5 @@ SSH:        $ssh
 COMPANION:  $companion
 USB:        $usb
 LOGS:       $logs
+HEALTH:     $health
 EOT

@@ -17,6 +17,10 @@ if ! flock -n 9; then
     exit 0
 fi
 
+# Refresh the boot health result without delaying the interface. The monitor
+# writes only an atomic runtime status; Control's normal refresh picks it up.
+sudo -n /usr/local/sbin/wasalight-health-monitor >/dev/null 2>&1 &
+
 if /usr/local/libexec/wasalight-control-center.py "$@" >>"$log_file" 2>&1; then
     exit 0
 else

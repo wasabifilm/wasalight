@@ -65,7 +65,8 @@ configure_management_tools() {
     visudo -cf /etc/sudoers.d/wasalight-management >/dev/null
 
     install_template /etc/systemd/system/wasalight-health.service 0644
-    install_template /etc/systemd/system/wasalight-health.timer 0644
+    systemctl disable --now wasalight-health.timer 2>/dev/null || true
+    rm -f /etc/systemd/system/wasalight-health.timer
     systemctl daemon-reload
-    systemctl enable --now wasalight-health.timer
+    systemctl enable wasalight-health.service
 }

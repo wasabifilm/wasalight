@@ -13,10 +13,13 @@ disponibile e stato SMART del disco quando leggibile. La soglia di attenzione
 per `/data` è 85%. Uno SMART non leggibile resta `unavailable`: non diventa un
 falso guasto.
 
-Un timer systemd ripete il controllo ogni 15 minuti, conserva l’ultimo stato in
-`/data/system/health/status` e ruota lo storico
-`/data/log/wasalight-health.log`. Il risultato resta consultabile da **Salute
-sistema** e dall’audit senza aggiungere una riga tecnica al pannello desktop.
+Il controllo viene eseguito una volta durante l’avvio e nuovamente, in
+background, quando si apre Wasalight Control. L’ultimo esito resta soltanto in
+`/run/wasalight-health-status` e viene quindi azzerato a ogni riavvio: non viene
+creato uno storico persistente. Un problema non blocca l’avvio, MagicQ o
+Control; la Panoramica mostra `WARNING` con il riepilogo rilevato. Se è il
+controllo stesso a non completarsi, mostra `CHECK FAILED` e il dettaglio viene
+inviato al journal volatile.
 
 ```bash
 wasalight-health

@@ -462,9 +462,7 @@ final_checks() {
         die "Wasalight early framebuffer configuration is unavailable"
     [[ -s /boot/grub/wasalight-background.png ]] || \
         die "Wasalight early GRUB background is unavailable"
-    systemd-analyze verify \
-        /etc/systemd/system/wasalight-health.service \
-        /etc/systemd/system/wasalight-health.timer
+    systemd-analyze verify /etc/systemd/system/wasalight-health.service
     logrotate --debug /etc/wasalight/wasalight-logrotate.conf >/dev/null 2>&1
     ldconfig -p | grep -F 'libGLU.so.1' >/dev/null || \
         die "OpenGL runtime check failed: libGLU.so.1 is unavailable"

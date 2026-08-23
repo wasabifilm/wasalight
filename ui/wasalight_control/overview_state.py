@@ -64,6 +64,19 @@ def localized_update_detail(value):
     return value
 
 
+def localized_health_detail(value):
+    """Translate the health state while preserving diagnostic details."""
+    state, separator, detail = value.partition("·")
+    localized_state = {
+        "WARNING": _("WARNING"),
+        "CHECK FAILED": _("CHECK FAILED"),
+        "CHECKING": _("CHECKING"),
+        "NOT CHECKED": _("NOT CHECKED"),
+    }.get(state.strip().upper(), state.strip())
+    return (f"{localized_state} · {detail.strip()}"
+            if separator else localized_state)
+
+
 @dataclass(frozen=True)
 class OverviewSnapshot:
     level: str
@@ -81,6 +94,8 @@ class OverviewSnapshot:
     remote_detail: str
     update_level: str
     update_detail: str
+    health_level: str
+    health_detail: str
     raw_status: str
 
 
@@ -100,6 +115,7 @@ def parse_status_report(report: str,
     ssh_detail = fields.get("SSH", "unknown")
     vnc_detail = fields.get("VNC", "unknown")
     update_detail = fields.get("UPDATE", "not checked")
+    health_detail = fields.get("HEALTH", "not checked")
 
     if magicq is None:
         magicq_running = magicq_detail.lower().startswith("running")
@@ -128,11 +144,20 @@ def parse_status_report(report: str,
     else:
         update_level = "neutral"
 
+    health_lower = health_detail.lower()
+    if health_lower == "ok":
+        health_level = "good"
+    elif health_lower.startswith(("warning", "check failed")):
+        health_level = "error"
+    else:
+        health_level = "neutral"
+
     critical = (
         data.upper() == "NOT MOUNTED"
         or magicq_detail.lower() in {"missing", "not installed"}
         or network_level == "error"
         or update_level == "error"
+        or health_level == "error"
     )
     if critical:
         level = "error"
@@ -158,5 +183,7 @@ def parse_status_report(report: str,
         remote_detail=" · ".join(remote_parts),
         update_level=update_level,
         update_detail=update_detail,
+        health_level=health_level,
+        health_detail=health_detail,
         raw_status=report,
     )
