@@ -112,6 +112,7 @@ EOF
     install_template /usr/local/share/icons/wasalight/ssh.svg 0644
     install_template /usr/local/share/icons/wasalight/keyboard.svg 0644
     install_template /usr/local/share/icons/wasalight/system-monitor.svg 0644
+    install_template /usr/local/share/icons/wasalight/browser.svg 0644
 
     write_file "$TARGET_HOME/.config/wasalight/dock/Wasalight-Control.desktop" 0644 <<'EOF'
 [Desktop Entry]
@@ -285,6 +286,15 @@ EOF
 
     install_template /usr/local/bin/wasalight-osc-monitor 0755
 
+    install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0700 \
+        "$DATA_MOUNT/browser" \
+        "$DATA_MOUNT/browser/config" \
+        "$DATA_MOUNT/browser/data" \
+        "$DATA_MOUNT/browser/downloads"
+    install_template /usr/local/bin/wasalight-browser-profile 0755
+    install_template /usr/local/bin/wasalight-browser 0755
+    install_template /usr/local/bin/wasalight-x11-window-icon 0755
+
     install -d -m 0755 /etc/wasalight/apps.d
     install_template /etc/wasalight/apps.d/network.desktop 0644
     install_template /etc/wasalight/apps.d/display.desktop 0644
@@ -294,6 +304,7 @@ EOF
     install_template /etc/wasalight/apps.d/ip-scanner.desktop 0644
     install_template /etc/wasalight/apps.d/artnet-monitor.desktop 0644
     install_template /etc/wasalight/apps.d/osc-monitor.desktop 0644
+    install_template /etc/wasalight/apps.d/browser.desktop 0644
     install_template /etc/wasalight/apps.d/system-monitor.desktop 0644
     install_template /etc/wasalight/apps.d/terminal.desktop 0644
     install_template /etc/wasalight/apps.d/status.desktop 0644

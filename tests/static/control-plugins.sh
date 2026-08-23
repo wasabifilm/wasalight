@@ -171,11 +171,29 @@ for about_contact in \
     grep -Fq "$about_contact" "$control_core/pages/about.py" || \
         fail "contatto mancante dalla pagina Crediti: $about_contact"
 done
-for launcher in files ip-scanner artnet-monitor osc-monitor; do
+for launcher in files ip-scanner artnet-monitor osc-monitor browser; do
     launcher_body=$(cat "$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/$launcher.desktop")
     grep -Fq 'X-Wasalight-Section=Applications' <<<"$launcher_body" || \
         fail "$launcher non è classificato in Applicazioni"
 done
+browser_launcher="$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/browser.desktop"
+grep -Fq 'StartupWMClass=WasalightBrowser' "$browser_launcher" || \
+    fail "il browser generico non usa una classe finestra dedicata"
+generic_browser="$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-browser"
+generic_profile="$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-browser-profile"
+bash -n "$generic_browser" "$generic_profile"
+grep -Fq '/data/browser/config' "$generic_browser" || \
+    fail "il profilo del browser generico non è persistente"
+grep -Fq 'XDG_DOWNLOAD_DIR="/data/browser/downloads"' "$generic_browser" || \
+    fail "i download del browser generico non sono persistenti"
+grep -Fq -- '--profile wasalight-browser' "$generic_browser" || \
+    fail "il browser generico non usa un profilo separato"
+grep -Fq 'showNavigationToolbar true' "$generic_profile" || \
+    fail "il browser generico nasconde la navigazione completa"
+grep -Fq 'hideTabsWithOneTab false' "$generic_profile" || \
+    fail "il browser generico non espone le schede"
+grep -Fq 'min-height: 46px' "$generic_profile" || \
+    fail "il browser generico non usa controlli touch"
 grep -Fq 'installed the verified official Bitfocus Companion icon' "$INSTALLER" || \
     fail "l'installer non registra l'uso dell'icona ufficiale Companion"
 grep -Fq 'PLUGIN_COMMAND, "install"' "$control_center" || \
@@ -495,6 +513,8 @@ grep -Fq '/data/companion/browser/config' "$tmp_dir/companion-browser" || \
     fail "il profilo Falkon Companion non è persistente"
 grep -Fq 'wasalight-x11-window-icon' "$tmp_dir/companion-browser" || \
     fail "il browser Companion non sostituisce l’icona Falkon nel dock"
+grep -Fq 'wasalightcompanion' "$tmp_dir/companion-browser" || \
+    fail "il browser Companion non cerca la finestra tramite WM_CLASS"
 if grep -Fq '/data/companion/browser/cache' "$tmp_dir/companion-browser"; then
     fail "la cache Falkon non deve essere persistente in /data"
 fi

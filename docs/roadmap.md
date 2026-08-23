@@ -107,6 +107,8 @@ configurazione realmente applicata:
 - [x] Icona ufficiale Companion in Control, dock e taskbar Falkon.
 - [x] Falkon leggero con profilo persistente, tema scuro, zoom touch e AdBlock
       disabilitato.
+- [x] Browser web generico con profilo persistente separato da Companion,
+      navigazione completa e controlli touch.
 - [x] Profilo Companion senza bookmark, campo ricerca aggiuntivo o ripristino
       indesiderato delle schede.
 - [x] Framework plugin con manifest, dipendenze, stato persistente e bundle USB.

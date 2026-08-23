@@ -400,6 +400,10 @@ msgstr "Version %s. Open Wasalight Control in MAINTENANCE to update."
 msgid "Falkon is not installed. Run Wasalight update again."
 msgstr "Falkon is not installed. Run Wasalight update again."
 
+#: installer/templates/rootfs/usr/local/bin/wasalight-browser:11
+msgid "Web browser"
+msgstr "Web browser"
+
 #: installer/templates/rootfs/usr/local/bin/wasalight-companion-browser:17
 msgid "Bitfocus Companion is not installed."
 msgstr "Bitfocus Companion is not installed."

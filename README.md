@@ -543,8 +543,8 @@ I programmi continuano a essere organizzati tramite il registro `apps.d`:
   MagicQ; icona, nome, stato, descrizione, toggle e azioni mantengono posizioni
   coerenti in ogni scheda;
 - **Applicazioni**: programmi registrati dall'amministratore, compresi File,
-  Scanner IP, Art-Net Monitor, OSC Monitor, la calcolatrice `galculator` e
-  l’editor di testo leggero Mousepad;
+  Browser web, Scanner IP, Art-Net Monitor, OSC Monitor, la calcolatrice
+  `galculator` e l’editor di testo leggero Mousepad;
 - **Supporto**: rete, monitor, touchscreen, audio, terminale, stato,
   diagnostica, salute, backup/ripristino, blocco schermo manuale e aggiornamento
   Wasalight;
@@ -625,6 +625,8 @@ le finestre restano gestibili dalla barra inferiore, più adatta al touchscreen.
 
 Nella scheda **Applicazioni** di Wasalight Control sono disponibili anche:
 
+- **Browser web**, un profilo Falkon completo e separato da Companion, con
+  indirizzi, ricerca, schede, download e controlli maggiorati per il touch;
 - **IP Scanner**, che usa `arp-scan` sulle interfacce Ethernet/Wi-Fi connesse e
   mostra interfaccia, IP, MAC e produttore in una tabella aggiornabile;
 - **Art-Net Monitor**, che ascolta passivamente il traffico Art-Net su tutte le

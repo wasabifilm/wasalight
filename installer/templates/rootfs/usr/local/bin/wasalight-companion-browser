@@ -59,14 +59,25 @@ falkon --wmclass=WasalightCompanion --profile wasalight-companion "$url" &
 browser_pid=$!
 # Maximise without EWMH fullscreen so Tint2 remains reachable on touchscreens.
 for _ in {1..30}; do
-    window_id=$(wmctrl -lp 2>/dev/null | awk -v pid="$browser_pid" '$3 == pid { print $1; exit }')
+    # Falkon can hand the new window to an existing process, so WM_CLASS is
+    # authoritative; PID remains a fallback for older Falkon builds.
+    window_id=$(wmctrl -lx 2>/dev/null | \
+        awk 'tolower($3) ~ /wasalightcompanion/ { print $1; exit }')
+    [[ -n $window_id ]] || \
+        window_id=$(wmctrl -lp 2>/dev/null | \
+            awk -v pid="$browser_pid" '$3 == pid { print $1; exit }')
     if [[ -n $window_id ]]; then
         companion_icon=/usr/local/share/icons/wasalight/companion-official.png
         [[ -s $companion_icon ]] || \
             companion_icon=/usr/local/share/icons/wasalight/companion.svg
-        /usr/local/bin/wasalight-x11-window-icon \
-            "$window_id" "$companion_icon" || true
         wmctrl -ir "$window_id" -b add,maximized_vert,maximized_horz || true
+        # Falkon publishes its own icon shortly after mapping. Reapply the
+        # Companion icon briefly so the final EWMH value is the intended one.
+        for _ in {1..4}; do
+            /usr/local/bin/wasalight-x11-window-icon \
+                "$window_id" "$companion_icon" || true
+            sleep 0.4
+        done
         break
     fi
     sleep 0.2

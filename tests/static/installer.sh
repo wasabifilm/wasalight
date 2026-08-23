@@ -489,8 +489,8 @@ fi
 if grep -Eq 'docker (run|compose)|ghcr\.io/bitfocus/companion' "$INSTALLER"; then
     fail "Companion non deve usare Docker: le superfici USB locali non sono supportate"
 fi
-grep -Fq 'libfontconfig1 libatomic1 libasound2t64 falkon' "$INSTALLER" || \
-    fail "Falkon non viene installato insieme a Companion"
+grep -Fq 'galculator i3lock mousepad onboard gir1.2-atspi-2.0 falkon' "$INSTALLER" || \
+    fail "Falkon non viene installato come browser generico"
 grep -Fq -- "-name 'fsapfs[0-9]*'" "$ENTRYPOINT" || \
     fail "install.sh non cerca MagicQ nei volumi APFS esposti da libfsapfs"
 

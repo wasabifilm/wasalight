@@ -348,6 +348,9 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-ip-scanner
     bash -n /usr/local/bin/wasalight-artnet-monitor
     bash -n /usr/local/bin/wasalight-osc-monitor
+    bash -n /usr/local/bin/wasalight-browser
+    bash -n /usr/local/bin/wasalight-browser-profile
+    python3 -m py_compile /usr/local/bin/wasalight-x11-window-icon
     bash -n /usr/local/sbin/wasalight-app-register
     bash -n /usr/local/bin/wasalight-control
     bash -n /usr/local/bin/wasalight-openbox-menu
@@ -393,6 +396,10 @@ final_checks() {
     fi
     command -v galculator >/dev/null 2>&1 || \
         die "Wasalight calculator is unavailable"
+    command -v falkon >/dev/null 2>&1 || \
+        die "The general-purpose Falkon browser is unavailable"
+    runuser -u "$TARGET_USER" -- test -w "$DATA_MOUNT/browser" || \
+        die "The browser profile is not writable by $TARGET_USER"
     command -v i3lock >/dev/null 2>&1 || \
         die "Wasalight manual screen locker is unavailable"
     python3 -c 'compile(open("/usr/local/libexec/wasalight-ip-scanner.py", encoding="utf-8").read(), "/usr/local/libexec/wasalight-ip-scanner.py", "exec")'
