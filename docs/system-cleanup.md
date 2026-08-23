@@ -32,22 +32,18 @@ NetworkManager rimane l’unico gestore della rete della console.
 ## Ordine delle operazioni APT
 
 L’installer evita che i timer APT e `unattended-upgrades` lavorino in parallelo,
-quindi calcola l’elenco dei pacchetti richiesti dalla configurazione scelta. Se
-sono già tutti installati salta sia `apt-get update` sia `apt-get install`. Se ne
-manca almeno uno aggiorna gli indici e installa soltanto i pacchetti mancanti.
-`apt-get update` scarica soltanto metadati: non aggiorna i programmi presenti.
-
-Prima di installare lo stack Wasalight vengono rimossi i componenti certamente
-estranei all’appliance: Snap, stampa, Bluetooth, ModemManager, Avahi, Whoopsie,
-Apport e aggiornamenti automatici. Non viene ancora eseguito `autoremove`, così
-una dipendenza necessaria a Wasalight non viene eliminata e poi scaricata di
-nuovo.
+quindi calcola l’elenco dei pacchetti richiesti dalla configurazione scelta. Le
+ISO installano già durante l’autoinstall l’elenco standard centralizzato in
+`packages/wasalight-runtime.txt`; al primo boot, se sono già tutti presenti,
+vengono saltati sia `apt-get update` sia `apt-get install`. Un’installazione
+manuale continua invece a installare soltanto ciò che manca.
 
 Dopo l’installazione di Wasalight e MagicQ vengono eseguiti i controlli reali
-su multipath e iSCSI e la pulizia dei componenti cloud/SAN. Soltanto a questo
-punto l’installer esegue un unico `apt-get autoremove --purge`, seguito da
-`apt-get clean`. In questo modo APT conosce già l’insieme definitivo dei
-pacchetti dell’appliance.
+su multipath e iSCSI. Snap, stampa, Bluetooth, ModemManager, Avahi, Whoopsie,
+Apport, aggiornamenti automatici e i componenti cloud/SAN non necessari sono
+quindi rimossi insieme in un’unica transazione `apt-get purge`. Segue un solo
+`apt-get autoremove --purge` e infine `apt-get clean`: APT conosce già l’insieme
+definitivo dei pacchetti e non elimina dipendenze da riscaricare poco dopo.
 
 ## Messaggio QEMU dopo APT
 

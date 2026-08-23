@@ -301,10 +301,11 @@ posizione e colore di fondo sono gli stessi. Specifiche e procedura sono nella
 
 ### Pulizia dei pacchetti
 
-L’installer rimuove i componenti sicuramente inutili prima di installare lo
-stack Wasalight. Le rimozioni dipendenti dall’hardware restano successive ai
-controlli su disco, multipath e iSCSI; un unico `autoremove --purge` conclusivo
-evita di cancellare e riscaricare dipendenze. La sequenza completa è descritta
+Le ISO anticipano nell’autoinstall i pacchetti runtime standard definiti in
+`packages/wasalight-runtime.txt`, così il primo boot può saltare il secondo
+aggiornamento degli indici APT. I componenti inutili e le rimozioni dipendenti
+dall’hardware vengono poi consolidati dopo i controlli su disco, multipath e
+iSCSI; un unico `autoremove --purge` conclusivo evita transazioni ripetute. La sequenza completa è descritta
 nella [guida alla pulizia del sistema](docs/system-cleanup.md).
 
 ### Account amministratore `chamsys`

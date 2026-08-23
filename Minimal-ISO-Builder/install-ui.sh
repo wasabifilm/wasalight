@@ -52,21 +52,21 @@ HIDE_CURSOR = "\033[?25l"
 SHOW_CURSOR = "\033[?25h"
 
 STAGES = (
-    ("prepare", "Preparazione"),
-    ("disk", "Disco e filesystem"),
-    ("base", "Sistema base"),
-    ("configure", "Configurazione sistema"),
-    ("boot", "Kernel e bootloader"),
-    ("finalize", "Finalizzazione"),
+    ("prepare", "Preparation"),
+    ("disk", "Disk and filesystems"),
+    ("base", "Base system"),
+    ("configure", "System configuration"),
+    ("boot", "Kernel and bootloader"),
+    ("finalize", "Finalization"),
 )
 STAGE_INDEX = {key: index for index, (key, _label) in enumerate(STAGES)}
 STAGE_MESSAGES = {
-    "prepare": "Preparazione dell'installazione",
-    "disk": "Preparazione del disco e dei filesystem",
-    "base": "Installazione del sistema base",
-    "configure": "Configurazione del sistema",
-    "boot": "Installazione del kernel e del bootloader",
-    "finalize": "Finalizzazione dell'installazione",
+    "prepare": "Preparing the installation",
+    "disk": "Preparing the disk and filesystems",
+    "base": "Installing the base system",
+    "configure": "Configuring the system",
+    "boot": "Installing the kernel and bootloader",
+    "finalize": "Finalizing the installation",
 }
 
 
@@ -76,7 +76,7 @@ class InstallerState:
         self.active_stage = "prepare"
         self.completed: set[str] = set()
         self.warning_stages: set[str] = set()
-        self.message = "Avvio dell'installazione"
+        self.message = "Starting the installation"
         self.failed = False
         self.failure_message = ""
         self.finished = False
@@ -99,7 +99,7 @@ class InstallerState:
 
             if event_type == "finish" and result == "FAIL":
                 self.failed = True
-                self.failure_message = description or name or "Installazione non riuscita"
+                self.failure_message = description or name or "Installation failed"
 
     def _activate(self, stage: str) -> None:
         current_index = STAGE_INDEX[self.active_stage]
@@ -126,7 +126,7 @@ class InstallerState:
         with self.lock:
             self.completed.update(key for key, _label in STAGES)
             self.active_stage = "finalize"
-            self.message = "Installazione completata correttamente"
+            self.message = "Installation completed successfully"
             self.finished = True
 
     def mark_failure(self, message: str) -> None:
@@ -231,46 +231,46 @@ def render(tty: Any, spinner: str) -> None:
     title = f"WASALIGHT INSTALLER v{INSTALLER_VERSION} · {variant}"
     ubuntu_title = "Ubuntu Server __WASALIGHT_UBUNTU_VERSION__ LTS"
     if variant == "FULL":
-        network_note = "Ubuntu locale · Internet richiesto per Wasalight"
+        network_note = "Local Ubuntu media · Internet required for Wasalight"
     else:
-        network_note = "Internet richiesto per Ubuntu e Wasalight"
+        network_note = "Internet required for Ubuntu and Wasalight"
 
     lines = [
         CLEAR + HIDE_CURSOR,
-        GREEN + "┌────────────────────────────────────────────────────────────┐" + RESET,
-        GREEN + f"│{title:^60}│" + RESET,
-        GREEN + f"│{ubuntu_title:^60}│" + RESET,
-        GREEN + f"│{network_note:^60}│" + RESET,
-        GREEN + "├────────────────────────────────────────────────────────────┤" + RESET,
-        "│                                                            │",
+        GREEN + "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓" + RESET,
+        GREEN + f"┃{title:^60}┃" + RESET,
+        GREEN + f"┃{ubuntu_title:^60}┃" + RESET,
+        GREEN + f"┃{network_note:^60}┃" + RESET,
+        GREEN + "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫" + RESET,
+        "┃                                                            ┃",
     ]
 
     for key, label in STAGES:
         color, symbol = stage_symbol(key, snapshot, spinner)
-        lines.append(f"│   {color}{symbol}{RESET}  {label:<54}│")
+        lines.append(f"┃   {color}{symbol}{RESET}  {label:<54}┃")
 
-    lines.extend(("│                                                            │",))
+    lines.extend(("┃                                                            ┃",))
     if snapshot["failed"]:
-        message = snapshot["failure_message"] or "Installazione non riuscita"
-        lines.append(f"│   {RED}{message[:54]:<54}{RESET}   │")
+        message = snapshot["failure_message"] or "Installation failed"
+        lines.append(f"┃   {RED}{message[:54]:<54}{RESET}   ┃")
     elif snapshot["finished"]:
-        lines.append(f"│   {GREEN}{'Ubuntu pronto. Rete richiesta al primo avvio.':<54}{RESET}   │")
+        lines.append(f"┃   {GREEN}{'Ubuntu is ready. First-boot setup will continue.':<54}{RESET}   ┃")
     else:
-        lines.append(f"│   {WHITE}{snapshot['message'][:54]:<54}{RESET}   │")
+        lines.append(f"┃   {WHITE}{snapshot['message'][:54]:<54}{RESET}   ┃")
 
     lines.extend(
         (
-            "│                                                            │",
-            GREEN + "├────────────────────────────────────────────────────────────┤" + RESET,
-            f"│  Disco: {fit((disk + ' ' + size).strip(), 51):<51}│",
-            f"│  Modello: {fit(model, 49):<49}│",
-            f"│  Avvio: {fit(boot_mode, 51):<51}│",
-            f"│  Tastiera: {fit(keyboard, 48):<48}│",
-            f"│  Fuso: {fit(timezone, 52):<52}│",
-            f"│  Account: {'chamsys · password configurata':<49}│",
-            GREEN + "├────────────────────────────────────────────────────────────┤" + RESET,
-            f"│  {DIM}{'Log tecnici: Ctrl+Alt+F1':<58}{RESET}│",
-            GREEN + "└────────────────────────────────────────────────────────────┘" + RESET,
+            "┃                                                            ┃",
+            GREEN + "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫" + RESET,
+            f"┃  Disk: {fit((disk + ' ' + size).strip(), 52):<52}┃",
+            f"┃  Model: {fit(model, 51):<51}┃",
+            f"┃  Boot: {fit(boot_mode, 52):<52}┃",
+            f"┃  Keyboard: {fit(keyboard, 48):<48}┃",
+            f"┃  Time zone: {fit(timezone, 47):<47}┃",
+            f"┃  Account: {'chamsys · password configured':<49}┃",
+            GREEN + "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫" + RESET,
+            f"┃  {DIM}{'Technical logs: Ctrl+Alt+F1':<58}{RESET}┃",
+            GREEN + "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛" + RESET,
         )
     )
     tty.write("\n".join(lines) + "\n")
@@ -285,7 +285,7 @@ def main() -> int:
     try:
         server = LocalServer((LISTEN_ADDRESS, LISTEN_PORT), EventHandler)
     except OSError as exc:
-        FAILURE_FILE.write_text(f"UI reporter non disponibile: {exc}\n", encoding="utf-8")
+        FAILURE_FILE.write_text(f"UI reporter unavailable: {exc}\n", encoding="utf-8")
         return 1
 
     READY_FILE.write_text(f"{LISTEN_ADDRESS}:{LISTEN_PORT}\n", encoding="utf-8")

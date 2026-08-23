@@ -132,7 +132,7 @@ autoinstall:
         i=$((i + 1)); sleep 1;
       done;
       if [ ! -e /run/wasalight-ui-ready ]; then
-        echo "UI non pronta dopo 60 secondi; installazione testuale attiva" >>/run/wasalight-ui.log;
+        echo "UI not ready after 60 seconds; text installation remains active" >>/run/wasalight-ui.log;
       fi;
       true'
   - sh /cdrom/wasalight/select-disk.sh
@@ -149,27 +149,27 @@ autoinstall:
   error-commands:
   - >-
     sh -c '{
-      echo "Installazione non riuscita" >/run/wasalight-install-failed;
+      echo "Installation failed" >/run/wasalight-install-failed;
       echo;
       echo "==============================================================";
-      echo "          WASALIGHT v__WASALIGHT_INSTALLER_VERSION__ - ERRORE INSTALLAZIONE";
+      echo "           WASALIGHT v__WASALIGHT_INSTALLER_VERSION__ - INSTALLATION ERROR";
       echo "==============================================================";
       echo;
-      echo "--- AUTOINSTALL FINALE ---";
-      sed -E "s/^([[:space:]]*password:).*/\1 \"<oscurata>\"/" /autoinstall.yaml 2>/dev/null || true;
+      echo "--- FINAL AUTOINSTALL ---";
+      sed -E "s/^([[:space:]]*password:).*/\1 \"<redacted>\"/" /autoinstall.yaml 2>/dev/null || true;
       echo;
       echo "--- WASALIGHT UI LOG ---";
       cat /run/wasalight-ui.log 2>/dev/null || true;
       echo;
-      echo "--- SUBIQUITY SERVER DEBUG (ultime 120 righe) ---";
+      echo "--- SUBIQUITY SERVER DEBUG (last 120 lines) ---";
       tail -n 120 /var/log/installer/subiquity-server-debug.log 2>/dev/null || true;
       echo;
-      echo "--- CURTIN LOG (ultime 80 righe) ---";
+      echo "--- CURTIN LOG (last 80 lines) ---";
       tail -n 80 /var/log/installer/curtin-install.log 2>/dev/null || true;
       echo;
       echo "==============================================================";
-      echo "Fai una foto di questa schermata.";
-      echo "Premi INVIO per aprire una shell sulla console 3.";
+      echo "Take a photo of this screen.";
+      echo "Press ENTER to open a shell on console 3.";
     } >/dev/tty1;
     read _x </dev/tty1;
     if command -v openvt >/dev/null 2>&1; then

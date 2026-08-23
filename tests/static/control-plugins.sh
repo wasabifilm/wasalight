@@ -215,8 +215,10 @@ grep -Fq 'timeout=20' "$control_core/system.py" || \
     fail "Control usa ancora un timeout troppo breve per i sistemi lenti"
 grep -Fq '/usr/local/libexec/wasalight_control' "$INSTALLER" || \
     fail "l'installer non installa il core Python di Wasalight Control"
-grep -Fq 'gettext locales arp-scan' "$INSTALLER" || \
-    fail "l'installer non installa gettext e le locale supportate"
+for localized_runtime_package in gettext locales arp-scan; do
+    grep -Fxq "$localized_runtime_package" "$PROJECT_DIR/packages/wasalight-runtime.txt" || \
+        fail "l'installer non installa $localized_runtime_package"
+done
 grep -Fq 'msgfmt --check' "$INSTALLER" || \
     fail "l'installer non compila i cataloghi di Wasalight Control"
 grep -Fq "printf 'it\\n' >\"\$DATA_MOUNT/system/control/language\"" "$INSTALLER" || \

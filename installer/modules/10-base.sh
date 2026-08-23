@@ -177,13 +177,13 @@ require_magicq_or_override() {
         while :; do
             cat <<'EOF'
 
-MagicQ non è ancora installato e non è stato trovato un pacchetto valido.
+MagicQ is not installed and no valid package was found.
 
-  1) Installa MagicQ da USB
-     Inserisci la chiavetta con il .deb nella root o in packages/, poi premi 1.
-  2) Continua senza MagicQ
-     Sul desktop resterà il pulsante «Installa MagicQ» per completare offline.
-  3) Interrompi l'installazione
+  1) Install MagicQ from USB
+     Insert the USB drive with the .deb in its root or packages/, then press 1.
+  2) Continue without MagicQ
+     The Install MagicQ button will remain on the desktop for offline setup.
+  3) Stop the installation
 EOF
             read -r -p "Scelta [1-3]: " choice
             case $choice in
@@ -191,7 +191,7 @@ EOF
                     discover_magicq_from_usb
                     persist_magicq_package
                     [[ -n $DEB_PATH ]] && return 0
-                    warn "nessun pacchetto MagicQ amd64 valido trovato; controlla la chiavetta"
+                    warn "no valid MagicQ amd64 package was found; check the USB drive"
                     ;;
                 2)
                     ALLOW_MISSING_MAGICQ=1
@@ -199,7 +199,7 @@ EOF
                     return 0
                     ;;
                 3) die "installation cancelled by the operator" ;;
-                *) warn "scegli 1, 2 oppure 3" ;;
+                *) warn "choose 1, 2 or 3" ;;
             esac
         done
     fi
@@ -236,26 +236,6 @@ persist_magicq_package() {
     DEB_PATH=$destination
 }
 
-purge_safe_unused_packages() {
-    # These components are unrelated to a dedicated lighting appliance and do
-    # not participate in storage discovery. Remove them before installing or
-    # refreshing the Wasalight stack, but postpone autoremove until every
-    # required package and the storage-aware cleanup have been completed.
-    local candidates=(
-        snapd modemmanager cups cups-daemon bluez avahi-daemon whoopsie apport
-        unattended-upgrades
-    )
-    local installed=() pkg
-
-    for pkg in "${candidates[@]}"; do
-        is_installed "$pkg" && installed+=("$pkg")
-    done
-    if ((${#installed[@]})); then
-        log "removing packages not used by the appliance before installation"
-        DEBIAN_FRONTEND=noninteractive apt-get purge -y "${installed[@]}"
-    fi
-}
-
 configure_time_synchronization() {
     local chrony_config=/etc/chrony/chrony.conf
 
@@ -285,25 +265,11 @@ install_packages() {
         apt-daily.timer apt-daily-upgrade.timer apt-daily.service \
         apt-daily-upgrade.service unattended-upgrades.service
 
-    local packages=(
-        ca-certificates sudo dbus-x11 xinit x11-xserver-utils xinput libinput-tools
-        xserver-xorg-core xserver-xorg-input-libinput xserver-xorg-video-all
-        libglu1-mesa libgl1-mesa-dri
-        libx11-xcb1 libxcb1 libxcb-glx0 libxcb-icccm4 libxcb-image0
-        libxcb-keysyms1 libxcb-randr0 libxcb-render0 libxcb-render-util0
-        libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0
-        libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0
-        libasound2-data alsa-utils
-        openbox tint2 picom pcmanfm lxterminal lxrandr lxtask x11vnc procps wmctrl x11-utils
-        galculator i3lock mousepad onboard gir1.2-atspi-2.0 falkon
-        conky-all zenity libnotify-bin libglib2.0-bin desktop-file-utils librsvg2-common
-        python3 python3-gi gir1.2-gtk-3.0 gettext locales arp-scan iproute2
-        network-manager network-manager-gnome wpasupplicant policykit-1 policykit-1-gnome
-        overlayroot initramfs-tools plymouth plymouth-themes file chrony
-        exfatprogs ntfs-3g dosfstools libfsapfs-utils util-linux udev logrotate
-        smartmontools rsync zstd acl gnupg pciutils
-        openssh-server git curl
-    )
+    local packages=() package
+    while IFS= read -r package; do
+        packages+=("$package")
+    done < <(wasalight_runtime_packages "$RUNTIME_PACKAGES_FILE")
+    ((${#packages[@]})) || die "runtime package list is empty or invalid"
     if ((ENABLE_COMPANION)) || [[ -d /opt/companion ]]; then
         packages+=(
             adduser curl wget zip unzip libusb-1.0-0-dev libudev-dev
@@ -314,12 +280,11 @@ install_packages() {
     # Most Wasalight releases only replace configuration or UI files. Avoid a
     # network metadata refresh when every package required by the selected
     # feature set is already correctly installed.
-    local missing_packages=() package
+    local missing_packages=()
     for package in "${packages[@]}"; do
         is_installed "$package" || missing_packages+=("$package")
     done
 
-    purge_safe_unused_packages
     if ((${#missing_packages[@]})); then
         log "refreshing package metadata for ${#missing_packages[@]} missing packages"
         apt-get update

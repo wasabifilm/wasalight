@@ -55,7 +55,10 @@ optimize_system() {
     # instead of treating every device-mapper path as multipath storage.
     local root_source data_source source
     local uses_multipath=0 uses_iscsi=0
-    local cleanup_candidates=(pollinate os-prober)
+    local cleanup_candidates=(
+        snapd modemmanager cups cups-daemon bluez avahi-daemon whoopsie apport
+        unattended-upgrades pollinate os-prober
+    )
     local cleanup_installed=()
     root_source=$(findmnt -n -o SOURCE -M /)
     data_source=$(findmnt -n -o SOURCE -M "$DATA_MOUNT" 2>/dev/null || true)
@@ -93,9 +96,9 @@ optimize_system() {
         DEBIAN_FRONTEND=noninteractive apt-get purge -y "${cleanup_installed[@]}"
     fi
 
-    # Run this exactly once, after the definitive Wasalight package set is
-    # installed and every safe purge is complete. This avoids removing a
-    # dependency early only to download it again later.
+    # Purge every unused appliance, cloud and storage component in one dpkg
+    # transaction, then run autoremove exactly once after the definitive
+    # Wasalight package set is installed.
     DEBIAN_FRONTEND=noninteractive apt-get autoremove --purge -y
     apt-get clean
 

@@ -15,12 +15,12 @@ MINIMUM_BYTES=$((32 * 1024 * 1024 * 1024))
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 VERSION_FILE=$SCRIPT_DIR/VERSION
 [ -r "$VERSION_FILE" ] || {
-  echo "ERRORE: VERSION non disponibile."
+  echo "ERROR: VERSION is unavailable."
   exit 1
 }
 INSTALLER_VERSION=$(tr -d '[:space:]' < "$VERSION_FILE")
 case "$INSTALLER_VERSION" in
-  ''|*[!0-9]*) echo "ERRORE: VERSION non valida."; exit 1 ;;
+  ''|*[!0-9]*) echo "ERROR: invalid VERSION."; exit 1 ;;
 esac
 
 clear_screen() { printf '\033[2J\033[H'; }
@@ -28,7 +28,7 @@ green() { printf '\033[1;32m%s\033[0m\n' "$1"; }
 
 pause_error() {
   printf '\n%s\n' "$1"
-  printf 'Premi INVIO per riprovare... '
+  printf 'Press ENTER to try again... '
   IFS= read -r _dummy
 }
 
@@ -98,52 +98,52 @@ while :; do
   green "                WASALIGHT INSTALLER v$INSTALLER_VERSION"
   echo "=============================================================="
   echo
-  echo "Seleziona il disco sul quale installare WASALIGHT."
+  echo "Select the disk on which to install WASALIGHT."
   echo
   install_variant=$(sed -n '1p' /run/wasalight-install-variant 2>/dev/null || true)
   case "$install_variant" in
     FULL)
-      echo "Modalita' FULL: Ubuntu e' nella ISO; Internet serve per Git e Wasalight."
+      echo "FULL mode: Ubuntu is on the ISO; Internet is required for Wasalight."
       ;;
     NETBOOT)
-      echo "Modalita' NETBOOT: Internet serve per scaricare Ubuntu e Wasalight."
+      echo "NETBOOT mode: Internet is required to download Ubuntu and Wasalight."
       ;;
   esac
   echo
-  echo "ATTENZIONE: IL DISCO SCELTO VERRA' CANCELLATO COMPLETAMENTE."
-  echo "Il supporto USB da cui e' avviato l'installer non viene mostrato."
+  echo "WARNING: THE SELECTED DISK WILL BE COMPLETELY ERASED."
+  echo "The USB installation media is excluded from this list."
   echo
 
   build_disk_list
   disk_count=$(wc -l < "$DISK_LIST" | tr -d ' ')
 
   if [ "$disk_count" -eq 0 ]; then
-    pause_error "Nessun disco installabile da almeno 32 GiB trovato."
+    pause_error "No installable disk of at least 32 GiB was found."
     continue
   fi
 
   while IFS='|' read -r number device size model serial transport removable; do
     note=""
-    [ "$removable" = "1" ] && note="$note [REMOVIBILE]"
+    [ "$removable" = "1" ] && note="$note [REMOVABLE]"
     [ "$transport" = "usb" ] && note="$note [USB]"
     printf '  %2s) %-16s %-9s  %s%s\n' "$number" "$device" "$size" "$model" "$note"
-    [ -z "$serial" ] || printf '      seriale: %s\n' "$serial"
+    [ -z "$serial" ] || printf '      serial: %s\n' "$serial"
   done < "$DISK_LIST"
 
   echo
-  printf "Numero del disco: "
+  printf "Disk number: "
   IFS= read -r choice
 
   case "$choice" in
     ''|*[!0-9]*)
-      pause_error "Scelta non valida."
+      pause_error "Invalid selection."
       continue
       ;;
   esac
 
   line=$(awk -F'|' -v number="$choice" '$1 == number {print; exit}' "$DISK_LIST")
   if [ -z "$line" ]; then
-    pause_error "Scelta non valida."
+    pause_error "Invalid selection."
     continue
   fi
 
@@ -154,37 +154,37 @@ while :; do
 
   clear_screen
   echo "=============================================================="
-  echo "                    CONFERMA DISCO"
+  echo "                     CONFIRM DISK"
   echo "=============================================================="
   echo
-  echo "Disco:      $target"
-  echo "Dimensione: $size"
-  echo "Modello:    $model"
-  [ -z "$serial" ] || echo "Seriale:    $serial"
+  echo "Disk:   $target"
+  echo "Size:   $size"
+  echo "Model:  $model"
+  [ -z "$serial" ] || echo "Serial: $serial"
   echo
-  echo "TUTTI I DATI SU QUESTO DISCO VERRANNO CANCELLATI."
+  echo "ALL DATA ON THIS DISK WILL BE ERASED."
   echo
-  echo "Per confermare scrivi esattamente: CANCELLA"
+  echo "To confirm, type exactly: ERASE"
   printf "> "
   IFS= read -r confirmation
 
-  if [ "$confirmation" != "CANCELLA" ]; then
-    pause_error "Conferma non valida. Operazione annullata."
+  if [ "$confirmation" != "ERASE" ]; then
+    pause_error "Confirmation did not match. Operation cancelled."
     continue
   fi
 
   [ -b "$target" ] || {
-    pause_error "Il disco selezionato non e' piu' disponibile."
+    pause_error "The selected disk is no longer available."
     continue
   }
   [ "$(lsblk -dnro TYPE -- "$target" 2>/dev/null || true)" = "disk" ] || {
-    pause_error "Il dispositivo selezionato non e' piu' un disco valido."
+    pause_error "The selected device is no longer a valid disk."
     continue
   }
   current_install_sources=$(installation_disks)
   if [ -n "$current_install_sources" ] && \
      printf '%s\n' "$current_install_sources" | grep -Fxq -- "$target"; then
-    pause_error "Il disco selezionato contiene il supporto di installazione."
+    pause_error "The selected disk contains the installation media."
     continue
   fi
   break
@@ -192,32 +192,32 @@ done
 
 [ -f /autoinstall.yaml ] || {
   echo
-  echo "ERRORE: /autoinstall.yaml non trovato."
-  echo "Premi INVIO per aprire una shell."
+  echo "ERROR: /autoinstall.yaml was not found."
+  echo "Press ENTER to open a shell."
   IFS= read -r _dummy
   exec sh
 }
 
 grep -Fq '__WASALIGHT_TARGET_DISK__' /autoinstall.yaml || {
   echo
-  echo "ERRORE: placeholder del disco non trovato."
-  echo "Premi INVIO per aprire una shell."
+  echo "ERROR: target disk placeholder was not found."
+  echo "Press ENTER to open a shell."
   IFS= read -r _dummy
   exec sh
 }
 
 grep -Fq '__WASALIGHT_DISK_GRUB_DEVICE__' /autoinstall.yaml || {
   echo
-  echo "ERRORE: placeholder GRUB disco non trovato."
-  echo "Premi INVIO per aprire una shell."
+  echo "ERROR: BIOS GRUB disk placeholder was not found."
+  echo "Press ENTER to open a shell."
   IFS= read -r _dummy
   exec sh
 }
 
 grep -Fq '__WASALIGHT_EFI_GRUB_DEVICE__' /autoinstall.yaml || {
   echo
-  echo "ERRORE: placeholder GRUB EFI non trovato."
-  echo "Premi INVIO per aprire una shell."
+  echo "ERROR: EFI GRUB placeholder was not found."
+  echo "Press ENTER to open a shell."
   IFS= read -r _dummy
   exec sh
 }
@@ -247,7 +247,7 @@ printf '%s\n' "$model" > /run/wasalight-target-model
 printf '%s\n' "$boot_mode" > /run/wasalight-boot-mode
 
 clear_screen
-echo "Disco selezionato: $target"
+echo "Selected disk: $target"
 echo
 echo "Layout WASALIGHT:"
 echo "  Boot $boot_mode"
@@ -256,7 +256,7 @@ echo "  EFI"
 echo "  /boot"
 echo "  LVM"
 echo "    /     50%"
-echo "    /data spazio restante"
+echo "    /data remaining space"
 echo
-echo "L'installazione proseguira' automaticamente..."
+echo "Installation will continue automatically..."
 sleep 2

@@ -97,6 +97,7 @@ for declaration in \
     '[Wasalight]' 'VersionFile=VERSION' \
     'Repository=https://github.com/wasabifilm/wasalight.git' 'Branch=main' \
     'VersionURL=https://raw.githubusercontent.com/wasabifilm/wasalight/main/VERSION' \
+    'RuntimePackagesFile=packages/wasalight-runtime.txt' \
     '[Updates]' 'DefaultChannel=stable' \
     'StableAPI=https://api.github.com/repos/wasabifilm/wasalight/releases/latest' \
     'DebugRef=refs/heads/main' 'TagPrefix=v' \

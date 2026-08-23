@@ -52,10 +52,14 @@ SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 PROJECT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
 RELEASE_MANIFEST="$PROJECT_DIR/release-manifest.ini"
 MANIFEST_LIBRARY="$PROJECT_DIR/lib/wasalight-release-manifest.sh"
+PACKAGE_LIST_LIBRARY="$PROJECT_DIR/lib/wasalight-package-list.sh"
 [[ -r "$RELEASE_MANIFEST" ]] || die "release-manifest.ini non trovato: $RELEASE_MANIFEST"
 [[ -r "$MANIFEST_LIBRARY" ]] || die "loader manifest non trovato: $MANIFEST_LIBRARY"
+[[ -r "$PACKAGE_LIST_LIBRARY" ]] || die "loader pacchetti non trovato: $PACKAGE_LIST_LIBRARY"
 # shellcheck source=../lib/wasalight-release-manifest.sh
 . "$MANIFEST_LIBRARY"
+# shellcheck source=../lib/wasalight-package-list.sh
+. "$PACKAGE_LIST_LIBRARY"
 
 VERSION_FILE_NAME="$(require_manifest_value_matching "$RELEASE_MANIFEST" ISOBuilder VersionFile \
   '^Minimal-ISO-Builder/[A-Za-z0-9][A-Za-z0-9._-]*$' 'a path below Minimal-ISO-Builder')" || exit 1
@@ -73,6 +77,12 @@ WASALIGHT_REPOSITORY="$(require_manifest_value_matching "$RELEASE_MANIFEST" Wasa
   '^https://[A-Za-z0-9][A-Za-z0-9./_?&=%+~:@-]*$' 'a safe HTTPS URL')" || exit 1
 WASALIGHT_BRANCH="$(require_manifest_value_matching "$RELEASE_MANIFEST" Wasalight Branch \
   '^[A-Za-z0-9][A-Za-z0-9._/-]*$' 'a Git branch name')" || exit 1
+RUNTIME_PACKAGES_FILE_NAME="$(require_manifest_value_matching \
+  "$RELEASE_MANIFEST" Wasalight RuntimePackagesFile \
+  '^packages/[A-Za-z0-9][A-Za-z0-9._/-]*$' 'a path below packages')" || exit 1
+RUNTIME_PACKAGES_FILE="$PROJECT_DIR/$RUNTIME_PACKAGES_FILE_NAME"
+PACKAGES_VALUE="$(wasalight_runtime_packages_yaml "$RUNTIME_PACKAGES_FILE")" || \
+  die "Elenco pacchetti runtime non valido: $RUNTIME_PACKAGES_FILE"
 VERSION_FILE="$PROJECT_DIR/$VERSION_FILE_NAME"
 [[ -r "$VERSION_FILE" ]] || die "VERSION non trovato: $VERSION_FILE"
 INSTALLER_VERSION="$(tr -d '[:space:]' <"$VERSION_FILE")"
@@ -80,6 +90,7 @@ INSTALLER_VERSION="$(tr -d '[:space:]' <"$VERSION_FILE")"
 readonly PROJECT_DIR RELEASE_MANIFEST MANIFEST_LIBRARY VERSION_FILE_NAME VERSION_FILE
 readonly UBUNTU_VERSION UBUNTU_POINT_RELEASE TARGET_ARCHITECTURE LIVE_ISO_FILE
 readonly LIVE_ISO_SHA256 WASALIGHT_REPOSITORY WASALIGHT_BRANCH INSTALLER_VERSION
+readonly PACKAGE_LIST_LIBRARY RUNTIME_PACKAGES_FILE_NAME RUNTIME_PACKAGES_FILE PACKAGES_VALUE
 
 case "${1:-}" in
   -h|--help) usage; exit 0 ;;
@@ -107,7 +118,6 @@ case "$BUILD_VARIANT" in
   full|offline)
     BUILD_VARIANT=full
     VARIANT_LABEL=FULL
-    PACKAGES_VALUE='[git]'
     NETWORK_PRELOAD_VALUE="sh -c 'true'"
     DEFAULT_OUTPUT="$SCRIPT_DIR/WASALIGHT-Installer-${UBUNTU_VERSION}-Minimal-Full-v${INSTALLER_VERSION}.iso"
     ;;
@@ -190,6 +200,8 @@ sha256sum_file() {
 [[ -f "$FIRST_BOOT_SERVICE" ]] || die "wasalight-first-boot.service non trovato: $FIRST_BOOT_SERVICE"
 [[ -f "$RELEASE_MANIFEST" ]] || die "release-manifest.ini non trovato: $RELEASE_MANIFEST"
 [[ -f "$MANIFEST_LIBRARY" ]] || die "loader manifest non trovato: $MANIFEST_LIBRARY"
+[[ -f "$PACKAGE_LIST_LIBRARY" ]] || die "loader pacchetti non trovato: $PACKAGE_LIST_LIBRARY"
+[[ -f "$RUNTIME_PACKAGES_FILE" ]] || die "elenco pacchetti non trovato: $RUNTIME_PACKAGES_FILE"
 
 source_real="$(CDPATH= cd -- "$(dirname -- "$SOURCE_ISO")" && pwd)/$(basename -- "$SOURCE_ISO")"
 output_parent="$(dirname -- "$OUTPUT_ISO")"
@@ -383,18 +395,18 @@ set timeout=-1
 set menu_color_normal=white/black
 set menu_color_highlight=black/green
 
-menuentry 'INSTALLA WASALIGHT ${VARIANT_LABEL} v${INSTALLER_VERSION}' {
+menuentry 'INSTALL WASALIGHT ${VARIANT_LABEL} v${INSTALLER_VERSION}' {
     set gfxpayload=keep
     echo
     echo 'WASALIGHT INSTALLER v${INSTALLER_VERSION} - ${VARIANT_LABEL}'
-    echo 'Ubuntu incluso localmente - Internet richiesto per Git e Wasalight'
+    echo 'Ubuntu is included locally - Internet is required for Wasalight'
     echo
     linux /casper/vmlinuz autoinstall ---
     initrd /casper/initrd
 }
 
-menuentry '--- UBUNTU / RECUPERO ---' {
-    echo 'Usare le voci Ubuntu qui sotto per una installazione manuale.'
+menuentry '--- UBUNTU / RECOVERY ---' {
+    echo 'Use the Ubuntu entries below for a manual installation.'
     sleep 2
 }
 
@@ -407,6 +419,8 @@ sed \
   -e "s|__WASALIGHT_NETWORK_PRELOAD__|$NETWORK_PRELOAD_VALUE|g" \
   -e "s|__WASALIGHT_INSTALLER_VERSION__|$INSTALLER_VERSION|g" \
   "$AUTOINSTALL" > "$TMP/autoinstall.yaml"
+grep -Fq "packages: $PACKAGES_VALUE" "$TMP/autoinstall.yaml" || \
+  die "Pacchetti Wasalight non presenti nell'autoinstall FULL."
 
 info "[6/7] Aggiorno i checksum..."
 
