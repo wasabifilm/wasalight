@@ -30,7 +30,7 @@ output=$(sudo -n "$command" 2>&1) || {
 }
 
 if /usr/local/bin/wasalight-dialog --question \
-    --icon=/usr/local/share/icons/wasalight/reboot.svg --width=520 \
+    --icon=wasalight-reboot --width=520 \
     --title="$(printf "$(_ '%s ready · Wasalight')" "$target")" \
     --text="$(printf "$(_ '<big><b>%s mode is ready.</b></big>\n\nRestart now to apply it?')" "$target")" \
     --ok-label="$( _ "Restart now" )" --cancel-label="$( _ "Later" )"; then

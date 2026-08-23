@@ -10,10 +10,10 @@ readonly marker=/data/system/first-run/complete
 mountpoint -q /data || exit 0
 
 sleep 4
-/usr/local/bin/wasalight-dialog --info --width=620 --title="$( _ "Welcome to Wasalight" )" \
+/usr/local/bin/wasalight-dialog --info --icon=wasalight-hub --width=620 --title="$( _ "Welcome to Wasalight" )" \
     --text="$( _ '<big><b>Initial setup</b></big>\n\nThis setup checks network, data, touchscreen, audio, MagicQ and remote services. You can stop and resume it on the next boot.' )" || exit 0
 
-if /usr/local/bin/wasalight-dialog --question --width=560 --title="$( _ "Network" )" \
+if /usr/local/bin/wasalight-dialog --question --icon=wasalight-network --width=560 --title="$( _ "Network" )" \
     --text="$( _ "Open Ethernet and Wi-Fi settings now?" )" \
     --ok-label="$( _ "Configure network" )" --cancel-label="$( _ "Continue" )"; then
     nm-connection-editor
@@ -21,7 +21,7 @@ fi
 
 touch_summary=$(/usr/local/bin/wasalight-touch-status --summary 2>/dev/null || _ "unavailable")
 audio_summary=$( _ "not tested" )
-if /usr/local/bin/wasalight-dialog --question --width=560 --title="$( _ "Audio and touchscreen" )" \
+if /usr/local/bin/wasalight-dialog --question --icon=audio-card --width=560 --title="$( _ "Audio and touchscreen" )" \
     --text="$(printf "$(_ 'Touchscreen: %s\n\nRun the audio test now?')" "$touch_summary")" \
     --ok-label="$( _ "Audio test" )" --cancel-label="$( _ "Skip" )"; then
     close_prompt=$( _ "Press Enter to close" )
@@ -31,7 +31,7 @@ if /usr/local/bin/wasalight-dialog --question --width=560 --title="$( _ "Audio a
 fi
 
 magicq=$(dpkg-query -W -f='${db:Status-Abbrev} ${Version}' magicq 2>/dev/null || _ "not installed")
-/usr/local/bin/wasalight-dialog --info --width=620 --title="$( _ "Initial setup summary" )" \
+/usr/local/bin/wasalight-dialog --info --icon=wasalight-hub --width=620 --title="$( _ "Initial setup summary" )" \
     --text="$(printf "$(_ '<big><b>Checks completed</b></big>\n\nMagicQ: %s\nTouchscreen: %s\nAudio: %s\n\nSSH and VNC can be enabled from Services. Backup, diagnostics and system health are available under Support.')" "$magicq" "$touch_summary" "$audio_summary")"
 
 install -d -m 0750 /data/system/first-run

@@ -6,6 +6,7 @@ configure_graphical_session() {
 # SPDX-License-Identifier: Apache-2.0
     local companion_dock_item=
     local companion_icon
+    local dialog_icon
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0755 \
         "$TARGET_HOME/.config/wasalight/dock"
     install_template /usr/local/bin/wasalight-dialog 0755
@@ -169,6 +170,22 @@ EOF
     install_template /usr/local/share/wasalight/desktop/MagicQ.desktop 0644
     install_template /usr/local/share/wasalight/desktop/Install-MagicQ.desktop 0644
     install_template /usr/local/share/icons/wasalight/magicq-install.svg 0644
+
+    # Zenity's --icon option resolves icon-theme names, not arbitrary SVG
+    # paths. Publish the Wasalight artwork in hicolor so confirmation dialogs
+    # show the action itself instead of Zenity's generic question mark.
+    install -d -m 0755 /usr/share/icons/hicolor/scalable/apps
+    for dialog_icon in \
+        companion hub magicq-install network power reboot ssh vnc; do
+        install -m 0644 \
+            "/usr/local/share/icons/wasalight/${dialog_icon}.svg" \
+            "/usr/share/icons/hicolor/scalable/apps/wasalight-${dialog_icon}.svg"
+    done
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+        gtk-update-icon-cache --force --ignore-theme-index \
+            /usr/share/icons/hicolor >/dev/null 2>&1 || true
+    fi
+
     install_template /usr/local/bin/wasalight-magicq-desktop-action 0755
     install_template /usr/local/sbin/wasalight-magicq-desktop-refresh 0755
     /usr/local/sbin/wasalight-magicq-desktop-refresh

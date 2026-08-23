@@ -4,4 +4,7 @@
 set -Eeuo pipefail
 export GDK_BACKEND=x11
 export GTK_A11Y=none
+# Keep every Wasalight dialog on the same dark GTK presentation. Individual
+# callers still select the icon that describes the action being confirmed.
+export GTK_THEME=Adwaita:dark
 exec /usr/bin/zenity --modal "$@"
