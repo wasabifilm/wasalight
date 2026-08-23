@@ -36,6 +36,34 @@ disable_service_if_present() {
     done
 }
 
+configure_periodic_trim() {
+    local mount_target source discard_max
+    local trim_supported=0
+
+    for mount_target in / "$DATA_MOUNT"; do
+        mountpoint -q "$mount_target" || continue
+        source=$(findmnt -n -o SOURCE -M "$mount_target" 2>/dev/null || true)
+        source=${source%%\[*}
+        [[ -b $source ]] || continue
+        discard_max=$(lsblk -bdnro DISC-MAX "$source" 2>/dev/null || true)
+        discard_max=${discard_max//[[:space:]]/}
+        if [[ $discard_max =~ ^[0-9]+$ && $discard_max != 0 ]]; then
+            trim_supported=1
+            log "periodic TRIM supported on $mount_target ($source)"
+        fi
+    done
+
+    if ((trim_supported)); then
+        # Run TRIM from Ubuntu's timer instead of adding the synchronous
+        # `discard` mount option, which could introduce latency during a show.
+        systemctl enable fstrim.timer
+        systemctl is-enabled --quiet fstrim.timer || \
+            die "fstrim.timer could not be enabled"
+    else
+        log "periodic TRIM not enabled: root and data do not expose discard support"
+    fi
+}
+
 optimize_system() {
     disable_service_if_present \
         snapd.service snapd.socket ModemManager.service cups.service cups.socket \
@@ -109,6 +137,8 @@ optimize_system() {
     install_template /etc/apt/apt.conf.d/20auto-upgrades 0644
 
     install_template /etc/default/motd-news 0644
+
+    configure_periodic_trim
 }
 
 install_mode_commands() {

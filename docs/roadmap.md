@@ -1,6 +1,6 @@
 # Roadmap Wasalight
 
-Ultimo aggiornamento: 22 agosto 2026.
+Ultimo aggiornamento: 23 agosto 2026.
 
 Questo documento è la fonte permanente per le funzionalità richieste e il loro
 stato. La [checklist hardware](hardware-test-checklist.md) resta invece la fonte
@@ -34,9 +34,10 @@ Legenda:
       volatili per ridurre le scritture sul disco di sistema.
 - [x] Chrony per la sincronizzazione dell’orologio e SMART per la diagnostica
       dello storage.
-- [ ] Abilitare e verificare `fstrim.timer` quando root o `/data` risiedono su
-      SSD/NVMe con supporto discard. Usare TRIM periodico, non l’opzione mount
-      `discard`, per non introdurre latenza durante lo show.
+- [x] Abilitare `fstrim.timer` quando root o `/data` risiedono su SSD/NVMe con
+      supporto discard rilevato. Usa TRIM periodico, non l'opzione mount
+      `discard`, per non introdurre latenza durante lo show; l'esecuzione reale
+      resta nella checklist hardware.
 - [ ] Definire la politica swap sull’hardware reale dopo aver misurato RAM e
       carico MagicQ/Companion: conservare una swap di emergenza limitata oppure
       disabilitarla, senza confonderla con `overlayroot tmpfs:swap=0`.
@@ -66,7 +67,7 @@ configurazione realmente applicata:
 | Sospensione, ibernazione, screensaver e DPMS disabilitati | Implementata |
 | Chrony e strumento grafico data/fuso | Implementata |
 | SMART, temperature, governor e TRIM mostrati nell’audit | Implementata |
-| `fstrim.timer` abilitato e verificato | Da fare |
+| `fstrim.timer` condizionale al supporto discard | Implementata |
 | Politica swap | Da decidere dopo le misure |
 | Politica firewall | Da decidere dopo il collaudo delle porte |
 | Governor CPU e scheduler I/O personalizzati | Da misurare prima di cambiare |
@@ -273,6 +274,6 @@ riportate esplicitamente per evitare che vadano perse:
 - [~] installazione e aggiornamento MagicQ offline;
 - [x] monitor OSC;
 - [ ] politica firewall e ottimizzazioni misurate;
-- [ ] TRIM periodico e politica swap;
+- [~] TRIM periodico implementato; politica swap da decidere dopo le misure;
 - [x] localizzazione completa dell’intero desktop, collaudata in UTM;
 - [ ] collaudo hardware e prima release stable firmata.
