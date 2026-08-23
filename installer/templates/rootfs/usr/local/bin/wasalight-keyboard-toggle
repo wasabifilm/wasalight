@@ -100,7 +100,9 @@ if [[ ${screen_width:-} =~ ^[0-9]+$ && ${screen_height:-} =~ ^[0-9]+$ ]]; then
     ((y < 0)) && y=0
     onboard_args+=(--size="${width}x${height}" -x "$x" -y "$y")
 fi
-GTK_A11Y=none onboard "${onboard_args[@]}" >/dev/null 2>&1 &
+# Do not let the long-lived background process inherit the toggle lock. If it
+# keeps descriptor 9 open, every later press sees the lock as busy and exits.
+GTK_A11Y=none onboard "${onboard_args[@]}" 9>&- >/dev/null 2>&1 &
 
 # Place the keyboard above the always-visible dock. Failure to position the
 # window is harmless: Onboard remains usable with its own saved geometry.
