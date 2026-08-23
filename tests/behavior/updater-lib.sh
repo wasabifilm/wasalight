@@ -101,11 +101,26 @@ if normalize_update_channel invalid >/dev/null 2>&1; then
     fail "un canale aggiornamenti sconosciuto viene accettato"
 fi
 
-# discover_stable_release redirects curl stdout itself, so this simpler mock
-# ignores curl flags and writes the JSON to stdout.
+# Model the curl options used by stable discovery: JSON goes to --output while
+# the HTTP status is returned by --write-out.
 cat >"$mock_bin/curl" <<'EOF'
 #!/usr/bin/env bash
-printf '%s\n' "${MOCK_RELEASE_JSON:?}"
+if [[ ${MOCK_CURL_FAIL:-0} == 1 ]]; then
+    echo "curl: simulated connection failure" >&2
+    exit 7
+fi
+output=
+while (($#)); do
+    case $1 in
+        --output) output=$2; shift 2 ;;
+        --write-out) shift 2 ;;
+        *) shift ;;
+    esac
+done
+json=${MOCK_RELEASE_JSON:-}
+[[ -n $json ]] || json='{}'
+printf '%s\n' "$json" >"${output:?}"
+printf '%s' "${MOCK_HTTP_STATUS:-200}"
 EOF
 chmod +x "$mock_bin/curl"
 release_json="$tmp_dir/release.json"
@@ -118,6 +133,30 @@ if PATH="$mock_bin:$PATH" \
     MOCK_RELEASE_JSON='{"draft":false,"prerelease":false,"immutable":false,"tag_name":"v2026.08.20.1"}' \
     discover_stable_release https://example.invalid/latest "$release_json" >/dev/null 2>&1; then
     fail "una release GitHub modificabile viene accettata come stable"
+fi
+set +e
+PATH="$mock_bin:$PATH" MOCK_HTTP_STATUS=404 \
+    discover_stable_release https://example.invalid/latest "$release_json" \
+    >"$tmp_dir/no-release.stdout" 2>"$tmp_dir/no-release.stderr"
+no_release_rc=$?
+set -e
+[[ $no_release_rc == 44 ]] || \
+    fail "l'assenza di una release Stable non ha un codice distinto"
+grep -Fq 'no published stable release' "$tmp_dir/no-release.stderr" || \
+    fail "il 404 Stable non spiega che nessuna release è pubblicata"
+set +e
+PATH="$mock_bin:$PATH" MOCK_CURL_FAIL=1 \
+    discover_stable_release https://example.invalid/latest "$release_json" \
+    >"$tmp_dir/stable.stdout" 2>"$tmp_dir/stable.stderr"
+stable_failure_rc=$?
+set -e
+[[ $stable_failure_rc == 7 ]] || \
+    fail "il fallimento HTTP stable non conserva il codice curl"
+grep -Fq 'Unable to contact the GitHub stable release endpoint' \
+    "$tmp_dir/stable.stderr" || \
+    fail "il fallimento di rete Stable non è distinto dal 404"
+if grep -Eq 'Traceback|JSONDecodeError' "$tmp_dir/stable.stderr"; then
+    fail "il fallimento HTTP stable mostra ancora il traceback Python"
 fi
 
 if command -v ssh-keygen >/dev/null 2>&1 && git version >/dev/null 2>&1; then

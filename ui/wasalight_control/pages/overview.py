@@ -18,7 +18,7 @@ from ..widgets import toggle_row
 
 class OverviewPage(Gtk.Box):
     def __init__(self, identity, paths, run_command, open_page,
-                 magicq_auto_changed):
+                 magicq_auto_changed, update_channel_changed):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=14)
         self.set_border_width(16)
         self.paths = paths
@@ -93,9 +93,24 @@ class OverviewPage(Gtk.Box):
             _("Configure"))
         self.remote_card = self._status_card(
             _("Remote access"), lambda _button: open_page("system"))
+        channel_row = Gtk.Box(spacing=8)
+        channel_row.set_halign(Gtk.Align.START)
+        stable_label = Gtk.Label(label="STABLE")
+        stable_label.get_style_context().add_class("section-subtitle")
+        debug_label = Gtk.Label(label="DEBUG")
+        debug_label.get_style_context().add_class("section-subtitle")
+        self.update_channel_switch = Gtk.Switch()
+        self.update_channel_switch.set_tooltip_text(_(
+            "Stable uses signed releases. Debug follows the latest main branch."))
+        self.update_channel_handler = self.update_channel_switch.connect(
+            "state-set", update_channel_changed)
+        channel_row.pack_start(stable_label, False, False, 0)
+        channel_row.pack_start(self.update_channel_switch, False, False, 0)
+        channel_row.pack_start(debug_label, False, False, 0)
         self.update_card = self._status_card(
             _("Updates"),
-            lambda button: run_command(button, [paths.update_terminal]))
+            lambda button: run_command(button, [paths.update_terminal]),
+            extra=channel_row)
         for card in (self.network_card, self.remote_card, self.update_card):
             cards.pack_start(card[0], True, True, 0)
         self.pack_start(cards, False, False, 0)
@@ -113,7 +128,7 @@ class OverviewPage(Gtk.Box):
         self.pack_start(details, True, True, 0)
 
     @staticmethod
-    def _status_card(title, callback, action_label=None):
+    def _status_card(title, callback, action_label=None, extra=None):
         frame = Gtk.Frame()
         frame.get_style_context().add_class("flat-card")
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
@@ -137,6 +152,8 @@ class OverviewPage(Gtk.Box):
         button.connect("clicked", callback)
         content.pack_start(header, False, False, 0)
         content.pack_start(detail, True, True, 0)
+        if extra is not None:
+            content.pack_start(extra, False, False, 2)
         content.pack_start(button, False, False, 0)
         frame.add(content)
         return frame, summary, detail
@@ -217,4 +234,7 @@ class OverviewPage(Gtk.Box):
             self.update_card, update_summary,
             localized_update_detail(snapshot.update_detail),
             snapshot.update_level)
+        self.update_channel_switch.handler_block(self.update_channel_handler)
+        self.update_channel_switch.set_active(snapshot.update_channel == "debug")
+        self.update_channel_switch.handler_unblock(self.update_channel_handler)
         self.status_view.get_buffer().set_text(snapshot.raw_status)

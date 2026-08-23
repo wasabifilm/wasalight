@@ -19,6 +19,20 @@ fi
 if [[ -n ${WASALIGHT_UPDATE_OPERATION:-} ]]; then
     update_args+=("$WASALIGHT_UPDATE_OPERATION")
 fi
+while (($#)); do
+    case $1 in
+        --plugin|--channel)
+            (($# >= 2)) || exit 2
+            update_args+=("$1" "$2")
+            shift 2
+            ;;
+        --resume|--repair|--rollback)
+            update_args+=("$1")
+            shift
+            ;;
+        *) exit 2 ;;
+    esac
+done
 
 # A console used only for Wasalight/Companion development may intentionally
 # have no MagicQ package yet.  The command-line updater keeps this as an
@@ -161,6 +175,14 @@ fi
 echo
 _ "Update not completed. The machine will not restart."
 printf '\n'
+if [[ -f /run/wasalight-update-stable-unavailable ]]; then
+    /usr/local/bin/wasalight-dialog --warning \
+        --icon=system-software-update --width=620 \
+        --title="$( _ "No Stable release published" )" \
+        --text="<big><b>$( _ "The Stable channel has no published release yet." )</b></big>\n\n$( _ "Stable installs only signed GitHub releases. For UTM or development machines, open Wasalight Control and select Debug before trying again." )" \
+        --ok-label="$( _ "Close" )" 2>/dev/null || true
+    exit "$rc"
+fi
 /usr/local/bin/wasalight-dialog --error --width=560 \
     --title="$( _ "Update failed" )" \
     --text="<big><b>$( _ "Wasalight was not updated." )</b></big>\n\n$( _ "The machine will not restart." )\n$( _ "Check: /data/log/wasalight/updates/" )" \

@@ -8,8 +8,9 @@ import os
 
 import gi
 gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
-from gi.repository import GdkPixbuf, GLib, Gtk
+from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
 
 from .i18n import _
 
@@ -110,8 +111,13 @@ def clear_flow(flow):
 
 def prepare_dialog(dialog, parent):
     dialog.set_transient_for(parent)
+    dialog.set_modal(True)
+    dialog.set_destroy_with_parent(True)
     dialog.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+    dialog.set_type_hint(Gdk.WindowTypeHint.DIALOG)
+    dialog.set_skip_taskbar_hint(True)
     dialog.set_keep_above(True)
+    dialog.set_urgency_hint(True)
     dialog.present()
 
 

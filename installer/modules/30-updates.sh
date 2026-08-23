@@ -30,6 +30,8 @@ configure_update() {
 
     install_template /usr/local/bin/wasalight-update-check 0755
 
+    install_template /usr/local/sbin/wasalight-update-channel 0755
+
     if [[ ! -e /etc/wasalight/update-signers ]]; then
         install_template /etc/wasalight/update-signers 0644
     fi

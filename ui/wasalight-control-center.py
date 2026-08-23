@@ -57,7 +57,7 @@ class ControlCenter(Gtk.Window):
         identity = mode_and_version(PATHS, COMMANDS)
         self.overview_page = OverviewPage(
             identity, PATHS, self.run_desktop_command, self.navigate_to,
-            self.magicq_auto_changed)
+            self.magicq_auto_changed, self.update_channel_changed)
         self.applications_page = ApplicationsPage(
             launchers, PATHS, self.run_desktop_command,
             self.launch_application)
@@ -213,6 +213,43 @@ class ControlCenter(Gtk.Window):
             _("MagicQ · Automatic startup"),
             lambda success: switch.set_sensitive(True))
         return True
+
+    def update_channel_changed(self, switch, desired):
+        if desired:
+            dialog = Gtk.MessageDialog(
+                transient_for=self, modal=True, destroy_with_parent=True,
+                message_type=Gtk.MessageType.WARNING,
+                buttons=Gtk.ButtonsType.NONE,
+                text=_("Enable Debug update channel?"))
+            dialog.format_secondary_text(_(
+                "Debug follows the latest main branch and is intended for UTM "
+                "and development machines. It is not a signed stable release."))
+            dialog.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+            confirm = dialog.add_button(_("Use Debug"), Gtk.ResponseType.OK)
+            confirm.get_style_context().add_class("primary-button")
+            prepare_dialog(dialog, self)
+            accepted = dialog.run() == Gtk.ResponseType.OK
+            dialog.destroy()
+            if not accepted:
+                return True
+        switch.set_sensitive(False)
+        channel = "debug" if desired else "stable"
+        self.background_command(
+            ["sudo", "-n", PATHS.update_channel_control, channel],
+            _("Update channel"),
+            lambda success: self.update_channel_finished(switch, desired, success))
+        return True
+
+    def update_channel_finished(self, switch, desired, success):
+        switch.handler_block(self.overview_page.update_channel_handler)
+        if success:
+            switch.set_active(desired)
+            try:
+                COMMANDS.spawn([PATHS.update_check])
+            except OSError:
+                pass
+        switch.handler_unblock(self.overview_page.update_channel_handler)
+        switch.set_sensitive(True)
 
     def show_language_dialog(self):
         dialog = Gtk.Dialog(

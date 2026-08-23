@@ -76,17 +76,40 @@ normalize_update_channel() {
 
 discover_stable_release() {
     local api_url=$1 output_json=$2
-    curl --fail --silent --show-error --location \
-        --connect-timeout 5 --max-time 30 \
-        -H 'Accept: application/vnd.github+json' \
-        -H 'X-GitHub-Api-Version: 2022-11-28' \
-        "$api_url" >"$output_json"
+    local curl_rc
+    local http_status
+    if http_status=$(curl --silent --show-error --location \
+            --connect-timeout 5 --max-time 30 \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            --output "$output_json" --write-out '%{http_code}' \
+            "$api_url"); then
+        :
+    else
+        curl_rc=$?
+        echo "Unable to contact the GitHub stable release endpoint: $api_url" >&2
+        return "$curl_rc"
+    fi
+    case $http_status in
+        200) ;;
+        404)
+            echo "GitHub has no published stable release for this project." >&2
+            return 44
+            ;;
+        *)
+            echo "GitHub stable release endpoint returned HTTP $http_status." >&2
+            return 22
+            ;;
+    esac
     python3 - "$output_json" <<'PY'
 import json
 import sys
 
-with open(sys.argv[1], encoding="utf-8") as source:
-    release = json.load(source)
+try:
+    with open(sys.argv[1], encoding="utf-8") as source:
+        release = json.load(source)
+except (OSError, json.JSONDecodeError) as error:
+    raise SystemExit(f"GitHub stable release returned invalid data: {error}")
 if release.get("draft") or release.get("prerelease"):
     raise SystemExit("GitHub latest release is not stable")
 if release.get("immutable") is not True:

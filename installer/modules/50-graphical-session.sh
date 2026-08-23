@@ -47,6 +47,17 @@ EOF
       </position>\
       <focus>yes</focus>\
       <layer>above</layer>\
+      <desktop>all</desktop>\
+      <decor>yes</decor>\
+    </application>\
+    <application type="dialog">\
+      <position force="yes">\
+        <x>center</x>\
+        <y>center</y>\
+      </position>\
+      <focus>yes</focus>\
+      <layer>above</layer>\
+      <desktop>all</desktop>\
       <decor>yes</decor>\
     </application>' "$TARGET_HOME/.config/openbox/rc.xml"
 
@@ -85,6 +96,33 @@ EOF
     write_file "$TARGET_HOME/.config/gtk-3.0/settings.ini" 0644 <<'EOF'
 [Settings]
 gtk-font-name=Sans 10
+gtk-theme-name=Adwaita-dark
+EOF
+
+    # GTK applications outside Wasalight Control (especially the Polkit
+    # authentication agent) share the same dark, touch-friendly presentation.
+    write_file "$TARGET_HOME/.config/gtk-3.0/gtk.css" 0644 <<'EOF'
+@define-color theme_selected_bg_color #76bd22;
+@define-color theme_selected_fg_color #080b10;
+
+window button {
+  min-height: 42px;
+  min-width: 108px;
+  padding: 7px 14px;
+}
+window button:focus,
+window entry:focus {
+  border-color: #76bd22;
+  box-shadow: 0 0 0 1px #76bd22;
+}
+window button.suggested-action {
+  background: #76bd22;
+  color: #080b10;
+  border-color: #76bd22;
+}
+window entry {
+  min-height: 36px;
+}
 EOF
 
     write_file "$TARGET_HOME/.config/libfm/libfm.conf" 0644 <<'EOF'
@@ -174,15 +212,23 @@ EOF
     # Zenity's --icon option resolves icon-theme names, not arbitrary SVG
     # paths. Publish the Wasalight artwork in hicolor so confirmation dialogs
     # show the action itself instead of Zenity's generic question mark.
-    install -d -m 0755 /usr/share/icons/hicolor/scalable/apps
+    install -d -m 0755 \
+        /usr/share/icons/hicolor/scalable/apps \
+        /usr/share/pixmaps
     for dialog_icon in \
         companion hub magicq-install network power reboot ssh vnc; do
         install -m 0644 \
             "/usr/local/share/icons/wasalight/${dialog_icon}.svg" \
             "/usr/share/icons/hicolor/scalable/apps/wasalight-${dialog_icon}.svg"
+        # /usr/share/pixmaps is GTK's legacy fallback. Keeping the same named
+        # asset here makes Zenity icons reliable even before or without a
+        # usable hicolor cache (notably during the first update session).
+        install -m 0644 \
+            "/usr/local/share/icons/wasalight/${dialog_icon}.svg" \
+            "/usr/share/pixmaps/wasalight-${dialog_icon}.svg"
     done
     if command -v gtk-update-icon-cache >/dev/null 2>&1; then
-        gtk-update-icon-cache --force --ignore-theme-index \
+        gtk-update-icon-cache --force \
             /usr/share/icons/hicolor >/dev/null 2>&1 || true
     fi
 
@@ -236,11 +282,19 @@ EOF
 
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0750 "$TARGET_HOME/.config/picom"
     write_file "$TARGET_HOME/.config/picom/wasalight.conf" 0644 <<'EOF'
-# Minimal compositor for Conky transparency. Fullscreen applications such as
-# MagicQ are unredirected to avoid compositing latency during a show.
+# Minimal compositor for Conky transparency and dialog separation. Fullscreen
+# applications such as MagicQ are unredirected to avoid compositing latency
+# during a show.
 backend = "xrender";
 vsync = false;
-shadow = false;
+shadow = true;
+shadow-radius = 18;
+shadow-offset-x = -8;
+shadow-offset-y = -8;
+shadow-opacity = 0.72;
+# Only dialogs receive a shadow: ordinary application windows, the dock,
+# desktop and fullscreen MagicQ retain the previous low-overhead behaviour.
+shadow-exclude = [ "window_type != 'dialog'" ];
 fading = false;
 active-opacity = 1.0;
 inactive-opacity = 1.0;
@@ -446,7 +500,8 @@ picom --config "$HOME/.config/picom/wasalight.conf" --daemon
 conky --config="$HOME/.config/conky/wasalight.conf" --daemonize --pause=2
 tint2 -c "$HOME/.config/tint2/tint2rc" &
 nm-applet --indicator &
-/usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
+GTK_THEME=Adwaita:dark \
+    /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
 /usr/local/bin/wasalight-touch-watch &
 /usr/local/bin/magicq-fullscreen-watch &
 /usr/local/bin/wasalight-remote-autostart &

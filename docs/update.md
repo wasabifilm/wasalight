@@ -140,16 +140,22 @@ sudo wasalight-update --channel debug
 wasalight-update-terminal --channel debug
 ```
 
-La scelta viene salvata in `/data/system/update-channel` soltanto dopo un esito
-positivo. Anche il controllo automatico all’avvio usa quel canale: per `stable`
-legge la release immutabile, per `debug` legge `VERSION` da `main`. La riga
+In **Wasalight Control → Panoramica → Aggiornamenti** lo switch
+`STABLE ↔ DEBUG` salva immediatamente la scelta in `/data/system/update-channel`;
+il passaggio a Debug richiede una conferma che ne ricorda l’uso limitato a UTM
+e sviluppo. Da riga di comando, un override `--channel` viene invece reso
+persistente soltanto dopo un aggiornamento riuscito. Anche il controllo
+automatico all’avvio usa il canale persistente: per `stable` legge la release
+immutabile, per `debug` legge `VERSION` da `main`. La riga
 `CHANNEL` compare sia in `wasalight-status` sia nel pannello desktop.
 
 Il repository include intenzionalmente soltanto un file signatari di esempio.
 Prima della prima release stable va inserita la chiave pubblica reale nel formato
 OpenSSH `allowed_signers`, mentre la chiave privata resta fuori dal repository e
 dalle console. Finché questo passaggio non viene eseguito, `stable` fallisce in
-modo esplicito; `debug` rimane disponibile per il collaudo.
+modo esplicito. Il dialogo distingue l’assenza di una release Stable da un
+guasto generico e indica lo switch Debug; `debug` rimane disponibile per il
+collaudo.
 
 ## Primo aggiornamento
 

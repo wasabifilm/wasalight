@@ -86,6 +86,15 @@ fi
 grep -Fq 'lambda button: run_command(button, [paths.update_terminal])' \
     "$control_core/pages/overview.py" || \
     fail "la scheda Aggiornamenti non avvia direttamente l'updater"
+grep -Fq 'self.update_channel_switch = Gtk.Switch()' \
+    "$control_core/pages/overview.py" || \
+    fail "Wasalight Control non espone lo switch Stable/Debug"
+grep -Fq 'PATHS.update_channel_control, channel' "$control_center" || \
+    fail "lo switch aggiornamenti non usa il comando privilegiato ristretto"
+grep -Fq 'Enable Debug update channel?' "$control_center" || \
+    fail "il passaggio al canale Debug non richiede conferma"
+grep -Fq 'update_channel=update_channel' "$control_core/overview_state.py" || \
+    fail "lo switch aggiornamenti non riflette il canale persistente"
 if grep -Fq '("File", ["pcmanfm", "/data"])' "$control_center"; then
     fail "la home Control contiene ancora il pulsante File"
 fi
@@ -275,6 +284,11 @@ grep -Fq 'timeout --signal=TERM 6 /usr/local/bin/wasalight-touch-status' \
     "$INSTALLER" || fail "lo stato touchscreen può bloccare il refresh Control"
 grep -Fq 'dialog.set_keep_above(True)' "$control_core/widgets.py" || \
     fail "i dialoghi GTK di Control non restano in primo piano"
+grep -Fq 'dialog.set_type_hint(Gdk.WindowTypeHint.DIALOG)' \
+    "$control_core/widgets.py" || \
+    fail "i dialoghi GTK di Control non sono identificati per ombra e priorità"
+grep -Fq 'dialog.set_urgency_hint(True)' "$control_core/widgets.py" || \
+    fail "i dialoghi GTK di Control non richiamano il focus dell'utente"
 grep -Fq 'Icon=/usr/local/share/icons/wasalight/system-monitor.svg' \
     "$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/system-monitor.desktop" || \
     fail "Monitor sistema non usa l'icona Wasalight dedicata"
@@ -500,6 +514,8 @@ for action_id, executable in expected.items():
         raise SystemExit(f"autenticazione amministratore mancante: {action_id}")
     if defaults.findtext("allow_any") != "no" or defaults.findtext("allow_inactive") != "no":
         raise SystemExit(f"policy troppo permissiva: {action_id}")
+    if not action.findtext("icon_name"):
+        raise SystemExit(f"icona autenticazione mancante: {action_id}")
     paths = [node.text for node in action.findall("annotate")
              if node.attrib.get("key") == "org.freedesktop.policykit.exec.path"]
     if paths != [executable]:

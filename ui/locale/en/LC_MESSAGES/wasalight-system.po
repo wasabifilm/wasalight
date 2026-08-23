@@ -1335,3 +1335,12 @@ msgstr "Automatic update failed"
 
 msgid "Wasalight remains in MAINTENANCE. Check the terminal and update logs before retrying."
 msgstr "Wasalight remains in MAINTENANCE. Check the terminal and update logs before retrying."
+
+msgid "No Stable release published"
+msgstr "No Stable release published"
+
+msgid "The Stable channel has no published release yet."
+msgstr "The Stable channel has no published release yet."
+
+msgid "Stable installs only signed GitHub releases. For UTM or development machines, open Wasalight Control and select Debug before trying again."
+msgstr "Stable installs only signed GitHub releases. For UTM or development machines, open Wasalight Control and select Debug before trying again."

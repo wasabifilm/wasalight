@@ -14,6 +14,18 @@ fail() {
     exit 1
 }
 
+install -d "$tmp_dir/bin"
+cat >"$tmp_dir/bin/lxterminal" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$@" >"${LXTERMINAL_CAPTURE:?}"
+EOF
+chmod +x "$tmp_dir/bin/lxterminal"
+PATH="$tmp_dir/bin:$PATH" LXTERMINAL_CAPTURE="$tmp_dir/lxterminal.args" \
+    LANG=C LANGUAGE= LC_ALL=C WASALIGHT_I18N_HELPER="$i18n_helper" \
+    "$launcher" --channel debug
+grep -Fq -- '--channel debug' "$tmp_dir/lxterminal.args" || \
+    fail "il canale Debug non viene passato esplicitamente oltre il server LXTerminal"
+
 for language in en it; do
     install -d "$tmp_dir/locale/$language/LC_MESSAGES"
     msgfmt --check \

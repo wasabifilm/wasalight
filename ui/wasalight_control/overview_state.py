@@ -94,6 +94,7 @@ class OverviewSnapshot:
     remote_detail: str
     update_level: str
     update_detail: str
+    update_channel: str
     health_level: str
     health_detail: str
     raw_status: str
@@ -115,6 +116,9 @@ def parse_status_report(report: str,
     ssh_detail = fields.get("SSH", "unknown")
     vnc_detail = fields.get("VNC", "unknown")
     update_detail = fields.get("UPDATE", "not checked")
+    update_channel = fields.get("CHANNEL", "stable").lower()
+    if update_channel not in {"stable", "debug"}:
+        update_channel = "stable"
     health_detail = fields.get("HEALTH", "not checked")
 
     if magicq is None:
@@ -183,6 +187,7 @@ def parse_status_report(report: str,
         remote_detail=" · ".join(remote_parts),
         update_level=update_level,
         update_detail=update_detail,
+        update_channel=update_channel,
         health_level=health_level,
         health_detail=health_detail,
         raw_status=report,

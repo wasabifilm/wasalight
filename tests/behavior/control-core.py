@@ -295,6 +295,7 @@ IP:         192.168.10.20
 VNC:        stopped (manual)
 SSH:        running on TCP 22 (automatic)
 UPDATE:     up to date
+CHANNEL:    debug
 """
         snapshot = parse_status_report(
             report, MagicQState(running=True, automatic=True))
@@ -307,6 +308,7 @@ UPDATE:     up to date
         self.assertEqual(snapshot.ssh_detail, "running on TCP 22 (automatic)")
         self.assertEqual(snapshot.vnc_detail, "stopped (manual)")
         self.assertEqual(snapshot.update_level, "good")
+        self.assertEqual(snapshot.update_channel, "debug")
 
     def test_missing_data_or_unmanaged_network_requires_attention(self):
         report = """MagicQ Appliance

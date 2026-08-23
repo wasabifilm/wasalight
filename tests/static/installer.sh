@@ -723,6 +723,20 @@ grep -Fq '<x>center</x>' "$INSTALLER" || \
     fail "Openbox non centra i dialoghi Wasalight"
 grep -Fq '<layer>above</layer>' "$INSTALLER" || \
     fail "Openbox non mantiene i dialoghi Wasalight in primo piano"
+grep -Fq '<desktop>all</desktop>' "$INSTALLER" || \
+    fail "i dialoghi Wasalight non seguono la sessione Openbox attiva"
+grep -Fq '<application type="dialog">' "$INSTALLER" || \
+    fail "Openbox non applica priorità e centratura ai dialoghi Polkit"
+grep -Fq 'GTK_THEME=Adwaita:dark' "$INSTALLER" || \
+    fail "l'agente Polkit non usa il tema GTK scuro Wasalight"
+grep -Fq 'gtk-theme-name=Adwaita-dark' "$INSTALLER" || \
+    fail "la sessione GTK non usa il tema scuro coerente"
+grep -Fq 'window button.suggested-action' "$INSTALLER" || \
+    fail "i dialoghi GTK non usano l'accento verde Wasalight"
+grep -Fq 'shadow-exclude = [ "window_type != '\''dialog'\''" ];' "$INSTALLER" || \
+    fail "Picom non limita l'ombra alle finestre di dialogo"
+grep -Fq '/usr/share/pixmaps/wasalight-${dialog_icon}.svg' "$INSTALLER" || \
+    fail "le icone dei dialoghi non dispongono del fallback GTK"
 grep -Fq 'systemctl poweroff' "$tmp_dir/wasalight-power-control" || \
     fail "il controllo di alimentazione non gestisce lo spegnimento"
 grep -Fq 'systemctl reboot' "$tmp_dir/wasalight-power-control" || \
@@ -818,8 +832,11 @@ if grep -Fq 'git reset --hard' "$tmp_dir/wasalight-update"; then
 fi
 grep -Fq '/usr/local/libexec/wasalight-update-session' "$tmp_dir/wasalight-update-terminal" || \
     fail "il menu Update non apre la sessione guidata"
-grep -Fq 'WASALIGHT_UPDATE_PLUGIN' "$tmp_dir/wasalight-update-terminal" || \
+grep -Fq 'session_args+=(--plugin "$2")' "$tmp_dir/wasalight-update-terminal" || \
     fail "l'interfaccia Update non inoltra l'installazione plugin"
+grep -Fq "printf -v session_command '%q '" \
+    "$tmp_dir/wasalight-update-terminal" || \
+    fail "il launcher Update dipende ancora dall'ambiente del server LXTerminal"
 grep -Fq 'update_args+=(--plugin "$WASALIGHT_UPDATE_PLUGIN")' \
     "$tmp_dir/wasalight-update-session" || \
     fail "la sessione Update non inoltra il plugin selezionato"
@@ -846,6 +863,25 @@ if grep -Fq 'sudo /usr/local/sbin/wasalight-update' "$tmp_dir/wasalight-update-s
 fi
 grep -Fq 'rc == 126' "$tmp_dir/wasalight-update-session" || \
     fail "la sessione guidata non distingue l'annullamento dell'autenticazione"
+grep -Fq '/run/wasalight-update-stable-unavailable' \
+    "$tmp_dir/wasalight-update-session" || \
+    fail "l'interfaccia update non distingue una release Stable assente"
+grep -Fq 'No Stable release published' "$tmp_dir/wasalight-update-session" || \
+    fail "l'errore per release Stable assente non è esplicito"
+update_channel_control="$INSTALLER_TEMPLATE_ROOT/usr/local/sbin/wasalight-update-channel"
+[[ -x $update_channel_control ]] || fail "controllo canale aggiornamenti mancante"
+bash -n "$update_channel_control"
+grep -Fq 'stable|debug' "$update_channel_control" || \
+    fail "il controllo canale accetta valori non previsti"
+grep -Fq 'mktemp "$state_root/.update-channel.XXXXXX"' \
+    "$update_channel_control" || \
+    fail "il canale aggiornamenti non è scritto atomicamente"
+grep -Fq '/usr/local/sbin/wasalight-update-channel stable' \
+    "$INSTALLER_TEMPLATE_ROOT/etc/sudoers.d/chamsys-magicq" || \
+    fail "lo switch Stable non dispone del comando sudo ristretto"
+grep -Fq '/usr/local/sbin/wasalight-update-channel debug' \
+    "$INSTALLER_TEMPLATE_ROOT/etc/sudoers.d/chamsys-magicq" || \
+    fail "lo switch Debug non dispone del comando sudo ristretto"
 grep -Fq 'wasalight-power-control reboot' "$tmp_dir/wasalight-update-session" || \
     fail "la sessione guidata non offre il riavvio finale"
 grep -Fq -- '--reboot' "$tmp_dir/wasalight-update" || \

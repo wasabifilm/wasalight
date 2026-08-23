@@ -453,3 +453,18 @@ msgstr "NOT CHECKED"
 
 msgid "Configure"
 msgstr "Configure"
+
+msgid "Stable uses signed releases. Debug follows the latest main branch."
+msgstr "Stable uses signed releases. Debug follows the latest main branch."
+
+msgid "Enable Debug update channel?"
+msgstr "Enable Debug update channel?"
+
+msgid "Debug follows the latest main branch and is intended for UTM and development machines. It is not a signed stable release."
+msgstr "Debug follows the latest main branch and is intended for UTM and development machines. It is not a signed stable release."
+
+msgid "Use Debug"
+msgstr "Use Debug"
+
+msgid "Update channel"
+msgstr "Update channel"
