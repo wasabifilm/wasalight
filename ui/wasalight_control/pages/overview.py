@@ -9,7 +9,10 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
 from ..i18n import _
-from ..overview_state import OverviewSnapshot
+from ..overview_state import (
+    OverviewSnapshot, localized_magicq_detail, localized_service_detail,
+    localized_update_detail,
+)
 from ..widgets import toggle_row
 
 
@@ -161,7 +164,7 @@ class OverviewPage(Gtk.Box):
         self.summary_title.set_text(title)
         self.summary_detail.set_text(detail)
 
-        self.magicq_detail.set_text(snapshot.magicq_detail)
+        self.magicq_detail.set_text(localized_magicq_detail(snapshot.magicq_detail))
         magicq_missing = snapshot.magicq_detail.lower() in {"missing", "not installed"}
         if magicq_missing:
             magicq_action = _("Install MagicQ")
@@ -192,8 +195,11 @@ class OverviewPage(Gtk.Box):
             remote_summary = _("VNC active")
         else:
             remote_summary = _("SSH and VNC stopped")
+        remote_detail = _("SSH: {ssh} · VNC: {vnc}").format(
+            ssh=localized_service_detail(snapshot.ssh_detail),
+            vnc=localized_service_detail(snapshot.vnc_detail))
         self._set_card(
-            self.remote_card, remote_summary, snapshot.remote_detail,
+            self.remote_card, remote_summary, remote_detail,
             "good" if snapshot.ssh_running or snapshot.vnc_running else "neutral")
 
         update_summary = {
@@ -203,6 +209,7 @@ class OverviewPage(Gtk.Box):
             "neutral": _("Not checked"),
         }[snapshot.update_level]
         self._set_card(
-            self.update_card, update_summary, snapshot.update_detail,
+            self.update_card, update_summary,
+            localized_update_detail(snapshot.update_detail),
             snapshot.update_level)
         self.status_view.get_buffer().set_text(snapshot.raw_status)

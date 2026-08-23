@@ -2,7 +2,8 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -u
-. /usr/local/libexec/wasalight-i18n
+readonly i18n_helper=${WASALIGHT_I18N_HELPER:-/usr/local/libexec/wasalight-i18n}
+. "$i18n_helper"
 
 readonly runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 readonly lock_file="$runtime_dir/wasalight-keyboard.lock"
@@ -19,9 +20,44 @@ install -d -m 0700 "$runtime_dir"
 exec 9>"$lock_file"
 flock -n 9 || exit 0
 
+onboard_window_id() {
+    xwininfo -root -tree 2>/dev/null | awk '
+        /"Onboard": \("onboard" "Onboard"\)/ { print $1; exit }'
+}
+
+onboard_is_visible() {
+    local window_id
+    window_id=$(onboard_window_id)
+    [[ -n $window_id ]] || return 1
+    xwininfo -id "$window_id" 2>/dev/null | \
+        grep -Fq 'Map State: IsViewable'
+}
+
+stop_onboard() {
+    pkill -TERM -u "$(id -u)" -x onboard 2>/dev/null || true
+    # Onboard may interpret SIGTERM as "hide" and keep its Python process
+    # alive.  Do not leave that invisible instance blocking the next launch.
+    for _ in $(seq 1 20); do
+        pgrep -u "$(id -u)" -x onboard >/dev/null 2>&1 || return 0
+        sleep 0.1
+    done
+    pkill -KILL -u "$(id -u)" -x onboard 2>/dev/null || true
+    for _ in $(seq 1 10); do
+        pgrep -u "$(id -u)" -x onboard >/dev/null 2>&1 || return 0
+        sleep 0.1
+    done
+    return 1
+}
+
 if pgrep -u "$(id -u)" -x onboard >/dev/null 2>&1; then
-    pkill -TERM -u "$(id -u)" -x onboard
-    exit 0
+    if onboard_is_visible; then
+        stop_onboard
+        exit $?
+    fi
+    # Closing Onboard from its own X button can unmap the keyboard while the
+    # process remains alive.  Clean up the hidden instance and reopen it in
+    # this same touch instead of requiring a second press on the tray button.
+    stop_onboard || exit 1
 fi
 
 onboard_args=()
@@ -69,9 +105,8 @@ GTK_A11Y=none onboard "${onboard_args[@]}" >/dev/null 2>&1 &
 # Place the keyboard above the always-visible dock. Failure to position the
 # window is harmless: Onboard remains usable with its own saved geometry.
 for _ in $(seq 1 30); do
-    window_id=$(wmctrl -lx 2>/dev/null | \
-        awk 'tolower($0) ~ /onboard/ { print $1; exit }')
-    if [[ -n ${window_id:-} ]]; then
+    window_id=$(onboard_window_id)
+    if [[ -n ${window_id:-} ]] && onboard_is_visible; then
         if [[ ${screen_width:-} =~ ^[0-9]+$ && ${screen_height:-} =~ ^[0-9]+$ ]]; then
             wmctrl -i -r "$window_id" -e "0,$x,$y,$width,$height" || true
             wmctrl -i -r "$window_id" -b add,above,sticky || true
