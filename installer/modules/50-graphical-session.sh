@@ -239,7 +239,7 @@ conky.config = {
     alignment = 'top_right',
     background = true,
     double_buffer = true,
-    update_interval = 2,
+    update_interval = 5,
     gap_x = 24,
     gap_y = 24,
     minimum_width = 460,
@@ -264,7 +264,7 @@ conky.text = [[
 ${font Sans:bold:size=22}${color #58a6ff}WASALIGHT${color white}${font}
 ${font Sans:size=11}Michele Moser · Wasabi Lightbulbfarm${font}
 ${color #30363d}${hr 2}${color white}
-${execpi 2 /usr/local/bin/wasalight-desktop-status}
+${execpi 5 /usr/local/bin/wasalight-desktop-status}
 ]];
 EOF
 
