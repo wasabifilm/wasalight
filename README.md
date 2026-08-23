@@ -543,8 +543,8 @@ I programmi continuano a essere organizzati tramite il registro `apps.d`:
   MagicQ; icona, nome, stato, descrizione, toggle e azioni mantengono posizioni
   coerenti in ogni scheda;
 - **Applicazioni**: programmi registrati dall'amministratore, compresi File,
-  Scanner IP, Art-Net Monitor, la calcolatrice `galculator` e l’editor di testo
-  leggero Mousepad;
+  Scanner IP, Art-Net Monitor, OSC Monitor, la calcolatrice `galculator` e
+  l’editor di testo leggero Mousepad;
 - **Supporto**: rete, monitor, touchscreen, audio, terminale, stato,
   diagnostica, salute, backup/ripristino, blocco schermo manuale e aggiornamento
   Wasalight;
@@ -623,13 +623,16 @@ passaggio o alla pressione diventa rosso. I piccoli pulsanti
 minimizza/massimizza sono rimossi dalla barra:
 le finestre restano gestibili dalla barra inferiore, più adatta al touchscreen.
 
-Nella scheda **Supporto** di Wasalight Control sono disponibili anche:
+Nella scheda **Applicazioni** di Wasalight Control sono disponibili anche:
 
 - **IP Scanner**, che usa `arp-scan` sulle interfacce Ethernet/Wi-Fi connesse e
   mostra interfaccia, IP, MAC e produttore in una tabella aggiornabile;
 - **Art-Net Monitor**, che ascolta passivamente il traffico Art-Net su tutte le
   interfacce e raggruppa sorgente, destinazione, tipo di pacchetto, universo,
-  numero di canali e contatore dei pacchetti.
+  numero di canali e contatore dei pacchetti;
+- **OSC Monitor**, che decodifica passivamente messaggi e bundle OSC senza
+  occupare porte UDP e mostra sorgente, porta di destinazione, percorso,
+  argomenti e contatore dei messaggi;
 - **Monitor sistema**, un equivalente grafico e leggero di `htop` basato su
   LXTask, con elenco dei processi e indicatori in tempo reale di CPU e memoria.
 

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=OSC Monitor
+Name[it]=Monitor OSC
+Comment=Show OSC sources, ports, paths and arguments in real time
+Comment[it]=Mostra sorgenti, porte, percorsi e argomenti OSC in tempo reale
+Exec=/usr/local/bin/wasalight-osc-monitor
+Icon=/usr/local/share/icons/wasalight/osc-monitor.svg
+TryExec=/usr/local/bin/wasalight-osc-monitor
+X-Wasalight-Section=Applications
+X-Wasalight-Order=22

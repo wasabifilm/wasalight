@@ -38,4 +38,7 @@ done
 printf 'BEHAVIOR  %s\n' control-core.py
 python3 "$TEST_DIR/control-core.py"
 
+printf 'BEHAVIOR  %s\n' osc-capture.py
+python3 "$TEST_DIR/osc-capture.py"
+
 printf 'Test comportamentali Wasalight superati.\n'

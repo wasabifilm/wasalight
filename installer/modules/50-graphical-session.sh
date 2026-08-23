@@ -100,6 +100,7 @@ EOF
     install_template /usr/local/share/icons/wasalight/network.svg 0644
     install_template /usr/local/share/icons/wasalight/ip-scanner.svg 0644
     install_template /usr/local/share/icons/wasalight/artnet-monitor.svg 0644
+    install_template /usr/local/share/icons/wasalight/osc-monitor.svg 0644
     install_template /usr/local/share/icons/wasalight/companion.svg 0644
     install_template /usr/local/share/icons/wasalight/companion-web.svg 0644
     install_template /usr/local/share/icons/wasalight/files.svg 0644
@@ -280,6 +281,10 @@ EOF
 
     install_template /usr/local/bin/wasalight-artnet-monitor 0755
 
+    install_template /usr/local/libexec/wasalight-osc-monitor.py 0755
+
+    install_template /usr/local/bin/wasalight-osc-monitor 0755
+
     install -d -m 0755 /etc/wasalight/apps.d
     install_template /etc/wasalight/apps.d/network.desktop 0644
     install_template /etc/wasalight/apps.d/display.desktop 0644
@@ -288,6 +293,7 @@ EOF
     install_template /etc/wasalight/apps.d/files.desktop 0644
     install_template /etc/wasalight/apps.d/ip-scanner.desktop 0644
     install_template /etc/wasalight/apps.d/artnet-monitor.desktop 0644
+    install_template /etc/wasalight/apps.d/osc-monitor.desktop 0644
     install_template /etc/wasalight/apps.d/system-monitor.desktop 0644
     install_template /etc/wasalight/apps.d/terminal.desktop 0644
     install_template /etc/wasalight/apps.d/status.desktop 0644

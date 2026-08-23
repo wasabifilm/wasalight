@@ -877,6 +877,39 @@ msgstr "Ultimo"
 msgid "Listening on UDP port 6454"
 msgstr "In ascolto sulla porta UDP 6454"
 
+#: installer/templates/rootfs/usr/local/libexec/wasalight-osc-monitor.py:32
+msgid ""
+"<span size='18000' weight='bold'>OSC Monitor</span>\n"
+"<span size='10000'>Passive OSC traffic monitor on all interfaces</span>"
+msgstr ""
+"<span size='18000' weight='bold'>Monitor OSC</span>\n"
+"<span size='10000'>Monitor passivo del traffico OSC su tutte le interfacce</span>"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-osc-monitor.py:39
+msgid "Port"
+msgstr "Porta"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-osc-monitor.py:39
+msgid "OSC path"
+msgstr "Percorso OSC"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-osc-monitor.py:39
+msgid "Arguments"
+msgstr "Argomenti"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-osc-monitor.py:40
+msgid "Messages"
+msgstr "Messaggi"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-osc-monitor.py:54
+msgid "Listening passively without binding UDP ports"
+msgstr "Ascolto passivo senza occupare porte UDP"
+
+#: installer/templates/rootfs/usr/local/libexec/wasalight-osc-monitor.py:96
+#, python-brace-format
+msgid "Last packet from {source}:{port}"
+msgstr "Ultimo pacchetto da {source}:{port}"
+
 #: installer/templates/rootfs/usr/local/libexec/wasalight-artnet-monitor.py:57
 msgid "Clear"
 msgstr "Azzera"

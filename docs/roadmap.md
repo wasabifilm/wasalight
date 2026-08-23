@@ -88,14 +88,14 @@ configurazione realmente applicata:
 - [x] MagicQ con toggle di avvio automatico e senza riavvio automatico dopo la
       chiusura.
 - [x] MagicHD e MagicVis eseguiti tramite wrapper root ristretto.
-- [x] File, Scanner IP e Art-Net Monitor nella pagina Applicazioni.
+- [x] File, Scanner IP, Art-Net Monitor e OSC Monitor nella pagina Applicazioni.
 - [x] File manager, Mousepad, calcolatrice e monitor grafico LXTask.
 - [x] Tastiera virtuale nel tray, eliminata dalla lista duplicata delle app;
       il toggle recupera anche un processo Onboard rimasto vivo ma invisibile.
 - [x] Blocco schermo manuale con password e senza risparmio energetico.
 - [x] Strumento grafico per data, ora, sincronizzazione NTP e fuso orario.
 - [x] Crediti, contatti, licenza, citazione e proprietà del logo.
-- [ ] Aggiungere un monitor OSC leggero per visualizzare indirizzo, porta,
+- [x] Aggiungere un monitor OSC leggero per visualizzare indirizzo, porta,
       percorso OSC, argomenti e contatore dei messaggi ricevuti, senza
       interferire con le porte usate da MagicQ o Companion.
 
@@ -269,7 +269,7 @@ riportate esplicitamente per evitare che vadano perse:
 - [x] installer modulare, lock globale e manifest unico;
 - [x] canali aggiornamento stable/debug;
 - [~] installazione e aggiornamento MagicQ offline;
-- [ ] monitor OSC;
+- [x] monitor OSC;
 - [ ] politica firewall e ottimizzazioni misurate;
 - [ ] TRIM periodico e politica swap;
 - [x] localizzazione completa dell’intero desktop, collaudata in UTM;

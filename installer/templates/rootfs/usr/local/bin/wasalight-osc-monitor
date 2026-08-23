@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+set -Eeuo pipefail
+log_file=/tmp/wasalight-network-tools.log
+[[ -d /data/log && -w /data/log ]] && log_file=/data/log/wasalight-network-tools.log
+exec /usr/local/libexec/wasalight-osc-monitor.py >>"$log_file" 2>&1

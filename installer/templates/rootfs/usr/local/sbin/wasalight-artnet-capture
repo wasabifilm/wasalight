@@ -1,52 +1,159 @@
 #!/usr/bin/env python3
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
+"""Passively decode Art-Net and OSC from one already-authorized raw capture."""
 import datetime
+import json
 import os
 import socket
 import struct
 import sys
 
-if os.geteuid() != 0:
-    raise SystemExit("wasalight-artnet-capture requires root")
-if len(sys.argv) != 1:
-    raise SystemExit("wasalight-artnet-capture accepts no arguments")
 
-capture = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0003))
-capture.settimeout(1.0)
-parent_pid = os.getppid()
-while os.getppid() == parent_pid:
+def padded_string(payload, offset):
+    end = payload.find(b"\0", offset)
+    if end < 0:
+        raise ValueError("unterminated OSC string")
+    value = payload[offset:end].decode("utf-8", errors="replace")
+    return value, (end + 4) & ~3
+
+
+def parse_osc_message(payload):
+    path, offset = padded_string(payload, 0)
+    if not path.startswith("/"):
+        raise ValueError("not an OSC address")
+    tags, offset = padded_string(payload, offset)
+    if not tags.startswith(","):
+        raise ValueError("missing OSC type tags")
+    arguments = []
+    for tag in tags[1:]:
+        if tag == "i":
+            arguments.append(struct.unpack_from("!i", payload, offset)[0])
+            offset += 4
+        elif tag == "f":
+            arguments.append(round(struct.unpack_from("!f", payload, offset)[0], 6))
+            offset += 4
+        elif tag == "s":
+            value, offset = padded_string(payload, offset)
+            arguments.append(value)
+        elif tag == "b":
+            length = struct.unpack_from("!I", payload, offset)[0]
+            offset += 4
+            arguments.append(f"blob[{length}]")
+            offset = (offset + length + 3) & ~3
+        elif tag == "h":
+            arguments.append(struct.unpack_from("!q", payload, offset)[0])
+            offset += 8
+        elif tag == "d":
+            arguments.append(struct.unpack_from("!d", payload, offset)[0])
+            offset += 8
+        elif tag == "t":
+            timetag = struct.unpack_from("!Q", payload, offset)[0]
+            arguments.append(f"timetag:{timetag}")
+            offset += 8
+        elif tag == "c":
+            arguments.append(chr(struct.unpack_from("!I", payload, offset)[0]))
+            offset += 4
+        elif tag in ("r", "m"):
+            arguments.append(f"0x{payload[offset:offset + 4].hex()}")
+            offset += 4
+        elif tag == "T":
+            arguments.append(True)
+        elif tag == "F":
+            arguments.append(False)
+        elif tag == "N":
+            arguments.append(None)
+        elif tag == "I":
+            arguments.append("Impulse")
+        elif tag in "[]":
+            arguments.append(tag)
+        else:
+            raise ValueError(f"unsupported OSC type tag: {tag}")
+        if offset > len(payload):
+            raise ValueError("truncated OSC argument")
+    return path, arguments
+
+
+def osc_messages(payload, depth=0):
+    if depth > 4:
+        return
+    if payload.startswith(b"#bundle\0"):
+        offset = 16
+        while offset + 4 <= len(payload):
+            length = struct.unpack_from("!I", payload, offset)[0]
+            offset += 4
+            if length == 0 or offset + length > len(payload):
+                return
+            yield from osc_messages(payload[offset:offset + length], depth + 1)
+            offset += length
+        return
     try:
-        frame = capture.recv(65535)
-    except socket.timeout:
-        continue
+        yield parse_osc_message(payload)
+    except (UnicodeError, ValueError, struct.error):
+        return
+
+
+def udp_packet(frame):
     if len(frame) < 42:
-        continue
+        return None
     offset = 14
     ether_type = struct.unpack("!H", frame[12:14])[0]
     if ether_type in (0x8100, 0x88A8) and len(frame) >= 46:
         ether_type = struct.unpack("!H", frame[16:18])[0]
         offset = 18
     if ether_type != 0x0800 or len(frame) < offset + 28:
-        continue
+        return None
     ihl = (frame[offset] & 0x0F) * 4
     if ihl < 20 or frame[offset + 9] != 17:
-        continue
+        return None
     udp = offset + ihl
     if len(frame) < udp + 8:
-        continue
-    source_port, destination_port = struct.unpack("!HH", frame[udp:udp + 4])
-    if source_port != 6454 and destination_port != 6454:
-        continue
-    payload = frame[udp + 8:]
-    if len(payload) < 12 or payload[:8] != b"Art-Net\x00":
-        continue
-    opcode = struct.unpack("<H", payload[8:10])[0]
+        return None
+    source_port, destination_port, udp_length = struct.unpack("!HHH", frame[udp:udp + 6])
+    payload_end = min(len(frame), udp + max(8, udp_length))
     source = socket.inet_ntoa(frame[offset + 12:offset + 16])
     destination = socket.inet_ntoa(frame[offset + 16:offset + 20])
-    universe, length = -1, 0
-    if opcode == 0x5000 and len(payload) >= 18:
-        universe = payload[14] | (payload[15] << 8)
-        length = struct.unpack("!H", payload[16:18])[0]
+    return source, source_port, destination, destination_port, frame[udp + 8:payload_end]
+
+
+def output_packet(packet):
+    source, source_port, destination, destination_port, payload = packet
     timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-    print(f"{timestamp}\t{source}\t{destination}\t0x{opcode:04x}\t{universe}\t{length}", flush=True)
+    if (source_port == 6454 or destination_port == 6454) and \
+            len(payload) >= 12 and payload[:8] == b"Art-Net\x00":
+        opcode = struct.unpack("<H", payload[8:10])[0]
+        universe, length = -1, 0
+        if opcode == 0x5000 and len(payload) >= 18:
+            universe = payload[14] | (payload[15] << 8)
+            length = struct.unpack("!H", payload[16:18])[0]
+        print(
+            f"{timestamp}\t{source}\t{destination}\t0x{opcode:04x}\t"
+            f"{universe}\t{length}", flush=True)
+        return
+    for path, arguments in osc_messages(payload):
+        shown_arguments = json.dumps(arguments, ensure_ascii=False, separators=(",", ":"))
+        print(
+            f"OSC\t{timestamp}\t{source}\t{source_port}\t{destination}\t"
+            f"{destination_port}\t{path}\t{shown_arguments}", flush=True)
+
+
+def main():
+    if os.geteuid() != 0:
+        raise SystemExit("wasalight-artnet-capture requires root")
+    if len(sys.argv) != 1:
+        raise SystemExit("wasalight-artnet-capture accepts no arguments")
+    capture = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0003))
+    capture.settimeout(1.0)
+    parent_pid = os.getppid()
+    while os.getppid() == parent_pid:
+        try:
+            frame = capture.recv(65535)
+        except socket.timeout:
+            continue
+        packet = udp_packet(frame)
+        if packet is not None:
+            output_packet(packet)
+
+
+if __name__ == "__main__":
+    main()
