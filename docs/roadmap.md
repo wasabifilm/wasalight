@@ -84,7 +84,9 @@ configurazione realmente applicata:
 - [x] Wasalight Control a istanza singola, con pagine Stato, MagicQ, Servizi,
       Applicazioni, Supporto, Plugin e Crediti.
 - [x] Colore Wasabi `#76bd22`, font ridimensionati e pulsante Chiudi evidente.
-- [x] Conferme centrate, in primo piano e con icone coerenti con l’azione.
+- [x] Sistemare le icone dei messaggi di conferma (riavvio, spegnimento,
+      blocco e operazioni analoghe), evitando l’interrogativo generico e
+      mantenendo i dialoghi centrati e in primo piano.
 - [x] SSH e VNC uniformati con toggle per stato e avvio automatico persistente.
 - [x] MagicQ con toggle di avvio automatico e senza riavvio automatico dopo la
       chiusura.

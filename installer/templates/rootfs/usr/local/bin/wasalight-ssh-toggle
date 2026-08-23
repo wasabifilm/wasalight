@@ -16,7 +16,7 @@ if systemctl is-active --quiet ssh.service; then
         next_boot="\n\n$( _ "Note: SSH is configured to start again on the next boot." )"
     fi
     /usr/local/bin/wasalight-dialog --question \
-        --icon=/usr/local/share/icons/wasalight/ssh.svg --width=500 --title="SSH · Wasalight" \
+        --icon=wasalight-ssh --width=500 --title="SSH · Wasalight" \
         --text="$(printf "$(_ '<big><b>SSH is active.</b></big>\n\nAddress: ssh://chamsys@%s:22%s\n\nStop SSH access now?')" "${ip_address:-SERVER_IP}" "$next_boot")" \
         --ok-label="$( _ "Stop SSH" )" --cancel-label="$( _ "Cancel" )" || exit 0
     output=$(sudo -n /usr/local/sbin/wasalight-ssh-control stop 2>&1) || {
@@ -28,7 +28,7 @@ if systemctl is-active --quiet ssh.service; then
 fi
 
 /usr/local/bin/wasalight-dialog --question \
-    --icon=/usr/local/share/icons/wasalight/ssh.svg --width=520 --title="SSH · Wasalight" \
+    --icon=wasalight-ssh --width=520 --title="SSH · Wasalight" \
     --text="$( _ '<big><b>Enable SSH?</b></big>\n\nAccess will use the chamsys account and its Linux password. Enable it only on a trusted network.' )" \
     --ok-label="$( _ "Start SSH" )" --cancel-label="$( _ "Cancel" )" || exit 0
 output=$(sudo -n /usr/local/sbin/wasalight-ssh-control start 2>&1) || {

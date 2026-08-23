@@ -23,7 +23,7 @@ while IFS=$'\t' read -r file version stamp size integrity mode; do
     rows+=("$file" "$version" "$stamp" "$size" "$integrity")
 done <<<"$snapshots"
 
-selected=$(zenity --list --modal --width=820 --height=430 --title="$title" \
+selected=$(/usr/local/bin/wasalight-dialog --list --width=820 --height=430 --title="$title" \
     --text="$( _ 'Select a Wasalight configuration to restore.\nMagicQ, Ubuntu packages and show data will not be changed.' )" \
     --column="$( _ "File" )" --column="$( _ "Version" )" --column="$( _ "Date" )" \
     --column="$( _ "Size" )" --column="Checksum" --hide-column=1 --print-column=1 \
@@ -76,7 +76,7 @@ restore_pid=$!
         printf '# %s\n' "$( _ "Restoring configuration…" )"
         sleep 1
     done
-) | zenity --progress --pulsate --auto-close --no-cancel --modal \
+) | /usr/local/bin/wasalight-dialog --progress --pulsate --auto-close --no-cancel \
     --width=520 --title="$title" 2>/dev/null
 wait "$restore_pid"
 rc=$?
@@ -90,7 +90,7 @@ if ((rc != 0)); then
 fi
 
 if /usr/local/bin/wasalight-dialog --question \
-    --icon=/usr/local/share/icons/wasalight/reboot.svg --width=560 --title="$title" \
+    --icon=wasalight-reboot --width=560 --title="$title" \
     --text="$( _ '<big><b>Configuration restored.</b></big>\n\nRestart now to apply it?' )" \
     --ok-label="$( _ "Restart now" )" --cancel-label="$( _ "Later" )"; then
     sudo -n /usr/local/sbin/wasalight-power-control reboot

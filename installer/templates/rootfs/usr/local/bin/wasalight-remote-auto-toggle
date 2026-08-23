@@ -6,8 +6,8 @@ set -Eeuo pipefail
 [[ $(id -un) == chamsys ]] || { echo "Run as the chamsys desktop user." >&2; exit 1; }
 service=${1:-}
 case $service in
-    ssh) title=SSH; icon=/usr/local/share/icons/wasalight/ssh.svg ;;
-    vnc) title=VNC; icon=/usr/local/share/icons/wasalight/vnc.svg ;;
+    ssh) title=SSH; icon=wasalight-ssh ;;
+    vnc) title=VNC; icon=wasalight-vnc ;;
     *) echo "Usage: wasalight-remote-auto-toggle ssh|vnc" >&2; exit 2 ;;
 esac
 flag="/data/system/service-flags/${service}-autostart"

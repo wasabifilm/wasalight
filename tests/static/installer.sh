@@ -693,14 +693,14 @@ grep -Fq 'desktop_icon_size=64' "$INSTALLER" || \
     fail "i pulsanti desktop non sono dimensionati per l'uso touch"
 grep -Fq '/usr/local/bin/wasalight-dialog --question' "$tmp_dir/wasalight-power" || \
     fail "spegnimento e riavvio non richiedono una conferma touch"
-grep -Fq 'icon=/usr/local/share/icons/wasalight/power.svg' "$tmp_dir/wasalight-power" || \
+grep -Fq 'icon=wasalight-power' "$tmp_dir/wasalight-power" || \
     fail "la conferma di spegnimento non usa l'icona corretta"
-grep -Fq 'icon=/usr/local/share/icons/wasalight/reboot.svg' "$tmp_dir/wasalight-power" || \
+grep -Fq 'icon=wasalight-reboot' "$tmp_dir/wasalight-power" || \
     fail "la conferma di riavvio non usa l'icona corretta"
-grep -Fq -- '--icon=/usr/local/share/icons/wasalight/ssh.svg' \
+grep -Fq -- '--icon=wasalight-ssh' \
     "$tmp_dir/wasalight-ssh-toggle" || \
     fail "le conferme SSH non usano l'icona SSH"
-grep -Fq -- '--icon=/usr/local/share/icons/wasalight/vnc.svg' \
+grep -Fq -- '--icon=wasalight-vnc' \
     "$tmp_dir/wasalight-vnc-toggle" || \
     fail "le conferme VNC non usano l'icona VNC"
 grep -Fq -- '--icon=system-lock-screen' "$tmp_dir/wasalight-screen-lock" || \

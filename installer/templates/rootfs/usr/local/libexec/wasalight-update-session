@@ -96,7 +96,7 @@ if ((rc == 0)); then
     _ "Update completed successfully."
     printf '\n'
     if /usr/local/bin/wasalight-dialog --question \
-        --icon=/usr/local/share/icons/wasalight/reboot.svg --width=520 \
+        --icon=wasalight-reboot --width=520 \
         --title="$( _ "Wasalight updated" )" \
         --text="<big><b>$( _ "Update completed." )</b></big>\n\n$( _ "Restart now to apply the new configuration?" )" \
         --ok-label="$( _ "Restart now" )" --cancel-label="$( _ "Later" )"; then

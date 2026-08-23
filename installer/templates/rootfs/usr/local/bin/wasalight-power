@@ -10,13 +10,13 @@ case "$action" in
         title=$( _ "Power off Wasalight" )
         question=$( _ "Shut down the workstation completely?" )
         confirm=$( _ "Power off" )
-        icon=/usr/local/share/icons/wasalight/power.svg
+        icon=wasalight-power
         ;;
     reboot)
         title=$( _ "Restart Wasalight" )
         question=$( _ "Restart the workstation now?" )
         confirm=$( _ "Restart" )
-        icon=/usr/local/share/icons/wasalight/reboot.svg
+        icon=wasalight-reboot
         ;;
     *)
         _ "Usage: wasalight-power poweroff|reboot" >&2

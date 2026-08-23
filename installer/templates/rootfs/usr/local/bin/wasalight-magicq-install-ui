@@ -7,14 +7,14 @@ set -Eeuo pipefail
 title='Wasalight · MagicQ'
 if [[ $(findmnt -n -o FSTYPE / 2>/dev/null) == overlay ]]; then
     /usr/local/bin/wasalight-dialog --error \
-        --icon=/usr/local/share/icons/wasalight/magicq-install.svg \
+        --icon=wasalight-magicq-install \
         --width=580 --title="$title" \
         --text="$( _ '<big><b>MAINTENANCE mode required.</b></big>\n\nSwitch to MAINTENANCE and reboot, then try the MagicQ installation again.' )"
     exit 1
 fi
 
 if ! /usr/local/bin/wasalight-dialog --question \
-    --icon=/usr/local/share/icons/wasalight/magicq-install.svg \
+    --icon=wasalight-magicq-install \
     --width=620 --title="$title" \
     --text="$( _ '<big><b>Install or update MagicQ?</b></big>\n\nInsert a USB drive containing the MagicQ package in its root or packages folder. This works without Internet and does not update Wasalight.' )" \
     --ok-label="$( _ "Find and install" )" --cancel-label="$( _ "Cancel" )"; then
@@ -31,7 +31,7 @@ install_pid=$!
         printf '# %s\n' "$( _ "Searching for and verifying the MagicQ package…" )"
         sleep 1
     done
-) | zenity --progress --pulsate --auto-close --no-cancel --modal \
+) | /usr/local/bin/wasalight-dialog --progress --pulsate --auto-close --no-cancel \
     --width=560 --title="$title" 2>/dev/null
 wait "$install_pid"
 rc=$?
@@ -40,12 +40,12 @@ set -e
 details=$(tail -n 18 "$log_file")
 if ((rc != 0)); then
     /usr/local/bin/wasalight-dialog --error \
-        --icon=/usr/local/share/icons/wasalight/magicq-install.svg \
+        --icon=wasalight-magicq-install \
         --width=680 --title="$title" \
         --text="$(printf "$(_ '<big><b>MagicQ installation failed.</b></big>\n\n%s')" "$details")"
     exit "$rc"
 fi
 
 /usr/local/bin/wasalight-dialog --info \
-    --icon=/usr/share/pixmaps/magicq.png --width=620 --title="$title" \
+    --icon=wasalight-magicq-install --width=620 --title="$title" \
     --text="$(printf "$(_ '<big><b>MagicQ is ready.</b></big>\n\n%s')" "$details")"

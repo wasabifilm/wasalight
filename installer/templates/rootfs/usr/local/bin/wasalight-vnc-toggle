@@ -10,7 +10,7 @@ set -Eeuo pipefail
 
 if pgrep -u chamsys -x x11vnc >/dev/null 2>&1; then
     /usr/local/bin/wasalight-dialog --question \
-        --icon=/usr/local/share/icons/wasalight/vnc.svg --width=460 --title="VNC · Wasalight" \
+        --icon=wasalight-vnc --width=460 --title="VNC · Wasalight" \
         --text="$( _ '<big><b>VNC is active.</b></big>\n\nStop sharing the current session?' )" \
         --ok-label="$( _ "Stop VNC" )" --cancel-label="$( _ "Cancel" )" || exit 0
     output=$(/usr/local/bin/wasalight-vnc-stop 2>&1) || {
