@@ -22,6 +22,7 @@ class ControlPaths:
     plugin_command: str = "/usr/local/bin/wasalight-plugin"
     status_command: str = "/usr/local/bin/wasalight-status"
     update_terminal: str = "/usr/local/bin/wasalight-update-terminal"
+    network_settings: str = "nm-connection-editor"
     mode_toggle: str = "/usr/local/bin/wasalight-mode-toggle"
     magicq_start: str = "/usr/local/bin/magicq-start"
     magicq_action: str = "/usr/local/bin/wasalight-magicq-desktop-action"

@@ -450,3 +450,6 @@ msgstr "CHECKING"
 
 msgid "NOT CHECKED"
 msgstr "NOT CHECKED"
+
+msgid "Configure"
+msgstr "Configure"
