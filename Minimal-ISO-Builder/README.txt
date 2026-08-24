@@ -70,6 +70,8 @@ Entrambe includono:
 - selezione manuale del disco, minimo 32 GiB;
 - esclusione del supporto USB di installazione, anche nel doppio avvio NETBOOT;
 - interfaccia di installazione interamente in inglese;
+- scelta separata della lingua dell'interfaccia Wasalight (italiano o inglese),
+  senza modificare la lingua dell'installer o il layout della tastiera;
 - conferma distruttiva digitando esattamente ERASE;
 - GPT ibrida con BIOS GRUB, EFI, /boot, LVM, root al 50% e /data sul resto;
 - scelta del layout tastiera indipendente dalla lingua inglese dell'installer,
@@ -77,7 +79,8 @@ Entrambe includono:
   console live e schermata di prova;
 - scelta del fuso orario e della password chamsys (minimo 6 caratteri) durante
   l'installazione;
-- riepilogo di modalita', tastiera, fuso orario, boot e disco prima di ERASE;
+- riepilogo di modalita', lingua, tastiera, fuso orario, boot e disco prima di
+  ERASE;
 - preflight bloccante prima della formattazione: almeno 2 GiB di RAM e Internet
   funzionante con interfaccia, IP, route, DNS e HTTPS verso il repository
   Wasalight; tra 2 e 4 GiB viene mostrato un avviso;

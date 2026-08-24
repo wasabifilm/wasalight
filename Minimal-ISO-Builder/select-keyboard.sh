@@ -72,6 +72,13 @@ valid_timezone() {
     [ ! -d "/usr/share/zoneinfo/$candidate" ]
 }
 
+valid_interface_language() {
+  case "$1" in
+    en|it) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 case "${1:-}" in
   '') ;;
   --validate-timezone)
@@ -82,6 +89,11 @@ case "${1:-}" in
   --validate-layout)
     [ "$#" -ge 2 ] && [ "$#" -le 3 ] || exit 2
     valid_xkb_selection "$2" "${3:-}"
+    exit $?
+    ;;
+  --validate-language)
+    [ "$#" -eq 2 ] || exit 2
+    valid_interface_language "$2"
     exit $?
     ;;
   *)
@@ -118,7 +130,41 @@ while :; do
   green "                WASALIGHT INSTALLER v$INSTALLER_VERSION"
   echo "=============================================================="
   echo
-  echo "The installer language is English; this choice only affects the keyboard."
+  echo "Select the Wasalight interface language:"
+  echo
+  echo "   1) Italiano"
+  echo "   2) English"
+  echo
+  echo "This does not change the keyboard layout."
+  echo
+  printf "Selection [1]: "
+  IFS= read -r language_choice
+
+  case "$language_choice" in
+    ''|1)
+      interface_language="it"
+      interface_language_label="Italiano"
+      ;;
+    2)
+      interface_language="en"
+      interface_language_label="English"
+      ;;
+    *)
+      pause_error "Invalid selection."
+      continue
+      ;;
+  esac
+  break
+done
+
+while :; do
+  clear_screen
+  echo "=============================================================="
+  green "                WASALIGHT INSTALLER v$INSTALLER_VERSION"
+  echo "=============================================================="
+  echo
+  echo "The installer language is English. The keyboard layout is independent"
+  echo "from the Wasalight interface language selected on the previous screen."
   echo
   echo "Select the keyboard layout:"
   echo
@@ -402,12 +448,15 @@ sed \
 cat /run/autoinstall.keyboard.yaml > /autoinstall.yaml
 
 printf '%s\n' "$label" > /run/wasalight-keyboard-label
+printf '%s\n' "$interface_language" > /run/wasalight-interface-language
+printf '%s\n' "$interface_language_label" > /run/wasalight-interface-language-label
 printf '%s\n' "$timezone" > /run/wasalight-timezone-label
 printf '%s\n' "configured" > /run/wasalight-password-status
 password_hash=""
 escaped_password_hash=""
 
 clear_screen
+echo "Selected interface language: $interface_language_label"
 echo "Selected keyboard: $label"
 echo "Selected time zone: $timezone"
 echo "The chamsys password is configured."

@@ -226,6 +226,7 @@ def render(tty: Any, spinner: str) -> None:
     size = read_first_line("/run/wasalight-target-size")
     model = read_first_line("/run/wasalight-target-model")
     boot_mode = read_first_line("/run/wasalight-boot-mode")
+    language = read_first_line("/run/wasalight-interface-language-label")
     keyboard = read_first_line("/run/wasalight-keyboard-label")
     timezone = read_first_line("/run/wasalight-timezone-label")
     variant = read_first_line("/run/wasalight-install-variant") or "INSTALL"
@@ -266,6 +267,7 @@ def render(tty: Any, spinner: str) -> None:
             f"┃  Disk: {fit((disk + ' ' + size).strip(), 52):<52}┃",
             f"┃  Model: {fit(model, 51):<51}┃",
             f"┃  Boot: {fit(boot_mode, 52):<52}┃",
+            f"┃  Language: {fit(language, 48):<48}┃",
             f"┃  Keyboard: {fit(keyboard, 48):<48}┃",
             f"┃  Time zone: {fit(timezone, 47):<47}┃",
             f"┃  Account: {'chamsys · password configured':<49}┃",

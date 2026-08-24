@@ -141,6 +141,7 @@ autoinstall:
   - sh /cdrom/wasalight/select-disk.sh
   - chvt 2 || true
   late-commands:
+  - install -D -m 0640 /run/wasalight-interface-language /target/data/system/control/language
   - install -D -m 0755 /cdrom/wasalight/wasalight-first-boot.sh /target/usr/local/sbin/wasalight-first-boot
   - install -D -m 0644 /cdrom/wasalight/wasalight-first-boot.service /target/etc/systemd/system/wasalight-first-boot.service
   - install -D -m 0644 /cdrom/wasalight/release-manifest.ini /target/etc/wasalight/release-manifest.ini

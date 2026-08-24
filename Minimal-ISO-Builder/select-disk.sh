@@ -174,6 +174,8 @@ while :; do
   serial=$(printf '%s' "$line" | cut -d'|' -f5)
   keyboard_label=$(required_runtime_value /run/wasalight-keyboard-label \
     "keyboard selection") || exit 1
+  language_label=$(required_runtime_value /run/wasalight-interface-language-label \
+    "interface language selection") || exit 1
   install_variant=$(required_runtime_value /run/wasalight-install-variant \
     "installation mode") || exit 1
   preflight_status=$(required_runtime_value /run/wasalight-preflight-status \
@@ -195,6 +197,7 @@ while :; do
   echo "Installer:  v$INSTALLER_VERSION"
   echo "Mode:       $install_variant"
   echo "Preflight:  $preflight_status"
+  echo "Language:   $language_label"
   echo "Keyboard:   $keyboard_label"
   echo "Time zone:  $timezone_label"
   echo "Password:   configured"

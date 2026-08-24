@@ -43,6 +43,7 @@ scrub_log /autoinstall.yaml autoinstall.yaml
   printf 'installer_version=%s\n' "$(sed -n '1p' /cdrom/wasalight/VERSION 2>/dev/null || sed -n '1p' /wasalight/VERSION 2>/dev/null || echo unknown)"
   printf 'variant=%s\n' "$(sed -n '1p' /run/wasalight-install-variant 2>/dev/null || echo unknown)"
   printf 'target_disk=%s\n' "$(sed -n '1p' /run/wasalight-target-disk 2>/dev/null || echo unknown)"
+  printf 'interface_language=%s\n' "$(sed -n '1p' /run/wasalight-interface-language 2>/dev/null || echo unknown)"
   printf 'keyboard=%s\n' "$(sed -n '1p' /run/wasalight-keyboard-label 2>/dev/null || echo unknown)"
   printf 'timezone=%s\n' "$(sed -n '1p' /run/wasalight-timezone-label 2>/dev/null || echo unknown)"
   printf 'preflight=%s\n' "$(sed -n '1p' /run/wasalight-preflight-status 2>/dev/null || echo unknown)"

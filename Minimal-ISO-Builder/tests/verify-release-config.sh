@@ -136,7 +136,7 @@ grep -Fq 'To confirm, type exactly: ERASE' "$ISO_BUILDER_DIR/select-disk.sh" || 
     fail "conferma distruttiva inglese mancante"
 grep -Fq 'REVIEW AND CONFIRM INSTALLATION' "$ISO_BUILDER_DIR/select-disk.sh" || \
     fail "riepilogo finale prima di ERASE mancante"
-for summary_value in 'Installer:' 'Mode:' 'Keyboard:' 'Time zone:' 'Password:' 'Boot mode:' 'Storage:'; do
+for summary_value in 'Installer:' 'Mode:' 'Language:' 'Keyboard:' 'Time zone:' 'Password:' 'Boot mode:' 'Storage:'; do
     grep -Fq "$summary_value" "$ISO_BUILDER_DIR/select-disk.sh" || \
         fail "riepilogo installazione privo di $summary_value"
 done
@@ -192,9 +192,22 @@ if WASALIGHT_XKB_ROOT="$tmp_dir/xkb" \
         "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-layout us unavailable; then
     fail "il selettore accetta una variante XKB non disponibile"
 fi
-grep -Fq 'The installer language is English; this choice only affects the keyboard.' \
+"$ISO_BUILDER_DIR/select-keyboard.sh" --validate-language en || \
+    fail "lingua interfaccia inglese non riconosciuta"
+"$ISO_BUILDER_DIR/select-keyboard.sh" --validate-language it || \
+    fail "lingua interfaccia italiana non riconosciuta"
+if "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-language de; then
+    fail "il selettore accetta una lingua interfaccia non supportata"
+fi
+grep -Fq 'The keyboard layout is independent' \
     "$ISO_BUILDER_DIR/select-keyboard.sh" || \
-    fail "indipendenza tra lingua installer e tastiera non esplicitata"
+    fail "indipendenza tra lingua interfaccia e tastiera non esplicitata"
+grep -Fq '/run/wasalight-interface-language /target/data/system/control/language' \
+    "$ISO_BUILDER_DIR/autoinstall.yaml" || \
+    fail "lingua interfaccia scelta non persistita nel sistema installato"
+grep -Fq '/run/wasalight-interface-language-label' \
+    "$ISO_BUILDER_DIR/install-ui.sh" || \
+    fail "UI installer non mostra la lingua interfaccia scelta"
 grep -Fq 'at least 6 characters' "$ISO_BUILDER_DIR/select-keyboard.sh" || \
     fail "minimo password di 6 caratteri non mostrato"
 grep -Fq '[ "${#password}" -lt 6 ]' "$ISO_BUILDER_DIR/select-keyboard.sh" || \
