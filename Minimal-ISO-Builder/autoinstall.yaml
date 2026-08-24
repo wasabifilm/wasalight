@@ -137,8 +137,7 @@ autoinstall:
       fi;
       true'
   - sh /cdrom/wasalight/preflight.sh
-  - sh /cdrom/wasalight/select-keyboard.sh
-  - sh /cdrom/wasalight/select-disk.sh
+  - python3 /cdrom/wasalight/install-wizard.py /dev/tty1
   - chvt 2 || true
   late-commands:
   - install -D -m 0640 /run/wasalight-interface-language /target/data/system/control/language

@@ -66,6 +66,7 @@ COPY_SEED="$SCRIPT_DIR/netboot-copy-seed.sh"
 
 DISK_SELECTOR="$SCRIPT_DIR/select-disk.sh"
 KEYBOARD_SELECTOR="$SCRIPT_DIR/select-keyboard.sh"
+INSTALL_WIZARD="$SCRIPT_DIR/install-wizard.py"
 THEME_SCRIPT="$SCRIPT_DIR/apply-theme.sh"
 UI_TEMPLATE="$SCRIPT_DIR/install-ui.sh"
 POWEROFF_PROMPT="$SCRIPT_DIR/wait-for-poweroff.sh"
@@ -99,7 +100,7 @@ for dependency in xorriso cpio; do
   command -v "$dependency" >/dev/null 2>&1 || die "Manca $dependency."
 done
 for source in "$MINI_ISO" "$AUTOINSTALL" "$LOADER" "$COPY_SEED" \
-  "$DISK_SELECTOR" "$KEYBOARD_SELECTOR" "$THEME_SCRIPT" "$UI_TEMPLATE" \
+  "$DISK_SELECTOR" "$KEYBOARD_SELECTOR" "$INSTALL_WIZARD" "$THEME_SCRIPT" "$UI_TEMPLATE" \
   "$POWEROFF_PROMPT" "$FIRST_BOOT_SCRIPT" "$FIRST_BOOT_SERVICE" \
   "$LOG_SAVER" \
   "$PREFLIGHT_SCRIPT" \
@@ -138,6 +139,7 @@ sh -n "$COPY_SEED"
 bash -n "$FIRST_BOOT_SCRIPT"
 sh -n "$DISK_SELECTOR"
 sh -n "$KEYBOARD_SELECTOR"
+python3 -c 'compile(open(__import__("sys").argv[1], encoding="utf-8").read(), __import__("sys").argv[1], "exec")' "$INSTALL_WIZARD"
 sh -n "$THEME_SCRIPT"
 sh -n "$POWEROFF_PROMPT"
 sh -n "$LOG_SAVER"
@@ -197,6 +199,7 @@ install -d "$FINAL_ROOT/wasalight" "$FINAL_ROOT/scripts/casper-bottom"
 install -m 0600 "$TMP/autoinstall.yaml" "$FINAL_ROOT/autoinstall.yaml"
 install -m 0755 "$DISK_SELECTOR" "$FINAL_ROOT/wasalight/select-disk.sh"
 install -m 0755 "$KEYBOARD_SELECTOR" "$FINAL_ROOT/wasalight/select-keyboard.sh"
+install -m 0755 "$INSTALL_WIZARD" "$FINAL_ROOT/wasalight/install-wizard.py"
 install -m 0755 "$THEME_SCRIPT" "$FINAL_ROOT/wasalight/apply-theme.sh"
 install -m 0755 "$UI_SCRIPT" "$FINAL_ROOT/wasalight/install-ui.sh"
 install -m 0755 "$POWEROFF_PROMPT" "$FINAL_ROOT/wasalight/wait-for-poweroff.sh"

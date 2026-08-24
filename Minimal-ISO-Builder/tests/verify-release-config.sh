@@ -132,15 +132,19 @@ grep -Fq '/run/wasalight-timezone-label' "$ISO_BUILDER_DIR/install-ui.sh" || \
     fail "UI installer non mostra il fuso orario scelto"
 grep -Fq 'Preparing the installation' "$ISO_BUILDER_DIR/install-ui.sh" || \
     fail "UI installer non tradotta in inglese"
-grep -Fq 'To confirm, type exactly: ERASE' "$ISO_BUILDER_DIR/select-disk.sh" || \
+wizard="$ISO_BUILDER_DIR/install-wizard.py"
+[[ -s $wizard ]] || fail "wizard installazione unificato mancante"
+python3 -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' \
+    "$wizard"
+grep -Fq 'Type exactly ERASE to start.' "$wizard" || \
     fail "conferma distruttiva inglese mancante"
-grep -Fq 'REVIEW AND CONFIRM INSTALLATION' "$ISO_BUILDER_DIR/select-disk.sh" || \
+grep -Fq 'Review and confirm' "$wizard" || \
     fail "riepilogo finale prima di ERASE mancante"
-for summary_value in 'Installer:' 'Mode:' 'Language:' 'Keyboard:' 'Time zone:' 'Password:' 'Boot mode:' 'Storage:'; do
-    grep -Fq "$summary_value" "$ISO_BUILDER_DIR/select-disk.sh" || \
+for summary_value in 'Interface language' 'Keyboard' 'Time zone' 'Password' 'Boot mode' 'Storage:'; do
+    grep -Fq "$summary_value" "$wizard" || \
         fail "riepilogo installazione privo di $summary_value"
 done
-if grep -Fq 'CANCELLA' "$ISO_BUILDER_DIR/select-disk.sh"; then
+if grep -Fq 'CANCELLA' "$wizard"; then
     fail "il selettore disco usa ancora la conferma italiana"
 fi
 grep -Fq 'for index in (2, 4, 10):' "$ISO_BUILDER_DIR/apply-theme.sh" || \
@@ -164,6 +168,8 @@ for builder in make-wasalight-minimal.sh make-wasalight-netboot.sh; do
         fail "$builder non incorpora il salvataggio log installer"
     grep -Fq 'preflight.sh' "$ISO_BUILDER_DIR/$builder" || \
         fail "$builder non incorpora il preflight"
+    grep -Fq 'install-wizard.py' "$ISO_BUILDER_DIR/$builder" || \
+        fail "$builder non incorpora il wizard unificato"
 done
 sh -n "$ISO_BUILDER_DIR/preflight.sh"
 "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-timezone Europe/Rome || \
@@ -192,6 +198,23 @@ if WASALIGHT_XKB_ROOT="$tmp_dir/xkb" \
         "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-layout us unavailable; then
     fail "il selettore accetta una variante XKB non disponibile"
 fi
+mkdir -p "$tmp_dir/runtime"
+cp "$ISO_BUILDER_DIR/autoinstall.yaml" "$tmp_dir/autoinstall.yaml"
+printf '%s\n' en English us '' 'English (US)' Europe/Rome \
+    '$6$testsalt$testhash' >"$tmp_dir/wizard-config"
+WASALIGHT_XKB_ROOT="$tmp_dir/xkb" \
+WASALIGHT_RUNTIME_DIR="$tmp_dir/runtime" \
+WASALIGHT_AUTOINSTALL_PATH="$tmp_dir/autoinstall.yaml" \
+    "$ISO_BUILDER_DIR/select-keyboard.sh" --apply-config "$tmp_dir/wizard-config" || \
+    fail "backend configurazione non applica una selezione valida"
+grep -Fq 'layout: "us"' "$tmp_dir/autoinstall.yaml" || \
+    fail "backend configurazione non applica il layout"
+grep -Fq 'timezone: "Europe/Rome"' "$tmp_dir/autoinstall.yaml" || \
+    fail "backend configurazione non applica il fuso orario"
+grep -Fq 'password: "$6$testsalt$testhash"' "$tmp_dir/autoinstall.yaml" || \
+    fail "backend configurazione non applica l'hash temporaneo"
+[[ $(<"$tmp_dir/runtime/wasalight-interface-language") == en ]] || \
+    fail "backend configurazione non persiste la lingua scelta"
 "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-language en || \
     fail "lingua interfaccia inglese non riconosciuta"
 "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-language it || \
@@ -199,8 +222,7 @@ fi
 if "$ISO_BUILDER_DIR/select-keyboard.sh" --validate-language de; then
     fail "il selettore accetta una lingua interfaccia non supportata"
 fi
-grep -Fq 'The keyboard layout is independent' \
-    "$ISO_BUILDER_DIR/select-keyboard.sh" || \
+grep -Fq 'This choice is independent from the keyboard layout.' "$wizard" || \
     fail "indipendenza tra lingua interfaccia e tastiera non esplicitata"
 grep -Fq '/run/wasalight-interface-language /target/data/system/control/language' \
     "$ISO_BUILDER_DIR/autoinstall.yaml" || \
@@ -208,23 +230,32 @@ grep -Fq '/run/wasalight-interface-language /target/data/system/control/language
 grep -Fq '/run/wasalight-interface-language-label' \
     "$ISO_BUILDER_DIR/install-ui.sh" || \
     fail "UI installer non mostra la lingua interfaccia scelta"
-grep -Fq 'at least 6 characters' "$ISO_BUILDER_DIR/select-keyboard.sh" || \
+grep -Fq 'at least 6 characters' "$wizard" || \
     fail "minimo password di 6 caratteri non mostrato"
-grep -Fq '[ "${#password}" -lt 6 ]' "$ISO_BUILDER_DIR/select-keyboard.sh" || \
+grep -Fq 'if len(password) < 6:' "$wizard" || \
     fail "minimo password di 6 caratteri non applicato"
 grep -Fq 'ckbcomp -layout' "$ISO_BUILDER_DIR/select-keyboard.sh" || \
     fail "layout XKB non convertito per la console live"
 grep -Fq 'loadkeys "$keymap_file"' "$ISO_BUILDER_DIR/select-keyboard.sh" || \
     fail "layout tastiera non applicato alla console live"
-grep -Fq 'TEST KEYBOARD' "$ISO_BUILDER_DIR/select-keyboard.sh" || \
+grep -Fq '"Test keyboard"' "$wizard" || \
     fail "schermata di prova tastiera mancante"
 
-keyboard_command_line=$(grep -nF 'sh /cdrom/wasalight/select-keyboard.sh' \
+wizard_command_line=$(grep -nF 'python3 /cdrom/wasalight/install-wizard.py /dev/tty1' \
     "$ISO_BUILDER_DIR/autoinstall.yaml" | cut -d: -f1)
-disk_command_line=$(grep -nF 'sh /cdrom/wasalight/select-disk.sh' \
-    "$ISO_BUILDER_DIR/autoinstall.yaml" | cut -d: -f1)
-[[ $keyboard_command_line -lt $disk_command_line ]] || \
-    fail "la tastiera deve essere configurata prima del riepilogo disco"
+[[ -n $wizard_command_line ]] || fail "autoinstall non avvia il wizard unificato"
+if grep -Fq 'sh /cdrom/wasalight/select-' "$ISO_BUILDER_DIR/autoinstall.yaml"; then
+    fail "autoinstall avvia ancora i vecchi selettori interattivi"
+fi
+grep -Fq 'self.run_backend(self.disk_backend, "--apply-target", self.disk["device"])' \
+    "$wizard" || fail "wizard non rivalida il disco dopo ERASE"
+grep -Fq 'wasalight-wizard.log' "$ISO_BUILDER_DIR/save-installer-logs.sh" || \
+    fail "log errori wizard non salvato insieme ai log installer"
+grep -Fq 'build_disk_list' "$ISO_BUILDER_DIR/select-disk.sh" || \
+    fail "backend disco non ricostruisce l'elenco prima dell'applicazione"
+grep -Fq 'selected disk contains the installation media' \
+    "$ISO_BUILDER_DIR/select-disk.sh" || \
+    fail "backend disco non riblocca il supporto installazione"
 grep -Fq 'save-installer-logs.sh success' "$ISO_BUILDER_DIR/autoinstall.yaml" || \
     fail "log installer non salvati in caso di successo"
 grep -Fq 'save-installer-logs.sh failed' "$ISO_BUILDER_DIR/autoinstall.yaml" || \
@@ -261,9 +292,9 @@ for network_check in \
 done
 preflight_command_line=$(grep -nF 'sh /cdrom/wasalight/preflight.sh' \
     "$ISO_BUILDER_DIR/autoinstall.yaml" | cut -d: -f1)
-[[ $preflight_command_line -lt $keyboard_command_line ]] || \
+[[ $preflight_command_line -lt $wizard_command_line ]] || \
     fail "preflight eseguito dopo la configurazione interattiva"
-grep -Fq 'Preflight:' "$ISO_BUILDER_DIR/select-disk.sh" || \
+grep -Fq 'f"Preflight' "$wizard" || \
     fail "riepilogo finale privo dell'esito preflight"
 
 sed \
@@ -288,6 +319,7 @@ release_sources=(
     "$ISO_BUILDER_DIR/apply-theme.sh"
     "$ISO_BUILDER_DIR/autoinstall.yaml"
     "$ISO_BUILDER_DIR/install-ui.sh"
+    "$ISO_BUILDER_DIR/install-wizard.py"
     "$ISO_BUILDER_DIR/make-wasalight-minimal.sh"
     "$ISO_BUILDER_DIR/make-wasalight-netboot.sh"
     "$ISO_BUILDER_DIR/netboot-copy-seed.sh"

@@ -70,6 +70,9 @@ Entrambe includono:
 - selezione manuale del disco, minimo 32 GiB;
 - esclusione del supporto USB di installazione, anche nel doppio avvio NETBOOT;
 - interfaccia di installazione interamente in inglese;
+- wizard Wasalight unico a schermo intero per tutte le scelte iniziali, con
+  indicatore delle fasi e navigazione indietro; Subiquity resta il motore che
+  esegue realmente installazione, partizionamento e bootloader;
 - scelta separata della lingua dell'interfaccia Wasalight (italiano o inglese),
   senza modificare la lingua dell'installer o il layout della tastiera;
 - conferma distruttiva digitando esattamente ERASE;
@@ -81,6 +84,9 @@ Entrambe includono:
   l'installazione;
 - riepilogo di modalita', lingua, tastiera, fuso orario, boot e disco prima di
   ERASE;
+- backend separati dal wizard che rivalidano configurazione e disco, inclusa
+  l'esclusione del supporto d'installazione, immediatamente prima di consegnare
+  autoinstall.yaml a Subiquity;
 - preflight bloccante prima della formattazione: almeno 2 GiB di RAM e Internet
   funzionante con interfaccia, IP, route, DNS e HTTPS verso il repository
   Wasalight; tra 2 e 4 GiB viene mostrato un avviso;
@@ -177,6 +183,7 @@ CONTROLLO
   sh -n Minimal-ISO-Builder/netboot-copy-seed.sh
   sh -n Minimal-ISO-Builder/select-disk.sh
   sh -n Minimal-ISO-Builder/select-keyboard.sh
+  python3 -m py_compile Minimal-ISO-Builder/install-wizard.py
   bash Minimal-ISO-Builder/tests/verify-release-config.sh
   ./tests/verify-project.sh
 

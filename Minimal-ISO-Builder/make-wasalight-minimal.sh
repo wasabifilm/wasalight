@@ -131,6 +131,7 @@ SOURCE_ISO="${1:-}"
 AUTOINSTALL="${2:-$SCRIPT_DIR/autoinstall.yaml}"
 DISK_SELECTOR="$SCRIPT_DIR/select-disk.sh"
 KEYBOARD_SELECTOR="$SCRIPT_DIR/select-keyboard.sh"
+INSTALL_WIZARD="$SCRIPT_DIR/install-wizard.py"
 THEME_SCRIPT="$SCRIPT_DIR/apply-theme.sh"
 UI_TEMPLATE="$SCRIPT_DIR/install-ui.sh"
 POWEROFF_PROMPT="$SCRIPT_DIR/wait-for-poweroff.sh"
@@ -197,6 +198,7 @@ sha256sum_file() {
 [[ -f "$AUTOINSTALL" ]] || die "autoinstall.yaml non trovato: $AUTOINSTALL"
 [[ -f "$DISK_SELECTOR" ]] || die "select-disk.sh non trovato: $DISK_SELECTOR"
 [[ -f "$KEYBOARD_SELECTOR" ]] || die "select-keyboard.sh non trovato: $KEYBOARD_SELECTOR"
+[[ -f "$INSTALL_WIZARD" ]] || die "install-wizard.py non trovato: $INSTALL_WIZARD"
 [[ -f "$THEME_SCRIPT" ]] || die "apply-theme.sh non trovato: $THEME_SCRIPT"
 [[ -f "$UI_TEMPLATE" ]] || die "install-ui.sh non trovato: $UI_TEMPLATE"
 [[ -f "$POWEROFF_PROMPT" ]] || die "wait-for-poweroff.sh non trovato: $POWEROFF_PROMPT"
@@ -241,8 +243,9 @@ bash -n "$0" || die "Errore di sintassi nel builder."
 for script in "$DISK_SELECTOR" "$KEYBOARD_SELECTOR" "$THEME_SCRIPT" "$POWEROFF_PROMPT" "$LOG_SAVER" "$PREFLIGHT_SCRIPT"; do
   sh -n "$script" || die "Errore di sintassi in: $script"
 done
-bash -n "$FIRST_BOOT_SCRIPT" || die "Errore di sintassi in: $FIRST_BOOT_SCRIPT"
 command -v python3 >/dev/null 2>&1 || die "Manca python3 per validare la UI."
+python3 -c 'compile(open(__import__("sys").argv[1], encoding="utf-8").read(), __import__("sys").argv[1], "exec")' "$INSTALL_WIZARD"
+bash -n "$FIRST_BOOT_SCRIPT" || die "Errore di sintassi in: $FIRST_BOOT_SCRIPT"
 python3 -c 'compile(open(__import__("sys").argv[1], encoding="utf-8").read(), __import__("sys").argv[1], "exec")' \
   "$UI_TEMPLATE" || die "Errore di sintassi Python in: $UI_TEMPLATE"
 
@@ -462,6 +465,7 @@ if iso_has_path "$SOURCE_ISO" /md5sum.txt; then
     "./autoinstall.yaml" \
     "./wasalight/select-disk.sh" \
     "./wasalight/select-keyboard.sh" \
+    "./wasalight/install-wizard.py" \
     "./wasalight/apply-theme.sh" \
     "./wasalight/install-ui.sh" \
     "./wasalight/wait-for-poweroff.sh" \
@@ -490,6 +494,7 @@ if iso_has_path "$SOURCE_ISO" /md5sum.txt; then
     printf '%s  ./autoinstall.yaml\n' "$(md5sum_file "$TMP/autoinstall.yaml")"
     printf '%s  ./wasalight/select-disk.sh\n' "$(md5sum_file "$DISK_SELECTOR")"
     printf '%s  ./wasalight/select-keyboard.sh\n' "$(md5sum_file "$KEYBOARD_SELECTOR")"
+    printf '%s  ./wasalight/install-wizard.py\n' "$(md5sum_file "$INSTALL_WIZARD")"
     printf '%s  ./wasalight/apply-theme.sh\n' "$(md5sum_file "$THEME_SCRIPT")"
     printf '%s  ./wasalight/install-ui.sh\n' "$(md5sum_file "$UI_SCRIPT")"
     printf '%s  ./wasalight/wait-for-poweroff.sh\n' "$(md5sum_file "$POWEROFF_PROMPT")"
@@ -517,6 +522,7 @@ ARGS+=(
   -map "$TMP/autoinstall.yaml" /autoinstall.yaml
   -map "$DISK_SELECTOR" /wasalight/select-disk.sh
   -map "$KEYBOARD_SELECTOR" /wasalight/select-keyboard.sh
+  -map "$INSTALL_WIZARD" /wasalight/install-wizard.py
   -map "$THEME_SCRIPT" /wasalight/apply-theme.sh
   -map "$UI_SCRIPT" /wasalight/install-ui.sh
   -map "$POWEROFF_PROMPT" /wasalight/wait-for-poweroff.sh
@@ -555,6 +561,8 @@ iso_has_path "$PARTIAL_OUTPUT" /wasalight/select-disk.sh || \
   die "select-disk.sh manca nella ISO finale."
 iso_has_path "$PARTIAL_OUTPUT" /wasalight/select-keyboard.sh || \
   die "select-keyboard.sh manca nella ISO finale."
+iso_has_path "$PARTIAL_OUTPUT" /wasalight/install-wizard.py || \
+  die "install-wizard.py manca nella ISO finale."
 iso_has_path "$PARTIAL_OUTPUT" /wasalight/apply-theme.sh || \
   die "apply-theme.sh manca nella ISO finale."
 iso_has_path "$PARTIAL_OUTPUT" /wasalight/install-ui.sh || \
@@ -585,6 +593,7 @@ xorriso -osirrox on -indev "$PARTIAL_OUTPUT" \
   -extract /autoinstall.yaml "$TMP/verify/autoinstall.yaml" \
   -extract /wasalight/select-disk.sh "$TMP/verify/select-disk.sh" \
   -extract /wasalight/select-keyboard.sh "$TMP/verify/select-keyboard.sh" \
+  -extract /wasalight/install-wizard.py "$TMP/verify/install-wizard.py" \
   -extract /wasalight/apply-theme.sh "$TMP/verify/apply-theme.sh" \
   -extract /wasalight/install-ui.sh "$TMP/verify/install-ui.sh" \
   -extract /wasalight/wait-for-poweroff.sh "$TMP/verify/wait-for-poweroff.sh" \
@@ -602,6 +611,8 @@ cmp -s "$DISK_SELECTOR" "$TMP/verify/select-disk.sh" || \
   die "select-disk.sh incorporato non corrisponde al sorgente."
 cmp -s "$KEYBOARD_SELECTOR" "$TMP/verify/select-keyboard.sh" || \
   die "select-keyboard.sh incorporato non corrisponde al sorgente."
+cmp -s "$INSTALL_WIZARD" "$TMP/verify/install-wizard.py" || \
+  die "install-wizard.py incorporato non corrisponde al sorgente."
 cmp -s "$THEME_SCRIPT" "$TMP/verify/apply-theme.sh" || \
   die "apply-theme.sh incorporato non corrisponde al sorgente."
 cmp -s "$UI_SCRIPT" "$TMP/verify/install-ui.sh" || \

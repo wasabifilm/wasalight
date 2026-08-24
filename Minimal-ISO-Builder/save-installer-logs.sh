@@ -35,6 +35,7 @@ scrub_log /var/log/installer/subiquity-client-debug.log subiquity-client-debug.l
 scrub_log /var/log/installer/curtin-install.log curtin-install.log
 scrub_log /run/wasalight-ui.log wasalight-ui.log
 scrub_log /run/wasalight-theme.log wasalight-theme.log
+scrub_log /run/wasalight-wizard.log wasalight-wizard.log
 scrub_log /autoinstall.yaml autoinstall.yaml
 
 {
