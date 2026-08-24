@@ -555,7 +555,7 @@ EOF
     write_file /etc/systemd/system/getty@tty1.service.d/autologin.conf 0644 <<EOF
 [Service]
 ExecStart=
-ExecStart=-/sbin/agetty --autologin $TARGET_USER --noclear --noissue %I \$TERM
+ExecStart=-/sbin/agetty --skip-login --autologin $TARGET_USER --noclear --noissue %I \$TERM
 Type=idle
 EOF
     systemctl set-default multi-user.target

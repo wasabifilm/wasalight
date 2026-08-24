@@ -120,10 +120,11 @@ essere sostituiti da Plymouth.
 
 ## Passaggio silenzioso a Xorg
 
-Anche il login automatico su `tty1` è silenzioso: `agetty` non mostra
-`/etc/issue`, `.hushlogin` sopprime MOTD e ultimo accesso, mentre la schermata
-viene pulita e il cursore nascosto prima di avviare Xorg. L’output di `startx`
-non appare sul monitor ma viene conservato in:
+Anche il login automatico su `tty1` è silenzioso: `agetty --skip-login` evita
+la riga temporanea `login: ... (automatic login)`, `--noissue` nasconde
+`/etc/issue` e `.hushlogin` sopprime MOTD e ultimo accesso. La schermata viene
+pulita e il cursore nascosto prima di avviare Xorg. L’output di `startx` non
+appare sul monitor ma viene conservato in:
 
 ```text
 /data/log/wasalight-xorg-startup.log
