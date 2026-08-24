@@ -287,6 +287,7 @@ required_patterns=(
     'wasalight-network-tools.log'
     'wasalight-xorg-startup.log'
     '$TARGET_HOME/.hushlogin'
+    '--skip-login --autologin $TARGET_USER'
     '--noclear --noissue'
     "printf '\\033[2J\\033[H\\033[?25l'"
     'startx -- -keeptty vt1 >"$xorg_log" 2>&1'
