@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import signal
 import sys
 import threading
@@ -51,6 +52,7 @@ RESET = "\033[0m"
 CLEAR = "\033[2J\033[H"
 HIDE_CURSOR = "\033[?25l"
 SHOW_CURSOR = "\033[?25h"
+ANSI_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
 
 STAGES = (
     ("prepare", "Preparation"),
@@ -210,6 +212,11 @@ def fit(value: str, width: int) -> str:
     return value[:width]
 
 
+def pad_ansi(value: str, width: int) -> str:
+    visible = len(ANSI_PATTERN.sub("", value))
+    return value + " " * max(0, width - visible)
+
+
 def stage_symbol(key: str, snapshot: dict[str, Any], spinner: str) -> tuple[str, str]:
     if key in snapshot["warnings"]:
         return YELLOW, "!"
@@ -237,46 +244,66 @@ def render(tty: Any, spinner: str) -> None:
     else:
         network_note = "Internet required for Ubuntu and Wasalight"
 
+    try:
+        terminal = os.get_terminal_size(tty.fileno())
+        terminal_width, terminal_height = terminal.columns, terminal.lines
+    except OSError:
+        terminal_width, terminal_height = 80, 24
+    width = max(64, min(116, terminal_width - 4))
+    inner = width - 2
+    margin = max(0, (terminal_width - width) // 2)
+    prefix = " " * margin
+
+    def border(character: str, left: str, right: str) -> str:
+        return GREEN + left + character * inner + right + RESET
+
+    def box(content: str = "") -> str:
+        return GREEN + "┃" + RESET + pad_ansi(content, inner) + GREEN + "┃" + RESET
+
     lines = [
-        CLEAR + HIDE_CURSOR,
-        GREEN + "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓" + RESET,
-        GREEN + f"┃{title:^60}┃" + RESET,
-        GREEN + f"┃{ubuntu_title:^60}┃" + RESET,
-        GREEN + f"┃{network_note:^60}┃" + RESET,
-        GREEN + "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫" + RESET,
-        "┃                                                            ┃",
+        border("━", "┏", "┓"),
+        GREEN + f"┃{title:^{inner}}┃" + RESET,
+        GREEN + f"┃{ubuntu_title:^{inner}}┃" + RESET,
+        GREEN + f"┃{network_note:^{inner}}┃" + RESET,
+        border("━", "┣", "┫"),
+        box(),
     ]
 
     for key, label in STAGES:
         color, symbol = stage_symbol(key, snapshot, spinner)
-        lines.append(f"┃   {color}{symbol}{RESET}  {label:<54}┃")
+        lines.append(box(f"   {color}{symbol}{RESET}  {label}"))
 
-    lines.extend(("┃                                                            ┃",))
+    lines.append(box())
     if snapshot["failed"]:
         message = snapshot["failure_message"] or "Installation failed"
-        lines.append(f"┃   {RED}{message[:54]:<54}{RESET}   ┃")
+        lines.append(box(f"   {RED}{fit(message, inner - 6)}{RESET}"))
     elif snapshot["finished"]:
-        lines.append(f"┃   {GREEN}{'Installation complete. Preparing safe power-off.':<54}{RESET}   ┃")
+        lines.append(box(f"   {GREEN}Installation complete. Preparing safe power-off.{RESET}"))
     else:
-        lines.append(f"┃   {WHITE}{snapshot['message'][:54]:<54}{RESET}   ┃")
+        lines.append(box(f"   {WHITE}{fit(snapshot['message'], inner - 6)}{RESET}"))
 
-    lines.extend(
-        (
-            "┃                                                            ┃",
-            GREEN + "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫" + RESET,
-            f"┃  Disk: {fit((disk + ' ' + size).strip(), 52):<52}┃",
-            f"┃  Model: {fit(model, 51):<51}┃",
-            f"┃  Boot: {fit(boot_mode, 52):<52}┃",
-            f"┃  Language: {fit(language, 48):<48}┃",
-            f"┃  Keyboard: {fit(keyboard, 48):<48}┃",
-            f"┃  Time zone: {fit(timezone, 47):<47}┃",
-            f"┃  Account: {'chamsys · password configured':<49}┃",
-            GREEN + "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫" + RESET,
-            f"┃  {DIM}{'Technical logs: Ctrl+Alt+F1':<58}{RESET}┃",
-            GREEN + "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛" + RESET,
-        )
+    details = (
+        ("Disk", (disk + " " + size).strip()),
+        ("Model", model),
+        ("Boot", boot_mode),
+        ("Language", language),
+        ("Keyboard", keyboard),
+        ("Time zone", timezone),
+        ("Account", "chamsys · password configured"),
     )
-    tty.write("\n".join(lines) + "\n")
+    lines.extend((box(), border("━", "┣", "┫")))
+    for label, value in details:
+        available = inner - len(label) - 4
+        lines.append(box(f"  {label}: {fit(value, available)}"))
+    lines.extend((
+        border("━", "┣", "┫"),
+        box(f"  {DIM}Technical logs: Ctrl+Alt+F1{RESET}"),
+        border("━", "┗", "┛"),
+    ))
+    top_margin = max(0, (terminal_height - len(lines)) // 3)
+    output = CLEAR + HIDE_CURSOR + "\n" * top_margin
+    output += "\n".join(prefix + line for line in lines) + "\n"
+    tty.write(output)
     tty.flush()
 
 

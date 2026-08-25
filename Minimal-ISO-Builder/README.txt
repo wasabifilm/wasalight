@@ -29,9 +29,8 @@ NETBOOT richiede:
 INSTALLAZIONE WASALIGHT
 ----------------------
 
-Entrambe le varianti installano durante l'autoinstall Git e tutti i pacchetti
-runtime standard elencati in packages/wasalight-runtime.txt. Dopo Ubuntu, un
-servizio systemd completa automaticamente Wasalight al primo avvio reale:
+Entrambe le varianti installano durante l'autoinstall soltanto Git. Dopo Ubuntu,
+un servizio systemd completa automaticamente Wasalight al primo avvio reale:
 
 1. usa il checkout persistente /data/system/wasalight;
 2. scarica con un clone shallow o aggiorna il branch configurato nel manifest;
@@ -43,7 +42,9 @@ servizio systemd completa automaticamente Wasalight al primo avvio reale:
    USB, senza incorporarlo nella ISO o nel repository;
 8. in assenza del pacchetto continua con gli strumenti per installarlo in un
    secondo momento;
-9. esegue install.sh senza attivare overlayroot e riavvia in MAINTENANCE.
+9. esegue install.sh, che installa i pacchetti runtime standard elencati in
+   packages/wasalight-runtime.txt, senza attivare overlayroot, e riavvia in
+   MAINTENANCE.
 
 Il log si trova in /data/log/wasalight-first-boot.log. Se rete o installazione
 falliscono, il servizio non dichiara il completamento e riprova dopo 60 secondi.
@@ -59,8 +60,8 @@ previsto.
 
 La variante NETBOOT prepara gia' il checkout Git durante l'autoinstall, poi lo
 aggiorna nuovamente al primo avvio per installare il main piu' recente. Ogni
-checkout viene verificato una sola volta per esecuzione; poiche' i pacchetti
-standard sono gia' presenti, install.sh salta il secondo aggiornamento APT.
+checkout viene verificato una sola volta per esecuzione. L'installazione dei
+pacchetti runtime avviene sempre tramite install.sh al primo avvio.
 
 DISCO E INTERFACCIA
 -------------------
@@ -74,6 +75,11 @@ Entrambe includono:
 - wizard Wasalight unico a schermo intero per tutte le scelte iniziali, con
   indicatore delle fasi e navigazione indietro; Subiquity resta il motore che
   esegue realmente installazione, partizionamento e bootloader;
+- dimensionamento ricavato dalla console reale, pannello centrato fino a 116
+  colonne, prompt interni alla cornice e colore rosso riservato agli avvisi
+  distruttivi;
+- schermata di avanzamento Subiquity su tty2 con la stessa larghezza, centratura
+  e geometria del wizard iniziale;
 - scelta separata della lingua dell'interfaccia Wasalight (italiano o inglese),
   senza modificare la lingua dell'installer o il layout della tastiera;
 - conferma distruttiva digitando esattamente ERASE;
