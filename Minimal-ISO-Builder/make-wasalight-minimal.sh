@@ -449,8 +449,8 @@ sed \
   -e "s|__WASALIGHT_NETWORK_PRELOAD__|$NETWORK_PRELOAD_VALUE|g" \
   -e "s|__WASALIGHT_INSTALLER_VERSION__|$INSTALLER_VERSION|g" \
   "$AUTOINSTALL" > "$TMP/autoinstall.yaml"
-grep -Fq 'packages: [git]' "$TMP/autoinstall.yaml" || \
-  die "Git non presente nell'autoinstall FULL."
+grep -Fq 'packages: [git, gettext]' "$TMP/autoinstall.yaml" || \
+  die "Prerequisiti di bootstrap non presenti nell'autoinstall FULL."
 
 info "[6/7] Aggiorno i checksum..."
 

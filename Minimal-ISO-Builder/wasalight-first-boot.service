@@ -2,7 +2,7 @@
 Description=Complete the automatic Wasalight installation
 Wants=network-online.target
 After=network-online.target
-Before=getty@tty1.service
+Before=getty.target getty@tty1.service
 RequiresMountsFor=/data
 ConditionPathExists=!/var/lib/wasalight/first-boot-complete
 StartLimitIntervalSec=0
@@ -17,4 +17,4 @@ StandardOutput=journal+console
 StandardError=journal+console
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=getty.target

@@ -79,8 +79,8 @@ for script in make-wasalight-minimal.sh make-wasalight-netboot.sh; do
 done
 grep -Fq -- '--wasalight-ref' "$ISO_BUILDER_DIR/make-wasalight-minimal.sh" || \
     fail "il builder non espone il riferimento Git della release"
-grep -Fxq '  packages: [git]' "$ISO_BUILDER_DIR/autoinstall.yaml" || \
-    fail "Subiquity deve installare soltanto Git"
+grep -Fxq '  packages: [git, gettext]' "$ISO_BUILDER_DIR/autoinstall.yaml" || \
+    fail "Subiquity deve installare Git e gettext per verificare il checkout"
 if grep -Fq '__WASALIGHT_PACKAGES__' "$ISO_BUILDER_DIR/autoinstall.yaml"; then
     fail "autoinstall contiene ancora il placeholder dei pacchetti runtime"
 fi
@@ -96,8 +96,13 @@ grep -Fq 'require_manifest_value_matching "$release_manifest" Wasalight Reposito
 grep -Fq 'git -C "$checkout" fetch origin "$branch"' \
     "$ISO_BUILDER_DIR/wasalight-first-boot.sh" || \
     fail "first boot non usa il branch centralizzato"
-grep -Fq 'Before=getty@tty1.service' "$ISO_BUILDER_DIR/wasalight-first-boot.service" || \
-    fail "first boot non precede la console grafica su tty1"
+grep -Fq 'Before=getty.target getty@tty1.service' \
+    "$ISO_BUILDER_DIR/wasalight-first-boot.service" || \
+    fail "first boot non precede il target login e la console grafica su tty1"
+grep -Fq 'WantedBy=getty.target' "$ISO_BUILDER_DIR/wasalight-first-boot.service" || \
+    fail "first boot non viene avviato insieme al target delle console"
+grep -Fq 'command -v msgfmt' "$ISO_BUILDER_DIR/wasalight-first-boot.sh" || \
+    fail "first boot non controlla gettext prima di verificare il checkout"
 grep -Fq 'RequiresMountsFor=/data' "$ISO_BUILDER_DIR/wasalight-first-boot.service" || \
     fail "first boot non attende il volume /data"
 grep -Fq 'active_file="/run/wasalight-first-boot-active"' \

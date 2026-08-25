@@ -29,8 +29,9 @@ NETBOOT richiede:
 INSTALLAZIONE WASALIGHT
 ----------------------
 
-Entrambe le varianti installano durante l'autoinstall soltanto Git. Dopo Ubuntu,
-un servizio systemd completa automaticamente Wasalight al primo avvio reale:
+Entrambe le varianti installano durante l'autoinstall Git e gettext, necessari
+per scaricare e verificare il progetto. Dopo Ubuntu, un servizio systemd completa
+automaticamente Wasalight al primo avvio reale:
 
 1. usa il checkout persistente /data/system/wasalight;
 2. scarica con un clone shallow o aggiorna il branch configurato nel manifest;
@@ -48,9 +49,11 @@ un servizio systemd completa automaticamente Wasalight al primo avvio reale:
 
 Il log si trova in /data/log/wasalight-first-boot.log. Se rete o installazione
 falliscono, il servizio non dichiara il completamento e riprova dopo 60 secondi.
-Durante questo bootstrap tty1 resta testuale e mostra l'avanzamento: Openbox e
-l'autologin grafico sono bloccati da un marker volatile. Il marker scompare con
-il riavvio conclusivo, quindi la grafica parte soltanto dal boot successivo.
+Durante questo bootstrap tty1 resta testuale e mostra l'avanzamento: il target
+dei login, Openbox e l'autologin grafico attendono il servizio. Il marker
+volatile scompare con il riavvio conclusivo, quindi la grafica parte soltanto
+dal boot successivo. Se il servizio fallisce, il job termina e il login testuale
+torna disponibile per il recupero mentre systemd prepara il tentativo successivo.
 Anche dopo aver richiesto il riavvio, il servizio resta attivo fino a quando
 systemd lo termina durante lo shutdown: tty1 non puo' quindi avviare Openbox
 nel breve intervallo tra la richiesta e l'effettivo riavvio.

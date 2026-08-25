@@ -81,6 +81,7 @@ fi
 mountpoint -q /data || die "/data is not mounted"
 [[ $(findmnt -n -o FSTYPE -M /data) == ext4 ]] || die "/data is not ext4"
 command -v git >/dev/null 2>&1 || die "Git is not installed"
+command -v msgfmt >/dev/null 2>&1 || die "gettext is not installed"
 
 install -d -o root -g root -m 0755 /data/system /var/lib/wasalight
 install -d -o chamsys -g chamsys -m 0750 "$log_dir"
@@ -165,7 +166,8 @@ systemctl reboot --no-block
 
 # Keep this Type=oneshot service in its activating state until systemd stops
 # it during the reboot transaction. If ExecStart returned here, the ordering
-# Before=getty@tty1.service would be released and autologin could start
+# Before=getty.target and Before=getty@tty1.service would be released and a
+# text or graphical login could start
 # Openbox in the short interval before shutdown actually takes control.
 while :; do
     sleep 60
