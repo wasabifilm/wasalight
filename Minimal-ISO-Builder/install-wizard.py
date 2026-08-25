@@ -8,7 +8,6 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import re
-import shutil
 import subprocess
 import sys
 import termios
@@ -57,6 +56,7 @@ class Wizard:
         self.timezone = "Europe/Rome"
         self.password_hash = ""
         self.disk: dict[str, str] | None = None
+        self.pending_prompt: str | None = None
 
     def _read_version(self) -> str:
         value = (self.base / "VERSION").read_text(encoding="ascii").strip()
@@ -84,11 +84,20 @@ class Wizard:
             raise WizardError(message.removeprefix("ERROR: ").strip())
         return result.stdout.strip()
 
-    def draw(self, step: int, title: str, body: list[str], *, danger: bool = False) -> None:
-        terminal_width = shutil.get_terminal_size((80, 24)).columns
-        width = max(64, min(84, terminal_width - 2))
+    def draw(
+        self, step: int, title: str, body: list[str], *, danger: bool = False,
+        prompt_label: str | None = None,
+    ) -> None:
+        try:
+            terminal = os.get_terminal_size(self.tty.fileno())
+            terminal_width, terminal_height = terminal.columns, terminal.lines
+        except OSError:
+            terminal_width, terminal_height = 80, 24
+        width = max(64, min(116, terminal_width - 4))
         inner = width - 2
-        accent = RED if danger else GREEN
+        margin = max(0, (terminal_width - width) // 2)
+        prefix = " " * margin
+        accent = GREEN
         progress = []
         for index, label in enumerate(STEPS):
             if index < step:
@@ -105,24 +114,42 @@ class Wizard:
                 f"{DIM}{index + 1}{RESET}"
                 for index in range(len(STEPS)))
 
-        self.tty.write(CLEAR + "\033[?25h")
-        self.tty.write(accent + "┏" + "━" * inner + "┓\n" + RESET)
-        heading = f"WASALIGHT INSTALLER v{self.version} · {self.variant}"
-        self.tty.write(accent + f"┃{heading:^{inner}}┃\n" + RESET)
-        self.tty.write(accent + "┣" + "━" * inner + "┫\n" + RESET)
-        self.tty.write(f"┃  {self._pad_ansi(progress_line, inner - 4)}  ┃\n")
-        self.tty.write(accent + "┣" + "━" * inner + "┫\n" + RESET)
-        self.tty.write(f"┃  {BRIGHT}{title:<{inner - 4}}{RESET}  ┃\n")
-        self.tty.write("┃" + " " * inner + "┃\n")
+        wrapped_body: list[str] = []
         for source_line in body:
-            wrapped = textwrap.wrap(source_line, width=inner - 6) or [""]
-            for line in wrapped:
-                self.tty.write(f"┃   {line:<{inner - 4}}┃\n")
-        self.tty.write("┃" + " " * inner + "┃\n")
-        self.tty.write(accent + "┣" + "━" * inner + "┫\n" + RESET)
+            wrapped_body.extend(textwrap.wrap(source_line, width=inner - 6) or [""])
+        fixed_lines = 14 + (2 if prompt_label else 0)
+        top_margin = max(0, (terminal_height - fixed_lines - len(wrapped_body)) // 3)
+
+        self.pending_prompt = prompt_label
+        self.tty.write(CLEAR + "\033[?25h" + "\n" * top_margin)
+        self.tty.write(prefix + accent + "┏" + "━" * inner + "┓\n" + RESET)
+        heading = f"WASALIGHT INSTALLER v{self.version} · {self.variant}"
+        self.tty.write(prefix + accent + f"┃{heading:^{inner}}┃\n" + RESET)
+        self.tty.write(prefix + accent + "┣" + "━" * inner + "┫\n" + RESET)
+        self.tty.write(prefix + f"┃  {self._pad_ansi(progress_line, inner - 4)}  ┃\n")
+        self.tty.write(prefix + accent + "┣" + "━" * inner + "┫\n" + RESET)
+        title_color = RED if danger else BRIGHT
+        self.tty.write(prefix + f"┃  {title_color}{title:<{inner - 4}}{RESET}  ┃\n")
+        self.tty.write(prefix + "┃" + " " * inner + "┃\n")
+        for line in wrapped_body:
+            destructive = any(token in line for token in (
+                "ALL DATA", "TARGET DISK", "ERASE to start", "[REMOVABLE]", "[USB]"))
+            color = RED if destructive else ""
+            reset = RESET if destructive else ""
+            self.tty.write(prefix + f"┃   {color}{line}{reset}{' ' * (inner - 3 - len(line))}┃\n")
+        self.tty.write(prefix + "┃" + " " * inner + "┃\n")
+        self.tty.write(prefix + accent + "┣" + "━" * inner + "┫\n" + RESET)
         footer = "Q Quit" if step == 0 else "B Back   ·   Q Quit"
-        self.tty.write(f"┃  {DIM}{footer:<{inner - 4}}{RESET}  ┃\n")
-        self.tty.write(accent + "┗" + "━" * inner + "┛\n" + RESET)
+        self.tty.write(prefix + f"┃  {DIM}{footer:<{inner - 4}}{RESET}  ┃\n")
+        if prompt_label:
+            self.tty.write(prefix + accent + "┣" + "━" * inner + "┫\n" + RESET)
+            prompt = f"{prompt_label}: "
+            self.tty.write(prefix + f"┃  {BRIGHT}{prompt:<{inner - 4}}{RESET}  ┃\n")
+        self.tty.write(prefix + accent + "┗" + "━" * inner + "┛\n" + RESET)
+        if prompt_label:
+            cursor_column = margin + 3 + len(prompt_label) + 2
+            self.tty.write(f"\033[2A\r\033[{cursor_column}C")
+        self.tty.flush()
 
     @staticmethod
     def _pad_ansi(value: str, width: int) -> str:
@@ -130,21 +157,28 @@ class Wizard:
         return value + " " * max(0, width - visible)
 
     def prompt(self, label: str, *, secret: bool = False) -> str:
+        inline = self.pending_prompt == label
         if secret:
-            self.tty.write(f"{label}: ")
-            self.tty.flush()
+            if not inline:
+                self.tty.write(f"{label}: ")
+                self.tty.flush()
             attributes = termios.tcgetattr(self.reader.fileno())
             hidden = attributes.copy()
             hidden[3] &= ~termios.ECHO
             try:
                 termios.tcsetattr(self.reader.fileno(), termios.TCSADRAIN, hidden)
-                return self.reader.readline().rstrip("\n")
+                value = self.reader.readline().rstrip("\n")
             finally:
                 termios.tcsetattr(self.reader.fileno(), termios.TCSADRAIN, attributes)
                 self.tty.write("\n")
-        self.tty.write(f"{label}: ")
-        self.tty.flush()
-        return self.reader.readline().rstrip("\n")
+            self.pending_prompt = None
+            return value
+        if not inline:
+            self.tty.write(f"{label}: ")
+            self.tty.flush()
+        value = self.reader.readline().rstrip("\n")
+        self.pending_prompt = None
+        return value
 
     @staticmethod
     def navigation(value: str, *, allow_back: bool = True) -> str | None:
@@ -156,8 +190,8 @@ class Wizard:
         return None
 
     def error(self, step: int, message: str) -> None:
-        self.draw(step, "Cannot continue", [message, "Press ENTER to try again."], danger=True)
-        self.reader.readline()
+        self.draw(step, "Cannot continue", [message], danger=True, prompt_label="Press ENTER")
+        self.prompt("Press ENTER")
 
     def choose_language(self) -> str:
         while True:
@@ -168,7 +202,7 @@ class Wizard:
                 "2  English",
                 "",
                 "This choice is independent from the keyboard layout.",
-            ])
+            ], prompt_label="Selection [1]")
             value = self.prompt("Selection [1]")
             self.navigation(value, allow_back=False)
             if value in ("", "1"):
@@ -195,14 +229,21 @@ class Wizard:
                 "9  Other XKB layout",
                 "",
                 f"Interface language: {self.language[1]} (unchanged by this choice)",
-            ])
+            ], prompt_label="Selection")
             value = self.prompt("Selection")
             if self.navigation(value) == "back":
                 return "back"
             if value == "9":
+                self.draw(1, "Custom keyboard layout", [
+                    "Enter an XKB layout code, for example: pl, pt or no.",
+                ], prompt_label="XKB layout code")
                 layout = self.prompt("XKB layout code")
                 if self.navigation(layout) == "back":
                     continue
+                self.draw(1, "Custom keyboard variant", [
+                    f"Layout: {layout}",
+                    "Leave the variant empty to use the layout default.",
+                ], prompt_label="XKB variant [default]")
                 variant = self.prompt("XKB variant [default]")
                 try:
                     self.run_backend(self.keyboard_backend, "--validate-layout", layout, variant)
@@ -223,9 +264,12 @@ class Wizard:
             self.draw(1, "Test keyboard", [
                 f"Active layout: {selected[2]}",
                 "Type a short test including symbols such as @, /, - or _.",
-            ])
+            ], prompt_label="Test")
             typed = self.prompt("Test")
-            self.tty.write(f"You typed: {typed}\n")
+            self.draw(1, "Confirm keyboard", [
+                f"Active layout: {selected[2]}",
+                f"You typed: {typed}",
+            ], prompt_label="Is this correct? [Y/n]")
             confirmed = self.prompt("Is this correct? [Y/n]")
             if confirmed.lower() in ("", "y", "yes"):
                 self.keyboard = selected
@@ -243,7 +287,7 @@ class Wizard:
                 "2  Switzerland    Europe/Zurich     6  Spain           Europe/Madrid",
                 "3  United Kingdom Europe/London     7  UTC             Etc/UTC",
                 "4  Germany        Europe/Berlin     8  Other IANA zone",
-            ])
+            ], prompt_label="Selection [1]")
             value = self.prompt("Selection [1]")
             if self.navigation(value) == "back":
                 return "back"
@@ -252,6 +296,9 @@ class Wizard:
             elif value in zones:
                 zone = zones[value]
             elif value == "8":
+                self.draw(2, "Custom time zone", [
+                    "Enter an IANA time zone, for example America/New_York.",
+                ], prompt_label="IANA time zone")
                 zone = self.prompt("IANA time zone")
             else:
                 self.error(2, "Select a time zone from 1 to 8.")
@@ -270,7 +317,7 @@ class Wizard:
                 "Set the password for the chamsys administrator account.",
                 "It must contain at least 6 characters and is never displayed.",
                 "Type B at the first password prompt to return to the previous step.",
-            ])
+            ], prompt_label="Password")
             password = self.prompt("Password", secret=True)
             if password.lower() == "b":
                 return "back"
@@ -279,6 +326,10 @@ class Wizard:
             if len(password) < 6:
                 self.error(3, "The password is too short.")
                 continue
+            self.draw(3, "Repeat administrator password", [
+                "Type the same password again to confirm it.",
+                "The password remains hidden.",
+            ], prompt_label="Repeat password")
             repeated = self.prompt("Repeat password", secret=True)
             if password != repeated:
                 self.error(3, "The passwords do not match.")
@@ -328,8 +379,9 @@ class Wizard:
                     body.append(f"   Serial: {disk['serial']}")
             if not disks:
                 body.extend(("No installable disk was found.", "Press R to rescan."))
-            self.draw(4, "Installation disk", body, danger=True)
-            value = self.prompt("Disk number" if disks else "R rescan")
+            disk_prompt = "Disk number" if disks else "R rescan"
+            self.draw(4, "Installation disk", body, danger=True, prompt_label=disk_prompt)
+            value = self.prompt(disk_prompt)
             if self.navigation(value) == "back":
                 return "back"
             if not disks and value.lower() == "r":
@@ -361,7 +413,7 @@ class Wizard:
             "Storage: GPT, EFI, /boot and LVM; / uses 50%, /data uses the rest.",
             "ALL DATA ON THE TARGET DISK WILL BE ERASED.",
             "Type exactly ERASE to start. Nothing is formatted before this confirmation.",
-        ], danger=True)
+        ], danger=True, prompt_label="Confirmation")
         value = self.prompt("Confirmation")
         if self.navigation(value) == "back":
             return "back"

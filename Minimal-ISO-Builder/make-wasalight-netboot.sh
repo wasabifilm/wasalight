@@ -12,14 +12,10 @@ SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 PROJECT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
 RELEASE_MANIFEST="$PROJECT_DIR/release-manifest.ini"
 MANIFEST_LIBRARY="$PROJECT_DIR/lib/wasalight-release-manifest.sh"
-PACKAGE_LIST_LIBRARY="$PROJECT_DIR/lib/wasalight-package-list.sh"
 [[ -r "$RELEASE_MANIFEST" ]] || die "release-manifest.ini non trovato: $RELEASE_MANIFEST"
 [[ -r "$MANIFEST_LIBRARY" ]] || die "loader manifest non trovato: $MANIFEST_LIBRARY"
-[[ -r "$PACKAGE_LIST_LIBRARY" ]] || die "loader pacchetti non trovato: $PACKAGE_LIST_LIBRARY"
 # shellcheck source=../lib/wasalight-release-manifest.sh
 . "$MANIFEST_LIBRARY"
-# shellcheck source=../lib/wasalight-package-list.sh
-. "$PACKAGE_LIST_LIBRARY"
 
 VERSION_FILE_NAME="$(require_manifest_value_matching "$RELEASE_MANIFEST" ISOBuilder VersionFile \
   '^Minimal-ISO-Builder/[A-Za-z0-9][A-Za-z0-9._-]*$' 'a path below Minimal-ISO-Builder')" || exit 1
@@ -45,12 +41,6 @@ WASALIGHT_BRANCH="$(require_manifest_value_matching "$RELEASE_MANIFEST" Wasaligh
 WASALIGHT_INSTALL_REF=${WASALIGHT_INSTALL_REF:-$WASALIGHT_BRANCH}
 [[ $WASALIGHT_INSTALL_REF =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ ]] || \
   die "Riferimento Wasalight non valido: $WASALIGHT_INSTALL_REF"
-RUNTIME_PACKAGES_FILE_NAME="$(require_manifest_value_matching \
-  "$RELEASE_MANIFEST" Wasalight RuntimePackagesFile \
-  '^packages/[A-Za-z0-9][A-Za-z0-9._/-]*$' 'a path below packages')" || exit 1
-RUNTIME_PACKAGES_FILE="$PROJECT_DIR/$RUNTIME_PACKAGES_FILE_NAME"
-PACKAGES_VALUE="$(wasalight_runtime_packages_yaml "$RUNTIME_PACKAGES_FILE")" || \
-  die "Elenco pacchetti runtime non valido: $RUNTIME_PACKAGES_FILE"
 VERSION_FILE="$PROJECT_DIR/$VERSION_FILE_NAME"
 [[ -r "$VERSION_FILE" ]] || die "VERSION non trovato: $VERSION_FILE"
 INSTALLER_VERSION="$(tr -d '[:space:]' <"$VERSION_FILE")"
@@ -59,7 +49,6 @@ readonly PROJECT_DIR RELEASE_MANIFEST MANIFEST_LIBRARY VERSION_FILE_NAME VERSION
 readonly UBUNTU_VERSION UBUNTU_POINT_RELEASE TARGET_ARCHITECTURE MINI_ISO_FILE
 readonly MINI_SHA256 SERVER_SHA256 SERVER_SIZE SERVER_URL
 readonly WASALIGHT_REPOSITORY WASALIGHT_BRANCH WASALIGHT_INSTALL_REF INSTALLER_VERSION
-readonly PACKAGE_LIST_LIBRARY RUNTIME_PACKAGES_FILE_NAME RUNTIME_PACKAGES_FILE PACKAGES_VALUE
 
 MINI_ISO="${1:-$SCRIPT_DIR/$MINI_ISO_FILE}"
 AUTOINSTALL="${2:-$SCRIPT_DIR/autoinstall.yaml}"
@@ -107,8 +96,7 @@ for source in "$MINI_ISO" "$AUTOINSTALL" "$LOADER" "$COPY_SEED" \
   "$POWEROFF_PROMPT" "$FIRST_BOOT_SCRIPT" "$FIRST_BOOT_SERVICE" \
   "$LOG_SAVER" \
   "$PREFLIGHT_SCRIPT" \
-  "$RELEASE_MANIFEST" "$MANIFEST_LIBRARY" \
-  "$PACKAGE_LIST_LIBRARY" "$RUNTIME_PACKAGES_FILE"; do
+  "$RELEASE_MANIFEST" "$MANIFEST_LIBRARY"; do
   [[ -f $source ]] || die "File richiesto non trovato: $source"
 done
 
@@ -121,7 +109,6 @@ for placeholder in \
   __WASALIGHT_TIMEZONE__ \
   __WASALIGHT_PASSWORD_HASH__ \
   __WASALIGHT_INSTALL_VARIANT__ \
-  __WASALIGHT_PACKAGES__ \
   __WASALIGHT_NETWORK_PRELOAD__ \
   __WASALIGHT_INSTALLER_VERSION__
 do
@@ -201,15 +188,14 @@ xorriso -osirrox on -indev "$MINI_ISO" \
 info "[2/5] Creo autoinstall e overlay per il secondo avvio..."
 sed \
   -e 's|__WASALIGHT_INSTALL_VARIANT__|NETBOOT|g' \
-  -e "s|__WASALIGHT_PACKAGES__|$PACKAGES_VALUE|g" \
   -e 's|__WASALIGHT_NETWORK_PRELOAD__|curtin in-target --target=/target -- /usr/local/sbin/wasalight-first-boot --download-only|g' \
   -e "s|__WASALIGHT_INSTALLER_VERSION__|$INSTALLER_VERSION|g" \
   -e 's|/cdrom/wasalight|/wasalight|g' \
   "$AUTOINSTALL" >"$TMP/autoinstall.yaml"
-grep -Fq "packages: $PACKAGES_VALUE" "$TMP/autoinstall.yaml" || \
-  die "Pacchetti Wasalight non presenti nell'autoinstall NETBOOT."
+grep -Fq 'packages: [git]' "$TMP/autoinstall.yaml" || \
+  die "Git non presente nell'autoinstall NETBOOT."
 grep -Fq -- '--download-only' "$TMP/autoinstall.yaml" || die "Preload Git Wasalight non configurato."
-if grep -Eq '__WASALIGHT_(INSTALL_VARIANT|PACKAGES|NETWORK_PRELOAD|INSTALLER_VERSION)__|/cdrom/wasalight' "$TMP/autoinstall.yaml"; then
+if grep -Eq '__WASALIGHT_(INSTALL_VARIANT|NETWORK_PRELOAD|INSTALLER_VERSION)__|/cdrom/wasalight' "$TMP/autoinstall.yaml"; then
   die "Autoinstall NETBOOT contiene placeholder o percorsi non risolti."
 fi
 

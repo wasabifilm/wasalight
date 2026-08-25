@@ -69,9 +69,9 @@ runtime_packages_yaml=$(wasalight_runtime_packages_yaml "$PROJECT_DIR/$runtime_p
 for script in make-wasalight-minimal.sh make-wasalight-netboot.sh; do
     grep -Fq 'lib/wasalight-release-manifest.sh' "$ISO_BUILDER_DIR/$script" || \
         fail "$script non usa il loader manifest centrale"
-    grep -Fq 'wasalight_runtime_packages_yaml "$RUNTIME_PACKAGES_FILE"' \
-        "$ISO_BUILDER_DIR/$script" || \
-        fail "$script non usa l'elenco pacchetti runtime condiviso"
+    if grep -Fq 'wasalight_runtime_packages_yaml' "$ISO_BUILDER_DIR/$script"; then
+        fail "$script anticipa i pacchetti runtime nell'autoinstall"
+    fi
     grep -Fq 'ISO_RELEASE_MANIFEST=' "$ISO_BUILDER_DIR/$script" || \
         fail "$script non genera un manifest ISO separato"
     grep -Fq 'Branch=$WASALIGHT_INSTALL_REF' "$ISO_BUILDER_DIR/$script" || \
@@ -79,6 +79,11 @@ for script in make-wasalight-minimal.sh make-wasalight-netboot.sh; do
 done
 grep -Fq -- '--wasalight-ref' "$ISO_BUILDER_DIR/make-wasalight-minimal.sh" || \
     fail "il builder non espone il riferimento Git della release"
+grep -Fxq '  packages: [git]' "$ISO_BUILDER_DIR/autoinstall.yaml" || \
+    fail "Subiquity deve installare soltanto Git"
+if grep -Fq '__WASALIGHT_PACKAGES__' "$ISO_BUILDER_DIR/autoinstall.yaml"; then
+    fail "autoinstall contiene ancora il placeholder dei pacchetti runtime"
+fi
 grep -Fq 'git clone --depth 1 --branch "$branch" --single-branch' \
     "$ISO_BUILDER_DIR/wasalight-first-boot.sh" || \
     fail "first boot non usa un clone shallow"
@@ -138,12 +143,24 @@ grep -Fq '/run/wasalight-timezone-label' "$ISO_BUILDER_DIR/install-ui.sh" || \
     fail "UI installer non mostra il fuso orario scelto"
 grep -Fq 'Preparing the installation' "$ISO_BUILDER_DIR/install-ui.sh" || \
     fail "UI installer non tradotta in inglese"
+grep -Fq 'os.get_terminal_size(tty.fileno())' "$ISO_BUILDER_DIR/install-ui.sh" || \
+    fail "display avanzamento non usa le dimensioni reali di tty2"
 wizard="$ISO_BUILDER_DIR/install-wizard.py"
 [[ -s $wizard ]] || fail "wizard installazione unificato mancante"
 python3 -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' \
     "$wizard"
+python3 "$ISO_BUILDER_DIR/tests/verify-wizard-ui.py" "$wizard"
+python3 "$ISO_BUILDER_DIR/tests/verify-install-ui.py" "$ISO_BUILDER_DIR/install-ui.sh"
 grep -Fq 'Type exactly ERASE to start.' "$wizard" || \
     fail "conferma distruttiva inglese mancante"
+grep -Fq 'os.get_terminal_size(self.tty.fileno())' "$wizard" || \
+    fail "wizard non usa le dimensioni della console reale"
+grep -Fq 'min(116, terminal_width - 4)' "$wizard" || \
+    fail "wizard non usa il pannello largo adattivo"
+grep -Fq 'prompt_label="Confirmation"' "$wizard" || \
+    fail "prompt ERASE non integrato nella cornice"
+grep -Fq 'accent = GREEN' "$wizard" || \
+    fail "cornice Wasalight non resta verde nelle schermate distruttive"
 grep -Fq 'Review and confirm' "$wizard" || \
     fail "riepilogo finale prima di ERASE mancante"
 for summary_value in 'Interface language' 'Keyboard' 'Time zone' 'Password' 'Boot mode' 'Storage:'; do

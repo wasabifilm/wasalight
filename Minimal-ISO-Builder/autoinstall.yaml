@@ -18,7 +18,7 @@ autoinstall:
     install-server: false
     allow-pw: false
     authorized-keys: []
-  packages: __WASALIGHT_PACKAGES__
+  packages: [git]
   storage:
     config:
     - type: disk
