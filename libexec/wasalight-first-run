@@ -16,7 +16,7 @@ sleep 4
 if /usr/local/bin/wasalight-dialog --question --icon=wasalight-network --width=560 --title="$( _ "Network" )" \
     --text="$( _ "Open Ethernet and Wi-Fi settings now?" )" \
     --ok-label="$( _ "Configure network" )" --cancel-label="$( _ "Continue" )"; then
-    nm-connection-editor
+    /usr/local/bin/wasalight-control --page network
 fi
 
 touch_summary=$(/usr/local/bin/wasalight-touch-status --summary 2>/dev/null || _ "unavailable")

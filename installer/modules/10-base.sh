@@ -316,7 +316,7 @@ install_packages() {
 
 configure_networkmanager() {
     # Ubuntu Server's installer normally leaves Netplan on systemd-networkd.
-    # In that state nm-connection-editor opens but lists no usable devices.
+    # In that state network clients open but list no usable devices.
     # A late Netplan file changes only the renderer, preserving the interface,
     # DHCP, static address, route and DNS definitions created during install.
     install_template /etc/netplan/99-wasalight-networkmanager.yaml 0600

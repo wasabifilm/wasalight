@@ -7,11 +7,12 @@
 from .about import AboutPage
 from .applications import ApplicationsPage
 from .maintenance import MaintenancePage
+from .network import NetworkPage
 from .overview import OverviewPage
 from .system import SystemPage
 from .tools import ToolsPage
 
 __all__ = [
-    "AboutPage", "ApplicationsPage", "MaintenancePage", "OverviewPage",
-    "SystemPage", "ToolsPage",
+    "AboutPage", "ApplicationsPage", "MaintenancePage", "NetworkPage",
+    "OverviewPage", "SystemPage", "ToolsPage",
 ]

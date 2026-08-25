@@ -61,7 +61,7 @@ locales
 arp-scan
 iproute2
 network-manager
-network-manager-gnome
+gir1.2-nm-1.0
 wpasupplicant
 policykit-1
 policykit-1-gnome
