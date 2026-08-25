@@ -306,9 +306,10 @@ build, macchina e percorso del support bundle o del log conservato.
       la cache sotto la directory runtime scompare al riavvio.
 - [ ] Nel profilo Companion, Falkon mostra AdBlock disattivato; riavvio del
       browser e update Wasalight non lo riattivano e non rimuovono altri plugin.
-- [ ] Falkon usa il tema scuro, pulsanti touch grandi e zoom 120%; campo indirizzo
-      e Tint2 restano visibili, mentre preferiti, stato e la barra con una sola
-      scheda sono nascosti.
+- [ ] Falkon usa il tema scuro, pulsanti touch grandi e zoom iniziale 100%; la
+      barra mostra Indietro, Ricarica, Home e i pulsanti Zoom −/+, senza menu a
+      destra. Campo indirizzo, preferiti, stato e la barra con una sola scheda
+      sono nascosti; Tint2 resta visibile e il titolo finestra è `Companion`.
 - [ ] Chiudendo e riaprendo Falkon compare la home Companion senza ripristinare
       le vecchie schede. Dopo aver cambiato una preferenza, un update Wasalight
       non la riporta al valore iniziale.
