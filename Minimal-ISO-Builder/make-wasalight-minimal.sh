@@ -58,10 +58,14 @@ SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 PROJECT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
 RELEASE_MANIFEST="$PROJECT_DIR/release-manifest.ini"
 MANIFEST_LIBRARY="$PROJECT_DIR/lib/wasalight-release-manifest.sh"
+PACKAGE_LIST_LIBRARY="$PROJECT_DIR/lib/wasalight-package-list.sh"
 [[ -r "$RELEASE_MANIFEST" ]] || die "release-manifest.ini non trovato: $RELEASE_MANIFEST"
 [[ -r "$MANIFEST_LIBRARY" ]] || die "loader manifest non trovato: $MANIFEST_LIBRARY"
+[[ -r "$PACKAGE_LIST_LIBRARY" ]] || die "loader pacchetti non trovato: $PACKAGE_LIST_LIBRARY"
 # shellcheck source=../lib/wasalight-release-manifest.sh
 . "$MANIFEST_LIBRARY"
+# shellcheck source=../lib/wasalight-package-list.sh
+. "$PACKAGE_LIST_LIBRARY"
 
 VERSION_FILE_NAME="$(require_manifest_value_matching "$RELEASE_MANIFEST" ISOBuilder VersionFile \
   '^Minimal-ISO-Builder/[A-Za-z0-9][A-Za-z0-9._-]*$' 'a path below Minimal-ISO-Builder')" || exit 1
@@ -79,6 +83,11 @@ WASALIGHT_REPOSITORY="$(require_manifest_value_matching "$RELEASE_MANIFEST" Wasa
   '^https://[A-Za-z0-9][A-Za-z0-9./_?&=%+~:@-]*$' 'a safe HTTPS URL')" || exit 1
 WASALIGHT_BRANCH="$(require_manifest_value_matching "$RELEASE_MANIFEST" Wasalight Branch \
   '^[A-Za-z0-9][A-Za-z0-9._/-]*$' 'a Git branch name')" || exit 1
+BOOTSTRAP_PACKAGES_FILE_NAME="$(require_manifest_value_matching \
+  "$RELEASE_MANIFEST" Wasalight BootstrapPackagesFile \
+  '^packages/[A-Za-z0-9][A-Za-z0-9._/-]*$' 'a path below packages')" || exit 1
+BOOTSTRAP_PACKAGES_VALUE="$(wasalight_runtime_packages_yaml \
+  "$PROJECT_DIR/$BOOTSTRAP_PACKAGES_FILE_NAME")" || die "Elenco pacchetti bootstrap non valido."
 VERSION_FILE="$PROJECT_DIR/$VERSION_FILE_NAME"
 [[ -r "$VERSION_FILE" ]] || die "VERSION non trovato: $VERSION_FILE"
 INSTALLER_VERSION="$(tr -d '[:space:]' <"$VERSION_FILE")"
@@ -86,6 +95,7 @@ INSTALLER_VERSION="$(tr -d '[:space:]' <"$VERSION_FILE")"
 readonly PROJECT_DIR RELEASE_MANIFEST MANIFEST_LIBRARY VERSION_FILE_NAME VERSION_FILE
 readonly UBUNTU_VERSION UBUNTU_POINT_RELEASE TARGET_ARCHITECTURE LIVE_ISO_FILE
 readonly LIVE_ISO_SHA256 WASALIGHT_REPOSITORY WASALIGHT_BRANCH INSTALLER_VERSION
+readonly PACKAGE_LIST_LIBRARY BOOTSTRAP_PACKAGES_FILE_NAME BOOTSTRAP_PACKAGES_VALUE
 
 BUILD_VARIANT=all
 WASALIGHT_INSTALL_REF=$WASALIGHT_BRANCH
@@ -110,6 +120,13 @@ done
   die "Riferimento Wasalight non valido: $WASALIGHT_INSTALL_REF"
 export WASALIGHT_INSTALL_REF
 readonly WASALIGHT_INSTALL_REF
+WASALIGHT_INSTALL_COMMIT=$(git -C "$PROJECT_DIR" rev-parse --verify \
+  "$WASALIGHT_INSTALL_REF^{commit}" 2>/dev/null) || \
+  die "Il riferimento Wasalight non esiste localmente: $WASALIGHT_INSTALL_REF"
+[[ $WASALIGHT_INSTALL_COMMIT =~ ^[0-9a-f]{40}$ ]] || \
+  die "Commit Wasalight non valido: $WASALIGHT_INSTALL_COMMIT"
+export WASALIGHT_INSTALL_COMMIT
+readonly WASALIGHT_INSTALL_COMMIT
 
 case "$BUILD_VARIANT" in
   all)
@@ -234,7 +251,8 @@ for placeholder in \
   __WASALIGHT_PASSWORD_HASH__ \
   __WASALIGHT_INSTALL_VARIANT__ \
   __WASALIGHT_NETWORK_PRELOAD__ \
-  __WASALIGHT_INSTALLER_VERSION__
+  __WASALIGHT_INSTALLER_VERSION__ \
+  __WASALIGHT_BOOTSTRAP_PACKAGES__
 do
   count=$(grep -Foc "$placeholder" "$AUTOINSTALL" || true)
   [[ "$count" == "1" ]] || \
@@ -272,10 +290,11 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 ISO_RELEASE_MANIFEST="$TMP/release-manifest.ini"
-awk -v install_ref="$WASALIGHT_INSTALL_REF" '
+awk -v install_ref="$WASALIGHT_INSTALL_REF" -v install_commit="$WASALIGHT_INSTALL_COMMIT" '
   /^\[/ { section=$0 }
   section == "[Wasalight]" && /^Branch=/ {
     print "Branch=" install_ref
+    print "InstallCommit=" install_commit
     replaced++
     next
   }
@@ -285,6 +304,8 @@ awk -v install_ref="$WASALIGHT_INSTALL_REF" '
   die "Impossibile fissare il riferimento Wasalight nel manifest ISO."
 grep -Fxq "Branch=$WASALIGHT_INSTALL_REF" "$ISO_RELEASE_MANIFEST" || \
   die "Il riferimento Wasalight non è presente nel manifest ISO."
+grep -Fxq "InstallCommit=$WASALIGHT_INSTALL_COMMIT" "$ISO_RELEASE_MANIFEST" || \
+  die "Il commit Wasalight non è presente nel manifest ISO."
 
 UI_SCRIPT="$TMP/install-ui.sh"
 sed "s|__WASALIGHT_UBUNTU_VERSION__|$UBUNTU_VERSION|g" "$UI_TEMPLATE" >"$UI_SCRIPT"
@@ -448,8 +469,9 @@ sed \
   -e "s|__WASALIGHT_INSTALL_VARIANT__|$VARIANT_LABEL|g" \
   -e "s|__WASALIGHT_NETWORK_PRELOAD__|$NETWORK_PRELOAD_VALUE|g" \
   -e "s|__WASALIGHT_INSTALLER_VERSION__|$INSTALLER_VERSION|g" \
+  -e "s|__WASALIGHT_BOOTSTRAP_PACKAGES__|$BOOTSTRAP_PACKAGES_VALUE|g" \
   "$AUTOINSTALL" > "$TMP/autoinstall.yaml"
-grep -Fq 'packages: [git, gettext]' "$TMP/autoinstall.yaml" || \
+grep -Fq "packages: $BOOTSTRAP_PACKAGES_VALUE" "$TMP/autoinstall.yaml" || \
   die "Prerequisiti di bootstrap non presenti nell'autoinstall FULL."
 
 info "[6/7] Aggiorno i checksum..."

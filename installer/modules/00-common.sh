@@ -17,6 +17,18 @@ installer_progress() {
     mv -f -- "$temporary" "$WASALIGHT_PROGRESS_FILE"
 }
 
+verify_project_sources() {
+    if [[ ${WASALIGHT_UPDATE_TRANSACTION:-0} == 1 && \
+          ${WASALIGHT_VERIFIED_COMMIT:-} == "$PROJECT_COMMIT" && \
+          $PROJECT_COMMIT =~ ^[0-9a-f]{40}$ ]]; then
+        log "project commit $PROJECT_COMMIT was already verified by WasaUpdate"
+        return 0
+    fi
+
+    log "verifying project sources with the installed runtime"
+    "$PROJECT_DIR/tests/verify-project.sh"
+}
+
 on_error() {
     local rc=$?
     printf '[%s] ERROR: command failed at line %s (exit %s): %s\n' \

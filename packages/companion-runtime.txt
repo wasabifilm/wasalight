@@ -1,0 +1,11 @@
+# Runtime and build dependencies for the optional Companion installation.
+adduser
+curl
+wget
+zip
+unzip
+libusb-1.0-0-dev
+libudev-dev
+libfontconfig1
+libatomic1
+libasound2t64

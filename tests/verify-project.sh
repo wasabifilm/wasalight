@@ -49,16 +49,12 @@ grep -Fq -- '--without-ssh' <<<"$help_output" || \
     fail "-help non mostra la disattivazione persistente di SSH"
 grep -Fq -- '--plugin ID' <<<"$help_output" || \
     fail "-help non mostra il sistema plugin Wasalight"
-grep -Fq '/data/system/packages/*.deb' "$ENTRYPOINT" || \
-    fail "install.sh non riutilizza il pacchetto MagicQ persistente"
-grep -Fq '^/stick[2-9]$' "$ENTRYPOINT" || \
-    fail "install.sh non riconosce gli slot USB diretti Wasalight"
-grep -Fq '$usb_mount/packages' "$ENTRYPOINT" || \
-    fail "install.sh non cerca MagicQ nella cartella packages della USB"
-grep -Fq 'dpkg --compare-versions' "$ENTRYPOINT" || \
-    fail "install.sh sceglie MagicQ dal nome file invece che dalla versione Debian"
-grep -Fq "dpkg-query -W -f='\${db:Status-Abbrev}' magicq" "$ENTRYPOINT" || \
-    fail "install.sh non riconosce una MagicQ già installata quando manca il .deb"
+grep -Fq 'exec "$PROJECT_DIR/bin/chamsys_install_ubuntu.sh" "$@"' "$ENTRYPOINT" || \
+    fail "install.sh non delega direttamente al motore unico"
+grep -Fq 'discover_magicq_from_usb' "$PROJECT_DIR/installer/modules/10-base.sh" || \
+    fail "il motore unico non cerca MagicQ sulle USB iniziali"
+grep -Fq 'dpkg --compare-versions' "$PROJECT_DIR/installer/modules/10-base.sh" || \
+    fail "il motore unico sceglie MagicQ dal nome file invece che dalla versione Debian"
 
 bash -n "$INSTALLER"
 bash -n "$ENTRYPOINT"
@@ -97,6 +93,7 @@ for declaration in \
     '[Wasalight]' 'VersionFile=VERSION' \
     'Repository=https://github.com/wasabifilm/wasalight.git' 'Branch=main' \
     'VersionURL=https://raw.githubusercontent.com/wasabifilm/wasalight/main/VERSION' \
+    'BootstrapPackagesFile=packages/wasalight-bootstrap.txt' \
     'RuntimePackagesFile=packages/wasalight-runtime.txt' \
     '[Updates]' 'DefaultChannel=stable' \
     'StableAPI=https://api.github.com/repos/wasabifilm/wasalight/releases/latest' \
@@ -112,7 +109,9 @@ for declaration in \
     'MiniISOFile=ubuntu-mini-iso-24.04.4-mini-iso-amd64.iso' \
     'MiniISOSHA256=57bfe99e776698ae08358145cf3a58bfb74beafe8c8cf965ca86552233d2f53f' \
     '[Companion]' 'Version=5.0.3' \
-    'Commit=07024263dbb54512f3acdc705eca70cd74dbae43'; do
+    'RuntimePackagesFile=packages/companion-runtime.txt' \
+    'Commit=07024263dbb54512f3acdc705eca70cd74dbae43' \
+    '[MagicQ]' 'RuntimePackagesFile=packages/magicq-runtime.txt'; do
     grep -Fqx "$declaration" "$RELEASE_MANIFEST" || \
         fail "valore release centralizzato mancante: $declaration"
 done

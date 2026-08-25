@@ -23,7 +23,9 @@ repository=$(require_manifest_value_matching "$release_manifest" Wasalight Repos
     '^https://[A-Za-z0-9][A-Za-z0-9./_?&=%+~:@-]*$' 'a safe HTTPS URL') || exit 1
 branch=$(require_manifest_value_matching "$release_manifest" Wasalight Branch \
     '^[A-Za-z0-9][A-Za-z0-9._/-]*$' 'a Git branch name') || exit 1
-readonly repository branch
+install_commit=$(require_manifest_value_matching "$release_manifest" Wasalight InstallCommit \
+    '^[0-9a-f]{40}$' 'a full Git commit') || exit 1
+readonly repository branch install_commit
 readonly checkout="/data/system/wasalight"
 readonly log_dir="/data/log"
 readonly log_file="$log_dir/wasalight-first-boot.log"
@@ -81,7 +83,6 @@ fi
 mountpoint -q /data || die "/data is not mounted"
 [[ $(findmnt -n -o FSTYPE -M /data) == ext4 ]] || die "/data is not ext4"
 command -v git >/dev/null 2>&1 || die "Git is not installed"
-command -v msgfmt >/dev/null 2>&1 || die "gettext is not installed"
 
 install -d -o root -g root -m 0755 /data/system /var/lib/wasalight
 install -d -o chamsys -g chamsys -m 0750 "$log_dir"
@@ -98,7 +99,7 @@ printf '========================================\n'
 echo "Started: $(date --iso-8601=seconds)"
 echo "Repository: $repository"
 
-current_phase="1/4 · Download sources"
+current_phase="1/3 · Download pinned sources"
 write_status running "Checking and updating the Wasalight repository"
 echo "[$current_phase]"
 if [[ -e $checkout && ! -d $checkout/.git ]]; then
@@ -111,7 +112,9 @@ if [[ -d $checkout/.git ]]; then
     git -C "$checkout" diff --cached --quiet || die "the Git index contains local changes"
     git -C "$checkout" remote set-url origin "$repository"
     git -C "$checkout" fetch origin "$branch"
-    git -C "$checkout" merge --ff-only FETCH_HEAD
+    git -C "$checkout" cat-file -e "$install_commit^{commit}" 2>/dev/null || \
+        die "the pinned commit was not downloaded: $install_commit"
+    git -C "$checkout" checkout --detach "$install_commit"
 else
     temporary_checkout="${checkout}.new.$$"
     cleanup() { rm -rf -- "$temporary_checkout"; }
@@ -123,25 +126,22 @@ else
     trap - EXIT
 fi
 
-current_phase="2/4 · Verify sources"
-write_status running "Verifying the downloaded project"
-echo "[$current_phase]"
-echo "Verifying the downloaded project..."
-"$checkout/tests/verify-project.sh"
 commit=$(git -C "$checkout" rev-parse --verify HEAD)
 [[ $commit =~ ^[0-9a-f]{40}$ ]] || die "invalid Git commit: $commit"
+[[ $commit == "$install_commit" ]] || \
+    die "downloaded commit $commit does not match pinned commit $install_commit"
 printf 'repository=%s\nbranch=%s\ncommit=%s\ndownloaded_at=%s\n' \
     "$repository" "$branch" "$commit" "$(date --iso-8601=seconds)" >"$version_file"
 chown root:adm "$version_file" 2>/dev/null || chown root:root "$version_file"
 chmod 0640 "$version_file"
 
 if ((download_only)); then
-    write_status prepared "Wasalight source verified and ready for first boot"
-    echo "Wasalight source verified and prepared for first boot."
+    write_status prepared "Pinned Wasalight source downloaded and ready for first boot"
+    echo "Pinned Wasalight source downloaded and prepared for first boot."
     exit 0
 fi
 
-current_phase="3/4 · Install Wasalight"
+current_phase="2/3 · Install and verify Wasalight"
 write_status running "Running install.sh"
 echo "[$current_phase]"
 echo "Installing Wasalight from commit $commit..."
@@ -149,7 +149,7 @@ echo "Installing Wasalight from commit $commit..."
 grep -qxF 'overlayroot="disabled"' /etc/overlayroot.local.conf || \
     die "the next boot was not configured for MAINTENANCE mode"
 
-current_phase="4/4 · Finalization"
+current_phase="3/3 · Finalization"
 write_status running "Recording completion and rebooting into MAINTENANCE"
 echo "[$current_phase]"
 printf '\n========================================\n'

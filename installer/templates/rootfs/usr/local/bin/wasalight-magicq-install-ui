@@ -5,6 +5,15 @@ set -Eeuo pipefail
 . /usr/local/libexec/wasalight-i18n
 
 title='Wasalight · MagicQ'
+lock_file="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/wasalight-magicq-install-ui.lock"
+exec 9>"$lock_file"
+if ! flock -n 9; then
+    /usr/local/bin/wasalight-dialog --info \
+        --icon=wasalight-magicq-install --width=580 --title="$title" \
+        --text="$( _ '<big><b>MagicQ installation is already running.</b></big>\n\nWait for the current search, copy and verification to finish.' )"
+    exit 0
+fi
+
 if [[ $(findmnt -n -o FSTYPE / 2>/dev/null) == overlay ]]; then
     /usr/local/bin/wasalight-dialog --error \
         --icon=wasalight-magicq-install \
@@ -28,7 +37,7 @@ pkexec /usr/local/sbin/wasalight-magicq-install >"$log_file" 2>&1 &
 install_pid=$!
 (
     while kill -0 "$install_pid" 2>/dev/null; do
-        printf '# %s\n' "$( _ "Searching for and verifying the MagicQ package…" )"
+        printf '# %s\n' "$( _ "Searching, copying and verifying MagicQ… A slow USB drive can take several minutes." )"
         sleep 1
     done
 ) | /usr/local/bin/wasalight-dialog --progress --pulsate --auto-close --no-cancel \

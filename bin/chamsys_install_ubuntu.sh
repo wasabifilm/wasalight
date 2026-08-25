@@ -51,6 +51,14 @@ readonly RUNTIME_PACKAGES_FILE_NAME="$(require_manifest_value_matching \
     "$RELEASE_MANIFEST" Wasalight RuntimePackagesFile \
     '^packages/[A-Za-z0-9][A-Za-z0-9._/-]*$' 'a path below packages')"
 readonly RUNTIME_PACKAGES_FILE="$PROJECT_DIR/$RUNTIME_PACKAGES_FILE_NAME"
+readonly MAGICQ_RUNTIME_PACKAGES_FILE_NAME="$(require_manifest_value_matching \
+    "$RELEASE_MANIFEST" MagicQ RuntimePackagesFile \
+    '^packages/[A-Za-z0-9][A-Za-z0-9._/-]*$' 'a path below packages')"
+readonly MAGICQ_RUNTIME_PACKAGES_FILE="$PROJECT_DIR/$MAGICQ_RUNTIME_PACKAGES_FILE_NAME"
+readonly COMPANION_RUNTIME_PACKAGES_FILE_NAME="$(require_manifest_value_matching \
+    "$RELEASE_MANIFEST" Companion RuntimePackagesFile \
+    '^packages/[A-Za-z0-9][A-Za-z0-9._/-]*$' 'a path below packages')"
+readonly COMPANION_RUNTIME_PACKAGES_FILE="$PROJECT_DIR/$COMPANION_RUNTIME_PACKAGES_FILE_NAME"
 
 DEB_PATH=""
 DATA_DEVICE=""
@@ -84,8 +92,9 @@ main() {
     discover_magicq_from_usb
     persist_magicq_package
     require_magicq_or_override
-    installer_progress "3/25 · Install system packages"
+    installer_progress "3/25 · Install packages and verify sources"
     install_packages
+    verify_project_sources
     installer_progress "4/25 · Configure the chamsys user"
     configure_user
     installer_progress "5/25 · Configure persistent networking"

@@ -1,8 +1,12 @@
 # Pacchetto MagicQ
 
-Il file tracciato `wasalight-runtime.txt` contiene invece l'elenco validato dei
-pacchetti Ubuntu liberi installati da Wasalight e dalle ISO. Non contiene e non
-sostituisce il pacchetto proprietario MagicQ descritto qui sotto.
+Gli elenchi tracciati dichiarano i pacchetti Ubuntu liberi: il solo prerequisito
+ISO è in `wasalight-bootstrap.txt`, il runtime standard in
+`wasalight-runtime.txt`, le dipendenze dirette MagicQ in `magicq-runtime.txt` e
+quelle opzionali Companion in `companion-runtime.txt`. Nessuno contiene o
+sostituisce il pacchetto proprietario MagicQ. Le dipendenze MagicQ vengono
+installate in anticipo, così il successivo pulsante **Install MagicQ** funziona
+offline.
 
 Copiare in questa cartella il pacchetto originale:
 
@@ -10,8 +14,9 @@ Copiare in questa cartella il pacchetto originale:
 magicq_ubuntu_v1_9_8_3.deb
 ```
 
-`install.sh` verifica che ogni `.deb` dichiari `Package: magicq` e architettura
-`amd64`, poi seleziona automaticamente la versione Debian più recente.
+Il motore richiamato da `install.sh` verifica che ogni `.deb` dichiari
+`Package: magicq` e architettura `amd64`, poi seleziona automaticamente la
+versione Debian più recente.
 Durante l’installazione il file viene copiato e verificato in
 `/data/system/packages`.
 Per forzare una versione specifica, indicarla esplicitamente:

@@ -1,0 +1,12 @@
+# Direct runtime dependencies declared by the supported MagicQ package.
+zlib1g
+liblzo2-2
+liblzma5
+libbz2-1.0
+libx11-6
+libx11-xcb1
+libxcb1
+libxcb-xinerama0
+gstreamer1.0-plugins-base
+gstreamer1.0-plugins-good
+libgstreamer1.0-0

@@ -28,8 +28,8 @@ fail() {
 version_file=$(require_manifest_value_matching "$RELEASE_MANIFEST" ISOBuilder VersionFile \
     '^Minimal-ISO-Builder/[A-Za-z0-9][A-Za-z0-9._-]*$' \
     'a path below Minimal-ISO-Builder')
-runtime_packages_file=$(require_manifest_value_matching \
-    "$RELEASE_MANIFEST" Wasalight RuntimePackagesFile \
+bootstrap_packages_file=$(require_manifest_value_matching \
+    "$RELEASE_MANIFEST" Wasalight BootstrapPackagesFile \
     '^packages/[A-Za-z0-9][A-Za-z0-9._/-]*$' 'a path below packages')
 ubuntu_version=$(require_manifest_value_matching "$RELEASE_MANIFEST" Platform UbuntuVersion \
     '^[0-9]+\.[0-9]+$' 'a major.minor version')
@@ -54,10 +54,10 @@ branch=$(require_manifest_value_matching "$RELEASE_MANIFEST" Wasalight Branch \
     '^[A-Za-z0-9][A-Za-z0-9._/-]*$' 'a Git branch name')
 
 [[ -s $PROJECT_DIR/$version_file ]] || fail "VersionFile ISO Builder non trovato"
-[[ -s $PROJECT_DIR/$runtime_packages_file ]] || fail "elenco pacchetti runtime non trovato"
-runtime_packages_yaml=$(wasalight_runtime_packages_yaml "$PROJECT_DIR/$runtime_packages_file") || \
-    fail "elenco pacchetti runtime non valido"
-[[ $runtime_packages_yaml == *git* ]] || fail "Git manca dall'elenco pacchetti runtime"
+[[ -s $PROJECT_DIR/$bootstrap_packages_file ]] || fail "elenco pacchetti bootstrap non trovato"
+bootstrap_packages_yaml=$(wasalight_runtime_packages_yaml "$PROJECT_DIR/$bootstrap_packages_file") || \
+    fail "elenco pacchetti bootstrap non valido"
+[[ $bootstrap_packages_yaml == '[git]' ]] || fail "il bootstrap deve contenere soltanto Git"
 [[ $point_release == "$ubuntu_version".* ]] || \
     fail "UbuntuPointRelease non appartiene a Platform.UbuntuVersion"
 [[ $live_file == *"$point_release"* && $live_file == *"$architecture.iso" ]] || \
@@ -69,27 +69,25 @@ runtime_packages_yaml=$(wasalight_runtime_packages_yaml "$PROJECT_DIR/$runtime_p
 for script in make-wasalight-minimal.sh make-wasalight-netboot.sh; do
     grep -Fq 'lib/wasalight-release-manifest.sh' "$ISO_BUILDER_DIR/$script" || \
         fail "$script non usa il loader manifest centrale"
-    if grep -Fq 'wasalight_runtime_packages_yaml' "$ISO_BUILDER_DIR/$script"; then
-        fail "$script anticipa i pacchetti runtime nell'autoinstall"
-    fi
+    grep -Fq 'wasalight_runtime_packages_yaml' "$ISO_BUILDER_DIR/$script" || \
+        fail "$script non legge l'elenco bootstrap dichiarativo"
     grep -Fq 'ISO_RELEASE_MANIFEST=' "$ISO_BUILDER_DIR/$script" || \
         fail "$script non genera un manifest ISO separato"
     grep -Fq 'Branch=$WASALIGHT_INSTALL_REF' "$ISO_BUILDER_DIR/$script" || \
         fail "$script non fissa il riferimento Wasalight nel manifest ISO"
+    grep -Fq 'InstallCommit=$WASALIGHT_INSTALL_COMMIT' "$ISO_BUILDER_DIR/$script" || \
+        fail "$script non fissa il commit esatto nel manifest ISO"
 done
 grep -Fq -- '--wasalight-ref' "$ISO_BUILDER_DIR/make-wasalight-minimal.sh" || \
     fail "il builder non espone il riferimento Git della release"
-grep -Fxq '  packages: [git, gettext]' "$ISO_BUILDER_DIR/autoinstall.yaml" || \
-    fail "Subiquity deve installare Git e gettext per verificare il checkout"
-if grep -Fq '__WASALIGHT_PACKAGES__' "$ISO_BUILDER_DIR/autoinstall.yaml"; then
-    fail "autoinstall contiene ancora il placeholder dei pacchetti runtime"
-fi
+grep -Fxq '  packages: __WASALIGHT_BOOTSTRAP_PACKAGES__' "$ISO_BUILDER_DIR/autoinstall.yaml" || \
+    fail "Subiquity non usa il placeholder bootstrap dichiarativo"
 grep -Fq 'git clone --depth 1 --branch "$branch" --single-branch' \
     "$ISO_BUILDER_DIR/wasalight-first-boot.sh" || \
     fail "first boot non usa un clone shallow"
-[[ $(grep -Foc '"$checkout/tests/verify-project.sh"' \
-    "$ISO_BUILDER_DIR/wasalight-first-boot.sh") == 1 ]] || \
-    fail "first boot deve verificare il checkout una sola volta per esecuzione"
+if grep -Fq '"$checkout/tests/verify-project.sh"' "$ISO_BUILDER_DIR/wasalight-first-boot.sh"; then
+    fail "first boot verifica il progetto prima che install.sh installi il runtime"
+fi
 grep -Fq 'require_manifest_value_matching "$release_manifest" Wasalight Repository' \
     "$ISO_BUILDER_DIR/wasalight-first-boot.sh" || \
     fail "first boot non legge il repository dal manifest"
@@ -101,8 +99,8 @@ grep -Fq 'Before=getty.target getty@tty1.service' \
     fail "first boot non precede il target login e la console grafica su tty1"
 grep -Fq 'WantedBy=getty.target' "$ISO_BUILDER_DIR/wasalight-first-boot.service" || \
     fail "first boot non viene avviato insieme al target delle console"
-grep -Fq 'command -v msgfmt' "$ISO_BUILDER_DIR/wasalight-first-boot.sh" || \
-    fail "first boot non controlla gettext prima di verificare il checkout"
+grep -Fq 'Wasalight InstallCommit' "$ISO_BUILDER_DIR/wasalight-first-boot.sh" || \
+    fail "first boot non verifica il commit fissato dalla ISO"
 grep -Fq 'RequiresMountsFor=/data' "$ISO_BUILDER_DIR/wasalight-first-boot.service" || \
     fail "first boot non attende il volume /data"
 grep -Fq 'active_file="/run/wasalight-first-boot-active"' \

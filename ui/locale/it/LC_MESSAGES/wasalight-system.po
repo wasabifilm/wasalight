@@ -201,7 +201,15 @@ msgstr "Tastiera virtuale non disponibile"
 msgid "The Onboard package is not installed."
 msgstr "Il pacchetto Onboard non è installato."
 
-#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:12
+#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:10
+msgid ""
+"<big><b>MagicQ installation is already running.</b></big>\\n\\nWait for the "
+"current search, copy and verification to finish."
+msgstr ""
+"<big><b>L’installazione di MagicQ è già in corso.</b></big>\\n\\nAttendi che "
+"la ricerca, la copia e la verifica correnti siano terminate."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:21
 msgid ""
 "<big><b>MAINTENANCE mode required.</b></big>\\n\\nSwitch to MAINTENANCE and "
 "reboot, then try the MagicQ installation again."
@@ -218,9 +226,9 @@ msgstr "<big><b>Installare o aggiornare MagicQ?</b></big>\\n\\nInserisci una chi
 msgid "Find and install"
 msgstr "Cerca e installa"
 
-#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:31
-msgid "Searching for and verifying the MagicQ package…"
-msgstr "Ricerca e verifica del pacchetto MagicQ…"
+#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:40
+msgid "Searching, copying and verifying MagicQ… A slow USB drive can take several minutes."
+msgstr "Ricerca, copia e verifica di MagicQ… Una chiavetta lenta può richiedere diversi minuti."
 
 #: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:45
 #, sh-printf-format

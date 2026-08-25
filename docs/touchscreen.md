@@ -157,8 +157,8 @@ una nuova tastiera. La chiusura attende prima l'uscita normale e usa un arresto
 forzato soltanto se Onboard interpreta `SIGTERM` come semplice richiesta di
 nascondersi.
 
-La geometria viene calcolata dalla risoluzione corrente e occupa il 90% della
-larghezza e il 38% dell’altezza. Se il window manager non riesce a posizionarla,
+La geometria viene calcolata dalla risoluzione corrente e occupa l’80% della
+larghezza e il 30% dell’altezza. Se il window manager non riesce a posizionarla,
 Onboard resta comunque disponibile usando la propria geometria salvata.
 Quando il tema Nightshade è presente viene selezionato automaticamente per
 integrarsi con l’interfaccia scura Wasalight.
