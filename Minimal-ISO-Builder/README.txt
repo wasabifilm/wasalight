@@ -8,9 +8,10 @@ amd64:
 - NETBOOT: circa 100 MB, basata sulla Mini ISO ufficiale Canonical.
 
 FULL contiene localmente il sistema Ubuntu Minimal. Richiede comunque Internet
-durante l'autoinstall per Git e aggiornamenti e al primo avvio per scaricare e
-installare l'ultimo branch main di Wasalight. Il nome FULL distingue quindi la
-base Ubuntu locale da una installazione completamente offline.
+durante l'autoinstall per Git e aggiornamenti e al primo avvio per scaricare
+Wasalight. Le build normali usano il branch del manifest; le build di release
+possono fissare un tag esatto. Il nome FULL distingue quindi la base Ubuntu
+locale da una installazione completamente offline.
 
 NETBOOT contiene
 bootloader, kernel e initrd, poi scarica in RAM la Live Server 24.04.4 ufficiale
@@ -152,6 +153,14 @@ BUILD
 Per creare entrambe:
 
   bash Minimal-ISO-Builder/make-wasalight-minimal.sh
+
+Per creare una coppia riproducibile vincolata a un tag di release:
+
+  bash Minimal-ISO-Builder/make-wasalight-minimal.sh \
+    --wasalight-ref v2026.08.25.1-rc.2
+
+Il riferimento viene scritto soltanto nel manifest incorporato nelle ISO; il
+manifest sorgente continua a usare `main` per le normali build di sviluppo.
 
 Output:
 

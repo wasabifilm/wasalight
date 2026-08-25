@@ -42,6 +42,9 @@ WASALIGHT_REPOSITORY="$(require_manifest_value_matching "$RELEASE_MANIFEST" Wasa
   '^https://[A-Za-z0-9][A-Za-z0-9./_?&=%+~:@-]*$' 'a safe HTTPS URL')" || exit 1
 WASALIGHT_BRANCH="$(require_manifest_value_matching "$RELEASE_MANIFEST" Wasalight Branch \
   '^[A-Za-z0-9][A-Za-z0-9._/-]*$' 'a Git branch name')" || exit 1
+WASALIGHT_INSTALL_REF=${WASALIGHT_INSTALL_REF:-$WASALIGHT_BRANCH}
+[[ $WASALIGHT_INSTALL_REF =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ ]] || \
+  die "Riferimento Wasalight non valido: $WASALIGHT_INSTALL_REF"
 RUNTIME_PACKAGES_FILE_NAME="$(require_manifest_value_matching \
   "$RELEASE_MANIFEST" Wasalight RuntimePackagesFile \
   '^packages/[A-Za-z0-9][A-Za-z0-9._/-]*$' 'a path below packages')" || exit 1
@@ -55,7 +58,7 @@ INSTALLER_VERSION="$(tr -d '[:space:]' <"$VERSION_FILE")"
 readonly PROJECT_DIR RELEASE_MANIFEST MANIFEST_LIBRARY VERSION_FILE_NAME VERSION_FILE
 readonly UBUNTU_VERSION UBUNTU_POINT_RELEASE TARGET_ARCHITECTURE MINI_ISO_FILE
 readonly MINI_SHA256 SERVER_SHA256 SERVER_SIZE SERVER_URL
-readonly WASALIGHT_REPOSITORY WASALIGHT_BRANCH INSTALLER_VERSION
+readonly WASALIGHT_REPOSITORY WASALIGHT_BRANCH WASALIGHT_INSTALL_REF INSTALLER_VERSION
 readonly PACKAGE_LIST_LIBRARY RUNTIME_PACKAGES_FILE_NAME RUNTIME_PACKAGES_FILE PACKAGES_VALUE
 
 MINI_ISO="${1:-$SCRIPT_DIR/$MINI_ISO_FILE}"
@@ -155,6 +158,21 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+ISO_RELEASE_MANIFEST="$TMP/release-manifest.ini"
+awk -v install_ref="$WASALIGHT_INSTALL_REF" '
+  /^\[/ { section=$0 }
+  section == "[Wasalight]" && /^Branch=/ {
+    print "Branch=" install_ref
+    replaced++
+    next
+  }
+  { print }
+  END { if (replaced != 1) exit 1 }
+' "$RELEASE_MANIFEST" >"$ISO_RELEASE_MANIFEST" || \
+  die "Impossibile fissare il riferimento Wasalight nel manifest ISO."
+grep -Fxq "Branch=$WASALIGHT_INSTALL_REF" "$ISO_RELEASE_MANIFEST" || \
+  die "Il riferimento Wasalight non è presente nel manifest ISO."
+
 UI_SCRIPT="$TMP/install-ui.sh"
 sed "s|__WASALIGHT_UBUNTU_VERSION__|$UBUNTU_VERSION|g" "$UI_TEMPLATE" >"$UI_SCRIPT"
 grep -Fq '__WASALIGHT_UBUNTU_VERSION__' "$UI_SCRIPT" && \
@@ -166,6 +184,7 @@ info " WASALIGHT Mini ISO Builder v${INSTALLER_VERSION} · NETBOOT"
 info "============================================================"
 info "Mini ISO : $MINI_ISO"
 info "Output   : $OUTPUT_ISO"
+info "Wasalight: $WASALIGHT_INSTALL_REF"
 info
 
 info "[1/5] Estraggo bootloader e initrd Canonical..."
@@ -206,7 +225,7 @@ install -m 0755 "$POWEROFF_PROMPT" "$FINAL_ROOT/wasalight/wait-for-poweroff.sh"
 install -m 0755 "$LOG_SAVER" "$FINAL_ROOT/wasalight/save-installer-logs.sh"
 install -m 0755 "$PREFLIGHT_SCRIPT" "$FINAL_ROOT/wasalight/preflight.sh"
 install -m 0644 "$VERSION_FILE" "$FINAL_ROOT/wasalight/VERSION"
-install -m 0644 "$RELEASE_MANIFEST" "$FINAL_ROOT/wasalight/release-manifest.ini"
+install -m 0644 "$ISO_RELEASE_MANIFEST" "$FINAL_ROOT/wasalight/release-manifest.ini"
 install -m 0644 "$MANIFEST_LIBRARY" "$FINAL_ROOT/wasalight/wasalight-release-manifest.sh"
 install -m 0755 "$FIRST_BOOT_SCRIPT" "$FINAL_ROOT/wasalight/wasalight-first-boot.sh"
 install -m 0644 "$FIRST_BOOT_SERVICE" "$FINAL_ROOT/wasalight/wasalight-first-boot.service"

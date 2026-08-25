@@ -184,7 +184,7 @@ partizionamento manuale oppure usare una procedura specifica per quel layout.
 [`Minimal-ISO-Builder`](Minimal-ISO-Builder/README.txt) crea due installer
 Wasalight basati sulle immagini ufficiali Ubuntu Server 24.04.4 amd64:
 
-- **OFFLINE**, basato sulla Live Server completa;
+- **FULL**, basato sulla Live Server completa;
 - **NETBOOT**, circa 100 MB, che scarica e verifica la Live Server durante
   l’installazione e richiede Ethernet, Internet stabile e almeno 8 GiB di RAM.
 
@@ -192,6 +192,14 @@ Per creare entrambe le varianti, dopo aver installato `xorriso`:
 
 ```bash
 bash Minimal-ISO-Builder/make-wasalight-minimal.sh
+```
+
+Per una release candidata o stabile, il riferimento deve essere fissato al tag
+in modo che il primo avvio non segua successivi cambiamenti di `main`:
+
+```bash
+bash Minimal-ISO-Builder/make-wasalight-minimal.sh \
+  --wasalight-ref v2026.08.25.1-rc.2
 ```
 
 Il builder verifica i checksum Canonical, non incorpora MagicQ e configura
