@@ -1,0 +1,2 @@
+# Packages required only to fetch the unified installer on first boot.
+git

@@ -265,17 +265,21 @@ install_packages() {
         apt-daily.timer apt-daily-upgrade.timer apt-daily.service \
         apt-daily-upgrade.service unattended-upgrades.service
 
-    local packages=() package
-    while IFS= read -r package; do
-        packages+=("$package")
-    done < <(wasalight_runtime_packages "$RUNTIME_PACKAGES_FILE")
-    ((${#packages[@]})) || die "runtime package list is empty or invalid"
+    local packages=() package package_file package_output
+    local -A seen_packages=()
+    local package_files=("$RUNTIME_PACKAGES_FILE" "$MAGICQ_RUNTIME_PACKAGES_FILE")
     if ((ENABLE_COMPANION)) || [[ -d /opt/companion ]]; then
-        packages+=(
-            adduser curl wget zip unzip libusb-1.0-0-dev libudev-dev
-            libfontconfig1 libatomic1 libasound2t64
-        )
+        package_files+=("$COMPANION_RUNTIME_PACKAGES_FILE")
     fi
+    for package_file in "${package_files[@]}"; do
+        package_output=$(wasalight_runtime_packages "$package_file") || \
+            die "required package list is invalid: $package_file"
+        while IFS= read -r package; do
+            [[ ${seen_packages[$package]+present} ]] || packages+=("$package")
+            seen_packages["$package"]=1
+        done <<<"$package_output"
+    done
+    ((${#packages[@]})) || die "runtime package list is empty or invalid"
 
     # Most Wasalight releases only replace configuration or UI files. Avoid a
     # network metadata refresh when every package required by the selected

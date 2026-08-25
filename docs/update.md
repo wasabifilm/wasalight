@@ -262,7 +262,8 @@ Ad ogni utilizzo il comando:
 7. sincronizza l’orologio tramite Chrony prima di snapshot e operazioni APT;
 8. mostra il piano e termina subito se release, commit, MagicQ e stato richiesto
    sono già identici;
-9. crea lo snapshot e rilancia l’installer dal candidato soltanto quando serve;
+9. crea lo snapshot e rilancia lo stesso `install.sh` usato dal primo avvio e
+   dalle installazioni manuali, comunicando il commit già verificato;
 10. controlla versione, commit, sintassi dell’updater installato e mount `/data`;
 11. attiva atomicamente il checkout soltanto dopo tutti i controlli finali.
 

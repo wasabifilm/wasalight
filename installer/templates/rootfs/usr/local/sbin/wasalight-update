@@ -758,6 +758,7 @@ update_state_write "$state_file" running installing "$available_version" \
     "$downloaded_commit" "$snapshot" "$transaction_started" "$channel" "$candidate_checkout"
 run_with_progress "Installing Wasalight" \
     env NEEDRESTART_SUSPEND=1 WASALIGHT_UPDATE_TRANSACTION=1 \
+    WASALIGHT_VERIFIED_COMMIT="$downloaded_commit" \
     WASALIGHT_PROGRESS_FILE="$progress_file" \
     "$candidate_checkout/install.sh" "${installer_args[@]}"
 

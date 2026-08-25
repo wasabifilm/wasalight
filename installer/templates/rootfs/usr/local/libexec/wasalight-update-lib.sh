@@ -226,6 +226,7 @@ import_magicq_package() {
 
     destination="$package_store/magicq_${version}_amd64.deb"
     temporary=$(mktemp "$package_store/.magicq-import.XXXXXX")
+    echo "Copying MagicQ $version ($(du -h "$source" | awk '{print $1}')) to persistent storage; a slow USB drive can take several minutes..."
     install -o root -g root -m 0640 "$source" "$temporary"
     cmp -s -- "$source" "$temporary" || {
         echo "Package copy verification failed: $destination" >&2

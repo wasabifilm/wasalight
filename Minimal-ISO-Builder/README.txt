@@ -29,23 +29,25 @@ NETBOOT richiede:
 INSTALLAZIONE WASALIGHT
 ----------------------
 
-Entrambe le varianti installano durante l'autoinstall Git e gettext, necessari
-per scaricare e verificare il progetto. Dopo Ubuntu, un servizio systemd completa
+Entrambe le varianti installano durante l'autoinstall soltanto Git, letto da
+packages/wasalight-bootstrap.txt e necessario per scaricare il progetto. Dopo Ubuntu, un servizio systemd completa
 automaticamente Wasalight al primo avvio reale:
 
 1. usa il checkout persistente /data/system/wasalight;
-2. scarica con un clone shallow o aggiorna il branch configurato nel manifest;
-3. accetta solo un checkout pulito e aggiornamenti fast-forward;
-4. esegue tests/verify-project.sh;
+2. scarica con un clone shallow il riferimento configurato e verifica il
+   commit esatto incorporato nella ISO;
+3. accetta soltanto un checkout pulito;
+4. lascia a install.sh la verifica dopo l'installazione del runtime completo;
 5. registra il commit in /data/log/wasalight-first-boot.version;
 6. pubblica fase ed esito in /data/log/wasalight-first-boot.status;
 7. installa MagicQ quando trova un pacchetto amd64 valido in /data o su una
    USB, senza incorporarlo nella ISO o nel repository;
 8. in assenza del pacchetto continua con gli strumenti per installarlo in un
    secondo momento;
-9. esegue install.sh, che installa i pacchetti runtime standard elencati in
-   packages/wasalight-runtime.txt, senza attivare overlayroot, e riavvia in
-   MAINTENANCE.
+9. esegue install.sh, unico motore anche per installazioni manuali e WasaUpdate:
+   installa runtime standard, dipendenze MagicQ e componenti opzionali dagli
+   elenchi dichiarativi, verifica il progetto, lascia overlayroot disattivato e
+   riavvia in MAINTENANCE.
 
 Il log si trova in /data/log/wasalight-first-boot.log. Se rete o installazione
 falliscono, il servizio non dichiara il completamento e riprova dopo 60 secondi.
@@ -61,10 +63,9 @@ Dopo il boot in MAINTENANCE l'operatore puo' installare o verificare MagicQ e
 passare volontariamente a SHOW con il comando o il controllo grafico gia'
 previsto.
 
-La variante NETBOOT prepara gia' il checkout Git durante l'autoinstall, poi lo
-aggiorna nuovamente al primo avvio per installare il main piu' recente. Ogni
-checkout viene verificato una sola volta per esecuzione. L'installazione dei
-pacchetti runtime avviene sempre tramite install.sh al primo avvio.
+La variante NETBOOT prepara gia' il checkout Git fissato durante l'autoinstall;
+al primo avvio ne ricontrolla il commit senza inseguire un main piu' recente.
+Installazione e verifica avvengono sempre tramite install.sh al primo avvio.
 
 DISCO E INTERFACCIA
 -------------------

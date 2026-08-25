@@ -203,7 +203,15 @@ msgstr "On-screen keyboard unavailable"
 msgid "The Onboard package is not installed."
 msgstr "The Onboard package is not installed."
 
-#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:12
+#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:10
+msgid ""
+"<big><b>MagicQ installation is already running.</b></big>\\n\\nWait for the "
+"current search, copy and verification to finish."
+msgstr ""
+"<big><b>MagicQ installation is already running.</b></big>\\n\\nWait for the "
+"current search, copy and verification to finish."
+
+#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:21
 msgid ""
 "<big><b>MAINTENANCE mode required.</b></big>\\n\\nSwitch to MAINTENANCE and "
 "reboot, then try the MagicQ installation again."
@@ -225,9 +233,9 @@ msgstr ""
 msgid "Find and install"
 msgstr "Find and install"
 
-#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:31
-msgid "Searching for and verifying the MagicQ package…"
-msgstr "Searching for and verifying the MagicQ package…"
+#: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:40
+msgid "Searching, copying and verifying MagicQ… A slow USB drive can take several minutes."
+msgstr "Searching, copying and verifying MagicQ… A slow USB drive can take several minutes."
 
 #: installer/templates/rootfs/usr/local/bin/wasalight-magicq-install-ui:45
 #, sh-printf-format

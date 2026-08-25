@@ -33,10 +33,12 @@ NetworkManager rimane l’unico gestore della rete della console.
 
 L’installer evita che i timer APT e `unattended-upgrades` lavorino in parallelo,
 quindi calcola l’elenco dei pacchetti richiesti dalla configurazione scelta. Le
-ISO installano già durante l’autoinstall l’elenco standard centralizzato in
-`packages/wasalight-runtime.txt`; al primo boot, se sono già tutti presenti,
-vengono saltati sia `apt-get update` sia `apt-get install`. Un’installazione
-manuale continua invece a installare soltanto ciò che manca.
+ISO installano durante l’autoinstall soltanto Git, dichiarato in
+`packages/wasalight-bootstrap.txt`. Al primo boot il motore unico legge gli
+elenchi runtime standard, MagicQ e degli eventuali componenti opzionali e
+installa soltanto ciò che manca. Se sono già tutti presenti vengono saltati sia
+`apt-get update` sia `apt-get install`; lo stesso vale per un’installazione
+manuale o un aggiornamento.
 
 Dopo l’installazione di Wasalight e MagicQ vengono eseguiti i controlli reali
 su multipath e iSCSI. Snap, stampa, Bluetooth, ModemManager, Avahi, Whoopsie,

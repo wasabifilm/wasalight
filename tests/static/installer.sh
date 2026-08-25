@@ -54,8 +54,8 @@ done
 
 lock_library="$PROJECT_DIR/lib/wasalight-operation-lock.sh"
 [[ -s $lock_library ]] || fail "libreria lock globale mancante"
-grep -Fq 'wasalight_acquire_operation_lock "Wasalight installation"' "$ENTRYPOINT" || \
-    fail "install.sh non acquisisce il lock globale"
+grep -Fq 'wasalight_acquire_operation_lock "Wasalight installation"' "$INSTALLER_ENTRY" || \
+    fail "il motore unico non acquisisce il lock globale"
 for locked_tool in \
     "$INSTALLER_TEMPLATE_ROOT/usr/local/sbin/wasalight-update" \
     "$PROJECT_DIR/libexec/wasalight-update-snapshot" \
@@ -499,19 +499,23 @@ fi
 if grep -Eq 'docker (run|compose)|ghcr\.io/bitfocus/companion' "$INSTALLER"; then
     fail "Companion non deve usare Docker: le superfici USB locali non sono supportate"
 fi
-grep -Fq -- "-name 'fsapfs[0-9]*'" "$ENTRYPOINT" || \
-    fail "install.sh non cerca MagicQ nei volumi APFS esposti da libfsapfs"
+grep -Fq -- "-name 'fsapfs[0-9]*'" "$magicq_installer" || \
+    fail "l'installer MagicQ non cerca nei volumi APFS esposti da libfsapfs"
 
-install_packages_body=$(awk '/^install_packages\(\) \{/,/^}/' "$INSTALLER")
+install_packages_body=$(sed -n '/^install_packages() {/,/^configure_networkmanager() {/p' "$INSTALLER")
 metadata_line=$(grep -n '^        apt-get update$' <<<"$install_packages_body" | head -n1 | cut -d: -f1)
 required_install_line=$(grep -n '^        apt_install "${missing_packages\[@\]}"$' <<<"$install_packages_body" | cut -d: -f1)
 [[ $metadata_line =~ ^[0-9]+$ && $required_install_line =~ ^[0-9]+$ ]] || \
     fail "ordine dell'installazione APT non verificabile"
 ((metadata_line < required_install_line)) || \
     fail "i metadati APT non vengono aggiornati prima dei pacchetti mancanti"
-grep -Fq 'wasalight_runtime_packages "$RUNTIME_PACKAGES_FILE"' \
+grep -Fq 'local package_files=("$RUNTIME_PACKAGES_FILE" "$MAGICQ_RUNTIME_PACKAGES_FILE")' \
     <<<"$install_packages_body" || \
     fail "l'installer non usa l'elenco pacchetti runtime condiviso"
+grep -Fq '"$MAGICQ_RUNTIME_PACKAGES_FILE"' <<<"$install_packages_body" || \
+    fail "l'installer non anticipa le dipendenze offline di MagicQ"
+grep -Fq '"$COMPANION_RUNTIME_PACKAGES_FILE"' <<<"$install_packages_body" || \
+    fail "l'installer non usa l'elenco dichiarativo di Companion"
 grep -Fq 'all required packages are installed; skipping apt metadata refresh' \
     <<<"$install_packages_body" || \
     fail "l'installer aggiorna APT anche quando tutti i pacchetti sono presenti"
@@ -828,6 +832,9 @@ grep -Fq 'tail -n 24 "$raw_output"' "$tmp_dir/wasalight-update" || \
 grep -Fq 'WASALIGHT_PROGRESS_FILE="$progress_file"' \
     "$tmp_dir/wasalight-update" || \
     fail "l'updater non evita il riepilogo needrestart prima del riavvio richiesto"
+grep -Fq 'WASALIGHT_VERIFIED_COMMIT="$downloaded_commit"' \
+    "$tmp_dir/wasalight-update" || \
+    fail "l'updater non comunica al motore unico il commit già verificato"
 grep -Fq 'merge-base --is-ancestor' "$tmp_dir/wasalight-update" || \
     fail "l'updater non blocca una riscrittura non fast-forward del ramo"
 grep -Fq 'timeout --signal=TERM 120' "$tmp_dir/wasalight-update-lib.sh" || \

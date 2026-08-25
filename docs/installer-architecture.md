@@ -25,6 +25,14 @@ I moduli sono file Bash da caricare con `source`: non devono eseguire azioni al
 momento del caricamento, ma soltanto dichiarare funzioni. Le operazioni restano
 ordinate esplicitamente nella funzione `main` dell’orchestratore.
 
+`install.sh` è un ingresso minimo che passa tutti gli argomenti
+all’orchestratore. Primo avvio, installazione manuale e WasaUpdate usano quindi
+lo stesso motore. Gli elenchi `wasalight-runtime.txt`, `magicq-runtime.txt` e
+`companion-runtime.txt` dichiarano separatamente i pacchetti richiesti; il solo
+bootstrap ISO è in `wasalight-bootstrap.txt`. Il motore installa le dipendenze
+prima di eseguire `tests/verify-project.sh`, così anche un Ubuntu appena
+installato dispone degli stessi strumenti usati durante un aggiornamento.
+
 ## Template rootfs
 
 I file statici prima costruiti con heredoc si trovano in
@@ -50,7 +58,9 @@ rifiuta campi mancanti o vuoti; i consumatori possono inoltre imporre formato e
 tipo. Anche l'ISO Builder usa questo loader per release Ubuntu, immagini
 Canonical, repository e branch. Una copia viene incorporata nelle ISO e
 installata in `/etc/wasalight/release-manifest.ini`, così first boot, updater e
-Companion usano gli stessi valori verificati.
+Companion usano gli stessi valori verificati. Il builder aggiunge inoltre
+`InstallCommit`: il primo avvio rifiuta un checkout diverso dal commit esatto
+con cui è stata prodotta la ISO.
 
 La sezione `[Updates]` separa il canale `stable`, basato su una GitHub Release
 immutabile e un tag SSH firmato, dal canale `debug`, basato su
@@ -72,6 +82,9 @@ L’ambiente `WASALIGHT_PROGRESS_FILE` è accettato esclusivamente per il percor
 volatile `/run/wasalight-update-progress-detail`. L’orchestratore pubblica lì il
 nome dei 25 passaggi con una sostituzione atomica; l’updater lo mostra senza
 mescolare l’intero output di APT nel terminale touch-friendly.
+Poiché l’updater verifica il checkout prima dello snapshot, passa anche
+`WASALIGHT_VERIFIED_COMMIT`; il motore salta la sola verifica duplicata se il
+valore coincide con il proprio commit.
 
 ## Installazione MagicQ offline
 

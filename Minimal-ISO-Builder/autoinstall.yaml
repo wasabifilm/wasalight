@@ -18,7 +18,7 @@ autoinstall:
     install-server: false
     allow-pw: false
     authorized-keys: []
-  packages: [git, gettext]
+  packages: __WASALIGHT_BOOTSTRAP_PACKAGES__
   storage:
     config:
     - type: disk

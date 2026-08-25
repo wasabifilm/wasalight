@@ -321,9 +321,11 @@ posizione e colore di fondo sono gli stessi. Specifiche e procedura sono nella
 
 ### Pulizia dei pacchetti
 
-Le ISO anticipano nell’autoinstall soltanto Git e gettext, necessari per
-scaricare e verificare il progetto. Il primo boot installa quindi i pacchetti
-runtime definiti in `packages/wasalight-runtime.txt`. I componenti inutili e le
+Le ISO anticipano nell’autoinstall soltanto Git, dichiarato in
+`packages/wasalight-bootstrap.txt`. Al primo boot lo stesso `install.sh` usato
+manualmente e da WasaUpdate installa il runtime standard, le dipendenze offline
+MagicQ e quelle opzionali; soltanto dopo esegue la suite di verifica. I
+componenti inutili e le
 rimozioni dipendenti dall’hardware vengono poi consolidati dopo i controlli su
 disco, multipath e iSCSI; un unico `autoremove --purge` conclusivo evita
 transazioni ripetute. La sequenza completa è descritta
