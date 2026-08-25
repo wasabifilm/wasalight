@@ -92,7 +92,8 @@ nuovo plugin richiede quindi anche un aggiornamento intenzionale della policy.
 ### Bundle firmati da USB
 
 Un bundle esterno deve avere accanto una firma detached con suffisso `.asc` e
-trovarsi su un volume realmente montato sotto `/stick`. `gpgv` verifica la
+trovarsi su un volume realmente montato in uno slot da `/stick` a `/stick9`.
+`gpgv` verifica la
 firma contro il keyring root-owned, l’estrazione rifiuta percorsi assoluti o
 `..`, e il manifest deve dichiarare lo stesso `Package` del Debian `amd64`.
 L’importazione è fail-closed: senza keyring o firma valida non installa nulla.
@@ -109,7 +110,7 @@ sudo chmod 0644 /etc/wasalight/trusted-plugin-keys.gpg
 ```
 
 ```bash
-sudo wasalight-plugin-bundle /stick/NOME/plugin-example.tar.gz
+sudo wasalight-plugin-bundle /stick/plugin-example.tar.gz
 ```
 
 ## Manifest

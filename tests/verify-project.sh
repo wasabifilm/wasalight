@@ -51,8 +51,8 @@ grep -Fq -- '--plugin ID' <<<"$help_output" || \
     fail "-help non mostra il sistema plugin Wasalight"
 grep -Fq '/data/system/packages/*.deb' "$ENTRYPOINT" || \
     fail "install.sh non riutilizza il pacchetto MagicQ persistente"
-grep -Fq '^/stick/[^/]+$' "$ENTRYPOINT" || \
-    fail "install.sh non cerca MagicQ nelle USB realmente montate"
+grep -Fq '^/stick[2-9]$' "$ENTRYPOINT" || \
+    fail "install.sh non riconosce gli slot USB diretti Wasalight"
 grep -Fq '$usb_mount/packages' "$ENTRYPOINT" || \
     fail "install.sh non cerca MagicQ nella cartella packages della USB"
 grep -Fq 'dpkg --compare-versions' "$ENTRYPOINT" || \

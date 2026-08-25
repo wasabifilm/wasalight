@@ -183,7 +183,7 @@ required_patterns=(
     'scan_bootstrap_magicq_directory "$mount_dir"'
     'require_magicq_or_override'
     'readonly USB_MOUNT="/stick"'
-    'mountpoint="$base/$dev_name"'
+    'if ((slot == 1)); then candidate=/stick; else candidate="/stick$slot"; fi'
     '/run/wasalight-first-boot-active'
     'state="$state_dir/$dev_name.mount"'
     '[[ $(dpkg-deb -f "$DEB_PATH" Package) == "$MAGICQ_PACKAGE_NAME" ]]'
@@ -542,6 +542,7 @@ autoremove_line=$(grep -n 'apt-get autoremove --purge -y' \
     fail "autoremove viene eseguito prima della pulizia storage-aware"
 
 helpers=(
+    /usr/local/libexec/wasalight-usb-paths
     /usr/local/libexec/wasalight-usb-mount
     /usr/local/libexec/wasalight-usb-unmount
     /usr/local/libexec/wasalight-set-mode
@@ -599,6 +600,27 @@ for helper in "${helpers[@]}"; do
     [[ -s "$output" ]] || fail "impossibile estrarre $helper"
     bash -n "$output"
 done
+
+# Direct USB slots must accept only /stick and numbered siblings, never a
+# nested directory that would make MagicQ save in the wrong place.
+# shellcheck source=/dev/null
+. "$tmp_dir/wasalight-usb-paths"
+for valid_usb_target in /stick /stick2 /stick9; do
+    wasalight_is_usb_mount_target "$valid_usb_target" || \
+        fail "slot USB diretto rifiutato: $valid_usb_target"
+done
+for invalid_usb_target in /stick1 /stick10 /stick/device /stickevil /tmp/stick; do
+    if wasalight_is_usb_mount_target "$invalid_usb_target"; then
+        fail "percorso USB non sicuro accettato: $invalid_usb_target"
+    fi
+done
+usb_mount_helper="$INSTALLER_TEMPLATE_ROOT/usr/local/libexec/wasalight-usb-mount"
+usb_unmount_helper="$INSTALLER_TEMPLATE_ROOT/usr/local/libexec/wasalight-usb-unmount"
+grep -Fq 'flock 9' "$usb_mount_helper" || fail "allocazione USB priva di lock"
+grep -Fq 'active /stick2 is never moved' "$usb_mount_helper" || \
+    fail "allocazione USB non documenta la stabilità degli slot attivi"
+grep -Fq 'Discarded stale state' "$usb_unmount_helper" || \
+    fail "smontaggio USB non protegge uno slot riassegnato"
 
 if grep -Eq '(^|[[:space:]])(xss-lock|xautolock)([[:space:]]|$)' "$INSTALLER"; then
     fail "il blocco schermo non deve essere armato automaticamente"
@@ -816,7 +838,7 @@ grep -Fq 'status --porcelain' "$tmp_dir/wasalight-update" || \
     fail "l'updater non protegge i file Git non tracciati"
 grep -Fq 'cmp -s -- "$source" "$temporary"' "$tmp_dir/wasalight-update-lib.sh" || \
     fail "la copia persistente del pacchetto MagicQ non viene verificata"
-grep -Fq 'findmnt -rn -o TARGET' "$tmp_dir/wasalight-update" || \
+grep -Fq 'wasalight_usb_mounts' "$tmp_dir/wasalight-update" || \
     fail "l'updater non controlla le USB attualmente montate"
 grep -Fq 'find "$usb_mount" -maxdepth 1' "$tmp_dir/wasalight-update" || \
     fail "l'updater non cerca il pacchetto MagicQ nella root USB"

@@ -612,8 +612,8 @@ grep -Fq 'showStatusBar=false' "$empty_falkon_profile/settings.ini" || \
 [[ -s "$PROJECT_DIR/docs/touchscreen.md" ]] || fail "guida touchscreen mancante"
 grep -Fq 'wasalight-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
     fail "configurazione touchscreen non documentata"
-grep -Fq '/stick/<dispositivo>' "$PROJECT_DIR/packages/README.md" || \
-    fail "aggiornamento MagicQ da USB non documentato in packages/README.md"
+grep -Fq '`/stick` a `/stick9`' "$PROJECT_DIR/packages/README.md" || \
+    fail "slot USB diretti non documentati in packages/README.md"
 [[ -s "$PROJECT_DIR/docs/vnc.md" ]] || fail "guida VNC mancante"
 [[ -s "$PROJECT_DIR/docs/ssh.md" ]] || fail "guida SSH mancante"
 [[ -s "$PROJECT_DIR/docs/update.md" ]] || fail "guida aggiornamenti mancante"

@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 set -uo pipefail
+. /usr/local/libexec/wasalight-usb-paths
 
 section() {
     printf '\n\033[1;32m== %s ==\033[0m\n' "$1"
@@ -74,7 +75,10 @@ section 'Memory and swap'
 run 8 free -h
 
 section 'Storage'
-run 8 df -hT / /data /stick 2>/dev/null
+run 8 df -hT / /data 2>/dev/null
+while IFS= read -r usb_mount; do
+    run 8 df -hT "$usb_mount"
+done < <(wasalight_usb_mounts)
 if command_exists lsblk; then
     run 8 lsblk -e 7 -o NAME,TYPE,SIZE,FSTYPE,MOUNTPOINTS,ROTA,DISC-MAX,MODEL
 fi

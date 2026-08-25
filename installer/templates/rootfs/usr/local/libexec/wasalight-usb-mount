@@ -4,11 +4,10 @@
 set -Eeuo pipefail
 dev_name=${1:?missing block device name}
 dev="/dev/$dev_name"
-base=/stick
 state_dir=/run/wasalight-usb
+. /usr/local/libexec/wasalight-usb-paths
 
 [[ $dev_name =~ ^[a-zA-Z0-9._-]+$ ]] || exit 1
-mountpoint="$base/$dev_name"
 state="$state_dir/$dev_name.mount"
 
 exec 9>/run/wasalight-usb.lock
@@ -28,8 +27,52 @@ case "$fs" in
 esac
 
 install -d -m 0755 "$state_dir"
-install -d -o chamsys -g chamsys -m 0755 "$base" "$mountpoint"
-mountpoint -q "$mountpoint" && exit 0
+install -d -o chamsys -g chamsys -m 0755 /stick
+
+# Repeated udev triggers must reuse the device's current slot. Remove only a
+# stale state record whose mount no longer exists.
+if [[ -r $state && ! -L $state ]]; then
+    mountpoint=$(<"$state")
+    if wasalight_is_usb_mount_target "$mountpoint" && mountpoint -q "$mountpoint"; then
+        mounted_source=$(findmnt -n -o SOURCE -M "$mountpoint" 2>/dev/null || true)
+        if [[ $mounted_source != /dev/* || \
+              $(readlink -f -- "$mounted_source") == $(readlink -f -- "$dev") ]]; then
+            exit 0
+        fi
+    fi
+    rm -f -- "$state"
+fi
+
+for other_state in "$state_dir"/*.mount; do
+    [[ -r $other_state && ! -L $other_state ]] || continue
+    other_target=$(<"$other_state")
+    if ! wasalight_is_usb_mount_target "$other_target" || \
+       ! mountpoint -q "$other_target"; then
+        rm -f -- "$other_state"
+    fi
+done
+
+# Allocate the first free stable slot while holding the global USB lock. An
+# active /stick2 is never moved when /stick becomes free: applications may
+# still have files open on it.
+mountpoint=
+for ((slot = 1; slot <= 9; slot++)); do
+    if ((slot == 1)); then candidate=/stick; else candidate="/stick$slot"; fi
+    claimed=0
+    for other_state in "$state_dir"/*.mount; do
+        [[ -r $other_state && ! -L $other_state ]] || continue
+        [[ $(<"$other_state") == "$candidate" ]] && { claimed=1; break; }
+    done
+    if ((claimed == 0)) && ! mountpoint -q "$candidate"; then
+        mountpoint=$candidate
+        break
+    fi
+done
+[[ -n $mountpoint ]] || {
+    logger -t wasalight-usb "No free USB slot for $dev"
+    exit 1
+}
+install -d -o chamsys -g chamsys -m 0755 "$mountpoint"
 mounted=0
 if [[ $type == apfs ]]; then
     # Ubuntu's libfsapfs implementation exposes APFS through FUSE without write
@@ -51,5 +94,6 @@ if ((mounted)); then
     fi
 else
     logger -t wasalight-usb "Failed to mount $dev ($fs)"
+    [[ $mountpoint == /stick ]] || rmdir "$mountpoint" 2>/dev/null || true
     exit 1
 fi

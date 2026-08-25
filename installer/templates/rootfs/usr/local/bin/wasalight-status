@@ -2,6 +2,7 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -u
+. /usr/local/libexec/wasalight-usb-paths
 version=$(cat /etc/wasalight/version 2>/dev/null || echo unknown)
 os=$(. /etc/os-release 2>/dev/null; printf '%s' "${PRETTY_NAME:-unknown}")
 magicq_version="not installed"
@@ -14,8 +15,9 @@ root_fs=$(findmnt -n -o FSTYPE / 2>/dev/null || echo unknown)
 if [[ $root_fs == overlay ]]; then mode=PROTECTED; else mode=MAINTENANCE; fi
 data="NOT MOUNTED"
 mountpoint -q /data && data="$(findmnt -n -o SOURCE,FSTYPE,OPTIONS -M /data)"
-usb=$(findmnt -rn -o SOURCE,TARGET,FSTYPE,OPTIONS 2>/dev/null | \
-    awk '$2 ~ "^/stick/"' || true)
+usb=$(while IFS= read -r target; do
+    findmnt -n -o SOURCE,TARGET,FSTYPE,OPTIONS -M "$target"
+done < <(wasalight_usb_mounts) || true)
 [[ -n $usb ]] || usb="empty"
 magicq="NOT INSTALLED"
 magicq_mode="manual"

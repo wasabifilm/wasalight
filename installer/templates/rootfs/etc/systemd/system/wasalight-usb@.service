@@ -1,5 +1,5 @@
 [Unit]
-Description=MagicQ USB mount for /dev/%I
+Description=Wasalight direct USB mount for /dev/%I
 BindsTo=dev-%i.device
 After=dev-%i.device
 

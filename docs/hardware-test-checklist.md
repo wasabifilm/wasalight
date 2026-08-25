@@ -343,7 +343,8 @@ build, macchina e percorso del support bundle o del log conservato.
 - [ ] Il `.deb` originale resta invariato sulla chiavetta dopo l’aggiornamento.
 - [ ] Un pacchetto non `magicq`, non `amd64` o precedente viene ignorato e due
       file della stessa versione con contenuto diverso bloccano l’operazione.
-- [ ] FAT32, exFAT e NTFS vengono montati in `/stick/<dispositivo>` e sono
+- [ ] FAT32, exFAT e NTFS vengono montati direttamente in `/stick`, poi negli
+      slot stabili `/stick2`–`/stick9`, e sono
       visibili da MagicQ.
 - [ ] Un container APFS non cifrato viene montato tramite `fsapfsmount`; i
       volumi `fsapfs1`, `fsapfs2`, ecc. sono leggibili da `chamsys` ma non

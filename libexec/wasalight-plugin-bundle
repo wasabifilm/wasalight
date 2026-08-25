@@ -2,6 +2,7 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
+. /usr/local/libexec/wasalight-usb-paths
 
 [[ $EUID -eq 0 ]] || { echo "Run through sudo." >&2; exit 1; }
 [[ $(findmnt -n -o FSTYPE / 2>/dev/null) != overlay ]] || {
@@ -11,14 +12,12 @@ bundle=${1:-}
 [[ -f $bundle && -f $bundle.asc ]] || {
     echo "Usage: sudo wasalight-plugin-bundle BUNDLE.tar.gz (with BUNDLE.tar.gz.asc)" >&2; exit 2;
 }
-case $bundle in /stick/*) ;; *) echo "Plugin bundles are accepted only from a mounted USB volume." >&2; exit 2 ;; esac
 [[ ! -L $bundle && ! -L $bundle.asc ]] || {
     echo "Plugin bundle and signature must not be symbolic links." >&2; exit 2;
 }
 bundle=$(readlink -f -- "$bundle")
-[[ $bundle == /stick/* ]] || { echo "Bundle path escapes /stick." >&2; exit 2; }
-mount_target=$(findmnt -n -o TARGET -T "$bundle" 2>/dev/null || true)
-[[ $mount_target == /stick/* ]] || { echo "Bundle is not on a mounted Wasalight USB volume." >&2; exit 1; }
+mount_target=$(wasalight_usb_target_for_path "$bundle" || true)
+[[ -n $mount_target ]] || { echo "Bundle is not on a mounted Wasalight USB volume." >&2; exit 1; }
 keyring=/etc/wasalight/trusted-plugin-keys.gpg
 [[ -s $keyring ]] || { echo "No Wasalight plugin signing key is trusted. Import refused." >&2; exit 1; }
 gpgv --keyring "$keyring" "$bundle.asc" "$bundle"

@@ -58,7 +58,8 @@ MAGICQ_USB/*.deb
 MAGICQ_USB/packages/*.deb
 ```
 
-Dopo il montaggio automatico in `/stick/<dispositivo>`, entrare in MAINTENANCE
+Dopo il montaggio automatico in `/stick` (oppure `/stick2` per la seconda
+USB), entrare in MAINTENANCE
 e scegliere **Installa o aggiorna MagicQ** nella pagina MagicQ di Wasalight
 Control oppure usare:
 

@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 set -u
 . /usr/local/libexec/wasalight-i18n
+. /usr/local/libexec/wasalight-usb-paths
 
 [[ $(id -un) == chamsys ]] || exit 1
 state_dir=/data/system/magicq-updates
@@ -21,7 +22,12 @@ while :; do
             candidate=$package
             candidate_version=$version
         fi
-    done < <(find /stick -mindepth 2 -maxdepth 3 -type f -iname '*.deb' -print0 2>/dev/null)
+    done < <(
+        while IFS= read -r usb_mount; do
+            find "$usb_mount" -mindepth 1 -maxdepth 3 -type f \
+                -iname '*.deb' -print0 2>/dev/null
+        done < <(wasalight_usb_mounts)
+    )
 
     installed=$(dpkg-query -W -f='${Version}' magicq 2>/dev/null || true)
     notice=

@@ -4,6 +4,7 @@
 set -Eeuo pipefail
 
 . /usr/local/libexec/wasalight-operation-lock.sh
+. /usr/local/libexec/wasalight-usb-paths
 
 [[ $EUID -eq 0 ]] || { echo "Run through sudo." >&2; exit 1; }
 wasalight_acquire_operation_lock "backup o ripristino dati Wasalight"
@@ -13,13 +14,13 @@ wasalight_acquire_operation_lock "backup o ripristino dati Wasalight"
 mountpoint -q /data || { echo "/data is not mounted." >&2; exit 1; }
 
 mounted_usb() {
-    findmnt -rn -o TARGET | awk '$0 ~ "^/stick/[^/]+$"'
+    wasalight_usb_mounts
 }
 
 require_usb_path() {
     local path=$1 target
-    target=$(findmnt -n -o TARGET -T "$path" 2>/dev/null || true)
-    [[ $target =~ ^/stick/[^/]+$ ]] || {
+    target=$(wasalight_usb_target_for_path "$path" || true)
+    [[ -n $target ]] || {
         echo "Path is not on a mounted Wasalight USB volume: $path" >&2
         return 1
     }
@@ -27,7 +28,7 @@ require_usb_path() {
 
 choose_usb() {
     mapfile -t volumes < <(mounted_usb)
-    ((${#volumes[@]})) || { echo "No USB volume is mounted below /stick." >&2; exit 1; }
+    ((${#volumes[@]})) || { echo "No Wasalight USB volume is mounted." >&2; exit 1; }
     echo "USB volumes:" >&2
     select selected in "${volumes[@]}"; do
         [[ -n ${selected:-} ]] && { printf '%s\n' "$selected"; return; }

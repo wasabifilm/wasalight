@@ -20,7 +20,8 @@ Legenda:
 - [x] Partizione ext4 separata montata in `/data` per i dati persistenti.
 - [x] SHOW protetto tramite overlayroot e MAINTENANCE scrivibile.
 - [x] NetworkManager come unico gestore persistente della rete.
-- [x] Supporti USB distinti sotto `/stick/<dispositivo>`.
+- [x] Prima USB montata direttamente in `/stick` per MagicQ; fino a otto
+      supporti successivi stabili in `/stick2`–`/stick9`.
 - [x] Utente `chamsys` amministratore con password scelta dall’installatore.
 - [x] MagicQ eseguito con il launcher root ristretto verificato sull’hardware.
 - [x] Dipendenze OpenGL, GLU, XCB, Qt e ALSA richieste da MagicQ.
