@@ -92,6 +92,14 @@ Prima del commit destinato alla pubblicazione:
 6. pubblicare il tag e una GitHub Release non prerelease, quindi renderla
    immutabile prima di considerarla disponibile sul canale stable.
 
+Anche le ISO della release devono essere costruite indicando il tag esatto,
+così il primo avvio installa quella revisione anziché il successivo `main`:
+
+```bash
+bash Minimal-ISO-Builder/make-wasalight-minimal.sh \
+  --wasalight-ref "v$(cat VERSION)"
+```
+
 Configurazione tipica della postazione di rilascio, indicando una chiave privata
 protetta da passphrase e mai inclusa nel repository:
 

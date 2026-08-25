@@ -7,10 +7,11 @@ set -Eeuo pipefail
 # Ubuntu Server LTS - Linux + macOS
 #
 # Uso: crea entrambe le varianti.
-#   ./make-wasalight-minimal.sh [SOURCE-LIVE.iso [AUTOINSTALL.yaml]]
+#   ./make-wasalight-minimal.sh [--wasalight-ref REF] \
+#     [SOURCE-LIVE.iso [AUTOINSTALL.yaml]]
 #
 # Variante singola:
-#   ./make-wasalight-minimal.sh --variant full|netboot \
+#   ./make-wasalight-minimal.sh --variant full|netboot [--wasalight-ref REF] \
 #     [SOURCE.iso [AUTOINSTALL.yaml [OUTPUT.iso]]]
 #
 # Dipendenza unica:
@@ -23,8 +24,9 @@ info() { printf '%s\n' "$*"; }
 usage() {
   cat <<'EOF'
 Uso:
-  ./make-wasalight-minimal.sh [SOURCE.iso [AUTOINSTALL.yaml]]
-  ./make-wasalight-minimal.sh --variant full|netboot \
+  ./make-wasalight-minimal.sh [--wasalight-ref REF] \
+    [SOURCE.iso [AUTOINSTALL.yaml]]
+  ./make-wasalight-minimal.sh --variant full|netboot [--wasalight-ref REF] \
     [SOURCE.iso [AUTOINSTALL.yaml [OUTPUT.iso]]]
 
 Senza SOURCE.iso il builder usa le basi ufficiali Live Server e Mini ISO
@@ -39,6 +41,10 @@ FULL richiede Internet per installare Git e poi Wasalight; non scarica la base
 Ubuntu. NETBOOT richiede DHCP, DNS, Internet e almeno 8 GiB di RAM durante
 l'installazione. `offline` resta un alias compatibile di `full`. Nessuna
 variante include il pacchetto proprietario MagicQ.
+
+Senza --wasalight-ref viene installato il branch dichiarato nel manifest. Le
+ISO di release devono indicare il tag esatto, per esempio:
+  --wasalight-ref v2026.08.25.1-rc.2
 EOF
 }
 
@@ -92,26 +98,40 @@ readonly UBUNTU_VERSION UBUNTU_POINT_RELEASE TARGET_ARCHITECTURE LIVE_ISO_FILE
 readonly LIVE_ISO_SHA256 WASALIGHT_REPOSITORY WASALIGHT_BRANCH INSTALLER_VERSION
 readonly PACKAGE_LIST_LIBRARY RUNTIME_PACKAGES_FILE_NAME RUNTIME_PACKAGES_FILE PACKAGES_VALUE
 
-case "${1:-}" in
-  -h|--help) usage; exit 0 ;;
-esac
-
 BUILD_VARIANT=all
-if [[ ${1:-} == --variant ]]; then
-  (($# >= 2)) || die "--variant richiede full oppure netboot."
-  BUILD_VARIANT=$2
-  shift 2
-fi
+WASALIGHT_INSTALL_REF=$WASALIGHT_BRANCH
+while (($#)); do
+  case $1 in
+    -h|--help) usage; exit 0 ;;
+    --variant)
+      (($# >= 2)) || die "--variant richiede full oppure netboot."
+      BUILD_VARIANT=$2
+      shift 2
+      ;;
+    --wasalight-ref)
+      (($# >= 2)) || die "--wasalight-ref richiede un branch o tag Git."
+      WASALIGHT_INSTALL_REF=$2
+      shift 2
+      ;;
+    --*) die "Opzione sconosciuta: $1" ;;
+    *) break ;;
+  esac
+done
+[[ $WASALIGHT_INSTALL_REF =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ ]] || \
+  die "Riferimento Wasalight non valido: $WASALIGHT_INSTALL_REF"
+export WASALIGHT_INSTALL_REF
+readonly WASALIGHT_INSTALL_REF
 
 case "$BUILD_VARIANT" in
   all)
     (($# <= 2)) || die "Con entrambe le varianti non specificare OUTPUT.iso."
     info "Creo le varianti FULL e NETBOOT."
-    bash "$0" --variant full "$@"
+    bash "$0" --variant full --wasalight-ref "$WASALIGHT_INSTALL_REF" "$@"
     if (($# == 0)); then
-      bash "$0" --variant netboot
+      bash "$0" --variant netboot --wasalight-ref "$WASALIGHT_INSTALL_REF"
     else
-      bash "$0" --variant netboot "" "${2:-$SCRIPT_DIR/autoinstall.yaml}"
+      bash "$0" --variant netboot --wasalight-ref "$WASALIGHT_INSTALL_REF" \
+        "" "${2:-$SCRIPT_DIR/autoinstall.yaml}"
     fi
     exit 0
     ;;
@@ -265,6 +285,21 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+ISO_RELEASE_MANIFEST="$TMP/release-manifest.ini"
+awk -v install_ref="$WASALIGHT_INSTALL_REF" '
+  /^\[/ { section=$0 }
+  section == "[Wasalight]" && /^Branch=/ {
+    print "Branch=" install_ref
+    replaced++
+    next
+  }
+  { print }
+  END { if (replaced != 1) exit 1 }
+' "$RELEASE_MANIFEST" >"$ISO_RELEASE_MANIFEST" || \
+  die "Impossibile fissare il riferimento Wasalight nel manifest ISO."
+grep -Fxq "Branch=$WASALIGHT_INSTALL_REF" "$ISO_RELEASE_MANIFEST" || \
+  die "Il riferimento Wasalight non è presente nel manifest ISO."
+
 UI_SCRIPT="$TMP/install-ui.sh"
 sed "s|__WASALIGHT_UBUNTU_VERSION__|$UBUNTU_VERSION|g" "$UI_TEMPLATE" >"$UI_SCRIPT"
 if grep -Fq '__WASALIGHT_UBUNTU_VERSION__' "$UI_SCRIPT"; then
@@ -281,6 +316,7 @@ info "ISO sorgente : $SOURCE_ISO"
 info "Autoinstall  : $AUTOINSTALL"
 info "ISO finale   : $OUTPUT_ISO"
 info "Variante     : $VARIANT_LABEL"
+info "Wasalight ref: $WASALIGHT_INSTALL_REF"
 info
 
 info "[1/7] Controllo la ISO Ubuntu..."
@@ -501,7 +537,7 @@ if iso_has_path "$SOURCE_ISO" /md5sum.txt; then
     printf '%s  ./wasalight/save-installer-logs.sh\n' "$(md5sum_file "$LOG_SAVER")"
     printf '%s  ./wasalight/preflight.sh\n' "$(md5sum_file "$PREFLIGHT_SCRIPT")"
     printf '%s  ./wasalight/VERSION\n' "$(md5sum_file "$VERSION_FILE")"
-    printf '%s  ./wasalight/release-manifest.ini\n' "$(md5sum_file "$RELEASE_MANIFEST")"
+    printf '%s  ./wasalight/release-manifest.ini\n' "$(md5sum_file "$ISO_RELEASE_MANIFEST")"
     printf '%s  ./wasalight/wasalight-release-manifest.sh\n' "$(md5sum_file "$MANIFEST_LIBRARY")"
     printf '%s  ./wasalight/wasalight-first-boot.sh\n' "$(md5sum_file "$FIRST_BOOT_SCRIPT")"
     printf '%s  ./wasalight/wasalight-first-boot.service\n' "$(md5sum_file "$FIRST_BOOT_SERVICE")"
@@ -529,7 +565,7 @@ ARGS+=(
   -map "$LOG_SAVER" /wasalight/save-installer-logs.sh
   -map "$PREFLIGHT_SCRIPT" /wasalight/preflight.sh
   -map "$VERSION_FILE" /wasalight/VERSION
-  -map "$RELEASE_MANIFEST" /wasalight/release-manifest.ini
+  -map "$ISO_RELEASE_MANIFEST" /wasalight/release-manifest.ini
   -map "$MANIFEST_LIBRARY" /wasalight/wasalight-release-manifest.sh
   -map "$FIRST_BOOT_SCRIPT" /wasalight/wasalight-first-boot.sh
   -map "$FIRST_BOOT_SERVICE" /wasalight/wasalight-first-boot.service
@@ -625,8 +661,8 @@ cmp -s "$PREFLIGHT_SCRIPT" "$TMP/verify/preflight.sh" || \
   die "preflight.sh incorporato non corrisponde al sorgente."
 cmp -s "$VERSION_FILE" "$TMP/verify/VERSION" || \
   die "VERSION incorporato non corrisponde al sorgente."
-cmp -s "$RELEASE_MANIFEST" "$TMP/verify/release-manifest.ini" || \
-  die "release-manifest.ini incorporato non corrisponde al sorgente."
+cmp -s "$ISO_RELEASE_MANIFEST" "$TMP/verify/release-manifest.ini" || \
+  die "release-manifest.ini incorporato non contiene il riferimento richiesto."
 cmp -s "$MANIFEST_LIBRARY" "$TMP/verify/wasalight-release-manifest.sh" || \
   die "loader manifest incorporato non corrisponde al sorgente."
 cmp -s "$FIRST_BOOT_SCRIPT" "$TMP/verify/wasalight-first-boot.sh" || \
@@ -660,7 +696,7 @@ else
   info "  - checkout Wasalight verificato e preparato durante l'autoinstall"
 fi
 info "  - Git installato dai repository Ubuntu"
-info "  - Wasalight ${WASALIGHT_BRANCH} installato automaticamente al primo avvio con rete"
+info "  - Wasalight ${WASALIGHT_INSTALL_REF} installato automaticamente al primo avvio con rete"
 info "  - autoinstall.yaml incluso"
 info "  - password chamsys scelta durante l'installazione"
 info "  - SSH non installato e accesso password SSH disabilitato"

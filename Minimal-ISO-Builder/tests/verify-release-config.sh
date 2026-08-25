@@ -72,7 +72,13 @@ for script in make-wasalight-minimal.sh make-wasalight-netboot.sh; do
     grep -Fq 'wasalight_runtime_packages_yaml "$RUNTIME_PACKAGES_FILE"' \
         "$ISO_BUILDER_DIR/$script" || \
         fail "$script non usa l'elenco pacchetti runtime condiviso"
+    grep -Fq 'ISO_RELEASE_MANIFEST=' "$ISO_BUILDER_DIR/$script" || \
+        fail "$script non genera un manifest ISO separato"
+    grep -Fq 'Branch=$WASALIGHT_INSTALL_REF' "$ISO_BUILDER_DIR/$script" || \
+        fail "$script non fissa il riferimento Wasalight nel manifest ISO"
 done
+grep -Fq -- '--wasalight-ref' "$ISO_BUILDER_DIR/make-wasalight-minimal.sh" || \
+    fail "il builder non espone il riferimento Git della release"
 grep -Fq 'git clone --depth 1 --branch "$branch" --single-branch' \
     "$ISO_BUILDER_DIR/wasalight-first-boot.sh" || \
     fail "first boot non usa un clone shallow"
