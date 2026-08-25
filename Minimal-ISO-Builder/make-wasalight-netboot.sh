@@ -192,8 +192,8 @@ sed \
   -e "s|__WASALIGHT_INSTALLER_VERSION__|$INSTALLER_VERSION|g" \
   -e 's|/cdrom/wasalight|/wasalight|g' \
   "$AUTOINSTALL" >"$TMP/autoinstall.yaml"
-grep -Fq 'packages: [git]' "$TMP/autoinstall.yaml" || \
-  die "Git non presente nell'autoinstall NETBOOT."
+grep -Fq 'packages: [git, gettext]' "$TMP/autoinstall.yaml" || \
+  die "Prerequisiti di bootstrap non presenti nell'autoinstall NETBOOT."
 grep -Fq -- '--download-only' "$TMP/autoinstall.yaml" || die "Preload Git Wasalight non configurato."
 if grep -Eq '__WASALIGHT_(INSTALL_VARIANT|NETWORK_PRELOAD|INSTALLER_VERSION)__|/cdrom/wasalight' "$TMP/autoinstall.yaml"; then
   die "Autoinstall NETBOOT contiene placeholder o percorsi non risolti."
