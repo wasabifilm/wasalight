@@ -722,14 +722,17 @@ problemi reali e non vengono nascosti dai log.
 ### Rete gestita da NetworkManager
 
 Ubuntu Server crea normalmente la prima configurazione Netplan usando
-`systemd-networkd`. In questo stato `nm-connection-editor` si apre, ma
+`systemd-networkd`. In questo stato i client di configurazione si aprono, ma
 NetworkManager mostra l'interfaccia come `unmanaged` e la lista può apparire
 vuota. Wasalight installa quindi il file
 `/etc/netplan/99-wasalight-networkmanager.yaml`, che seleziona
 `NetworkManager` come renderer conservando le definizioni DHCP, statiche, DNS e
 route già presenti negli altri file Netplan.
 
-Le nuove connessioni salvate dalla voce **Network** in Wasalight Control sono
+La pagina **Rete** di Wasalight Control usa direttamente `libnm` per gestire
+Ethernet, Wi-Fi, DHCP, indirizzi statici, gateway e DNS. `nmtui` resta
+disponibile dal pulsante **Avanzate** per 802.1X e configurazioni speciali. Le
+nuove connessioni sono
 conservate nel bind persistente
 `/etc/NetworkManager/system-connections` → `/data/system/network`. Lo stato si
 controlla con:

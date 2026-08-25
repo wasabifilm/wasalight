@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Touch-first unified Wasalight desktop management interface."""
 
+import argparse
 import concurrent.futures
 import os
 import re
@@ -21,8 +22,8 @@ from wasalight_control.launchers import installed_launchers
 from wasalight_control.models import ControlPaths
 from wasalight_control.overview_state import parse_status_report
 from wasalight_control.pages import (
-    AboutPage, ApplicationsPage, MaintenancePage, OverviewPage, SystemPage,
-    ToolsPage,
+    AboutPage, ApplicationsPage, MaintenancePage, NetworkPage, OverviewPage,
+    SystemPage, ToolsPage,
 )
 from wasalight_control.shell import ApplicationShell
 from wasalight_control.system import magicq_state, mode_and_version, read_plugins, read_status
@@ -61,6 +62,8 @@ class ControlCenter(Gtk.Window):
         self.applications_page = ApplicationsPage(
             launchers, PATHS, self.run_desktop_command,
             self.launch_application)
+        self.network_page = NetworkPage(
+            self, self.run_desktop_command, self.show_error)
         self.system_page = SystemPage()
         self.tools_page = ToolsPage(launchers, self.launch_application)
         self.maintenance_page = MaintenancePage()
@@ -68,6 +71,7 @@ class ControlCenter(Gtk.Window):
         pages = (
             ("overview", _("Overview"), self.overview_page),
             ("applications", _("Applications"), self.applications_page.widget),
+            ("network", _("Network"), self.network_page.widget),
             ("system", _("System"), self.system_page.widget),
             ("tools", _("Tools"), self.tools_page.widget),
             ("maintenance", _("Plugins"), self.maintenance_page.widget),
@@ -360,6 +364,10 @@ class ControlCenter(Gtk.Window):
 install_style()
 window = ControlCenter()
 window.show_all()
+arguments = argparse.ArgumentParser(add_help=False)
+arguments.add_argument("--page", default="overview")
+requested, _unknown = arguments.parse_known_args()
+window.navigate_to(requested.page)
 # PCManFM owns the desktop window and can otherwise remain above Control on its
 # first launch.  Present after mapping so a dock or desktop touch reliably
 # brings the newly-created window to the foreground.

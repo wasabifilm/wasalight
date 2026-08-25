@@ -499,7 +499,6 @@ pcmanfm --desktop --profile=default &
 picom --config "$HOME/.config/picom/wasalight.conf" --daemon
 conky --config="$HOME/.config/conky/wasalight.conf" --daemonize --pause=2
 tint2 -c "$HOME/.config/tint2/tint2rc" &
-nm-applet --indicator &
 GTK_THEME=Adwaita:dark \
     /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
 /usr/local/bin/wasalight-touch-watch &

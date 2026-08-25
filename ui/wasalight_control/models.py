@@ -24,7 +24,6 @@ class ControlPaths:
     update_terminal: str = "/usr/local/bin/wasalight-update-terminal"
     update_check: str = "/usr/local/bin/wasalight-update-check"
     update_channel_control: str = "/usr/local/sbin/wasalight-update-channel"
-    network_settings: str = "nm-connection-editor"
     mode_toggle: str = "/usr/local/bin/wasalight-mode-toggle"
     magicq_start: str = "/usr/local/bin/magicq-start"
     magicq_action: str = "/usr/local/bin/wasalight-magicq-desktop-action"

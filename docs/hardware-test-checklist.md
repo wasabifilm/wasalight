@@ -268,7 +268,8 @@ build, macchina e percorso del support bundle o del log conservato.
 
 - [ ] `nmcli device status` mostra le interfacce Ethernet/Wi-Fi come gestite,
       non `unmanaged`.
-- [ ] `nm-connection-editor` salva DHCP e indirizzi statici.
+- [ ] La pagina **Rete** di Wasalight Control salva DHCP e indirizzi statici,
+      elenca il Wi-Fi e conserva le credenziali senza mostrarle nei processi.
 - [ ] Le connessioni sopravvivono a un riavvio protetto.
 - [ ] Nessun indirizzo o servizio inatteso interferisce con la rete show.
 - [ ] `dpkg-query -W ufw` conferma che UFW non è installato e non restano regole

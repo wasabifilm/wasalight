@@ -111,6 +111,14 @@ if grep -Fq 'wasalight-rollback' \
     fail "il rollback non deve essere autorizzato permanentemente senza password"
 fi
 companion_web_launcher="$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/companion-web.desktop"
+network_launcher="$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/network.desktop"
+grep -Fq 'Exec=/usr/local/bin/wasalight-control --page network' \
+    "$network_launcher" || fail "il launcher Rete non apre la pagina integrata"
+grep -Fxq 'gir1.2-nm-1.0' "$PROJECT_DIR/packages/wasalight-runtime.txt" || \
+    fail "le API libnm per la pagina Rete non sono installate"
+if grep -Fxq 'network-manager-gnome' "$PROJECT_DIR/packages/wasalight-runtime.txt"; then
+    fail "il vecchio editor rete GNOME è ancora installato"
+fi
 grep -Fq 'Icon=/usr/local/share/icons/wasalight/companion-official.png' \
     "$companion_web_launcher" || fail "Falkon Companion non usa l’icona ufficiale"
 grep -Fq 'StartupWMClass=WasalightCompanion' "$companion_web_launcher" || \
@@ -417,7 +425,7 @@ for runtime_package in \
     xinput libinput-tools libglu1-mesa libgl1-mesa-dri libxcb-cursor0 \
     alsa-utils openbox picom x11vnc galculator i3lock mousepad onboard \
     gir1.2-atspi-2.0 falkon conky-all \
-    python3-gi gir1.2-gtk-3.0 arp-scan network-manager wpasupplicant \
+    python3-gi gir1.2-gtk-3.0 gir1.2-nm-1.0 arp-scan network-manager wpasupplicant \
     plymouth libfsapfs-utils openssh-server git curl; do
     grep -Fxq "$runtime_package" "$runtime_packages_file" || \
         fail "pacchetto runtime richiesto mancante: $runtime_package"

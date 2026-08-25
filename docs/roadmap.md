@@ -1,6 +1,6 @@
 # Roadmap Wasalight
 
-Ultimo aggiornamento: 23 agosto 2026.
+Ultimo aggiornamento: 25 agosto 2026.
 
 Questo documento è la fonte permanente per le funzionalità richieste e il loro
 stato. La [checklist hardware](hardware-test-checklist.md) resta invece la fonte
@@ -83,6 +83,9 @@ configurazione realmente applicata:
 - [x] Rimozione della riga tecnica `SESSION` dall’interfaccia operatore.
 - [x] Wasalight Control a istanza singola, con pagine Stato, MagicQ, Servizi,
       Applicazioni, Supporto, Plugin e Crediti.
+- [~] Pagina Rete touch integrata con Ethernet, Wi-Fi, DHCP, IP statico, DNS e
+      fallback `nmtui` per configurazioni enterprise o legacy; resta da
+      collaudare sulla macchina fisica.
 - [x] Colore Wasabi `#76bd22`, font ridimensionati e pulsante Chiudi evidente.
 - [x] Sistemare le icone dei messaggi di conferma (riavvio, spegnimento,
       blocco e operazioni analoghe), evitando l’interrogativo generico e

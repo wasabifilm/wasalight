@@ -89,7 +89,7 @@ class OverviewPage(Gtk.Box):
         cards = Gtk.Box(spacing=12)
         self.network_card = self._status_card(
             _("Network"),
-            lambda button: run_command(button, [paths.network_settings]),
+            lambda _button: open_page("network"),
             _("Configure"))
         self.remote_card = self._status_card(
             _("Remote access"), lambda _button: open_page("system"))
