@@ -551,6 +551,8 @@ AllowedPlugins=internal:adblock, lib:KDEFrameworksIntegration.so
 keep=this-too
 EOF
 WASALIGHT_FALKON_PROFILE_ROOT="$falkon_profile_fixture" \
+WASALIGHT_FALKON_PLUGIN_SOURCE="$INSTALLER_TEMPLATE_ROOT/usr/local/share/wasalight/falkon-plugins/wasalight-companion-controls" \
+WASALIGHT_FALKON_PLUGIN_ROOT="$falkon_profile_fixture/plugins/wasalight-companion-controls" \
     bash "$tmp_dir/falkon-profile"
 grep -Fq '#locationbar,' "$falkon_profile_fixture/userChrome.css" || \
     fail "il profilo Falkon non nasconde il campo indirizzo e ricerca"
@@ -571,13 +573,16 @@ grep -Fq 'homepage=http://127.0.0.1:8000' \
     fail "il profilo Falkon non imposta Companion come pagina iniziale"
 grep -Fq 'afterLaunch=1' "$falkon_profile_fixture/settings.ini" || \
     fail "il profilo Falkon ripristina ancora la sessione precedente"
-grep -Fq 'DefaultZoomLevel=8' "$falkon_profile_fixture/settings.ini" || \
-    fail "il profilo Falkon non usa lo zoom touch al 120 percento"
+grep -Fq 'DefaultZoomLevel=6' "$falkon_profile_fixture/settings.ini" || \
+    fail "il profilo Falkon Companion non usa lo zoom al 100 percento"
+grep -Fq 'wasalight-companion-zoom-out, wasalight-companion-zoom-in' \
+    "$falkon_profile_fixture/settings.ini" || \
+    fail "il profilo Falkon non aggiunge i controlli zoom e non rimuove il menu"
 grep -Fq 'hideTabsWithOneTab=true' "$falkon_profile_fixture/settings.ini" || \
     fail "il profilo Falkon non nasconde la barra con una singola scheda"
-grep -Fq 'Layout=button-backforward, button-reloadstop, button-home, button-tools' \
+grep -Fq 'Layout=button-backforward, button-reloadstop, button-home, locationbar, wasalight-companion-zoom-out, wasalight-companion-zoom-in' \
     "$falkon_profile_fixture/settings.ini" || \
-    fail "la barra Falkon mantiene ancora indirizzo, ricerca o bookmark"
+    fail "la barra Falkon Companion non usa i soli controlli richiesti"
 grep -Fq 'min-height: 46px' "$falkon_profile_fixture/userChrome.css" || \
     fail "il tema Falkon non crea controlli touch sufficientemente grandi"
 [[ -e $falkon_profile_fixture/.wasalight-profile-3 ]] || \
@@ -592,6 +597,8 @@ sed -i.bak 's/AllowedPlugins=lib:KDEFrameworksIntegration.so/AllowedPlugins=inte
     "$falkon_profile_fixture/settings.ini"
 rm -f "$falkon_profile_fixture/settings.ini.bak"
 WASALIGHT_FALKON_PROFILE_ROOT="$falkon_profile_fixture" \
+WASALIGHT_FALKON_PLUGIN_SOURCE="$INSTALLER_TEMPLATE_ROOT/usr/local/share/wasalight/falkon-plugins/wasalight-companion-controls" \
+WASALIGHT_FALKON_PLUGIN_ROOT="$falkon_profile_fixture/plugins/wasalight-companion-controls" \
     bash "$tmp_dir/falkon-profile"
 grep -Fq 'showStatusBar=true' "$falkon_profile_fixture/settings.ini" || \
     fail "un update Wasalight sovrascrive le preferenze Falkon dell'operatore"
@@ -601,9 +608,12 @@ fi
 
 empty_falkon_profile="$tmp_dir/falkon-profile-empty"
 WASALIGHT_FALKON_PROFILE_ROOT="$empty_falkon_profile" \
+WASALIGHT_FALKON_PLUGIN_SOURCE="$INSTALLER_TEMPLATE_ROOT/usr/local/share/wasalight/falkon-plugins/wasalight-companion-controls" \
+WASALIGHT_FALKON_PLUGIN_ROOT="$empty_falkon_profile/plugins/wasalight-companion-controls" \
     bash "$tmp_dir/falkon-profile"
-grep -Fq 'AllowedPlugins=@Invalid()' "$empty_falkon_profile/settings.ini" || \
-    fail "un nuovo profilo Falkon abilita ancora AdBlock per default"
+grep -Fq 'AllowedPlugins=qml:wasalight-companion-controls' \
+    "$empty_falkon_profile/settings.ini" || \
+    fail "un nuovo profilo Falkon non abilita solo i controlli Companion"
 grep -Fq 'showStatusBar=false' "$empty_falkon_profile/settings.ini" || \
     fail "un nuovo profilo Falkon non applica i default Wasalight"
 [[ -s $empty_falkon_profile/userChrome.css ]] || \

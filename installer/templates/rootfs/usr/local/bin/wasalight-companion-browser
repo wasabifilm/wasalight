@@ -53,10 +53,20 @@ export XDG_CACHE_HOME="$runtime_base/wasalight-companion-browser-cache"
 install -d -m 0700 "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME"
 /usr/local/bin/wasalight-falkon-profile
 
+lock_file="$runtime_base/wasalight-companion-browser.lock"
+exec 9>"$lock_file"
+if ! flock -n 9; then
+    existing_window=$(wmctrl -lx 2>/dev/null | \
+        awk 'tolower($3) ~ /wasalightcompanion/ { print $1; exit }')
+    [[ -n ${existing_window:-} ]] && wmctrl -ia "$existing_window" || true
+    exit 0
+fi
+
 # Give the Companion web app its own X11 identity. Tint2 can then resolve the
 # matching XDG desktop entry and show the Companion icon instead of Falkon's.
-falkon --wmclass=WasalightCompanion --profile wasalight-companion "$url" &
+falkon --no-remote --wmclass=WasalightCompanion --profile wasalight-companion "$url" &
 browser_pid=$!
+title_guard_pid=
 # Maximise without EWMH fullscreen so Tint2 remains reachable on touchscreens.
 for _ in {1..30}; do
     # Falkon can hand the new window to an existing process, so WM_CLASS is
@@ -71,6 +81,17 @@ for _ in {1..30}; do
         [[ -s $companion_icon ]] || \
             companion_icon=/usr/local/share/icons/wasalight/companion.svg
         wmctrl -ir "$window_id" -b add,maximized_vert,maximized_horz || true
+        wmctrl -ir "$window_id" -T Companion || true
+        (
+            while kill -0 "$browser_pid" 2>/dev/null; do
+                current_title=$(xprop -id "$window_id" _NET_WM_NAME 2>/dev/null || true)
+                [[ -n $current_title ]] || exit 0
+                grep -Fq '"Companion"' <<<"$current_title" || \
+                    wmctrl -ir "$window_id" -T Companion || true
+                sleep 1
+            done
+        ) &
+        title_guard_pid=$!
         # Falkon publishes its own icon shortly after mapping. Reapply the
         # Companion icon briefly so the final EWMH value is the intended one.
         for _ in {1..4}; do
@@ -82,4 +103,12 @@ for _ in {1..30}; do
     fi
     sleep 0.2
 done
+set +e
 wait "$browser_pid"
+browser_rc=$?
+set -e
+if [[ ${title_guard_pid:-} =~ ^[0-9]+$ ]]; then
+    kill "$title_guard_pid" 2>/dev/null || true
+    wait "$title_guard_pid" 2>/dev/null || true
+fi
+exit "$browser_rc"

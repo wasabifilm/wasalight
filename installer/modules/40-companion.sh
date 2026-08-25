@@ -158,6 +158,8 @@ EOF
     install_template /usr/local/bin/wasalight-companion-browser 0755
 
     install_template /usr/local/bin/wasalight-falkon-profile 0755
+    install_template /usr/local/share/wasalight/falkon-plugins/wasalight-companion-controls/metadata.desktop 0644
+    install_template /usr/local/share/wasalight/falkon-plugins/wasalight-companion-controls/main.qml 0644
 
     install_template /usr/local/bin/wasalight-x11-window-icon 0755
 

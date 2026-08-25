@@ -83,6 +83,10 @@ in Applicazioni. Entrambe aprono `http://127.0.0.1:8000` in Falkon. Se il serviz
 è fermo, propongono di avviarlo per la sessione. La finestra viene
 massimizzata lasciando visibile Tint2, quindi resta possibile cambiare
 applicazione o chiuderla con il grande pulsante del tema Wasalight.
+Il profilo parte con zoom 100%, mantiene soltanto Indietro, Ricarica e Home e
+aggiunge due pulsanti touch Zoom −/+. Il menu Falkon a destra viene rimosso e il
+titolo X11 viene mantenuto semplicemente come `Companion`. Queste modifiche non
+si applicano al browser Falkon generico.
 La finestra usa la classe X11 dedicata `WasalightCompanion`, registrata anche
 come applicazione XDG. Poiché Tint2 legge direttamente `_NET_WM_ICON` dalla
 finestra e Falkon pubblica la propria icona, il launcher sostituisce quella
