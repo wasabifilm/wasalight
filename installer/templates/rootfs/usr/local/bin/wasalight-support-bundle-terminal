@@ -3,8 +3,11 @@
 # SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
 exec lxterminal --title="Wasalight · Diagnostica" -e bash -lc '
-echo "Destinazioni USB montate:"; findmnt -rn -o TARGET | awk '\''$0 ~ "^/stick/[^/]+$"'\''
-echo; read -r -p "Destinazione (/data/log oppure /stick/NOME): " destination
-case $destination in /data/log|/stick/*) ;; *) echo "Destinazione non valida"; read -r _; exit 2 ;; esac
+. /usr/local/libexec/wasalight-usb-paths
+echo "Destinazioni USB montate:"; wasalight_usb_mounts
+echo; read -r -p "Destinazione (/data/log oppure da /stick a /stick9): " destination
+if [[ $destination != /data/log ]] && ! wasalight_is_usb_mount_target "$destination"; then
+    echo "Destinazione non valida"; read -r _; exit 2
+fi
 sudo -n /usr/local/sbin/wasalight-support-bundle "$destination"
 rc=$?; echo; read -r -p "Premere Invio per chiudere"; exit "$rc"'

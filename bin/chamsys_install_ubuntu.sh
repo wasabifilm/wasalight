@@ -142,7 +142,7 @@ Next boot: PROTECTED SHOW mode.
   Maintenance: sudo wasalight-maintenance  (then reboot)
   Protect:     sudo wasalight-protect      (then reboot)
 
-Every supported USB medium is mounted in its own /stick/<device> directory.
+The first supported USB medium is mounted at /stick, the second at /stick2.
 Synchronous writes reduce, but cannot eliminate, corruption if a stick is
 removed during an active write.
 EOF

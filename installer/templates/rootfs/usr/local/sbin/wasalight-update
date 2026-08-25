@@ -14,6 +14,7 @@ readonly stable_unavailable_file=/run/wasalight-update-stable-unavailable
 readonly progress_file=/run/wasalight-update-progress-detail
 
 . /usr/local/libexec/wasalight-release-manifest.sh
+. /usr/local/libexec/wasalight-usb-paths
 . /usr/local/libexec/wasalight-operation-lock.sh
 repository=$(require_manifest_value /etc/wasalight/release-manifest.ini Wasalight Repository)
 default_channel=$(require_manifest_value /etc/wasalight/release-manifest.ini Updates DefaultChannel)
@@ -441,7 +442,7 @@ else
             fi
         done < <(find "$usb_mount" -mindepth 1 -maxdepth 1 -type d \
             -name 'fsapfs[0-9]*' -print0 2>/dev/null)
-    done < <(findmnt -rn -o TARGET 2>/dev/null | awk '$0 ~ "^/stick/[^/]+$"')
+    done < <(wasalight_usb_mounts)
 fi
 
 if ((!plan_only)) && [[ ! -e $checkout && -d $previous_checkout/.git ]]; then

@@ -54,13 +54,13 @@ private. Prima di inviarlo è comunque buona pratica controllarne il contenuto.
 
 ```bash
 sudo wasalight-support-bundle /data/log
-sudo wasalight-support-bundle /stick/NOME_USB
+sudo wasalight-support-bundle /stick
 ```
 
 ## Backup completo di `/data`
 
 **Backup e ripristino** apre una procedura guidata. Richiede MAINTENANCE,
-`/data` montata e una USB visibile sotto `/stick/<volume>`. Il backup conserva
+`/data` montata e una USB visibile in uno slot da `/stick` a `/stick9`. Il backup conserva
 proprietà numeriche, ACL, attributi estesi, MagicQ, Companion, plugin, pacchetti
 persistenti, log e configurazione Wasalight.
 
@@ -70,8 +70,8 @@ una password GPG che Wasalight non memorizza.
 
 ```bash
 sudo wasalight-data-transfer
-sudo wasalight-data-transfer backup /stick/NOME_USB
-sudo wasalight-data-transfer backup /stick/NOME_USB --encrypt
+sudo wasalight-data-transfer backup /stick
+sudo wasalight-data-transfer backup /stick --encrypt
 ```
 
 Non rimuovere la chiavetta finché non compare `Backup completed`. Il manifest
@@ -93,7 +93,7 @@ dell’archivio, ferma MagicQ e Companion e richiede di digitare esattamente
 
 ```bash
 sudo wasalight-data-transfer restore \
-  /stick/NOME_USB/wasalight-data-AAAAMMGG-HHMMSS.tar.zst complete
+  /stick/wasalight-data-AAAAMMGG-HHMMSS.tar.zst complete
 ```
 
 Dopo un ripristino riavviare prima di aprire MagicQ. Il backup non sostituisce

@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+# Shared validation for direct USB mount points: /stick through /stick9.
+
+wasalight_is_usb_mount_target() {
+    [[ ${1:-} == /stick || ${1:-} =~ ^/stick[2-9]$ ]]
+}
+
+wasalight_usb_mounts() {
+    local target
+    while IFS= read -r target; do
+        wasalight_is_usb_mount_target "$target" && printf '%s\n' "$target"
+    done < <(findmnt -rn -o TARGET 2>/dev/null)
+    return 0
+}
+
+wasalight_usb_target_for_path() {
+    local path=${1:?missing USB path} target
+    target=$(findmnt -n -o TARGET -T "$path" 2>/dev/null || true)
+    wasalight_is_usb_mount_target "$target" || return 1
+    printf '%s\n' "$target"
+}

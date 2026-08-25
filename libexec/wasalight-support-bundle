@@ -2,18 +2,18 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
+. /usr/local/libexec/wasalight-usb-paths
 
 [[ $EUID -eq 0 ]] || { echo "Run through sudo." >&2; exit 1; }
 destination=${1:-/data/log}
-case $destination in /data/log|/stick/*) ;; *) echo "Destination must be /data/log or a mounted /stick volume." >&2; exit 2 ;; esac
-if [[ $destination == /stick/* ]]; then
+if [[ $destination != /data/log ]]; then
     destination=$(readlink -f -- "$destination")
-    [[ $destination =~ ^/stick/[^/]+$ ]] || {
+    wasalight_is_usb_mount_target "$destination" || {
         echo "USB destination must be the root of one mounted volume." >&2; exit 2;
     }
 fi
 [[ -d $destination && -w $destination ]] || { echo "Destination unavailable: $destination" >&2; exit 1; }
-if [[ $destination == /stick/* ]]; then
+if [[ $destination != /data/log ]]; then
     mountpoint -q "$destination" || { echo "USB destination is not mounted: $destination" >&2; exit 1; }
 fi
 

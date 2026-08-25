@@ -397,8 +397,8 @@ La configurazione normale è **SHOW / PROTECTED**:
 - `/data` rimane ext4 in lettura/scrittura;
 - show, impostazioni MagicQ e configurazioni di rete restano persistenti;
 - console ed eventi MagicQ restano disponibili in `/data/log` con rotazione;
-- ogni chiavetta viene montata nella propria sottodirectory di `/stick`, il
-  percorso usato dalla vista Flash di MagicQ;
+- la prima chiavetta viene montata direttamente in `/stick`, il percorso usato
+  dalla vista Flash di MagicQ; le successive usano `/stick2` fino a `/stick9`;
 
 Comandi disponibili:
 
@@ -855,17 +855,18 @@ Per modalità temporanea, attivazione automatica e sicurezza consultare la
 
 ## Chiavette USB per MagicQ
 
-MagicQ cerca i supporti rimovibili nel percorso `/stick`. L'installer crea una
-sottodirectory distinta per ogni partizione USB supportata, usando il nome del
-dispositivo: per esempio `/stick/sdb1` e `/stick/sdc1`. FAT32, exFAT e NTFS
-possono quindi restare montati in lettura/scrittura e visibili contemporaneamente
-nella vista Flash di MagicQ. Una seconda chiavetta non nasconde né sostituisce
-la prima.
+MagicQ cerca i supporti rimovibili nel percorso `/stick`. Wasalight monta quindi
+la prima partizione USB supportata direttamente in `/stick`, senza una
+sottodirectory intermedia, affinché show e backup di MagicQ finiscano nella root
+corretta del supporto. Una seconda USB usa `/stick2`, fino a un massimo di nove
+supporti con `/stick9`.
+Un supporto già attivo non viene spostato quando si libera uno slot precedente:
+resta nello stesso percorso fino alla rimozione.
 
 In una macchina virtuale UTM, montare la chiavetta nel Finder non la collega
 automaticamente a Linux: occorre usare il pulsante **USB** della finestra UTM e
 assegnare il dispositivo alla VM. Prima del pass-through, `lsusb` e `lsblk` non
-mostrano il supporto e Wasalight non può creare alcuna directory sotto `/stick`.
+mostrano il supporto e Wasalight non può montarlo in `/stick`.
 Se UTM mostra **Disconnect…** ma `lsusb` continua a non vedere la chiavetta, il
 redirect USB di UTM è rimasto bloccato prima del kernel guest: spegnere davvero
 la VM (non metterla in pausa), scollegare e ricollegare il dispositivo dal menu
@@ -890,7 +891,7 @@ Lo stato del supporto montato è visibile con:
 
 ```bash
 wasalight-status
-findmnt | grep '/stick/'
+findmnt -rn -o TARGET | grep -E '^/stick([2-9])?$'
 ```
 
 ## Percorsi persistenti

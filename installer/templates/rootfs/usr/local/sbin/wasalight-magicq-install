@@ -8,7 +8,6 @@ umask 022
 readonly package_store=/data/system/packages
 readonly magicq_log=/data/log/wasalight-magicq-install.log
 readonly manifest=/etc/wasalight/release-manifest.ini
-readonly usb_root=/stick
 scan_only=0
 reinstall=0
 selected_package=
@@ -21,7 +20,7 @@ Usage: sudo wasalight-magicq-install [options]
 Install or update only ChamSys MagicQ using local packages. This does not use
 Git, apt update, or Internet downloads. It searches for .deb files in
 /data/system/packages and in the root and packages folder of every USB drive
-mounted below /stick.
+mounted in one of the slots from /stick through /stick9.
 
 Options:
   --scan-only   Find, import, and show the selected package without installing it.
@@ -44,6 +43,7 @@ done
 [[ -r $manifest ]] || { echo "Wasalight manifest is missing: $manifest" >&2; exit 1; }
 . /usr/local/libexec/wasalight-release-manifest.sh
 . /usr/local/libexec/wasalight-operation-lock.sh
+. /usr/local/libexec/wasalight-usb-paths
 magicq_package=$(require_manifest_value "$manifest" MagicQ Package)
 magicq_architecture=$(require_manifest_value "$manifest" MagicQ Architecture)
 . /usr/local/libexec/wasalight-update-lib.sh
@@ -97,7 +97,7 @@ while IFS= read -r usb_mount; do
         fi
     done < <(find "$usb_mount" -mindepth 1 -maxdepth 1 -type d \
         -name 'fsapfs[0-9]*' -print0 2>/dev/null)
-done < <(findmnt -rn -o TARGET 2>/dev/null | awk '$0 ~ "^/stick/[^/]+$"')
+done < <(wasalight_usb_mounts)
 
 select_newest_magicq_package
 [[ -n $selected_package ]] || {

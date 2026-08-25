@@ -331,6 +331,7 @@ EOF
 
 final_checks() {
     local writable_path
+    bash -n /usr/local/libexec/wasalight-usb-paths
     bash -n /usr/local/libexec/wasalight-usb-mount
     bash -n /usr/local/libexec/wasalight-usb-unmount
     bash -n /usr/local/libexec/wasalight-set-mode

@@ -22,7 +22,7 @@ sudo ./install.sh --data-device UUID=... ./packages/magicq_ubuntu_v1_9_8_3.deb
 
 Per gli aggiornamenti è possibile lasciare il `.deb` nella root oppure nella
 cartella `packages/` di una chiavetta. Dopo il montaggio in
-`/stick/<dispositivo>`, **Update Wasalight** importa la versione più recente in
+uno degli slot da `/stick` a `/stick9`, **Update Wasalight** importa la versione più recente in
 `/data` senza modificare il file sulla USB. Due file con la stessa versione ma
 contenuto differente vengono considerati un conflitto e fermano l’operazione.
 

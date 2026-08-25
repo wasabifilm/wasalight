@@ -2,6 +2,7 @@
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
 set -u
+. /usr/local/libexec/wasalight-usb-paths
 
 readonly green='#3fb950'
 readonly yellow='#d29922'
@@ -120,8 +121,7 @@ else
     status_line "$yellow" 'TOUCH' 'NOT DETECTED'
 fi
 
-usb_count=$(findmnt -rn -o TARGET 2>/dev/null | \
-    awk '$0 ~ "^/stick/" { count++ } END { print count+0 }')
+usb_count=$(wasalight_usb_mounts | awk 'END { print NR+0 }')
 if ((usb_count > 0)); then
     status_line "$green" 'USB' "$usb_count MOUNTED"
 else

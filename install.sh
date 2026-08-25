@@ -44,8 +44,8 @@ if ((deb_supplied == 0)); then
     shopt -u nullglob
 
     # A mounted USB may contain the installer either in its root or in the
-    # conventional packages/ directory. Ignore stale directories below /stick:
-    # only targets currently reported by findmnt are scanned.
+    # conventional packages/ directory. Ignore stale mount directories: only
+    # direct Wasalight targets currently reported by findmnt are scanned.
     while IFS= read -r usb_mount; do
         while IFS= read -r -d '' usb_package; do
             packages+=("$usb_package")
@@ -68,7 +68,8 @@ if ((deb_supplied == 0)); then
             fi
         done < <(find "$usb_mount" -mindepth 1 -maxdepth 1 -type d \
             -name 'fsapfs[0-9]*' -print0 2>/dev/null)
-    done < <(findmnt -rn -o TARGET 2>/dev/null | awk '$0 ~ "^/stick/[^/]+$"')
+    done < <(findmnt -rn -o TARGET 2>/dev/null | \
+        awk '$0 == "/stick" || $0 ~ "^/stick[2-9]$"')
 
     selected_package=
     selected_version=

@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 set -Eeuo pipefail
 dev_name=${1:?missing block device name}
-base=/stick
 state_dir=/run/wasalight-usb
+. /usr/local/libexec/wasalight-usb-paths
 
 [[ $dev_name =~ ^[a-zA-Z0-9._-]+$ ]] || exit 1
 state="$state_dir/$dev_name.mount"
@@ -14,12 +14,24 @@ flock 9
 
 [[ -r "$state" ]] || exit 0
 mountpoint=$(<"$state")
-[[ $mountpoint == "$base/$dev_name" ]] || exit 1
+wasalight_is_usb_mount_target "$mountpoint" || exit 1
+
+# A delayed remove event must never unmount a slot that has already been
+# assigned to another device.
+if mountpoint -q "$mountpoint"; then
+    mounted_source=$(findmnt -n -o SOURCE -M "$mountpoint" 2>/dev/null || true)
+    if [[ $mounted_source == /dev/* && \
+          $(readlink -f -- "$mounted_source") != $(readlink -f -- "/dev/$dev_name") ]]; then
+        rm -f -- "$state"
+        logger -t wasalight-usb "Discarded stale state for $dev_name at $mountpoint"
+        exit 0
+    fi
+fi
 
 # If removal has already happened, sync may fail; lazy detach still cleans the
 # namespace and prevents a stale device directory from affecting other sticks.
 sync -f "$mountpoint" 2>/dev/null || true
 umount "$mountpoint" 2>/dev/null || umount -l "$mountpoint" 2>/dev/null || true
 rm -f "$state"
-rmdir "$mountpoint" 2>/dev/null || true
+[[ $mountpoint == /stick ]] || rmdir "$mountpoint" 2>/dev/null || true
 logger -t wasalight-usb "Cleaned up $dev_name from $mountpoint"

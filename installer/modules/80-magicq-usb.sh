@@ -6,6 +6,8 @@ configure_usb() {
 # SPDX-License-Identifier: Apache-2.0
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0755 "$USB_MOUNT"
 
+    install_template /usr/local/libexec/wasalight-usb-paths 0755
+
     install_template /usr/local/libexec/wasalight-usb-mount 0755
 
     install_template /usr/local/libexec/wasalight-usb-unmount 0755
