@@ -365,6 +365,7 @@ EOF
         "$DATA_MOUNT/browser/profile" \
         "$DATA_MOUNT/browser/downloads"
     install_template /usr/local/bin/wasalight-browser 0755
+    install_template /usr/local/bin/wasalight-browser-touch-profile 0755
     rm -f /usr/local/bin/wasalight-browser-profile
     install_template /usr/local/bin/wasalight-x11-window-icon 0755
 

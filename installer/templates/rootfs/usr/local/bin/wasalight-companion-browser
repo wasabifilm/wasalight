@@ -52,6 +52,7 @@ profile_root=/data/companion/browser/profile
 runtime_base=${XDG_RUNTIME_DIR:-/tmp}
 export XDG_CACHE_HOME="$runtime_base/wasalight-companion-browser-cache"
 install -d -m 0700 "$profile_root" "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME"
+/usr/local/bin/wasalight-browser-touch-profile
 
 lock_file="$runtime_base/wasalight-companion-browser.lock"
 exec 9>"$lock_file"

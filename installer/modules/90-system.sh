@@ -396,6 +396,7 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-artnet-monitor
     bash -n /usr/local/bin/wasalight-osc-monitor
     bash -n /usr/local/bin/wasalight-browser
+    bash -n /usr/local/bin/wasalight-browser-touch-profile
     python3 -m py_compile /usr/local/bin/wasalight-x11-window-icon
     bash -n /usr/local/sbin/wasalight-app-register
     bash -n /usr/local/bin/wasalight-control

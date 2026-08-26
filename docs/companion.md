@@ -89,7 +89,9 @@ GNOME Web usa WebKitGTK aggiornato dai repository di sicurezza Ubuntu. Questo
 elimina il vecchio Qt WebEngine di Falkon, basato su una generazione di Chromium
 che non interpreta correttamente parte del layout moderno di Companion 5. La
 barra nativa mantiene navigazione, menu e controlli zoom utilizzabili al tocco;
-non vengono iniettate correzioni CSS nella pagina Companion.
+Wasalight porta pulsanti, voci menu e schede ad almeno 44 px e rende più alta la
+barra indirizzi. Lo stile è applicato al solo chrome GTK4: non vengono iniettate
+correzioni CSS nella pagina Companion.
 
 Il profilo, i cookie e le preferenze del browser Companion restano in
 `/data/companion/browser`; la cache viene invece collocata nella directory

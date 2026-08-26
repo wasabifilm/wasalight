@@ -365,6 +365,7 @@ required_patterns=(
     '/usr/local/share/applications/wasalight-companion-web.desktop'
     '/usr/local/bin/wasalight-x11-window-icon'
     'epiphany-browser --profile="$profile_root" --new-window "$url"'
+    '/usr/local/bin/wasalight-browser-touch-profile'
     '/usr/local/bin/wasalight-x11-window-icon'
     'add,maximized_vert,maximized_horz'
     'web) exec /usr/local/bin/wasalight-companion-browser'

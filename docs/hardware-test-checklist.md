@@ -304,7 +304,8 @@ build, macchina e percorso del support bundle o del log conservato.
       funzionano correttamente nel GNOME Web fornito da Ubuntu 24.04.
 - [ ] Preferenze e cookie GNOME Web sopravvivono in `/data/companion/browser`, ma
       la cache sotto la directory runtime scompare al riavvio.
-- [ ] GNOME Web usa controlli touch leggibili, navigazione e zoom al 100%; il
+- [ ] GNOME Web usa pulsanti, menu e schede da almeno 44 px, barra indirizzi
+      leggibile, navigazione e zoom al 100%; il
       layout di Companion è allineato come nei browser moderni, Tint2 resta
       visibile e il titolo finestra è `Companion`.
 - [ ] Chiudendo e riaprendo GNOME Web compare Companion; dopo aver cambiato una

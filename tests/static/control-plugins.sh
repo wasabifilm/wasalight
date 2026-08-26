@@ -187,7 +187,8 @@ for launcher in files ip-scanner artnet-monitor osc-monitor browser; do
 done
 browser_launcher="$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/browser.desktop"
 generic_browser="$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-browser"
-bash -n "$generic_browser"
+touch_profile="$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-browser-touch-profile"
+bash -n "$generic_browser" "$touch_profile"
 grep -Fq '/data/browser/config' "$generic_browser" || \
     fail "il profilo del browser generico non è persistente"
 grep -Fq 'XDG_DOWNLOAD_DIR="/data/browser/downloads"' "$generic_browser" || \
@@ -196,6 +197,12 @@ grep -Fq -- '--profile="$profile_root"' "$generic_browser" || \
     fail "il browser generico non usa un profilo separato"
 grep -Fq 'epiphany-browser' "$generic_browser" || \
     fail "il browser generico non usa GNOME Web"
+grep -Fq 'min-width: 44px' "$touch_profile" || \
+    fail "il browser GNOME Web non usa pulsanti touch sufficientemente grandi"
+grep -Fq 'headerbar entry' "$touch_profile" || \
+    fail "la barra indirizzi GNOME Web non è ottimizzata per il touch"
+grep -Fq 'WASALIGHT TOUCH BEGIN' "$touch_profile" || \
+    fail "lo stile touch GNOME Web non usa un blocco aggiornabile"
 grep -Fq 'installed the verified official Bitfocus Companion icon' "$INSTALLER" || \
     fail "l'installer non registra l'uso dell'icona ufficiale Companion"
 grep -Fq 'PLUGIN_COMMAND, "install"' "$control_center" || \

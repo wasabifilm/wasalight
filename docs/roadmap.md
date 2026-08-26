@@ -301,6 +301,9 @@ prima release stable.
       installato come pacchetto Ubuntu `.deb`, utilizzabile offline senza Snap,
       con profili persistenti separati e vecchie dipendenze rimosse. Confermare
       il rendering di Companion sulla prossima installazione reale.
+- [x] Ottimizzare specificamente il chrome GTK4 di GNOME Web per il touch con
+      pulsanti, voci menu e schede da almeno 44 px, barra indirizzi più alta e
+      testo da 16 px, senza modificare il CSS delle pagine web o di Companion.
 
 ## Fase 8 — Collaudo hardware e prima release stabile
 

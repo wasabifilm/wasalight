@@ -649,7 +649,7 @@ le finestre restano gestibili dalla barra inferiore, più adatta al touchscreen.
 Nella scheda **Applicazioni** di Wasalight Control sono disponibili anche:
 
 - **Browser web**, un profilo GNOME Web completo e separato da Companion, con
-  indirizzi, ricerca, schede, download e controlli maggiorati per il touch;
+  indirizzi, ricerca, schede, download, pulsanti e menu da almeno 44 px;
 - **IP Scanner**, che usa `arp-scan` sulle interfacce Ethernet/Wi-Fi connesse e
   mostra interfaccia, IP, MAC e produttore in una tabella aggiornabile;
 - **Art-Net Monitor**, che ascolta passivamente il traffico Art-Net su tutte le
