@@ -11,6 +11,7 @@ configure_graphical_session() {
         "$TARGET_HOME/.config/wasalight/dock"
     install_template /usr/local/bin/wasalight-dialog 0755
     install_template /usr/local/bin/wasalight-openbox-menu 0755
+    install_template /usr/local/bin/wasalight-pointer-watch 0755
     install_template /usr/local/libexec/wasalight-i18n 0644
     install_template /usr/local/libexec/wasalight-session-language 0644
 
@@ -502,6 +503,7 @@ tint2 -c "$HOME/.config/tint2/tint2rc" &
 GTK_THEME=Adwaita:dark \
     /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
 /usr/local/bin/wasalight-touch-watch &
+/usr/local/bin/wasalight-pointer-watch &
 /usr/local/bin/magicq-fullscreen-watch &
 /usr/local/bin/wasalight-remote-autostart &
 /usr/local/bin/wasalight-magicq-usb-watch &

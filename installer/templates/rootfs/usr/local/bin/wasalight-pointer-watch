@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+HIDER_PID=
+
+prepare_x() {
+    export DISPLAY=${DISPLAY:-:0}
+    export XAUTHORITY=${XAUTHORITY:-/home/chamsys/.Xauthority}
+    xset q >/dev/null 2>&1
+}
+
+physical_mouse_present() {
+    local id props node udev_props
+
+    while IFS= read -r id; do
+        [[ $id =~ ^[0-9]+$ ]] || continue
+        props=$(xinput list-props "$id" 2>/dev/null) || continue
+        node=$(sed -n \
+            's/^[[:space:]]*Device Node ([0-9][0-9]*):[[:space:]]*"\([^"]*\)".*/\1/p' \
+            <<<"$props")
+        [[ -n $node && -e $node ]] || continue
+        udev_props=$(udevadm info --query=property --name="$node" 2>/dev/null) || continue
+
+        grep -qx 'ID_INPUT_MOUSE=1' <<<"$udev_props" || continue
+        grep -qx 'ID_INPUT_TOUCHSCREEN=1' <<<"$udev_props" && continue
+        grep -qx 'ID_INPUT_TOUCHPAD=1' <<<"$udev_props" && continue
+        grep -qx 'ID_INPUT_TABLET=1' <<<"$udev_props" && continue
+        return 0
+    done < <(xinput --list --short 2>/dev/null | \
+        sed -n 's/.*id=\([0-9][0-9]*\).*/\1/p' | sort -nu)
+
+    return 1
+}
+
+start_hider() {
+    if [[ -n $HIDER_PID ]] && kill -0 "$HIDER_PID" 2>/dev/null; then
+        return 0
+    fi
+
+    unclutter-xfixes \
+        --timeout 0.25 \
+        --start-hidden \
+        --hide-on-touch \
+        --ignore-scrolling &
+    HIDER_PID=$!
+    logger -t wasalight-pointer 'No physical mouse detected; cursor hidden'
+}
+
+stop_hider() {
+    [[ -n $HIDER_PID ]] || return 0
+    if kill -0 "$HIDER_PID" 2>/dev/null; then
+        kill "$HIDER_PID" 2>/dev/null || true
+        wait "$HIDER_PID" 2>/dev/null || true
+    fi
+    HIDER_PID=
+    logger -t wasalight-pointer 'Physical mouse detected; cursor visible'
+}
+
+cleanup() {
+    if [[ -n $HIDER_PID ]] && kill -0 "$HIDER_PID" 2>/dev/null; then
+        kill "$HIDER_PID" 2>/dev/null || true
+        wait "$HIDER_PID" 2>/dev/null || true
+    fi
+}
+trap cleanup EXIT
+trap 'exit 0' INT TERM
+
+while :; do
+    if prepare_x; then
+        if physical_mouse_present; then
+            stop_hider
+        else
+            start_hider
+        fi
+    fi
+    sleep 2
+done

@@ -41,6 +41,7 @@ x11vnc
 procps
 wmctrl
 x11-utils
+unclutter-xfixes
 galculator
 i3lock
 mousepad
