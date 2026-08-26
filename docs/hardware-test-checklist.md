@@ -294,25 +294,22 @@ build, macchina e percorso del support bundle o del log conservato.
 - [ ] Il pannello Conky e `wasalight-status` mostrano uno stato coerente; la scheda
       Plugin mostra versione, backup e aggiornamento, mentre Sistema mostra
       `INDIRIZZO:8000` accanto allo stato Companion.
-- [ ] **Companion** in Applicazioni avvia Falkon su `http://127.0.0.1:8000`; se il servizio
+- [ ] **Companion** in Applicazioni avvia GNOME Web su `http://127.0.0.1:8000`; se il servizio
       è fermo ne propone l'avvio e la finestra massimizzata lascia Tint2 visibile.
 - [ ] Quando Companion è installato, il dock mostra il pulsante con l’icona
       ufficiale e lo nasconde su un’installazione senza Companion.
-- [ ] La finestra Companion aperta in Falkon mostra nel taskbar Tint2 l'icona
-      Companion, non l'icona generica Falkon (`WM_CLASS=WasalightCompanion`).
+- [ ] La finestra Companion aperta in GNOME Web mostra nel taskbar Tint2
+      l'icona Companion, non l'icona generica del browser.
 - [ ] Editor pulsanti, installazione moduli, drag-and-drop, WebSocket e feedback
-      funzionano correttamente nel Falkon fornito da Ubuntu 24.04.
-- [ ] Preferenze e cookie Falkon sopravvivono in `/data/companion/browser`, ma
+      funzionano correttamente nel GNOME Web fornito da Ubuntu 24.04.
+- [ ] Preferenze e cookie GNOME Web sopravvivono in `/data/companion/browser`, ma
       la cache sotto la directory runtime scompare al riavvio.
-- [ ] Nel profilo Companion, Falkon mostra AdBlock disattivato; riavvio del
-      browser e update Wasalight non lo riattivano e non rimuovono altri plugin.
-- [ ] Falkon usa il tema scuro, pulsanti touch grandi e zoom iniziale 100%; la
-      barra mostra Indietro, Ricarica, Home e i pulsanti Zoom −/+, senza menu a
-      destra. Campo indirizzo, preferiti, stato e la barra con una sola scheda
-      sono nascosti; Tint2 resta visibile e il titolo finestra è `Companion`.
-- [ ] Chiudendo e riaprendo Falkon compare la home Companion senza ripristinare
-      le vecchie schede. Dopo aver cambiato una preferenza, un update Wasalight
-      non la riporta al valore iniziale.
+- [ ] GNOME Web usa pulsanti, menu e schede da almeno 44 px, barra indirizzi
+      leggibile, navigazione e zoom al 100%; il
+      layout di Companion è allineato come nei browser moderni, Tint2 resta
+      visibile e il titolo finestra è `Companion`.
+- [ ] Chiudendo e riaprendo GNOME Web compare Companion; dopo aver cambiato una
+      preferenza, un update Wasalight non la riporta al valore iniziale.
 - [ ] Avvio, arresto e riavvio da Control funzionano in SHOW senza chiedere password;
       backup e update vengono invece rifiutati fino al riavvio in MAINTENANCE.
 - [ ] Un backup valido compare in `/data/companion/backups` e l'aggiornamento

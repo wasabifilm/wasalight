@@ -23,10 +23,10 @@ from wasalight_control.models import ControlPaths
 from wasalight_control.overview_state import parse_status_report
 from wasalight_control.pages import (
     AboutPage, ApplicationsPage, MaintenancePage, NetworkPage, OverviewPage,
-    SystemPage, ToolsPage,
+    SystemPage, ToolsPage, TouchscreenPage,
 )
 from wasalight_control.shell import ApplicationShell
-from wasalight_control.system import magicq_state, mode_and_version, read_plugins, read_status
+from wasalight_control.system import mode_and_version, read_plugins, read_status
 from wasalight_control.style import install_style
 from wasalight_control.theme import configure as configure_theme
 from wasalight_control.widgets import (
@@ -64,6 +64,7 @@ class ControlCenter(Gtk.Window):
             self.launch_application)
         self.network_page = NetworkPage(
             self, self.run_desktop_command, self.show_error)
+        self.touchscreen_page = TouchscreenPage(self, self.show_error, COMMANDS)
         self.system_page = SystemPage()
         self.tools_page = ToolsPage(launchers, self.launch_application)
         self.maintenance_page = MaintenancePage()
@@ -72,6 +73,7 @@ class ControlCenter(Gtk.Window):
             ("overview", _("Overview"), self.overview_page),
             ("applications", _("Applications"), self.applications_page.widget),
             ("network", _("Network"), self.network_page.widget),
+            ("touchscreen", _("Touchscreen"), self.touchscreen_page.widget),
             ("system", _("System"), self.system_page.widget),
             ("tools", _("Tools"), self.tools_page.widget),
             ("maintenance", _("Plugins"), self.maintenance_page.widget),
@@ -81,7 +83,7 @@ class ControlCenter(Gtk.Window):
         self.shell.configure_language_button(self.show_language_dialog)
         self.add(self.shell)
         self.refresh_all()
-        GLib.timeout_add_seconds(3, self.periodic_refresh)
+        GLib.timeout_add_seconds(10, self.periodic_refresh)
 
     def on_destroy(self, _window):
         self.destroyed = True
@@ -133,9 +135,8 @@ class ControlCenter(Gtk.Window):
         tasks = {
             "status": (_("status"), lambda: read_status(PATHS, COMMANDS)),
             "plugins": (_("plugins"), lambda: read_plugins(PATHS, COMMANDS)),
-            "magicq": ("MagicQ", lambda: magicq_state(PATHS, COMMANDS)),
         }
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             futures = {task_id: executor.submit(task) for task_id, (_label, task)
                        in tasks.items()}
             for task_id, future in futures.items():
@@ -145,8 +146,6 @@ class ControlCenter(Gtk.Window):
                         status = value
                     elif task_id == "plugins":
                         plugins = value
-                    else:
-                        magicq = value
                 except Exception as error:
                     errors.append(f"{tasks[task_id][0]}: {error}")
         GLib.idle_add(self.apply_refresh, status, plugins, magicq, "; ".join(errors))
@@ -226,8 +225,8 @@ class ControlCenter(Gtk.Window):
                 buttons=Gtk.ButtonsType.NONE,
                 text=_("Enable Debug update channel?"))
             dialog.format_secondary_text(_(
-                "Debug follows the latest main branch and is intended for UTM "
-                "and development machines. It is not a signed stable release."))
+                "Debug follows the latest main branch and is intended only for "
+                "development and testing. It is not a signed stable release."))
             dialog.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
             confirm = dialog.add_button(_("Use Debug"), Gtk.ResponseType.OK)
             confirm.get_style_context().add_class("primary-button")

@@ -11,8 +11,9 @@ from .network import NetworkPage
 from .overview import OverviewPage
 from .system import SystemPage
 from .tools import ToolsPage
+from .touchscreen import TouchscreenPage
 
 __all__ = [
     "AboutPage", "ApplicationsPage", "MaintenancePage", "NetworkPage",
-    "OverviewPage", "SystemPage", "ToolsPage",
+    "OverviewPage", "SystemPage", "ToolsPage", "TouchscreenPage",
 ]

@@ -404,9 +404,10 @@ msgstr "Wasalight update available"
 msgid "Version %s. Open Wasalight Control in MAINTENANCE to update."
 msgstr "Version %s. Open Wasalight Control in MAINTENANCE to update."
 
+#: installer/templates/rootfs/usr/local/bin/wasalight-browser:12
 #: installer/templates/rootfs/usr/local/bin/wasalight-companion-browser:12
-msgid "Falkon is not installed. Run Wasalight update again."
-msgstr "Falkon is not installed. Run Wasalight update again."
+msgid "The web browser is not installed. Run Wasalight update again."
+msgstr "The web browser is not installed. Run Wasalight update again."
 
 #: installer/templates/rootfs/usr/local/bin/wasalight-browser:11
 msgid "Web browser"
@@ -723,11 +724,11 @@ msgstr ""
 "%s\\nAudio: %s\\n\\nSSH and VNC can be enabled from Services. Backup, "
 "diagnostics and system health are available under Support."
 
-#: libexec/wasalight-magicq-usb-watch:35
+#: libexec/wasalight-magicq-usb-scan:35
 msgid "MagicQ update on USB"
 msgstr "MagicQ update on USB"
 
-#: libexec/wasalight-magicq-usb-watch:36
+#: libexec/wasalight-magicq-usb-scan:36
 #, sh-printf-format
 msgid ""
 "Version %s is available. Install it from Wasalight Control in MAINTENANCE."
@@ -1350,5 +1351,8 @@ msgstr "No Stable release published"
 msgid "The Stable channel has no published release yet."
 msgstr "The Stable channel has no published release yet."
 
-msgid "Stable installs only signed GitHub releases. For UTM or development machines, open Wasalight Control and select Debug before trying again."
-msgstr "Stable installs only signed GitHub releases. For UTM or development machines, open Wasalight Control and select Debug before trying again."
+msgid "Stable installs only signed GitHub releases. Use Debug only on development or test systems."
+msgstr "Stable installs only signed GitHub releases. Use Debug only on development or test systems."
+
+msgid "Starting the offline MagicQ installation…"
+msgstr "Starting the offline MagicQ installation…"

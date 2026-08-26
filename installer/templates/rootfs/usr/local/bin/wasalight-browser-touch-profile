@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+# Apply touch sizing to GNOME Web's GTK chrome without altering web content.
+
+set -Eeuo pipefail
+[[ $(id -un) == chamsys ]] || exit 1
+[[ -n ${XDG_CONFIG_HOME:-} ]] || exit 1
+
+gtk_config="$XDG_CONFIG_HOME/gtk-4.0"
+css_file="$gtk_config/gtk.css"
+begin_marker='/* WASALIGHT TOUCH BEGIN */'
+end_marker='/* WASALIGHT TOUCH END */'
+install -d -m 0700 "$gtk_config"
+
+temporary=$(mktemp "${css_file}.tmp.XXXXXX")
+if [[ -r $css_file ]]; then
+    awk -v begin="$begin_marker" -v end="$end_marker" '
+        $0 == begin { managed=1; next }
+        $0 == end { managed=0; next }
+        !managed { print }
+    ' "$css_file" >"$temporary"
+fi
+
+cat >>"$temporary" <<'EOF'
+/* WASALIGHT TOUCH BEGIN */
+/* GNOME Web application chrome only; WebKit page CSS is not affected. */
+headerbar {
+    min-height: 56px;
+}
+
+headerbar button,
+.toolbar button,
+popover button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 6px;
+}
+
+headerbar entry {
+    min-height: 44px;
+    font-size: 16px;
+}
+
+popover contents {
+    font-size: 16px;
+}
+
+popover row {
+    min-height: 44px;
+    padding: 5px 10px;
+}
+
+tabbar tab {
+    min-height: 44px;
+    padding: 3px 6px;
+}
+/* WASALIGHT TOUCH END */
+EOF
+
+chmod 0600 "$temporary"
+mv -f "$temporary" "$css_file"

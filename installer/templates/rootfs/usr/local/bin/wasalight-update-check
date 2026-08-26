@@ -18,8 +18,8 @@ trap 'rm -f -- "$temporary"' EXIT
 channel=$(cat /data/system/update-channel 2>/dev/null || printf '%s' "$default_channel")
 channel=$(printf '%s' "$channel" | tr '[:upper:]' '[:lower:]')
 case $channel in
-    stable|normal|normale) channel=stable ;;
-    debug|development|sviluppo) channel=debug ;;
+    stable) channel=stable ;;
+    debug) channel=debug ;;
     *) channel=$default_channel ;;
 esac
 

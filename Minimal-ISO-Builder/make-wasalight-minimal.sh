@@ -39,7 +39,7 @@ Senza --variant vengono create entrambe le immagini:
 
 FULL richiede Internet per installare Git e poi Wasalight; non scarica la base
 Ubuntu. NETBOOT richiede DHCP, DNS, Internet e almeno 8 GiB di RAM durante
-l'installazione. `offline` resta un alias compatibile di `full`. Nessuna
+l'installazione. Nessuna
 variante include il pacchetto proprietario MagicQ.
 
 Senza --wasalight-ref viene installato il branch dichiarato nel manifest. Le
@@ -141,7 +141,7 @@ case "$BUILD_VARIANT" in
     fi
     exit 0
     ;;
-  full|offline)
+  full)
     BUILD_VARIANT=full
     VARIANT_LABEL=FULL
     NETWORK_PRELOAD_VALUE="sh -c 'true'"

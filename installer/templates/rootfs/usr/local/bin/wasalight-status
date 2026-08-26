@@ -1,122 +1,44 @@
 #!/usr/bin/env bash
 # Copyright 2026 Michele Moser
 # SPDX-License-Identifier: Apache-2.0
-set -u
-. /usr/local/libexec/wasalight-usb-paths
-version=$(cat /etc/wasalight/version 2>/dev/null || echo unknown)
-os=$(. /etc/os-release 2>/dev/null; printf '%s' "${PRETTY_NAME:-unknown}")
-magicq_version="not installed"
-if command -v dpkg-query >/dev/null 2>&1; then
-    magicq_package=$(dpkg-query -W -f='${db:Status-Abbrev}\t${Version}' magicq \
-        2>/dev/null || true)
-    [[ $magicq_package == ii*$'\t'* ]] && magicq_version=${magicq_package#*$'\t'}
-fi
-root_fs=$(findmnt -n -o FSTYPE / 2>/dev/null || echo unknown)
-if [[ $root_fs == overlay ]]; then mode=PROTECTED; else mode=MAINTENANCE; fi
-data="NOT MOUNTED"
-mountpoint -q /data && data="$(findmnt -n -o SOURCE,FSTYPE,OPTIONS -M /data)"
-usb=$(while IFS= read -r target; do
-    findmnt -n -o SOURCE,TARGET,FSTYPE,OPTIONS -M "$target"
-done < <(wasalight_usb_mounts) || true)
-[[ -n $usb ]] || usb="empty"
-magicq="NOT INSTALLED"
-magicq_mode="manual"
-[[ -r /data/system/service-flags/magicq-autostart && \
-   $(</data/system/service-flags/magicq-autostart) == enabled ]] && magicq_mode="automatic"
-magicq_pid=$(pgrep -o -x mqqt 2>/dev/null || true)
-if [[ $magicq_pid =~ ^[0-9]+$ ]]; then
-    magicq="RUNNING · $magicq_version · ${magicq_mode^^}"
-elif [[ -x /opt/magicq/runmagicq.sh || -x /opt/magicq/bin/mqqt ]]; then
-    magicq="READY · $magicq_version · ${magicq_mode^^}"
-fi
-network="volatile"
-mountpoint -q /etc/NetworkManager/system-connections && network="persistent bind"
-unmanaged_devices=$(nmcli -t -f DEVICE,TYPE,STATE device status 2>/dev/null | \
-    awk -F: '$2 == "ethernet" || $2 == "wifi" { if ($3 == "unmanaged") print $1 }' | \
-    paste -sd, -)
-if [[ -n $unmanaged_devices ]]; then
-    network="$network; unmanaged: $unmanaged_devices"
-else
-    network="$network; managed"
-fi
-ip_address=$(hostname -I 2>/dev/null | awk '{for (i=1; i<=NF; i++) if ($i !~ /:/ && $i !~ /^127\./) {print $i; exit}}')
-touch="unavailable"
-[[ -x /usr/local/bin/wasalight-touch-status ]] && \
-    touch=$(timeout --signal=TERM 6 /usr/local/bin/wasalight-touch-status \
-        --summary 2>/dev/null || echo unavailable)
-vnc_mode="manual"
-[[ -r /data/system/service-flags/vnc-autostart && \
-   $(</data/system/service-flags/vnc-autostart) == enabled ]] && vnc_mode="automatic"
-vnc="stopped ($vnc_mode)"
-pgrep -u chamsys -x x11vnc >/dev/null 2>&1 && vnc="running on TCP 5900 ($vnc_mode)"
-ssh_mode="manual"
-[[ -r /data/system/service-flags/ssh-autostart && \
-   $(</data/system/service-flags/ssh-autostart) == enabled ]] && ssh_mode="automatic"
-ssh="stopped"
-if systemctl is-active --quiet ssh.service; then
-    ssh="running on TCP 22 ($ssh_mode)"
-else
-    ssh="stopped ($ssh_mode)"
-fi
-companion="not installed"
-if [[ -d /opt/companion ]]; then
-    companion_version=$(cat /data/companion/installed-version 2>/dev/null || echo unknown)
-    companion="stopped ($companion_version)"
-    if systemctl is-active --quiet companion.service; then
-        companion_ip=$(hostname -I 2>/dev/null | awk '{print $1}')
-        companion="running ($companion_version) on http://${companion_ip:-SERVER_IP}:8000"
-    fi
-fi
-logs="unavailable"
-[[ -d /data/log && -w /data/log ]] && logs="persistent in /data/log"
-update="not checked"
-update_channel=$(cat /data/system/update-channel 2>/dev/null || echo stable)
-if [[ -r /data/system/update-check/latest-version ]]; then
-    latest_version=$(</data/system/update-check/latest-version)
-    if [[ $latest_version =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$ ]] && \
-       [[ $(printf '%s\n%s\n' "$version" "$latest_version" | sort -V | tail -n1) == "$latest_version" ]] && \
-       [[ $latest_version != "$version" ]]; then
-        update="AVAILABLE: $latest_version"
-    else
-        update="up to date"
-    fi
-fi
-update_transaction=$(awk -F= '$1 == "status" {print $2; exit}' \
-    /data/system/update-state 2>/dev/null || true)
-case $update_transaction in
-    running|failed) update="RECOVERY REQUIRED ($update_transaction)" ;;
-esac
-if [[ -f /data/system/update-boot-failed ]]; then
-    update="RECOVERY REQUIRED (automatic update failed)"
-fi
-health="NOT CHECKED"
-if IFS=$'\t' read -r health_state health_checked health_summary \
-    </run/wasalight-health-status 2>/dev/null; then
-    case $health_state in
-        OK) health="OK" ;;
-        CHECKING) health="CHECKING" ;;
-        WARNING) health="WARNING · ${health_summary:-attention required}" ;;
-        CHECK_FAILED) health="CHECK FAILED · ${health_summary:-unavailable}" ;;
-    esac
+set -Eeuo pipefail
+
+readonly runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+readonly snapshot="$runtime_dir/wasalight-status.snapshot"
+readonly lock_file="$runtime_dir/wasalight-status.lock"
+readonly max_age=${WASALIGHT_STATUS_MAX_AGE:-8}
+refresh=0
+[[ ${1:-} != --refresh ]] || refresh=1
+install -d -m 0700 "$runtime_dir"
+
+fresh_snapshot() {
+    [[ -s $snapshot ]] || return 1
+    local modified now
+    modified=$(stat -c %Y "$snapshot" 2>/dev/null || echo 0)
+    now=$(date +%s)
+    ((now - modified <= max_age))
+}
+
+if ((refresh == 0)) && fresh_snapshot; then
+    cat "$snapshot"
+    exit 0
 fi
 
-cat <<EOT
-MagicQ Appliance
-WASALIGHT:  $version
-UPDATE:     $update
-CHANNEL:    $update_channel
-OS:         $os
-MODE:       $mode
-ROOT:       $root_fs
-DATA:       $data
-MAGICQ:     $magicq
-NETWORK:    $network
-IP:         ${ip_address:-unavailable}
-TOUCH:      $touch
-VNC:        $vnc
-SSH:        $ssh
-COMPANION:  $companion
-USB:        $usb
-LOGS:       $logs
-HEALTH:     $health
-EOT
+exec 9>"$lock_file"
+flock 9
+if ((refresh == 0)) && fresh_snapshot; then
+    cat "$snapshot"
+    exit 0
+fi
+
+temporary="${snapshot}.tmp.$$"
+if /usr/local/libexec/wasalight-state-collect >"$temporary"; then
+    chmod 0600 "$temporary"
+    mv -f "$temporary" "$snapshot"
+else
+    rc=$?
+    rm -f -- "$temporary"
+    [[ ! -s $snapshot ]] || cat "$snapshot"
+    exit "$rc"
+fi
+cat "$snapshot"

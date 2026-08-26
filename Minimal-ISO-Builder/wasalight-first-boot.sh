@@ -89,7 +89,32 @@ install -d -o chamsys -g chamsys -m 0750 "$log_dir"
 touch "$log_file"
 chown root:adm "$log_file" 2>/dev/null || chown root:root "$log_file"
 chmod 0640 "$log_file"
-exec > >(tee -a "$log_file") 2>&1
+
+colorize_console() {
+    awk '
+        /ERROR:|automatic installation stopped/ {
+            printf "\033[1;31m%s\033[0m\n", $0; fflush(); next
+        }
+        /WARNING:/ {
+            printf "\033[1;33m%s\033[0m\n", $0; fflush(); next
+        }
+        /✓ |WASALIGHT INSTALLED SUCCESSFULLY/ {
+            printf "\033[1;32m%s\033[0m\n", $0; fflush(); next
+        }
+        /→ [0-9]+\/[0-9]+|^\[[0-9]+\/[0-9]+/ ||
+        /WASALIGHT · AUTOMATIC INSTALLATION/ {
+            printf "\033[1;36m%s\033[0m\n", $0; fflush(); next
+        }
+        { print; fflush() }
+    '
+}
+
+# The first tee keeps the persistent file free of ANSI escapes. The second
+# sends the same plain stream to journald, while only tty1 receives the
+# colourized operator view.
+exec > >(tee -a "$log_file" | \
+    tee >(systemd-cat -t wasalight-first-boot) | \
+    colorize_console >/dev/tty1) 2>&1
 status_ready=1
 write_status running "Preparing automatic installation"
 

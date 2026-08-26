@@ -12,12 +12,12 @@ configure_management_tools() {
     for tool in \
         wasalight-health wasalight-health-monitor wasalight-system-audit \
         wasalight-support-bundle wasalight-data-transfer \
-        wasalight-first-run wasalight-magicq-usb-watch \
+        wasalight-first-run wasalight-magicq-usb-scan \
         wasalight-plugin-bundle wasalight-update-snapshot wasalight-rollback; do
         source="$PROJECT_DIR/libexec/$tool"
         [[ -s $source ]] || die "management tool is missing: $source"
         case $tool in
-            wasalight-health|wasalight-system-audit|wasalight-first-run|wasalight-magicq-usb-watch)
+            wasalight-health|wasalight-system-audit|wasalight-first-run|wasalight-magicq-usb-scan)
                 destination="/usr/local/bin/$tool" ;;
             *) destination="/usr/local/sbin/$tool" ;;
         esac
@@ -41,8 +41,6 @@ configure_management_tools() {
     install_template /usr/local/sbin/wasalight-magicq-install 0755
     install_template /usr/local/sbin/wasalight-time-control 0755
 
-    install_template /etc/wasalight/apps.d/health.desktop 0644
-    install_template /etc/wasalight/apps.d/system-audit.desktop 0644
     install_template /etc/wasalight/apps.d/support-bundle.desktop 0644
     install_template /etc/wasalight/apps.d/data-transfer.desktop 0644
     install_template /etc/wasalight/apps.d/plugin-bundle.desktop 0644
@@ -56,6 +54,8 @@ configure_management_tools() {
     install_template /etc/wasalight/apps.d/screen-lock.desktop 0644
     install_template /etc/wasalight/apps.d/rollback.desktop 0644
     install_template /etc/wasalight/apps.d/date-time.desktop 0644
+    rm -f /etc/wasalight/apps.d/health.desktop \
+        /etc/wasalight/apps.d/system-audit.desktop
 
     install -d -m 0755 /usr/share/polkit-1/actions
     install_template /usr/share/polkit-1/actions/com.wasalight.time.policy 0644

@@ -12,6 +12,8 @@ configure_usb() {
 
     install_template /usr/local/libexec/wasalight-usb-unmount 0755
 
+    install_template /usr/local/libexec/wasalight-usb-bookmarks 0755
+
     install_template /etc/systemd/system/wasalight-usb@.service 0644
 
     install_template /etc/udev/rules.d/90-wasalight-usb.rules 0644

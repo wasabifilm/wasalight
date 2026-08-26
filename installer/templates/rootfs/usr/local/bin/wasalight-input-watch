@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+set -u
+IFS=$'\n\t'
+
+readonly runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+readonly state_file="$runtime_dir/wasalight-input-state"
+HIDER_PID=
+
+prepare_x() {
+    export DISPLAY=${DISPLAY:-:0}
+    export XAUTHORITY=${XAUTHORITY:-/home/chamsys/.Xauthority}
+    xset q >/dev/null 2>&1
+}
+
+hardware_signature() {
+    {
+        xinput --list --short 2>/dev/null || true
+        xrandr --query 2>/dev/null | awk '$2 == "connected" {print $1, $3}' || true
+        stat -c '%Y:%s' /data/system/touchscreen/config 2>/dev/null || true
+    } | sha256sum | awk '{print $1}'
+}
+
+physical_mouse_present() {
+    local id props node udev_props
+    while IFS= read -r id; do
+        [[ $id =~ ^[0-9]+$ ]] || continue
+        props=$(xinput list-props "$id" 2>/dev/null) || continue
+        node=$(sed -n \
+            's/^[[:space:]]*Device Node ([0-9][0-9]*):[[:space:]]*"\([^"]*\)".*/\1/p' \
+            <<<"$props")
+        [[ -n $node && -e $node ]] || continue
+        udev_props=$(udevadm info --query=property --name="$node" 2>/dev/null) || continue
+        grep -qx 'ID_INPUT_MOUSE=1' <<<"$udev_props" || continue
+        grep -Eqx 'ID_INPUT_(TOUCHSCREEN|TOUCHPAD|TABLET)=1' <<<"$udev_props" && continue
+        return 0
+    done < <(xinput --list --short 2>/dev/null | \
+        sed -n 's/.*id=\([0-9][0-9]*\).*/\1/p' | sort -nu)
+    return 1
+}
+
+start_hider() {
+    [[ -z $HIDER_PID ]] || ! kill -0 "$HIDER_PID" 2>/dev/null || return 0
+    unclutter-xfixes --timeout 0.25 --start-hidden --hide-on-touch \
+        --ignore-scrolling &
+    HIDER_PID=$!
+    logger -t wasalight-input 'No physical mouse detected; cursor hidden'
+}
+
+stop_hider() {
+    [[ -n $HIDER_PID ]] || return 0
+    kill "$HIDER_PID" 2>/dev/null || true
+    wait "$HIDER_PID" 2>/dev/null || true
+    HIDER_PID=
+    logger -t wasalight-input 'Physical mouse detected; cursor visible'
+}
+
+publish_state() {
+    local mouse=$1 signature=$2 temporary
+    install -d -m 0700 "$runtime_dir"
+    temporary="${state_file}.tmp.$$"
+    printf 'MOUSE=%s\nSIGNATURE=%s\nUPDATED=%s\n' \
+        "$mouse" "$signature" "$(date +%s)" >"$temporary"
+    chmod 0600 "$temporary"
+    mv -f "$temporary" "$state_file"
+}
+
+cleanup() {
+    stop_hider
+    rm -f -- "$state_file"
+}
+trap cleanup EXIT
+trap 'exit 0' INT TERM
+
+previous=
+while :; do
+    if prepare_x; then
+        signature=$(hardware_signature)
+        if [[ $signature != "$previous" ]]; then
+            /usr/local/bin/wasalight-touch-apply || true
+            if physical_mouse_present; then
+                mouse=present
+                stop_hider
+            else
+                mouse=absent
+                start_hider
+            fi
+            publish_state "$mouse" "$signature"
+            previous=$signature
+        fi
+    fi
+    sleep 2
+done

@@ -87,10 +87,16 @@ elif mount -t "$type" -o "$opts" "$dev" "$mountpoint"; then
 fi
 if ((mounted)); then
     printf '%s\n' "$mountpoint" >"$state"
+    /usr/local/libexec/wasalight-usb-bookmarks || true
     if [[ $type == apfs ]]; then
         logger -t wasalight-usb "Mounted $dev (APFS) read-only at $mountpoint"
     else
         logger -t wasalight-usb "Mounted $dev ($fs) at $mountpoint with synchronous writes"
+    fi
+    if [[ -x /usr/local/bin/wasalight-magicq-usb-scan ]]; then
+        runuser -u chamsys -- env DISPLAY=:0 \
+            XAUTHORITY=/home/chamsys/.Xauthority \
+            /usr/local/bin/wasalight-magicq-usb-scan 9>&- >/dev/null 2>&1 &
     fi
 else
     logger -t wasalight-usb "Failed to mount $dev ($fs)"

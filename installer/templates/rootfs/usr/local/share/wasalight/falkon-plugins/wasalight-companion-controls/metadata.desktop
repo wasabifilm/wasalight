@@ -1,9 +1,0 @@
-[Desktop Entry]
-Name=Wasalight Companion Controls
-Comment=Minimal touch controls for the dedicated Companion browser
-Icon=wasalight-companion
-Type=Service
-X-Falkon-Type=Extension/Qml
-X-Falkon-Author=Wasalight
-X-Falkon-Version=1.0.0
-X-Falkon-Settings=false

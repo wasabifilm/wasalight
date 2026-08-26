@@ -13,9 +13,13 @@ grafica il touchscreen viene associato al monitor soltanto quando sono presenti
 touchscreen non viene fatta alcuna scelta implicita: `wasalight-status` segnala
 `target: attention` e occorre configurare l'associazione manualmente.
 
-Il processo `wasalight-touch-watch` controlla ogni tre secondi i cambiamenti dei
-dispositivi di input e delle uscite video. La configurazione viene quindi
-riapplicata dopo un collegamento o scollegamento a caldo, senza riavviare Xorg.
+Il gestore unico `wasalight-input-watch` rileva i cambiamenti dei dispositivi di
+input e delle uscite video, riapplica l'associazione touchscreen e gestisce la
+visibilità del puntatore. Pubblica inoltre lo stato runtime condiviso sotto
+`/run/user/<uid>`, senza mantenere due processi di rilevamento separati.
+
+La pagina **Touchscreen** di Wasalight Control permette di scegliere modalità,
+dispositivo, schermo e rotazione e offre una prova visuale a schermo intero.
 
 ## Diagnosi
 
@@ -157,8 +161,9 @@ una nuova tastiera. La chiusura attende prima l'uscita normale e usa un arresto
 forzato soltanto se Onboard interpreta `SIGTERM` come semplice richiesta di
 nascondersi.
 
-La geometria viene calcolata dalla risoluzione corrente e occupa l’80% della
-larghezza e il 30% dell’altezza. Se il window manager non riesce a posizionarla,
+La geometria viene calcolata dalla risoluzione corrente e occupa il 64% della
+larghezza e il 24% dell’altezza. Usa il tema Nightshade con il font condensato
+e senza grazie `DejaVu Sans condensed bold`. Se il window manager non riesce a posizionarla,
 Onboard resta comunque disponibile usando la propria geometria salvata.
 Quando il tema Nightshade è presente viene selezionato automaticamente per
 integrarsi con l’interfaccia scura Wasalight.

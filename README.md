@@ -479,13 +479,10 @@ MagicQ 1.9.x apre la finestra principale massimizzata, ma non richiede a
 Openbox il vero stato fullscreen. Senza un intervento aggiuntivo resta visibile
 anche la barra del titolo.
 
-Wasalight avvia `magicq-fullscreen-watch` insieme a Openbox. Il controllo
-attende la finestra principale `MagicQ PC` e le applica lo stato EWMH
-fullscreen tramite `wmctrl`. Funziona sia con l'avvio automatico in SHOW sia
-con **Avvia MagicQ** in MAINTENANCE e viene riapplicato quando MagicQ crea una
-nuova finestra dopo un riavvio. Non forza continuamente lo stato: dopo la prima
-applicazione, un operatore può disattivarlo temporaneamente durante una
-diagnosi senza che venga riattivato sulla stessa finestra.
+Wasalight usa una regola applicativa di Openbox per riconoscere la finestra
+principale `MagicQ PC` al momento della sua creazione e applicarle direttamente
+lo stato fullscreen. Funziona sia con l'avvio automatico in SHOW sia con
+**Avvia MagicQ** in MAINTENANCE, senza mantenere un processo di polling.
 Tint2 rimane intenzionalmente sopra il bordo inferiore anche quando la finestra
 MagicQ è fullscreen, perché deve essere sempre raggiungibile dal touchscreen.
 
@@ -521,7 +518,8 @@ restano sopra le altre finestre fino alla conferma o all'annullamento. Le
 conferme mostrano l'icona dell'azione effettiva (spegnimento, riavvio, blocco,
 SSH, VNC, rollback o eliminazione) al posto del simbolo interrogativo generico.
 
-Sul lato destro Conky mostra un pannello aggiornato ogni cinque secondi con:
+Sul lato destro Conky mostra un pannello aggiornato ogni dieci secondi usando
+la stessa fotografia di stato di Wasalight Control, con:
 
 - modalità corrente e modalità prevista al prossimo avvio;
 - stato operativo di MagicQ;
@@ -650,8 +648,8 @@ le finestre restano gestibili dalla barra inferiore, più adatta al touchscreen.
 
 Nella scheda **Applicazioni** di Wasalight Control sono disponibili anche:
 
-- **Browser web**, un profilo Falkon completo e separato da Companion, con
-  indirizzi, ricerca, schede, download e controlli maggiorati per il touch;
+- **Browser web**, un profilo GNOME Web completo e separato da Companion, con
+  indirizzi, ricerca, schede, download, pulsanti e menu da almeno 44 px;
 - **IP Scanner**, che usa `arp-scan` sulle interfacce Ethernet/Wi-Fi connesse e
   mostra interfaccia, IP, MAC e produttore in una tabella aggiornabile;
 - **Art-Net Monitor**, che ascolta passivamente il traffico Art-Net su tutte le
@@ -678,7 +676,7 @@ consentiti solo in MAINTENANCE; in SHOW la configurazione rimane persistente ma
 il runtime protetto non viene modificato.
 
 Il pulsante Companion nel dock e la voce **Companion** in Applicazioni aprono
-l'interfaccia locale in Falkon, massimizzata ma con la barra Tint2 ancora
+l'interfaccia locale in GNOME Web, massimizzata ma con la barra Tint2 ancora
 accessibile al touch. Profilo e preferenze sono persistenti in
 `/data/companion/browser`, mentre la cache resta temporanea.
 
@@ -865,6 +863,9 @@ corretta del supporto. Una seconda USB usa `/stick2`, fino a un massimo di nove
 supporti con `/stick9`.
 Un supporto già attivo non viene spostato quando si libera uno slot precedente:
 resta nello stesso percorso fino alla rimozione.
+Le unità montate compaiono anche nella barra laterale di PCManFM con l'etichetta
+del volume, quando presente. La voce viene aggiunta e rimossa insieme al mount,
+senza affidare a PCManFM o UDisks un secondo montaggio concorrente.
 
 In una macchina virtuale UTM, montare la chiavetta nel Finder non la collega
 automaticamente a Linux: occorre usare il pulsante **USB** della finestra UTM e

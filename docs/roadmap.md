@@ -1,6 +1,6 @@
 # Roadmap Wasalight
 
-Ultimo aggiornamento: 25 agosto 2026.
+Ultimo aggiornamento: 26 agosto 2026.
 
 Questo documento è la fonte permanente per le funzionalità richieste e il loro
 stato. La [checklist hardware](hardware-test-checklist.md) resta invece la fonte
@@ -99,6 +99,14 @@ configurazione realmente applicata:
 - [x] File manager, Mousepad, calcolatrice e monitor grafico LXTask.
 - [x] Tastiera virtuale nel tray, eliminata dalla lista duplicata delle app;
       il toggle recupera anche un processo Onboard rimasto vivo ma invisibile.
+- [x] Ridurre la geometria della tastiera Onboard di un ulteriore 20% rispetto
+      alle dimensioni attuali, passando indicativamente da 80% × 30% a
+      64% × 24% dello schermo, mantenere il tema Nightshade e impostare il font
+      `DejaVu Sans condensed bold`, verificandone la leggibilità sul touch reale.
+- [x] Sostituire il terminale **Touchscreen** con una pagina grafica in
+      Wasalight Control per stato, associazione touch-monitor, rotazione,
+      modalità automatica/ripristino e prova visiva a schermo intero,
+      conservando il backend persistente `wasalight-touch`.
 - [x] Blocco schermo manuale con password e senza risparmio energetico.
 - [x] Strumento grafico per data, ora, sincronizzazione NTP e fuso orario.
 - [x] Crediti, contatti, licenza, citazione e proprietà del logo.
@@ -110,10 +118,14 @@ configurazione realmente applicata:
 
 - [x] Bitfocus Companion opzionale, isolato da MagicQ e persistente in `/data`.
 - [x] Versione Companion fissata nel manifesto della release.
+- [x] Companion aggiornato alla versione stabile upstream 5.0.4.
 - [x] Abilitazione, disabilitazione, avvio, arresto, backup e aggiornamento.
-- [x] Icona ufficiale Companion in Control, dock e taskbar Falkon.
-- [x] Falkon leggero con profilo persistente, tema scuro, zoom touch e AdBlock
-      disabilitato.
+- [x] Icona ufficiale Companion in Control, dock e taskbar del browser.
+- [x] Browser Companion con profilo persistente separato, interfaccia touch e
+      cache volatile.
+- [x] Correggere nel browser Companion i pulsanti dello zoom già presenti ma
+      privi di etichetta visibile, mostrando chiaramente `−` e `+` e mantenendo
+      dimensioni adeguate all'uso touch.
 - [x] Browser web generico con profilo persistente separato da Companion,
       navigazione completa e controlli touch.
 - [x] Profilo Companion senza bookmark, campo ricerca aggiuntivo o ripristino
@@ -202,6 +214,10 @@ prima release stable.
       della stessa versione con contenuto diverso.
 - [x] Integrazione in Wasalight Control, policy Polkit, log dedicato e opzioni
       `--scan-only` e `--reinstall`.
+- [x] Rendere esplicita l'installazione offline nella GUI: mantenere aperta per
+      tutta l'operazione una finestra non annullabile con le fasi ricerca,
+      copia, verifica dipendenze, installazione e controllo finale, quindi
+      mostrare il risultato conclusivo già previsto.
 - [~] Collaudare `--scan-only` e una reinstallazione reale dentro un namespace
       UTM senza rete, verificando dpkg, librerie e launcher sulla ISO candidata.
 - [ ] Ripetere durante il collaudo hardware della Fase 8 la prova con il `.deb`
@@ -234,6 +250,60 @@ prima release stable.
       aggiornamenti) senza tradurre numeri di versione, porte o dati tecnici.
 - [x] Portare esplicitamente in primo piano la prima finestra di Wasalight
       Control dopo il mapping, evitando che PCManFM la lasci dietro al desktop.
+- [x] Correggere **Data e ora**: apertura sempre visibile, errore esplicito se
+      il processo non parte e nessun fallimento silenzioso dal launcher.
+- [x] Semplificare la pagina **Tools** rimuovendo i duplicati **Rete**, **Stato
+      sistema**, **Salute sistema**, **Audit sistema** e **Aggiorna Wasalight**;
+      conservare la pagina Rete, il controllo salute automatico, i comandi
+      tecnici e l'aggiornamento nella Panoramica.
+- [x] Mantenere **Esporta diagnostica**, rinominandolo **Esporta diagnostica per
+      assistenza** e chiarendo che crea un archivio privo di password, show
+      MagicQ e configurazioni private.
+- [x] Rimuovere dai messaggi e dagli avvisi visibili all'operatore ogni
+      riferimento a UTM, che è una macchina di sviluppo privata; conservarlo
+      soltanto nella documentazione e nelle procedure interne di collaudo.
+- [x] Unificare `wasalight-touch-watch` e `wasalight-pointer-watch` in un solo
+      gestore dell'input che rilevi touchscreen, mouse e monitor e pubblichi
+      uno stato runtime condiviso sotto `/run`.
+- [x] Eliminare le interrogazioni duplicate di touchscreen, rete, MagicQ, SSH
+      e VNC creando una sola fotografia di stato condivisa da Conky,
+      Wasalight Control, `wasalight-status` e diagnostica.
+- [x] Sostituire il polling MagicQ continuo: usare una regola Openbox o un
+      evento X11 per il fullscreen e cercare aggiornamenti `.deb` soltanto in
+      risposta al montaggio di una USB.
+- [x] Ridurre la frequenza degli aggiornamenti puramente informativi, portando
+      indicativamente Conky e il refresh periodico di Wasalight Control a 10
+      secondi senza rallentare pulsanti e operazioni manuali.
+- [x] Prima della prima Stable rimuovere le compatibilità nate durante le RC:
+      alias storico `offline` del builder, nomi alternativi del canale update,
+      migrazioni di vecchi launcher e percorsi destinati esclusivamente alle
+      installazioni di sviluppo precedenti.
+- [x] Dopo l'unificazione dello stato mantenere i backend di salute, audit e
+      diagnostica, ma farli usare dalla raccolta condivisa e non reintrodurre
+      nella pagina Tools i pulsanti ridondanti già rimossi.
+- [x] Al termine delle ottimizzazioni riesaminare tutti i pacchetti runtime e
+      rimuovere soltanto dipendenze divenute realmente inutilizzate, senza
+      eliminare backup, rollback, salute automatica, NetworkManager o gli
+      strumenti necessari all'assistenza.
+
+## Nuova lista — Prima della prossima RC
+
+- [x] Mostrare dinamicamente nella barra laterale di PCManFM le chiavette
+      montate da Wasalight in `/stick` e `/stick2`–`/stick9`, usando l'etichetta
+      del volume quando disponibile e rimuovendo la voce allo smontaggio,
+      senza modificare il sistema di mount richiesto da MagicQ.
+- [x] Rendere più leggibile la prima configurazione evidenziando le sole righe
+      importanti: fase attiva in rilievo, fasi completate e risultato positivo
+      in verde, avvisi in giallo ed errori in rosso, mantenendo puliti e privi
+      di sequenze ANSI i log persistenti.
+- [x] Sostituire Falkon/Qt WebEngine con GNOME Web e WebKitGTK moderno sia per
+      Companion sia per il browser generico: un solo browser touch-friendly,
+      installato come pacchetto Ubuntu `.deb`, utilizzabile offline senza Snap,
+      con profili persistenti separati e vecchie dipendenze rimosse. Confermare
+      il rendering di Companion sulla prossima installazione reale.
+- [x] Ottimizzare specificamente il chrome GTK4 di GNOME Web per il touch con
+      pulsanti, voci menu e schede da almeno 44 px, barra indirizzi più alta e
+      testo da 16 px, senza modificare il CSS delle pagine web o di Companion.
 
 ## Fase 8 — Collaudo hardware e prima release stabile
 

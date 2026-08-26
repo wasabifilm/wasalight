@@ -499,7 +499,7 @@ if [[ $channel == stable ]]; then
         if ((stable_rc == 44)); then
             touch "$stable_unavailable_file"
             echo "No signed stable release has been published yet." >&2
-            echo "Select Debug in Wasalight Control only on UTM or development machines." >&2
+            echo "Select Debug in Wasalight Control only on development or test systems." >&2
         else
             echo "Unable to retrieve and verify the latest stable release." >&2
         fi

@@ -68,8 +68,8 @@ normalize_update_channel() {
     local normalized
     normalized=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
     case $normalized in
-        stable|normal|normale) printf '%s\n' stable ;;
-        debug|development|sviluppo) printf '%s\n' debug ;;
+        stable) printf '%s\n' stable ;;
+        debug) printf '%s\n' debug ;;
         *) echo "Invalid update channel: $1 (use stable or debug)" >&2; return 2 ;;
     esac
 }

@@ -93,7 +93,8 @@ configure_companion() {
     install -d -o "$TARGET_USER" -g "$TARGET_USER" -m 0700 \
         "$DATA_MOUNT/companion/browser" \
         "$DATA_MOUNT/companion/browser/config" \
-        "$DATA_MOUNT/companion/browser/data"
+        "$DATA_MOUNT/companion/browser/data" \
+        "$DATA_MOUNT/companion/browser/profile"
     install -d -o companion -g companion -m 0750 /home/companion
     install -d -o root -g root -m 0755 /etc/companion
 
@@ -156,10 +157,8 @@ EOF
     install_template /usr/local/bin/wasalight-companion-panel 0755
 
     install_template /usr/local/bin/wasalight-companion-browser 0755
-
-    install_template /usr/local/bin/wasalight-falkon-profile 0755
-    install_template /usr/local/share/wasalight/falkon-plugins/wasalight-companion-controls/metadata.desktop 0644
-    install_template /usr/local/share/wasalight/falkon-plugins/wasalight-companion-controls/main.qml 0644
+    rm -f /usr/local/bin/wasalight-falkon-profile
+    rm -rf /usr/local/share/wasalight/falkon-plugins
 
     install_template /usr/local/bin/wasalight-x11-window-icon 0755
 

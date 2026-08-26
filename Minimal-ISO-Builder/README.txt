@@ -51,7 +51,10 @@ automaticamente Wasalight al primo avvio reale:
 
 Il log si trova in /data/log/wasalight-first-boot.log. Se rete o installazione
 falliscono, il servizio non dichiara il completamento e riprova dopo 60 secondi.
-Durante questo bootstrap tty1 resta testuale e mostra l'avanzamento: il target
+Durante questo bootstrap tty1 resta testuale e mostra l'avanzamento: la fase
+attiva è evidenziata, i completamenti sono verdi, gli avvisi gialli e gli errori
+rossi. Il file di log e il journal conservano invece testo semplice senza codici
+ANSI. Il target
 dei login, Openbox e l'autologin grafico attendono il servizio. Il marker
 volatile scompare con il riavvio conclusivo, quindi la grafica parte soltanto
 dal boot successivo. Se il servizio fallisce, il job termina e il login testuale
@@ -182,8 +185,7 @@ Per una sola variante:
   bash Minimal-ISO-Builder/make-wasalight-minimal.sh --variant full
   bash Minimal-ISO-Builder/make-wasalight-minimal.sh --variant netboot
 
-`--variant offline` resta accettato come alias storico di `full`, ma tutti i
-nuovi menu, messaggi e nomi file usano FULL per non suggerire assenza di rete.
+La variante completa usa esclusivamente il nome canonico `full`.
 
 Il menu non ha un timeout distruttivo: occorre premere ENTER.
 Il numero dell'installer e' definito una sola volta nel file VERSION. Le ISO

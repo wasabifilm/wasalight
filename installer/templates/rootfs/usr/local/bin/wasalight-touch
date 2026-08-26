@@ -34,12 +34,24 @@ Usage:
   wasalight-touch-config set DEVICE OUTPUT [normal|right|inverted|left]
   wasalight-touch-config disable
   wasalight-touch-apply
-  wasalight-touch-watch
 
 Names containing spaces must be quoted. Configuration is persistent under
 /data when that filesystem is available. "auto" acts only when exactly one
 touchscreen and one connected output are detected.
 EOT
+}
+
+show_machine() {
+    load_config
+    printf 'CONFIG\t%s\t%s\t%s\t%s\n' "$MODE" "$ROTATION" "$DEVICE" "$OUTPUT"
+    prepare_x || return 0
+    detect_hardware
+    local i
+    for i in "${!OUTPUTS[@]}"; do printf 'OUTPUT\t%s\n' "${OUTPUTS[$i]}"; done
+    for i in "${!TOUCH_IDS[@]}"; do
+        printf 'TOUCH\t%s\t%s\t%s\t%s\n' "${TOUCH_NAMES[$i]}" \
+            "${TOUCH_KEYS[$i]}" "${TOUCH_IDS[$i]}" "${TOUCH_NODES[$i]}"
+    done
 }
 
 prepare_x() {
@@ -223,25 +235,11 @@ apply_config() {
         "Mapped $RESOLVED_DEVICE to $RESOLVED_OUTPUT with rotation $ROTATION"
 }
 
-watch_hardware() {
-    local signature previous=
-    while :; do
-        if prepare_x; then
-            signature=$( {
-                xinput --list --short 2>/dev/null || true
-                xrandr --query 2>/dev/null | awk '$2 == "connected" {print $1, $3}' || true
-                stat -c '%Y:%s' "$CONFIG" 2>/dev/null || true
-            } )
-            if [[ $signature != "$previous" ]]; then
-                apply_config || true
-                previous=$signature
-            fi
-        fi
-        sleep 3
-    done
-}
-
 show_status() {
+    if [[ ${1:-} == --machine ]]; then
+        show_machine
+        return
+    fi
     load_config
     if ! prepare_x; then
         if [[ ${1:-} == --summary ]]; then
@@ -314,13 +312,11 @@ configure() {
 case "${0##*/}" in
     wasalight-touch-status) show_status "${1:-}" ;;
     wasalight-touch-apply) apply_config ;;
-    wasalight-touch-watch) watch_hardware ;;
     wasalight-touch-config) configure "$@" ;;
     *)
         case "${1:-}" in
             status) shift; show_status "${1:-}" ;;
             apply) shift; apply_config "$@" ;;
-            watch) shift; watch_hardware ;;
             config|configure) shift; configure "$@" ;;
             *) usage; exit 2 ;;
         esac

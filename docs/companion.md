@@ -55,7 +55,7 @@ Questi dati restano fuori dall'overlay root:
 /data/companion/etc/        configurazione di avvio config.yaml
 /data/companion/log/        log del servizio
 /data/companion/backups/    backup consistenti creati in MAINTENANCE
-/data/companion/browser/    profilo persistente del browser locale Falkon
+/data/companion/browser/    profilo persistente del browser locale GNOME Web
 ```
 
 Sono montati rispettivamente su `/home/companion` e `/etc/companion`. I file
@@ -79,53 +79,27 @@ resta visibile ma disabilitato.
 
 Quando Companion è installato, il dock aggiunge automaticamente un pulsante con
 l’icona ufficiale; la stessa apertura resta disponibile dalla voce **Companion**
-in Applicazioni. Entrambe aprono `http://127.0.0.1:8000` in Falkon. Se il servizio
-è fermo, propongono di avviarlo per la sessione. La finestra viene
-massimizzata lasciando visibile Tint2, quindi resta possibile cambiare
-applicazione o chiuderla con il grande pulsante del tema Wasalight.
-Il profilo parte con zoom 100%, mantiene soltanto Indietro, Ricarica e Home e
-aggiunge due pulsanti touch Zoom −/+. Il menu Falkon a destra viene rimosso e il
-titolo X11 viene mantenuto semplicemente come `Companion`. Queste modifiche non
-si applicano al browser Falkon generico.
-La finestra usa la classe X11 dedicata `WasalightCompanion`, registrata anche
-come applicazione XDG. Poiché Tint2 legge direttamente `_NET_WM_ICON` dalla
-finestra e Falkon pubblica la propria icona, il launcher sostituisce quella
-proprietà con l'icona ufficiale Companion dopo l'apertura. Se il download
-verificato dell'icona ufficiale non è disponibile, viene usata l'icona locale
-Wasalight senza lasciare un collegamento privo di immagine. Oltre ai launcher
-fissi, il taskbar del dock mostra solo le icone delle finestre, senza ripetere i
-titoli, per rimanere compatto e adatto al touch.
+in Applicazioni. Entrambe aprono `http://127.0.0.1:8000` in GNOME Web. Se il
+servizio è fermo, propongono di avviarlo per la sessione. La finestra viene
+massimizzata lasciando visibile Tint2 e il titolo X11 viene mantenuto come
+`Companion`. Il launcher riapplica `_NET_WM_ICON` dopo l'apertura, così il
+taskbar usa l'icona ufficiale invece di quella generica del browser.
 
-Il profilo dedicato viene inizializzato con un'interfaccia scura e semplificata
-per il touch: barra di navigazione alta, pulsanti grandi per indietro/avanti,
-ricarica, home e menu. Falkon ripristina internamente il campo indirizzo anche
-quando non è presente nel layout; il tema Wasalight lo comprime quindi a zero,
-insieme a bookmark e freccia della cronologia. Anche
-barra dei preferiti e barra di stato sono nascoste. La barra delle schede
-scompare quando ne è aperta una sola. Home
-e nuova scheda puntano all'interfaccia Companion locale; all'avvio non viene
-ripristinata la sessione precedente. Lo zoom predefinito è 120%, il livello
-nativo Falkon più vicino al 125% inizialmente previsto.
-
-Questi valori e `userChrome.css` vengono applicati una sola volta, al primo
-avvio del profilo Wasalight. Gli aggiornamenti successivi conservano le scelte
-dell'operatore. Per distribuire intenzionalmente un nuovo schema del profilo è
-necessario incrementare `profile_schema` nello script di installazione; non si
-deve cancellare il profilo dell'utente. Falkon resta massimizzato, non in vero
-fullscreen, così Tint2 rimane sempre accessibile sul touchscreen.
+GNOME Web usa WebKitGTK aggiornato dai repository di sicurezza Ubuntu. Questo
+elimina il vecchio Qt WebEngine di Falkon, basato su una generazione di Chromium
+che non interpreta correttamente parte del layout moderno di Companion 5. La
+barra nativa mantiene navigazione, menu e controlli zoom utilizzabili al tocco;
+Wasalight porta pulsanti, voci menu e schede ad almeno 44 px e rende più alta la
+barra indirizzi. Lo stile è applicato al solo chrome GTK4: non vengono iniettate
+correzioni CSS nella pagina Companion.
 
 Il profilo, i cookie e le preferenze del browser Companion restano in
 `/data/companion/browser`; la cache viene invece collocata nella directory
-runtime temporanea e viene persa al riavvio. Il browser web generico usa invece
-un profilo indipendente sotto `/data/browser`, quindi cronologia, schede e
-preferenze dell’operatore non si mescolano con l’interfaccia locale Companion.
-
-Il profilo dedicato mantiene AdBlock disattivato. Wasalight rimuove soltanto il
-plugin interno `internal:adblock` dall'elenco Falkon e conserva eventuali altri
-plugin scelti dall'operatore. Non vengono cancellati file del pacchetto Ubuntu e
-gli altri profili Falkon non vengono modificati. Questa è l'unica preferenza
-riapplicata a ogni apertura del browser; tema, zoom e disposizione dei comandi
-restano invece modificabili dall'operatore dopo l'inizializzazione.
+runtime temporanea e viene persa al riavvio. Il browser generico usa lo stesso
+motore e un profilo indipendente sotto `/data/browser`, quindi cronologia,
+cookie, schede e preferenze non vengono mescolati con l'interfaccia locale
+Companion. Entrambi funzionano offline dopo l'installazione perché GNOME Web e
+WebKitGTK sono normali pacchetti Ubuntu `.deb`: Wasalight non richiede Snap.
 
 Comandi disponibili:
 
@@ -165,8 +139,8 @@ dopo un riavvio prima di tornare in SHOW.
 dalla release Wasalight corrente. Non usa `latest` e conserva un backup prima
 dell'aggiornamento. Al termine confronta inoltre il target con il file `BUILD`
 del runtime. Il metadata SemVer aggiunto da Bitfocus, per esempio
-`5.0.3+9703-stable-2daa0d7670`, identifica correttamente la versione base
-`5.0.3`; una selezione upstream vuota o con una versione base diversa viene
+`5.0.4+9704-stable-a69c14dec2`, identifica correttamente la versione base
+`5.0.4`; una selezione upstream vuota o con una versione base diversa viene
 invece trattata come errore e non aggiorna la versione registrata. Un cambio
 della versione target deve quindi passare da una nuova build Wasalight e dai
 relativi test.
@@ -180,7 +154,7 @@ fidata. Le azioni amministrative di Wasalight Control passano attraverso wrapper
 argomenti limitati; non viene concesso un `sudo systemctl` generico.
 
 Bitfocus raccomanda Chrome e indica che altri browser aggiornati dovrebbero
-funzionare. Falkon è quindi sottoposto alla checklist hardware Wasalight: prima
+funzionare. GNOME Web è quindi sottoposto alla checklist hardware Wasalight: prima
 dell'impiego verificare editor pulsanti, moduli, drag-and-drop, WebSocket e
 riconnessione. Se una futura versione Companion non fosse compatibile, il
 launcher dedicato potrà passare a un altro motore senza spostare i dati Companion.
