@@ -108,7 +108,7 @@ for declaration in \
     'LiveISOSHA256=e907d92eeec9df64163a7e454cbc8d7755e8ddc7ed42f99dbc80c40f1a138433' \
     'MiniISOFile=ubuntu-mini-iso-24.04.4-mini-iso-amd64.iso' \
     'MiniISOSHA256=57bfe99e776698ae08358145cf3a58bfb74beafe8c8cf965ca86552233d2f53f' \
-    '[Companion]' 'Version=5.0.3' \
+    '[Companion]' 'Version=5.0.4' \
     'RuntimePackagesFile=packages/companion-runtime.txt' \
     'Commit=07024263dbb54512f3acdc705eca70cd74dbae43' \
     '[MagicQ]' 'RuntimePackagesFile=packages/magicq-runtime.txt'; do

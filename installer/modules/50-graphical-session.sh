@@ -11,7 +11,7 @@ configure_graphical_session() {
         "$TARGET_HOME/.config/wasalight/dock"
     install_template /usr/local/bin/wasalight-dialog 0755
     install_template /usr/local/bin/wasalight-openbox-menu 0755
-    install_template /usr/local/bin/wasalight-pointer-watch 0755
+    install_template /usr/local/bin/wasalight-input-watch 0755
     install_template /usr/local/libexec/wasalight-i18n 0644
     install_template /usr/local/libexec/wasalight-session-language 0644
 
@@ -60,6 +60,9 @@ EOF
       <layer>above</layer>\
       <desktop>all</desktop>\
       <decor>yes</decor>\
+    </application>\
+    <application name="*" class="*" title="MagicQ PC*">\
+      <fullscreen>yes</fullscreen>\
     </application>' "$TARGET_HOME/.config/openbox/rc.xml"
 
     install -d -m 0755 /usr/share/themes/Wasalight/openbox-3
@@ -269,8 +272,6 @@ Terminal=false
 StartupNotify=false
 EOF
 
-    install_template /usr/local/bin/magicq-fullscreen-watch 0755
-
     install_template /usr/local/bin/wasalight-audio-test 0755
 
     install_template /usr/local/bin/wasalight-power 0755
@@ -311,7 +312,7 @@ conky.config = {
     alignment = 'top_right',
     background = true,
     double_buffer = true,
-    update_interval = 5,
+    update_interval = 10,
     gap_x = 24,
     gap_y = 24,
     minimum_width = 460,
@@ -336,7 +337,7 @@ conky.text = [[
 ${font Sans:bold:size=22}${color #58a6ff}WASALIGHT${color white}${font}
 ${font Sans:size=11}Michele Moser · Wasabi Lightbulbfarm${font}
 ${color #30363d}${hr 2}${color white}
-${execpi 5 /usr/local/bin/wasalight-desktop-status}
+${execpi 10 /usr/local/bin/wasalight-desktop-status}
 ]];
 EOF
 
@@ -368,9 +369,7 @@ EOF
     install_template /usr/local/bin/wasalight-x11-window-icon 0755
 
     install -d -m 0755 /etc/wasalight/apps.d
-    install_template /etc/wasalight/apps.d/network.desktop 0644
     install_template /etc/wasalight/apps.d/display.desktop 0644
-    install_template /etc/wasalight/apps.d/touch.desktop 0644
     install_template /etc/wasalight/apps.d/audio.desktop 0644
     install_template /etc/wasalight/apps.d/files.desktop 0644
     install_template /etc/wasalight/apps.d/ip-scanner.desktop 0644
@@ -379,15 +378,17 @@ EOF
     install_template /etc/wasalight/apps.d/browser.desktop 0644
     install_template /etc/wasalight/apps.d/system-monitor.desktop 0644
     install_template /etc/wasalight/apps.d/terminal.desktop 0644
-    install_template /etc/wasalight/apps.d/status.desktop 0644
     # The keyboard already has a permanent tint2 toggle. SSH and VNC belong to
     # Services. Remove stale registrations so Control never shows duplicates,
     # including copies left in the persistent third-party registry.
     rm -f /etc/wasalight/apps.d/keyboard.desktop \
         /etc/wasalight/apps.d/vnc.desktop \
         /etc/wasalight/apps.d/ssh.desktop \
+        /etc/wasalight/apps.d/network.desktop \
+        /etc/wasalight/apps.d/touch.desktop \
+        /etc/wasalight/apps.d/status.desktop \
+        /etc/wasalight/apps.d/update.desktop \
         /data/system/apps.d/keyboard.desktop
-    install_template /etc/wasalight/apps.d/update.desktop 0644
 
     install_template /usr/local/sbin/wasalight-app-register 0755
 
@@ -502,11 +503,8 @@ conky --config="$HOME/.config/conky/wasalight.conf" --daemonize --pause=2
 tint2 -c "$HOME/.config/tint2/tint2rc" &
 GTK_THEME=Adwaita:dark \
     /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
-/usr/local/bin/wasalight-touch-watch &
-/usr/local/bin/wasalight-pointer-watch &
-/usr/local/bin/magicq-fullscreen-watch &
+/usr/local/bin/wasalight-input-watch &
 /usr/local/bin/wasalight-remote-autostart &
-/usr/local/bin/wasalight-magicq-usb-watch &
 ( sleep 8; /usr/local/bin/wasalight-first-run ) &
 ( sleep 15; /usr/local/bin/wasalight-update-check ) &
 if ! findmnt -n -o FSTYPE / 2>/dev/null | grep -qx overlay && \

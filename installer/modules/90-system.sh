@@ -158,6 +158,7 @@ install_mode_commands() {
     install_template /usr/local/bin/wasalight-mode-toggle 0755
 
     install_template /usr/local/bin/wasalight-status 0755
+    install_template /usr/local/libexec/wasalight-state-collect 0755
 
     install_template /etc/sudoers.d/chamsys-magicq 0440
     visudo -cf /etc/sudoers.d/chamsys-magicq >/dev/null
@@ -372,7 +373,7 @@ final_checks() {
     bash -n /usr/local/sbin/wasalight-health-monitor
     bash -n /usr/local/bin/wasalight-system-audit
     bash -n /usr/local/bin/wasalight-first-run
-    bash -n /usr/local/bin/wasalight-magicq-usb-watch
+    bash -n /usr/local/bin/wasalight-magicq-usb-scan
     bash -n /usr/local/sbin/wasalight-support-bundle
     bash -n /usr/local/sbin/wasalight-data-transfer
     bash -n /usr/local/sbin/wasalight-plugin-bundle
@@ -399,7 +400,7 @@ final_checks() {
     bash -n /usr/local/sbin/wasalight-app-register
     bash -n /usr/local/bin/wasalight-control
     bash -n /usr/local/bin/wasalight-openbox-menu
-    bash -n /usr/local/bin/wasalight-pointer-watch
+    bash -n /usr/local/bin/wasalight-input-watch
     bash -n /usr/local/libexec/wasalight-i18n
     sh -n /usr/local/libexec/wasalight-session-language
     locale -a | grep -Fqx 'en_US.utf8'

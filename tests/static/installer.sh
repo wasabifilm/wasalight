@@ -41,9 +41,8 @@ grep -Fq 'systemctl enable fstrim.timer' "$PROJECT_DIR/installer/modules/90-syst
 grep -Fq 'audit) command_to_run=/usr/local/bin/wasalight-system-audit' \
     "$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-terminal-tool" || \
     fail "l'audit non è apribile dal terminale grafico"
-grep -Fq 'Exec=/usr/local/bin/wasalight-terminal-tool audit' \
-    "$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/system-audit.desktop" || \
-    fail "l'audit non compare negli strumenti di supporto"
+[[ ! -e $INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/system-audit.desktop ]] || \
+    fail "l'audit tecnico compare ancora come pulsante duplicato in Tools"
 for forbidden_audit_action in 'apt-get ' 'systemctl enable' 'systemctl disable' \
     'systemctl start' 'systemctl stop' 'systemctl restart' 'mount ' 'umount ' \
     'tee ' 'rm -' 'mv ' 'cp '; do
@@ -111,9 +110,8 @@ if grep -Fq 'wasalight-rollback' \
     fail "il rollback non deve essere autorizzato permanentemente senza password"
 fi
 companion_web_launcher="$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/companion-web.desktop"
-network_launcher="$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/network.desktop"
-grep -Fq 'Exec=/usr/local/bin/wasalight-control --page network' \
-    "$network_launcher" || fail "il launcher Rete non apre la pagina integrata"
+[[ ! -e $INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/network.desktop ]] || \
+    fail "la pagina Rete è ancora duplicata nella pagina Tools"
 grep -Fxq 'gir1.2-nm-1.0' "$PROJECT_DIR/packages/wasalight-runtime.txt" || \
     fail "le API libnm per la pagina Rete non sono installate"
 if grep -Fxq 'network-manager-gnome' "$PROJECT_DIR/packages/wasalight-runtime.txt"; then
@@ -136,7 +134,7 @@ grep -Fq 'StartupWMClass=WasalightCompanion' "$INSTALLER" || \
 
 management_helpers=(
     wasalight-health wasalight-health-monitor wasalight-support-bundle wasalight-data-transfer
-    wasalight-first-run wasalight-magicq-usb-watch wasalight-plugin-bundle
+    wasalight-first-run wasalight-magicq-usb-scan wasalight-plugin-bundle
     wasalight-update-snapshot wasalight-rollback
 )
 for helper in "${management_helpers[@]}"; do
@@ -160,12 +158,11 @@ required_patterns=(
     '$DATA_MOUNT/system/installed-version'
     '$DATA_MOUNT/system/installed-commit'
     "status_line \"\$blue\" 'VERSION'"
-    "status_line \"\$yellow\" 'UPDATE' \"READY · \$checked_version\""
-    'checked_version=$(cat /data/system/update-check/latest-version'
+    'report=$(/usr/local/bin/wasalight-status'
+    'readonly snapshot="$runtime_dir/wasalight-status.snapshot"'
     '${goto 150}'
-    "status_line \"\$green\" 'MAGICQ' \"RUNNING · \$magicq_version · \$magicq_mode\""
-    "status_line \"\$yellow\" 'MAGICQ' \"READY · \$magicq_version · \$magicq_mode\""
-    "status_line \"\$red\" 'MAGICQ' 'NOT INSTALLED'"
+    "RUNNING*) status_line \"\$green\" 'MAGICQ' \"\$magicq\""
+    "READY*) status_line \"\$yellow\" 'MAGICQ' \"\$magicq\""
     "dpkg-query -W -f='\${db:Status-Abbrev}\\t\${Version}' magicq"
     'WASALIGHT:  $version'
     'magicq="READY · $magicq_version · ${magicq_mode^^}"'
@@ -212,13 +209,13 @@ required_patterns=(
     '/data/system/touchscreen/config'
     'wasalight-touch-status'
     'wasalight-touch-config'
-    'wasalight-touch-watch'
+    'wasalight-input-watch'
     'wasalight-vnc-start'
     'wasalight-vnc-stop'
     'wasalight-remote-auto-toggle'
     'wasalight-remote-autostart'
     'wasalight-remote-persistence'
-    'magicq-fullscreen-watch'
+    'title="MagicQ PC*"'
     'wasalight-audio-test'
     'wmctrl -n 1'
     '/usr/local/bin/wasalight-desktop-wallpaper'
@@ -244,12 +241,11 @@ required_patterns=(
     'wasalight-vnc-toggle'
     'wasalight-ssh-toggle'
     'wasalight-update'
-    'update_interval = 5'
-    '${execpi 5 /usr/local/bin/wasalight-desktop-status}'
+    'update_interval = 10'
+    '${execpi 10 /usr/local/bin/wasalight-desktop-status}'
     '/data/system/wasalight'
     '/data/system/packages'
     'candidate_checkout="${checkout}.candidate"'
-    '/etc/wasalight/apps.d/network.desktop'
     '/data/system/apps.d'
     'wasalight-app-register'
     'taskbar_name = 0'
@@ -352,7 +348,7 @@ required_patterns=(
     'wasalight-companion-update'
     'Companion updates require MAINTENANCE mode.'
     'COMPANION:  $companion'
-    "status_line \"\$green\" 'COMPANION'"
+    "status_line \"\$blue\" 'COMPANION' \"\$companion\""
     'rm -f /etc/wasalight/apps.d/companion.desktop'
     'Icon=/usr/local/share/icons/wasalight/companion-official.png'
     'readonly COMPANION_ICON_SHA256='
@@ -393,7 +389,7 @@ required_patterns=(
     'wasalight-data-transfer'
     'wasalight-update-snapshot'
     'wasalight-rollback-ui'
-    'wasalight-magicq-usb-watch'
+    'wasalight-magicq-usb-scan'
     'wasalight-first-run'
     'wasalight-plugin-bundle'
     '/usr/local/bin/wasalight-screen-lock'
@@ -564,7 +560,8 @@ helpers=(
     /usr/local/bin/wasalight-vnc-start
     /usr/local/bin/wasalight-vnc-stop
     /usr/local/bin/wasalight-vnc-control
-    /usr/local/bin/magicq-fullscreen-watch
+    /usr/local/bin/wasalight-input-watch
+    /usr/local/libexec/wasalight-state-collect
     /usr/local/bin/wasalight-audio-test
     /usr/local/bin/wasalight-power
     /usr/local/bin/wasalight-dialog
@@ -719,9 +716,8 @@ if grep -Fq '/run/wasalight-usb.device' "$INSTALLER"; then
 fi
 grep -Fq 'LD_LIBRARY_PATH=/opt/magicq/lib' "$INSTALLER" || \
     fail "il controllo binario XCB non usa le librerie incluse da MagicQ"
-grep -Fq 'wmctrl -ir "$window_id" -b add,fullscreen' \
-    "$tmp_dir/magicq-fullscreen-watch" || \
-    fail "MagicQ non viene portato automaticamente in fullscreen"
+grep -Fq '<application name="*" class="*" title="MagicQ PC*">' "$INSTALLER" || \
+    fail "MagicQ non viene portato automaticamente in fullscreen da Openbox"
 grep -Fq 'speaker-test -D default -c 2 -t wav -l 1' \
     "$tmp_dir/wasalight-audio-test" || \
     fail "il test audio ALSA non verifica il dispositivo predefinito"

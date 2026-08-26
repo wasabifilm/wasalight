@@ -95,7 +95,9 @@ if WASALIGHT_UPDATE_STATE_OWNER="$(id -un):$(id -gn)" \
     fail "lo stato transazionale accetta valori multilinea"
 fi
 
-[[ $(normalize_update_channel normale) == stable ]] || fail "alias canale normale non riconosciuto"
+if normalize_update_channel normale >/dev/null 2>&1; then
+    fail "alias di canale precedente ancora accettato"
+fi
 [[ $(normalize_update_channel debug) == debug ]] || fail "canale debug non riconosciuto"
 if normalize_update_channel invalid >/dev/null 2>&1; then
     fail "un canale aggiornamenti sconosciuto viene accettato"

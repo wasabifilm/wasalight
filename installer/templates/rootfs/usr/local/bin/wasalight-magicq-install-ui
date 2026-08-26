@@ -36,12 +36,18 @@ set +e
 pkexec /usr/local/sbin/wasalight-magicq-install >"$log_file" 2>&1 &
 install_pid=$!
 (
+    previous=
     while kill -0 "$install_pid" 2>/dev/null; do
-        printf '# %s\n' "$( _ "Searching, copying and verifying MagicQ… A slow USB drive can take several minutes." )"
-        sleep 1
+        phase=$(tail -n 1 "$log_file" 2>/dev/null || true)
+        [[ -n $phase ]] || phase=$( _ "Starting the offline MagicQ installation…" )
+        if [[ $phase != "$previous" ]]; then
+            printf '# %s\n' "$phase"
+            previous=$phase
+        fi
+        sleep 0.5
     done
 ) | /usr/local/bin/wasalight-dialog --progress --pulsate --auto-close --no-cancel \
-    --width=560 --title="$title" 2>/dev/null
+    --width=680 --title="$title" 2>/dev/null
 wait "$install_pid"
 rc=$?
 set -e

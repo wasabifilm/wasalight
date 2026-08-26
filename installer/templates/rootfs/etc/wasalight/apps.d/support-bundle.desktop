@@ -1,9 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=Export diagnostics
-Name[it]=Esporta diagnostica
-Comment=Create a support bundle without passwords
-Comment[it]=Crea un pacchetto assistenza privo di password
+Name=Export diagnostics for support
+Name[it]=Esporta diagnostica per assistenza
+Comment=Create a support archive without passwords, MagicQ shows or private settings
+Comment[it]=Crea un archivio senza password, show MagicQ o configurazioni private
 Exec=/usr/local/bin/wasalight-support-bundle-terminal
 Icon=package-x-generic
 TryExec=/usr/local/bin/wasalight-support-bundle-terminal

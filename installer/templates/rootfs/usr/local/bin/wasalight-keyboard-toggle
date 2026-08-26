@@ -69,6 +69,8 @@ onboard_args=()
 # there, shift the panel and potentially hide the keyboard again. Auto-show is
 # disabled too: visibility must not depend on focus or pointer position.
 if command -v gsettings >/dev/null 2>&1; then
+    gsettings set org.onboard key-label-font 'DejaVu Sans condensed bold' \
+        2>/dev/null || true
     gsettings set org.onboard show-status-icon false 2>/dev/null || true
     gsettings set org.onboard.auto-show enabled false 2>/dev/null || true
     # The XInput backend in Ubuntu 24.04 can crash when a virtual tablet and a
@@ -93,9 +95,9 @@ read -r screen_width screen_height < <(
         }'
 )
 if [[ ${screen_width:-} =~ ^[0-9]+$ && ${screen_height:-} =~ ^[0-9]+$ ]]; then
-    width=$((screen_width * 80 / 100))
-    height=$((screen_height * 30 / 100))
-    x=$((screen_width * 10 / 100))
+    width=$((screen_width * 64 / 100))
+    height=$((screen_height * 24 / 100))
+    x=$((screen_width * 18 / 100))
     y=$((screen_height - height - 64))
     ((y < 0)) && y=0
     onboard_args+=(--size="${width}x${height}" -x "$x" -y "$y")

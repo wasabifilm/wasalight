@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Wasalight Control\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-25 07:44+0200\n"
+"POT-Creation-Date: 2026-08-26 10:21+0200\n"
 "PO-Revision-Date: 2026-08-25 08:00+0200\n"
 "Last-Translator: Michele Moser\n"
 "Language-Team: Italian\n"
@@ -19,7 +19,7 @@ msgstr ""
 msgid "AUTOMATIC"
 msgstr "AUTOMATICO"
 
-#: ui/wasalight-control-center.py:78
+#: ui/wasalight-control-center.py:80
 msgid "About"
 msgstr "Info"
 
@@ -36,9 +36,13 @@ msgstr "Avanzate"
 msgid "Advanced Wi-Fi"
 msgstr "Wi-Fi avanzato"
 
-#: ui/wasalight-control-center.py:73
+#: ui/wasalight-control-center.py:74
 msgid "Applications"
 msgstr "Applicazioni"
+
+#: ui/wasalight_control/pages/touchscreen.py:101
+msgid "Apply"
+msgstr "Applica"
 
 #: ui/wasalight_control/pages/network.py:241
 msgid "Applying network configuration…"
@@ -49,8 +53,9 @@ msgstr "Applicazione della configurazione di rete…"
 msgid "Attention required"
 msgstr "Attenzione richiesta"
 
-#: ui/wasalight-control-center.py:274 ui/wasalight_control/shell.py:48
+#: ui/wasalight-control-center.py:273 ui/wasalight_control/shell.py:48
 #: ui/wasalight_control/shell.py:50
+#: ui/wasalight_control/pages/touchscreen.py:79
 msgid "Automatic"
 msgstr "Automatico"
 
@@ -74,7 +79,7 @@ msgstr "CONTROLLO FALLITO"
 msgid "CHECKING"
 msgstr "CONTROLLO IN CORSO"
 
-#: ui/wasalight-control-center.py:231 ui/wasalight-control-center.py:262
+#: ui/wasalight-control-center.py:230 ui/wasalight-control-center.py:261
 #: ui/wasalight_control/pages/network.py:381
 msgid "Cancel"
 msgstr "Annulla"
@@ -83,13 +88,17 @@ msgstr "Annulla"
 msgid "ChamSys application"
 msgstr "Programma ChamSys"
 
-#: ui/wasalight-control-center.py:269
+#: ui/wasalight-control-center.py:268
 msgid "Choose the interface language. It will be applied at the next start."
 msgstr "Scegli la lingua dell’interfaccia. Sarà applicata al prossimo avvio."
 
 #: ui/wasalight_control/shell.py:83 ui/wasalight_control/shell.py:86
 msgid "Close"
 msgstr "Chiudi"
+
+#: ui/wasalight_control/pages/touchscreen.py:36
+msgid "Close test"
+msgstr "Chiudi prova"
 
 #: ui/wasalight_control/pages/about.py:43
 msgid ""
@@ -142,13 +151,17 @@ msgstr "Stato corrente e avvio automatico dei servizi Wasalight."
 msgid "DNS servers"
 msgstr "Server DNS"
 
-#: ui/wasalight-control-center.py:229
+#: ui/wasalight-control-center.py:228
 msgid ""
-"Debug follows the latest main branch and is intended for UTM and development "
-"machines. It is not a signed stable release."
+"Debug follows the latest main branch and is intended only for development "
+"and testing. It is not a signed stable release."
 msgstr ""
-"Debug segue l’ultimo aggiornamento del ramo main ed è destinato a UTM e alle "
-"macchine di sviluppo. Non è una release stabile firmata."
+"Debug segue l’ultimo aggiornamento del ramo main ed è destinato soltanto a "
+"sviluppo e collaudo. Non è una release stabile firmata."
+
+#: ui/wasalight_control/pages/touchscreen.py:67
+msgid "Detect, associate and rotate touchscreens without using the terminal."
+msgstr "Rileva, associa e ruota i touchscreen senza usare il terminale."
 
 #: ui/wasalight_control/pages/tools.py:21
 msgid "Diagnostics and utilities"
@@ -158,29 +171,45 @@ msgstr "Diagnostica e utilità"
 msgid "Diagnostics, support and data management utilities."
 msgstr "Strumenti di diagnostica, supporto e gestione dei dati."
 
-#: ui/wasalight-control-center.py:309 ui/wasalight_control/widgets.py:198
+#: ui/wasalight-control-center.py:308 ui/wasalight_control/widgets.py:198
 msgid "Disable"
 msgstr "Disabilita"
+
+#: ui/wasalight_control/pages/touchscreen.py:81
+msgid "Disabled"
+msgstr "Disabilitato"
 
 #: ui/wasalight_control/pages/network.py:84
 msgid "Disconnect"
 msgstr "Disconnetti"
 
+#: ui/wasalight_control/pages/touchscreen.py:91
+msgid "Display"
+msgstr "Schermo"
+
+#: ui/wasalight_control/pages/touchscreen.py:35
+msgid "Each numbered target turns green when it receives a touch."
+msgstr "Ogni bersaglio numerato diventa verde quando riceve un tocco."
+
 #: ui/wasalight_control/pages/about.py:55
 msgid "Email"
 msgstr "Email"
 
-#: ui/wasalight-control-center.py:309 ui/wasalight_control/widgets.py:198
+#: ui/wasalight-control-center.py:308 ui/wasalight_control/widgets.py:198
 msgid "Enable"
 msgstr "Abilita"
 
-#: ui/wasalight-control-center.py:227
+#: ui/wasalight-control-center.py:226
 msgid "Enable Debug update channel?"
 msgstr "Abilitare il canale di aggiornamento Debug?"
 
 #: ui/wasalight_control/pages/network.py:141
 msgid "Ethernet"
 msgstr "Ethernet"
+
+#: ui/wasalight_control/pages/touchscreen.py:104
+msgid "Full-screen touch test"
+msgstr "Prova touch a schermo intero"
 
 #: ui/wasalight_control/pages/network.py:76
 msgid "Gateway"
@@ -233,11 +262,11 @@ msgstr "Interfaccia"
 msgid "Invalid Wi-Fi password"
 msgstr "Password Wi-Fi non valida"
 
-#: ui/wasalight-control-center.py:260 ui/wasalight_control/shell.py:57
+#: ui/wasalight-control-center.py:259 ui/wasalight_control/shell.py:57
 msgid "Language"
 msgstr "Lingua"
 
-#: ui/wasalight-control-center.py:295
+#: ui/wasalight-control-center.py:294
 msgid "Language saved"
 msgstr "Lingua salvata"
 
@@ -249,7 +278,7 @@ msgstr "Console luci e applicazioni complementari ChamSys."
 msgid "Loading status…"
 msgstr "Caricamento stato…"
 
-#: ui/wasalight-control-center.py:305 ui/wasalight-control-center.py:316
+#: ui/wasalight-control-center.py:304 ui/wasalight-control-center.py:315
 msgid "MAINTENANCE mode required"
 msgstr "Modalità MAINTENANCE richiesta"
 
@@ -261,7 +290,7 @@ msgstr "MANUALE"
 msgid "MISSING"
 msgstr "MANCANTE"
 
-#: ui/wasalight-control-center.py:217
+#: ui/wasalight-control-center.py:216
 msgid "MagicQ · Automatic startup"
 msgstr "MagicQ · Avvio automatico"
 
@@ -277,6 +306,14 @@ msgstr "Modalità manutenzione"
 msgid "Manual address"
 msgstr "Indirizzo manuale"
 
+#: ui/wasalight_control/pages/touchscreen.py:80
+msgid "Manual association"
+msgstr "Associazione manuale"
+
+#: ui/wasalight_control/pages/touchscreen.py:90
+msgid "Mode"
+msgstr "Modalità"
+
 #: ui/wasalight_control/overview_state.py:74
 msgid "NOT CHECKED"
 msgstr "NON CONTROLLATO"
@@ -285,8 +322,8 @@ msgstr "NON CONTROLLATO"
 msgid "NOT INSTALLED"
 msgstr "NON INSTALLATO"
 
-#: ui/wasalight-control-center.py:74 ui/wasalight_control/pages/overview.py:91
-#: ui/wasalight_control/pages/network.py:30
+#: ui/wasalight-control-center.py:75 ui/wasalight_control/pages/network.py:30
+#: ui/wasalight_control/pages/overview.py:91
 msgid "Network"
 msgstr "Rete"
 
@@ -342,8 +379,8 @@ msgstr "Non installato"
 msgid "One or more essential appliance components are unavailable."
 msgstr "Uno o più componenti essenziali dell’appliance non sono disponibili."
 
-#: ui/wasalight_control/pages/overview.py:149
 #: ui/wasalight_control/pages/network.py:344
+#: ui/wasalight_control/pages/overview.py:149
 msgid "Open"
 msgstr "Apri"
 
@@ -356,11 +393,12 @@ msgstr "Apri Avanzate per configurare credenziali aziendali o legacy."
 msgid "Open MagicQ"
 msgstr "Apri MagicQ"
 
-#: ui/wasalight-control-center.py:344
+#: ui/wasalight-control-center.py:343
 msgid "Operation completed"
 msgstr "Operazione completata"
 
-#: ui/wasalight-control-center.py:338
+#: ui/wasalight-control-center.py:337
+#: ui/wasalight_control/pages/touchscreen.py:195
 msgid "Operation failed"
 msgstr "Operazione non riuscita"
 
@@ -372,7 +410,7 @@ msgstr "Componenti opzionali"
 msgid "Other applications"
 msgstr "Altre applicazioni"
 
-#: ui/wasalight-control-center.py:72
+#: ui/wasalight-control-center.py:73
 msgid "Overview"
 msgstr "Panoramica"
 
@@ -388,7 +426,7 @@ msgstr "Plugin disabilitato"
 msgid "Plugin registry unavailable"
 msgstr "Registro plugin non disponibile"
 
-#: ui/wasalight-control-center.py:77
+#: ui/wasalight-control-center.py:79
 msgid "Plugins"
 msgstr "Plugin"
 
@@ -420,6 +458,10 @@ msgstr "IN ESECUZIONE"
 msgid "Reading appliance services."
 msgstr "Lettura dei servizi dell’appliance."
 
+#: ui/wasalight_control/pages/touchscreen.py:70
+msgid "Reading touchscreen state…"
+msgstr "Lettura dello stato touchscreen…"
+
 #: ui/wasalight_control/pages/overview.py:184
 msgid "Ready for the show"
 msgstr "Pronto per lo show"
@@ -433,11 +475,12 @@ msgid "Recovery required"
 msgstr "Ripristino richiesto"
 
 #: ui/wasalight_control/pages/network.py:44
+#: ui/wasalight_control/pages/touchscreen.py:99
 msgid "Refresh"
 msgstr "Aggiorna"
 
-#: ui/wasalight_control/pages/system.py:21
 #: ui/wasalight_control/pages/overview.py:95
+#: ui/wasalight_control/pages/system.py:21
 msgid "Remote access"
 msgstr "Accesso remoto"
 
@@ -446,14 +489,18 @@ msgstr "Accesso remoto"
 msgid "Requires Wasalight {version}"
 msgstr "Richiede Wasalight {version}"
 
-#: ui/wasalight-control-center.py:306
+#: ui/wasalight-control-center.py:305
 msgid "Restart in MAINTENANCE to enable or disable persistent plugins."
 msgstr ""
 "Riavvia in MAINTENANCE per abilitare o disabilitare plugin persistenti."
 
-#: ui/wasalight-control-center.py:317
+#: ui/wasalight-control-center.py:316
 msgid "Restart in MAINTENANCE to install a plugin."
 msgstr "Riavvia in MAINTENANCE per installare un plugin."
+
+#: ui/wasalight_control/pages/touchscreen.py:91
+msgid "Rotation"
+msgstr "Rotazione"
 
 #: ui/wasalight_control/pages/overview.py:215
 msgid "SSH active"
@@ -472,7 +519,7 @@ msgstr "SSH e VNC disattivati"
 msgid "SSH: {ssh} · VNC: {vnc}"
 msgstr "SSH: {ssh} · VNC: {vnc}"
 
-#: ui/wasalight-control-center.py:263
+#: ui/wasalight-control-center.py:262
 msgid "Save"
 msgstr "Salva"
 
@@ -490,6 +537,10 @@ msgstr ""
 "Seleziona una rete. Le credenziali salvate vengono riutilizzate "
 "automaticamente."
 
+#: ui/wasalight_control/pages/touchscreen.py:183
+msgid "Select both a touch device and a display."
+msgstr "Selezionare sia un dispositivo touch sia uno schermo."
+
 #: ui/wasalight_control/pages/overview.py:104
 msgid "Stable uses signed releases. Debug follows the latest main branch."
 msgstr ""
@@ -499,7 +550,7 @@ msgstr ""
 msgid "State unavailable"
 msgstr "Stato non disponibile"
 
-#: ui/wasalight-control-center.py:127 ui/wasalight_control/system.py:53
+#: ui/wasalight-control-center.py:129 ui/wasalight_control/system.py:53
 msgid "Status unavailable"
 msgstr "Stato non disponibile"
 
@@ -511,7 +562,7 @@ msgstr "Passa a MAINTENANCE"
 msgid "Switch to SHOW"
 msgstr "Passa a SHOW"
 
-#: ui/wasalight-control-center.py:75
+#: ui/wasalight-control-center.py:77
 msgid "System"
 msgstr "Sistema"
 
@@ -528,7 +579,7 @@ msgid "The appliance can operate, but a Wasalight update is available."
 msgstr ""
 "L’appliance può funzionare, ma è disponibile un aggiornamento Wasalight."
 
-#: ui/wasalight-control-center.py:297
+#: ui/wasalight-control-center.py:296
 msgid "The new language will be used the next time Wasalight Control starts."
 msgstr "La nuova lingua sarà usata al prossimo avvio di Wasalight Control."
 
@@ -540,13 +591,42 @@ msgstr "La password deve contenere almeno 8 caratteri."
 msgid "To configure"
 msgstr "Da configurare"
 
-#: ui/wasalight-control-center.py:76
+#: ui/wasalight-control-center.py:78
 msgid "Tools"
 msgstr "Strumenti"
+
+#: ui/wasalight_control/pages/touchscreen.py:32
+msgid "Touch all four corners"
+msgstr "Toccare tutti e quattro gli angoli"
+
+#: ui/wasalight_control/pages/touchscreen.py:90
+msgid "Touch device"
+msgstr "Dispositivo touch"
+
+#: ui/wasalight-control-center.py:76
+#: ui/wasalight_control/pages/touchscreen.py:66
+msgid "Touchscreen"
+msgstr "Touchscreen"
+
+#: ui/wasalight_control/pages/touchscreen.py:182
+msgid "Touchscreen association incomplete"
+msgstr "Associazione touchscreen incompleta"
+
+#: ui/wasalight_control/pages/touchscreen.py:136
+msgid "Touchscreen state unavailable"
+msgstr "Stato touchscreen non disponibile"
+
+#: ui/wasalight_control/pages/touchscreen.py:19
+msgid "Touchscreen test"
+msgstr "Prova touchscreen"
 
 #: ui/wasalight_control/pages/network.py:248
 msgid "Unable to activate connection"
 msgstr "Impossibile attivare la connessione"
+
+#: ui/wasalight_control/pages/touchscreen.py:194
+msgid "Unable to configure touchscreen"
+msgstr "Impossibile configurare il touchscreen"
 
 #: ui/wasalight_control/pages/network.py:435
 msgid "Unable to connect to Wi-Fi"
@@ -560,7 +640,7 @@ msgstr "Impossibile disconnettere"
 msgid "Unable to prepare Wi-Fi connection"
 msgstr "Impossibile preparare la connessione Wi-Fi"
 
-#: ui/wasalight-control-center.py:289
+#: ui/wasalight-control-center.py:288
 msgid "Unable to save language"
 msgstr "Impossibile salvare la lingua"
 
@@ -568,15 +648,15 @@ msgstr "Impossibile salvare la lingua"
 msgid "Unable to save network configuration"
 msgstr "Impossibile salvare la configurazione di rete"
 
-#: ui/wasalight-control-center.py:185
+#: ui/wasalight-control-center.py:184
 msgid "Unable to start application"
 msgstr "Impossibile avviare l’applicazione"
 
-#: ui/wasalight-control-center.py:170
+#: ui/wasalight-control-center.py:169
 msgid "Unable to start command"
 msgstr "Impossibile avviare il comando"
 
-#: ui/wasalight-control-center.py:322
+#: ui/wasalight-control-center.py:321
 msgid "Unable to start plugin installation"
 msgstr "Impossibile avviare l’installazione del plugin"
 
@@ -588,7 +668,7 @@ msgstr "Non disponibile"
 msgid "Update available"
 msgstr "Aggiornamento disponibile"
 
-#: ui/wasalight-control-center.py:243
+#: ui/wasalight-control-center.py:242
 msgid "Update channel"
 msgstr "Canale di aggiornamento"
 
@@ -605,7 +685,7 @@ msgid "Use DHCP or assign a persistent address to the selected interface."
 msgstr ""
 "Usa DHCP oppure assegna un indirizzo persistente all’interfaccia selezionata."
 
-#: ui/wasalight-control-center.py:232
+#: ui/wasalight-control-center.py:231
 msgid "Use Debug"
 msgstr "Usa Debug"
 
@@ -659,7 +739,7 @@ msgstr "manuale"
 msgid "not checked"
 msgstr "non verificato"
 
-#: ui/wasalight-control-center.py:135
+#: ui/wasalight-control-center.py:137
 msgid "plugins"
 msgstr "plugin"
 
@@ -677,7 +757,7 @@ msgstr "ripristino richiesto ({reason})"
 msgid "running on TCP {port} ({mode})"
 msgstr "in esecuzione su TCP {port} ({mode})"
 
-#: ui/wasalight-control-center.py:134
+#: ui/wasalight-control-center.py:136
 msgid "status"
 msgstr "stato"
 
@@ -695,7 +775,7 @@ msgstr "aggiornato"
 msgid "{interface} · {connection}{address}"
 msgstr "{interface} · {connection}{address}"
 
-#: ui/wasalight-control-center.py:99
+#: ui/wasalight-control-center.py:101
 #, python-brace-format
 msgid ""
 "{status}\n"
@@ -705,6 +785,18 @@ msgstr ""
 "{status}\n"
 "\n"
 "CONTROL:    avviso aggiornamento: {error}"
+
+#: ui/wasalight_control/pages/touchscreen.py:165
+#, python-brace-format
+msgid "{touches} touchscreen(s), {outputs} display(s) detected"
+msgstr "Rilevati {touches} touchscreen e {outputs} schermi"
+
+#~ msgid ""
+#~ "Debug follows the latest main branch and is intended for UTM and "
+#~ "development machines. It is not a signed stable release."
+#~ msgstr ""
+#~ "Debug segue l’ultimo aggiornamento del ramo main ed è destinato a UTM e "
+#~ "alle macchine di sviluppo. Non è una release stabile firmata."
 
 #~ msgid "Enterprise Wi-Fi"
 #~ msgstr "Wi-Fi aziendale"

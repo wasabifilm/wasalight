@@ -185,8 +185,8 @@ configure_touchscreen() {
 
     ln -sfn wasalight-touch /usr/local/bin/wasalight-touch-status
     ln -sfn wasalight-touch /usr/local/bin/wasalight-touch-apply
-    ln -sfn wasalight-touch /usr/local/bin/wasalight-touch-watch
     ln -sfn wasalight-touch /usr/local/bin/wasalight-touch-config
+    rm -f /usr/local/bin/wasalight-touch-watch
 }
 
 configure_vnc() {

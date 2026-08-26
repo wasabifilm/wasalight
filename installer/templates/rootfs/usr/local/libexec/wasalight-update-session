@@ -179,7 +179,7 @@ if [[ -f /run/wasalight-update-stable-unavailable ]]; then
     /usr/local/bin/wasalight-dialog --warning \
         --icon=system-software-update --width=620 \
         --title="$( _ "No Stable release published" )" \
-        --text="<big><b>$( _ "The Stable channel has no published release yet." )</b></big>\n\n$( _ "Stable installs only signed GitHub releases. For UTM or development machines, open Wasalight Control and select Debug before trying again." )" \
+        --text="<big><b>$( _ "The Stable channel has no published release yet." )</b></big>\n\n$( _ "Stable installs only signed GitHub releases. Use Debug only on development or test systems." )" \
         --ok-label="$( _ "Close" )" 2>/dev/null || true
     exit "$rc"
 fi

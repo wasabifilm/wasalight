@@ -218,8 +218,8 @@ grep -Fq 'wasalight-control.log' "$tmp_dir/wasalight-control" || \
 grep -Fq 'threading.Thread(target=self.refresh_worker, daemon=True).start()' \
     "$control_center" || \
     fail "Wasalight Control aggiorna ancora lo stato nel thread GTK"
-grep -Fq 'ThreadPoolExecutor(max_workers=3)' "$control_center" || \
-    fail "Control esegue ancora in serie stato, plugin e MagicQ"
+grep -Fq 'ThreadPoolExecutor(max_workers=2)' "$control_center" || \
+    fail "Control non condivide lo snapshot di stato con MagicQ"
 grep -Fq 'timeout=20' "$control_core/system.py" || \
     fail "Control usa ancora un timeout troppo breve per i sistemi lenti"
 grep -Fq '/usr/local/libexec/wasalight_control' "$INSTALLER" || \
@@ -521,10 +521,10 @@ for action_id, executable in expected.items():
     if paths != [executable]:
         raise SystemExit(f"eseguibile non vincolato: {action_id}")
 PY
-companion_build='5.0.3+9703-stable-2daa0d7670'
+companion_build='5.0.4+9704-stable-a69c14dec2'
 companion_core=${companion_build#[vV]}
 companion_core=${companion_core%%+*}
-[[ $companion_core == 5.0.3 ]] || \
+[[ $companion_core == 5.0.4 ]] || \
     fail "normalizzazione SemVer Companion non valida"
 grep -Fq 'http://127.0.0.1:8000' "$tmp_dir/companion-browser" || \
     fail "il browser Companion non usa l'interfaccia locale"

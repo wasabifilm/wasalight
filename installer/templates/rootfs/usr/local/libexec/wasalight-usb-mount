@@ -92,6 +92,11 @@ if ((mounted)); then
     else
         logger -t wasalight-usb "Mounted $dev ($fs) at $mountpoint with synchronous writes"
     fi
+    if [[ -x /usr/local/bin/wasalight-magicq-usb-scan ]]; then
+        runuser -u chamsys -- env DISPLAY=:0 \
+            XAUTHORITY=/home/chamsys/.Xauthority \
+            /usr/local/bin/wasalight-magicq-usb-scan 9>&- >/dev/null 2>&1 &
+    fi
 else
     logger -t wasalight-usb "Failed to mount $dev ($fs)"
     [[ $mountpoint == /stick ]] || rmdir "$mountpoint" 2>/dev/null || true

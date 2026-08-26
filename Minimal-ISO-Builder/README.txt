@@ -182,8 +182,7 @@ Per una sola variante:
   bash Minimal-ISO-Builder/make-wasalight-minimal.sh --variant full
   bash Minimal-ISO-Builder/make-wasalight-minimal.sh --variant netboot
 
-`--variant offline` resta accettato come alias storico di `full`, ma tutti i
-nuovi menu, messaggi e nomi file usano FULL per non suggerire assenza di rete.
+La variante completa usa esclusivamente il nome canonico `full`.
 
 Il menu non ha un timeout distruttivo: occorre premere ENTER.
 Il numero dell'installer e' definito una sola volta nel file VERSION. Le ISO

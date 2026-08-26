@@ -287,8 +287,17 @@ if [[ ! -e $controls_marker ]]; then
     chmod 0600 "$controls_marker"
 fi
 
-if ! grep -Fq 'Wasalight Companion zoom buttons' "$profile_root/userChrome.css"; then
-    cat >>"$profile_root/userChrome.css" <<'WASALIGHT_ZOOM_BUTTONS'
+# This block is managed on every launch. Falkon renders BrowserAction badges in
+# a QLabel named navigation-toolbutton-badge; styling a generic child QLabel is
+# not sufficient on Ubuntu's Falkon build and leaves apparently blank buttons.
+touch "$profile_root/userChrome.css"
+zoom_css_tmp="${profile_root}/userChrome.css.zoom.$$"
+awk '
+    /\/\* Wasalight Companion zoom buttons \*\// { managed = !managed; next }
+    !managed { print }
+' "$profile_root/userChrome.css" >"$zoom_css_tmp"
+mv -- "$zoom_css_tmp" "$profile_root/userChrome.css"
+cat >>"$profile_root/userChrome.css" <<'WASALIGHT_ZOOM_BUTTONS'
 
 /* Wasalight Companion zoom buttons */
 NavigationBarToolButton[button-id="wasalight-companion-zoom-out"],
@@ -297,14 +306,16 @@ NavigationBarToolButton[button-id="wasalight-companion-zoom-in"] {
     max-width: 52px;
 }
 
-NavigationBarToolButton[button-id="wasalight-companion-zoom-out"] QLabel,
-NavigationBarToolButton[button-id="wasalight-companion-zoom-in"] QLabel {
+NavigationBarToolButton[button-id="wasalight-companion-zoom-out"] QLabel#navigation-toolbutton-badge,
+NavigationBarToolButton[button-id="wasalight-companion-zoom-in"] QLabel#navigation-toolbutton-badge {
     background: transparent;
     color: #ffffff;
-    font-size: 24px;
+    min-width: 44px;
+    min-height: 42px;
+    font-size: 28px;
     font-weight: bold;
+    qproperty-alignment: AlignCenter;
 }
 /* Wasalight Companion zoom buttons */
 WASALIGHT_ZOOM_BUTTONS
-    chmod 0600 "$profile_root/userChrome.css"
-fi
+chmod 0600 "$profile_root/userChrome.css"

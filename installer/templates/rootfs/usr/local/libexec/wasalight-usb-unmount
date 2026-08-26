@@ -35,3 +35,8 @@ umount "$mountpoint" 2>/dev/null || umount -l "$mountpoint" 2>/dev/null || true
 rm -f "$state"
 [[ $mountpoint == /stick ]] || rmdir "$mountpoint" 2>/dev/null || true
 logger -t wasalight-usb "Cleaned up $dev_name from $mountpoint"
+if [[ -x /usr/local/bin/wasalight-magicq-usb-scan ]]; then
+    runuser -u chamsys -- env DISPLAY=:0 \
+        XAUTHORITY=/home/chamsys/.Xauthority \
+        /usr/local/bin/wasalight-magicq-usb-scan 9>&- >/dev/null 2>&1 &
+fi

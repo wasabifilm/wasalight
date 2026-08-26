@@ -7,6 +7,7 @@ import datetime
 import gettext
 import os
 import subprocess
+import sys
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -34,6 +35,7 @@ class DateTimeWindow(Gtk.Window):
         self.set_default_size(860, 640)
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_keep_above(True)
+        self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
         self.connect("destroy", Gtk.main_quit)
         self._install_style()
 
@@ -202,5 +204,17 @@ class DateTimeWindow(Gtk.Window):
 
 
 if __name__ == "__main__":
-    DateTimeWindow().show_all()
-    Gtk.main()
+    try:
+        window = DateTimeWindow()
+        window.show_all()
+        window.present()
+        GLib.idle_add(window.present)
+        Gtk.main()
+    except Exception as error:
+        subprocess.run([
+            "/usr/local/bin/wasalight-dialog", "--error", "--width=620",
+            "--title=Wasalight · Date and time",
+            "--text=<big><b>Date and time could not start.</b></big>\n\n" + str(error),
+        ], check=False)
+        print(f"wasalight-date-time: {error}", file=sys.stderr)
+        raise
