@@ -186,23 +186,16 @@ for launcher in files ip-scanner artnet-monitor osc-monitor browser; do
         fail "$launcher non è classificato in Applicazioni"
 done
 browser_launcher="$INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/browser.desktop"
-grep -Fq 'StartupWMClass=WasalightBrowser' "$browser_launcher" || \
-    fail "il browser generico non usa una classe finestra dedicata"
 generic_browser="$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-browser"
-generic_profile="$INSTALLER_TEMPLATE_ROOT/usr/local/bin/wasalight-browser-profile"
-bash -n "$generic_browser" "$generic_profile"
+bash -n "$generic_browser"
 grep -Fq '/data/browser/config' "$generic_browser" || \
     fail "il profilo del browser generico non è persistente"
 grep -Fq 'XDG_DOWNLOAD_DIR="/data/browser/downloads"' "$generic_browser" || \
     fail "i download del browser generico non sono persistenti"
-grep -Fq -- '--profile wasalight-browser' "$generic_browser" || \
+grep -Fq -- '--profile="$profile_root"' "$generic_browser" || \
     fail "il browser generico non usa un profilo separato"
-grep -Fq 'showNavigationToolbar true' "$generic_profile" || \
-    fail "il browser generico nasconde la navigazione completa"
-grep -Fq 'hideTabsWithOneTab false' "$generic_profile" || \
-    fail "il browser generico non espone le schede"
-grep -Fq 'min-height: 46px' "$generic_profile" || \
-    fail "il browser generico non usa controlli touch"
+grep -Fq 'epiphany-browser' "$generic_browser" || \
+    fail "il browser generico non usa GNOME Web"
 grep -Fq 'installed the verified official Bitfocus Companion icon' "$INSTALLER" || \
     fail "l'installer non registra l'uso dell'icona ufficiale Companion"
 grep -Fq 'PLUGIN_COMMAND, "install"' "$control_center" || \
@@ -466,8 +459,7 @@ for embedded in \
     'companion-update:/usr/local/sbin/wasalight-companion-update' \
     'companion-update-session:/usr/local/libexec/wasalight-companion-update-session' \
     'companion-panel:/usr/local/bin/wasalight-companion-panel' \
-    'companion-browser:/usr/local/bin/wasalight-companion-browser' \
-    'falkon-profile:/usr/local/bin/wasalight-falkon-profile'; do
+    'companion-browser:/usr/local/bin/wasalight-companion-browser'; do
     output=${embedded%%:*}
     marker=${embedded#*:}
     cp "$INSTALLER_TEMPLATE_ROOT$marker" "$tmp_dir/$output"
@@ -529,95 +521,14 @@ companion_core=${companion_core%%+*}
 grep -Fq 'http://127.0.0.1:8000' "$tmp_dir/companion-browser" || \
     fail "il browser Companion non usa l'interfaccia locale"
 grep -Fq '/data/companion/browser/config' "$tmp_dir/companion-browser" || \
-    fail "il profilo Falkon Companion non è persistente"
+    fail "il profilo browser Companion non è persistente"
 grep -Fq 'wasalight-x11-window-icon' "$tmp_dir/companion-browser" || \
-    fail "il browser Companion non sostituisce l’icona Falkon nel dock"
-grep -Fq 'wasalightcompanion' "$tmp_dir/companion-browser" || \
-    fail "il browser Companion non cerca la finestra tramite WM_CLASS"
+    fail "il browser Companion non sostituisce l’icona del browser nel dock"
+grep -Fq 'epiphany-browser --profile="$profile_root"' "$tmp_dir/companion-browser" || \
+    fail "il browser Companion non usa GNOME Web con un profilo separato"
 if grep -Fq '/data/companion/browser/cache' "$tmp_dir/companion-browser"; then
-    fail "la cache Falkon non deve essere persistente in /data"
+    fail "la cache browser non deve essere persistente in /data"
 fi
-
-falkon_profile_fixture="$tmp_dir/falkon-profile-fixture"
-mkdir -p "$falkon_profile_fixture"
-cat >"$falkon_profile_fixture/settings.ini" <<'EOF'
-[General]
-keep=true
-
-[Plugin-Settings]
-AllowedPlugins=internal:adblock, lib:KDEFrameworksIntegration.so
-
-[Other]
-keep=this-too
-EOF
-WASALIGHT_FALKON_PROFILE_ROOT="$falkon_profile_fixture" \
-WASALIGHT_FALKON_PLUGIN_SOURCE="$INSTALLER_TEMPLATE_ROOT/usr/local/share/wasalight/falkon-plugins/wasalight-companion-controls" \
-WASALIGHT_FALKON_PLUGIN_ROOT="$falkon_profile_fixture/plugins/wasalight-companion-controls" \
-    bash "$tmp_dir/falkon-profile"
-grep -Fq '#locationbar,' "$falkon_profile_fixture/userChrome.css" || \
-    fail "il profilo Falkon non nasconde il campo indirizzo e ricerca"
-grep -Fq '#locationbar-bookmarkicon,' "$falkon_profile_fixture/userChrome.css" || \
-    fail "il profilo Falkon non nasconde il comando bookmark"
-grep -Fq '#locationbar-down-icon {' "$falkon_profile_fixture/userChrome.css" || \
-    fail "il profilo Falkon non nasconde la freccia della barra indirizzi"
-grep -Fq 'AllowedPlugins=lib:KDEFrameworksIntegration.so' \
-    "$falkon_profile_fixture/settings.ini" || \
-    fail "il profilo Falkon non conserva gli altri plugin"
-if grep -Fq 'internal:adblock' "$falkon_profile_fixture/settings.ini"; then
-    fail "il profilo Falkon non disattiva AdBlock"
-fi
-grep -Fq 'keep=this-too' "$falkon_profile_fixture/settings.ini" || \
-    fail "il profilo Falkon altera sezioni non correlate"
-grep -Fq 'homepage=http://127.0.0.1:8000' \
-    "$falkon_profile_fixture/settings.ini" || \
-    fail "il profilo Falkon non imposta Companion come pagina iniziale"
-grep -Fq 'afterLaunch=1' "$falkon_profile_fixture/settings.ini" || \
-    fail "il profilo Falkon ripristina ancora la sessione precedente"
-grep -Fq 'DefaultZoomLevel=6' "$falkon_profile_fixture/settings.ini" || \
-    fail "il profilo Falkon Companion non usa lo zoom al 100 percento"
-grep -Fq 'wasalight-companion-zoom-out, wasalight-companion-zoom-in' \
-    "$falkon_profile_fixture/settings.ini" || \
-    fail "il profilo Falkon non aggiunge i controlli zoom e non rimuove il menu"
-grep -Fq 'hideTabsWithOneTab=true' "$falkon_profile_fixture/settings.ini" || \
-    fail "il profilo Falkon non nasconde la barra con una singola scheda"
-grep -Fq 'Layout=button-backforward, button-reloadstop, button-home, locationbar, wasalight-companion-zoom-out, wasalight-companion-zoom-in' \
-    "$falkon_profile_fixture/settings.ini" || \
-    fail "la barra Falkon Companion non usa i soli controlli richiesti"
-grep -Fq 'min-height: 46px' "$falkon_profile_fixture/userChrome.css" || \
-    fail "il tema Falkon non crea controlli touch sufficientemente grandi"
-[[ -e $falkon_profile_fixture/.wasalight-profile-3 ]] || \
-    fail "il profilo Falkon non registra l'inizializzazione dei default"
-
-# After the first seed, updates preserve operator preferences while continuing
-# to enforce the deliberate AdBlock exclusion.
-sed -i.bak 's/showStatusBar=false/showStatusBar=true/' \
-    "$falkon_profile_fixture/settings.ini"
-rm -f "$falkon_profile_fixture/settings.ini.bak"
-sed -i.bak 's/AllowedPlugins=lib:KDEFrameworksIntegration.so/AllowedPlugins=internal:adblock, lib:KDEFrameworksIntegration.so/' \
-    "$falkon_profile_fixture/settings.ini"
-rm -f "$falkon_profile_fixture/settings.ini.bak"
-WASALIGHT_FALKON_PROFILE_ROOT="$falkon_profile_fixture" \
-WASALIGHT_FALKON_PLUGIN_SOURCE="$INSTALLER_TEMPLATE_ROOT/usr/local/share/wasalight/falkon-plugins/wasalight-companion-controls" \
-WASALIGHT_FALKON_PLUGIN_ROOT="$falkon_profile_fixture/plugins/wasalight-companion-controls" \
-    bash "$tmp_dir/falkon-profile"
-grep -Fq 'showStatusBar=true' "$falkon_profile_fixture/settings.ini" || \
-    fail "un update Wasalight sovrascrive le preferenze Falkon dell'operatore"
-if grep -Fq 'internal:adblock' "$falkon_profile_fixture/settings.ini"; then
-    fail "un update Wasalight riattiva AdBlock"
-fi
-
-empty_falkon_profile="$tmp_dir/falkon-profile-empty"
-WASALIGHT_FALKON_PROFILE_ROOT="$empty_falkon_profile" \
-WASALIGHT_FALKON_PLUGIN_SOURCE="$INSTALLER_TEMPLATE_ROOT/usr/local/share/wasalight/falkon-plugins/wasalight-companion-controls" \
-WASALIGHT_FALKON_PLUGIN_ROOT="$empty_falkon_profile/plugins/wasalight-companion-controls" \
-    bash "$tmp_dir/falkon-profile"
-grep -Fq 'AllowedPlugins=qml:wasalight-companion-controls' \
-    "$empty_falkon_profile/settings.ini" || \
-    fail "un nuovo profilo Falkon non abilita solo i controlli Companion"
-grep -Fq 'showStatusBar=false' "$empty_falkon_profile/settings.ini" || \
-    fail "un nuovo profilo Falkon non applica i default Wasalight"
-[[ -s $empty_falkon_profile/userChrome.css ]] || \
-    fail "un nuovo profilo Falkon non installa il tema Wasalight"
 
 [[ -s "$PROJECT_DIR/docs/touchscreen.md" ]] || fail "guida touchscreen mancante"
 grep -Fq 'wasalight-touch-config set' "$PROJECT_DIR/docs/touchscreen.md" || \
@@ -639,9 +550,9 @@ grep -Fq '127.0.0.1' "$PROJECT_DIR/docs/companion.md" || \
 grep -Fq 'wasalight-update --with-companion' "$PROJECT_DIR/docs/companion.md" || \
     fail "installazione Companion tramite updater non documentata"
 grep -Fq '/data/companion/browser' "$PROJECT_DIR/docs/companion.md" || \
-    fail "profilo persistente Falkon non documentato"
-grep -Fq 'internal:adblock' "$PROJECT_DIR/docs/companion.md" || \
-    fail "disattivazione AdBlock Falkon non documentata"
+    fail "profilo persistente browser non documentato"
+grep -Fq 'WebKitGTK' "$PROJECT_DIR/docs/companion.md" || \
+    fail "motore moderno del browser Companion non documentato"
 grep -Fq '## Bitfocus Companion opzionale' "$PROJECT_DIR/docs/hardware-test-checklist.md" || \
     fail "collaudo hardware Companion non documentato"
 [[ -s "$PROJECT_DIR/LICENSE" ]] || fail "Apache License 2.0 mancante"

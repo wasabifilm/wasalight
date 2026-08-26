@@ -404,9 +404,10 @@ msgstr "Wasalight update available"
 msgid "Version %s. Open Wasalight Control in MAINTENANCE to update."
 msgstr "Version %s. Open Wasalight Control in MAINTENANCE to update."
 
+#: installer/templates/rootfs/usr/local/bin/wasalight-browser:12
 #: installer/templates/rootfs/usr/local/bin/wasalight-companion-browser:12
-msgid "Falkon is not installed. Run Wasalight update again."
-msgstr "Falkon is not installed. Run Wasalight update again."
+msgid "The web browser is not installed. Run Wasalight update again."
+msgstr "The web browser is not installed. Run Wasalight update again."
 
 #: installer/templates/rootfs/usr/local/bin/wasalight-browser:11
 msgid "Web browser"

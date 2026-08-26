@@ -648,7 +648,7 @@ le finestre restano gestibili dalla barra inferiore, più adatta al touchscreen.
 
 Nella scheda **Applicazioni** di Wasalight Control sono disponibili anche:
 
-- **Browser web**, un profilo Falkon completo e separato da Companion, con
+- **Browser web**, un profilo GNOME Web completo e separato da Companion, con
   indirizzi, ricerca, schede, download e controlli maggiorati per il touch;
 - **IP Scanner**, che usa `arp-scan` sulle interfacce Ethernet/Wi-Fi connesse e
   mostra interfaccia, IP, MAC e produttore in una tabella aggiornabile;
@@ -676,7 +676,7 @@ consentiti solo in MAINTENANCE; in SHOW la configurazione rimane persistente ma
 il runtime protetto non viene modificato.
 
 Il pulsante Companion nel dock e la voce **Companion** in Applicazioni aprono
-l'interfaccia locale in Falkon, massimizzata ma con la barra Tint2 ancora
+l'interfaccia locale in GNOME Web, massimizzata ma con la barra Tint2 ancora
 accessibile al touch. Profilo e preferenze sono persistenti in
 `/data/companion/browser`, mentre la cache resta temporanea.
 
@@ -863,6 +863,9 @@ corretta del supporto. Una seconda USB usa `/stick2`, fino a un massimo di nove
 supporti con `/stick9`.
 Un supporto già attivo non viene spostato quando si libera uno slot precedente:
 resta nello stesso percorso fino alla rimozione.
+Le unità montate compaiono anche nella barra laterale di PCManFM con l'etichetta
+del volume, quando presente. La voce viene aggiunta e rimossa insieme al mount,
+senza affidare a PCManFM o UDisks un secondo montaggio concorrente.
 
 In una macchina virtuale UTM, montare la chiavetta nel Finder non la collega
 automaticamente a Linux: occorre usare il pulsante **USB** della finestra UTM e

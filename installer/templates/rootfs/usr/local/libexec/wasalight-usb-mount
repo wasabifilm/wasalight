@@ -87,6 +87,7 @@ elif mount -t "$type" -o "$opts" "$dev" "$mountpoint"; then
 fi
 if ((mounted)); then
     printf '%s\n' "$mountpoint" >"$state"
+    /usr/local/libexec/wasalight-usb-bookmarks || true
     if [[ $type == apfs ]]; then
         logger -t wasalight-usb "Mounted $dev (APFS) read-only at $mountpoint"
     else

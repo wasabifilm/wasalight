@@ -33,6 +33,7 @@ fi
 sync -f "$mountpoint" 2>/dev/null || true
 umount "$mountpoint" 2>/dev/null || umount -l "$mountpoint" 2>/dev/null || true
 rm -f "$state"
+/usr/local/libexec/wasalight-usb-bookmarks || true
 [[ $mountpoint == /stick ]] || rmdir "$mountpoint" 2>/dev/null || true
 logger -t wasalight-usb "Cleaned up $dev_name from $mountpoint"
 if [[ -x /usr/local/bin/wasalight-magicq-usb-scan ]]; then

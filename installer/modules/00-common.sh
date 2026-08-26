@@ -9,12 +9,22 @@ die()  { printf '[%s] ERROR: %s\n' "$SCRIPT_NAME" "$*" >&2; exit 1; }
 
 installer_progress() {
     local message=$* temporary
-    log "$message"
+    if [[ -n ${INSTALLER_PREVIOUS_PROGRESS:-} ]]; then
+        log "✓ $INSTALLER_PREVIOUS_PROGRESS"
+    fi
+    INSTALLER_PREVIOUS_PROGRESS=$message
+    log "→ $message"
     [[ ${WASALIGHT_PROGRESS_FILE:-} == /run/wasalight-update-progress-detail ]] || return 0
     temporary=$(mktemp /run/.wasalight-progress.XXXXXX)
     printf '%s\n' "$message" >"$temporary"
     chmod 0644 "$temporary"
     mv -f -- "$temporary" "$WASALIGHT_PROGRESS_FILE"
+}
+
+installer_progress_complete() {
+    [[ -n ${INSTALLER_PREVIOUS_PROGRESS:-} ]] || return 0
+    log "✓ $INSTALLER_PREVIOUS_PROGRESS"
+    INSTALLER_PREVIOUS_PROGRESS=
 }
 
 verify_project_sources() {

@@ -198,7 +198,6 @@ Exec=/usr/local/bin/wasalight-companion-browser
 Icon=$companion_icon
 Terminal=false
 StartupNotify=true
-StartupWMClass=WasalightCompanion
 EOF
         companion_dock_item="launcher_item_app = $TARGET_HOME/.config/wasalight/dock/Companion.desktop"
     else
@@ -363,9 +362,10 @@ EOF
         "$DATA_MOUNT/browser" \
         "$DATA_MOUNT/browser/config" \
         "$DATA_MOUNT/browser/data" \
+        "$DATA_MOUNT/browser/profile" \
         "$DATA_MOUNT/browser/downloads"
-    install_template /usr/local/bin/wasalight-browser-profile 0755
     install_template /usr/local/bin/wasalight-browser 0755
+    rm -f /usr/local/bin/wasalight-browser-profile
     install_template /usr/local/bin/wasalight-x11-window-icon 0755
 
     install -d -m 0755 /etc/wasalight/apps.d

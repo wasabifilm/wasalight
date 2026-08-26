@@ -141,6 +141,7 @@ main() {
     final_checks
     installer_progress "25/25 · Record the installed version"
     record_installed_version
+    installer_progress_complete
 
     log "installation completed: Wasalight $PROJECT_VERSION"
     if ((ENABLE_PROTECTION)); then

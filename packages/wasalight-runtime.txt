@@ -47,7 +47,7 @@ i3lock
 mousepad
 onboard
 gir1.2-atspi-2.0
-falkon
+epiphany-browser
 conky-all
 zenity
 libnotify-bin

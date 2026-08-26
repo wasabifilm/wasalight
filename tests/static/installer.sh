@@ -118,17 +118,15 @@ if grep -Fxq 'network-manager-gnome' "$PROJECT_DIR/packages/wasalight-runtime.tx
     fail "il vecchio editor rete GNOME è ancora installato"
 fi
 grep -Fq 'Icon=/usr/local/share/icons/wasalight/companion-official.png' \
-    "$companion_web_launcher" || fail "Falkon Companion non usa l’icona ufficiale"
-grep -Fq 'StartupWMClass=WasalightCompanion' "$companion_web_launcher" || \
-    fail "il launcher Companion non usa una classe finestra dedicata"
+    "$companion_web_launcher" || fail "il browser Companion non usa l’icona ufficiale"
 grep -Fq 'Name=Companion' "$companion_web_launcher" || \
     fail "il launcher operativo Companion non usa il nome compatto"
 grep -Fq '[[ -d /opt/companion && -x /usr/local/bin/wasalight-companion-browser ]]' \
     "$INSTALLER" || fail "il launcher Companion nel dock non dipende dall'installazione reale"
 grep -Fq 'companion_icon=/usr/local/share/icons/wasalight/companion-official.png' \
     "$INSTALLER" || fail "il launcher Companion nel dock non usa l'icona ufficiale"
-grep -Fq 'StartupWMClass=WasalightCompanion' "$INSTALLER" || \
-    fail "il launcher Companion nel dock non è associato alla finestra Falkon dedicata"
+grep -Fq 'wasalight-x11-window-icon' "$INSTALLER" || \
+    fail "la finestra Companion non riceve l’icona corretta nel taskbar"
 [[ ! -e $INSTALLER_TEMPLATE_ROOT/etc/wasalight/apps.d/companion.desktop ]] || \
     fail "il vecchio launcher tecnico Companion duplica ancora il Control Center"
 
@@ -365,19 +363,8 @@ required_patterns=(
     '/data/companion/browser/config'
     'XDG_CACHE_HOME="$runtime_base/wasalight-companion-browser-cache"'
     '/usr/local/share/applications/wasalight-companion-web.desktop'
-    '/usr/local/bin/wasalight-falkon-profile'
     '/usr/local/bin/wasalight-x11-window-icon'
-    'plugin == "internal:adblock"'
-    'profile_marker="$profile_root/.wasalight-profile-$profile_schema"'
-    'profile_schema=3'
-    'set_ini_value Web-URL-Settings afterLaunch 1'
-    'set_ini_value Web-Browser-Settings DefaultZoomLevel 6'
-    'wasalight-companion-zoom-out, wasalight-companion-zoom-in'
-    '#navigationbar QToolButton'
-    '#locationbar,'
-    '#locationbar-bookmarkicon,'
-    '#locationbar-down-icon {'
-    'falkon --no-remote --wmclass=WasalightCompanion --profile wasalight-companion "$url"'
+    'epiphany-browser --profile="$profile_root" --new-window "$url"'
     '/usr/local/bin/wasalight-x11-window-icon'
     'add,maximized_vert,maximized_horz'
     'web) exec /usr/local/bin/wasalight-companion-browser'
@@ -420,7 +407,7 @@ runtime_packages_file="$PROJECT_DIR/packages/wasalight-runtime.txt"
 for runtime_package in \
     xinput libinput-tools libglu1-mesa libgl1-mesa-dri libxcb-cursor0 \
     alsa-utils openbox picom x11vnc galculator i3lock mousepad onboard \
-    gir1.2-atspi-2.0 falkon conky-all \
+    gir1.2-atspi-2.0 epiphany-browser conky-all \
     python3-gi gir1.2-gtk-3.0 gir1.2-nm-1.0 arp-scan network-manager wpasupplicant \
     plymouth libfsapfs-utils openssh-server git curl; do
     grep -Fxq "$runtime_package" "$runtime_packages_file" || \
@@ -545,6 +532,7 @@ helpers=(
     /usr/local/libexec/wasalight-usb-paths
     /usr/local/libexec/wasalight-usb-mount
     /usr/local/libexec/wasalight-usb-unmount
+    /usr/local/libexec/wasalight-usb-bookmarks
     /usr/local/libexec/wasalight-set-mode
     /usr/local/sbin/wasalight-maintenance
     /usr/local/sbin/wasalight-protect
@@ -617,11 +605,18 @@ for invalid_usb_target in /stick1 /stick10 /stick/device /stickevil /tmp/stick; 
 done
 usb_mount_helper="$INSTALLER_TEMPLATE_ROOT/usr/local/libexec/wasalight-usb-mount"
 usb_unmount_helper="$INSTALLER_TEMPLATE_ROOT/usr/local/libexec/wasalight-usb-unmount"
+usb_bookmarks_helper="$INSTALLER_TEMPLATE_ROOT/usr/local/libexec/wasalight-usb-bookmarks"
 grep -Fq 'flock 9' "$usb_mount_helper" || fail "allocazione USB priva di lock"
 grep -Fq 'active /stick2 is never moved' "$usb_mount_helper" || \
     fail "allocazione USB non documenta la stabilità degli slot attivi"
 grep -Fq 'Discarded stale state' "$usb_unmount_helper" || \
     fail "smontaggio USB non protegge uno slot riassegnato"
+grep -Fq 'wasalight-usb-bookmarks' "$usb_mount_helper" || \
+    fail "il mount USB non aggiorna la barra laterale del file manager"
+grep -Fq 'wasalight-usb-bookmarks' "$usb_unmount_helper" || \
+    fail "lo smontaggio USB non aggiorna la barra laterale del file manager"
+grep -Fq 'file:///stick' "$usb_bookmarks_helper" || \
+    fail "i bookmark PCManFM non usano gli slot USB diretti"
 
 if grep -Eq '(^|[[:space:]])(xss-lock|xautolock)([[:space:]]|$)' "$INSTALLER"; then
     fail "il blocco schermo non deve essere armato automaticamente"

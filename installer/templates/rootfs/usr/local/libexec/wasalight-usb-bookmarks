@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+# Publish Wasalight's direct USB mounts in GTK/PCManFM sidebars.
+
+set -Eeuo pipefail
+state_dir=/run/wasalight-usb
+target_user=chamsys
+target_home=/home/chamsys
+
+[[ $EUID -eq 0 ]] || exit 1
+id "$target_user" >/dev/null 2>&1 || exit 0
+
+install -d -o "$target_user" -g "$target_user" -m 0700 \
+    "$target_home/.config/gtk-3.0"
+
+write_bookmarks() {
+    local destination=$1 temporary state mountpoint device label slot
+    temporary=$(mktemp "${destination}.tmp.XXXXXX")
+
+    if [[ -r $destination ]]; then
+        grep -Ev '^file:///stick([2-9])?([[:space:]]|$)' \
+            "$destination" >"$temporary" || true
+    fi
+
+    while IFS= read -r state; do
+        [[ -r $state && ! -L $state ]] || continue
+        mountpoint=$(<"$state")
+        [[ $mountpoint =~ ^/stick([2-9])?$ ]] || continue
+        mountpoint -q "$mountpoint" || continue
+
+        device="/dev/$(basename "$state" .mount)"
+        label=$(udevadm info --query=property --name="$device" 2>/dev/null | \
+            sed -n 's/^ID_FS_LABEL=//p' | head -n1)
+        label=$(printf '%s' "$label" | tr -d '\r\n\t')
+        if [[ -z $label ]]; then
+            slot=${mountpoint#/stick}
+            label="USB${slot:+ $slot}"
+        fi
+        printf 'file://%s %s\n' "$mountpoint" "$label" >>"$temporary"
+    done < <(find "$state_dir" -maxdepth 1 -type f -name '*.mount' \
+        -print 2>/dev/null | sort -V)
+
+    chown "$target_user:$target_user" "$temporary"
+    chmod 0600 "$temporary"
+    mv -f "$temporary" "$destination"
+}
+
+# PCManFM builds differ in the GTK bookmark path they monitor. Keep both
+# standard locations synchronized so the sidebar refreshes without remounting.
+write_bookmarks "$target_home/.config/gtk-3.0/bookmarks"
+write_bookmarks "$target_home/.gtk-bookmarks"

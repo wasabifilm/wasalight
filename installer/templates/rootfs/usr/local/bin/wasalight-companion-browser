@@ -7,9 +7,9 @@ set -Eeuo pipefail
     echo "Run the Companion browser as the chamsys desktop user." >&2
     exit 1
 }
-command -v falkon >/dev/null 2>&1 || {
+command -v epiphany-browser >/dev/null 2>&1 || {
     /usr/local/bin/wasalight-dialog --error --title="Companion Web UI" \
-        --text="$( _ "Falkon is not installed. Run Wasalight update again." )" 2>/dev/null
+        --text="$( _ "The web browser is not installed. Run Wasalight update again." )" 2>/dev/null
     exit 1
 }
 [[ -d /opt/companion ]] || {
@@ -48,34 +48,32 @@ done
 
 export XDG_CONFIG_HOME=/data/companion/browser/config
 export XDG_DATA_HOME=/data/companion/browser/data
+profile_root=/data/companion/browser/profile
 runtime_base=${XDG_RUNTIME_DIR:-/tmp}
 export XDG_CACHE_HOME="$runtime_base/wasalight-companion-browser-cache"
-install -d -m 0700 "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME"
-/usr/local/bin/wasalight-falkon-profile
+install -d -m 0700 "$profile_root" "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME"
 
 lock_file="$runtime_base/wasalight-companion-browser.lock"
 exec 9>"$lock_file"
 if ! flock -n 9; then
     existing_window=$(wmctrl -lx 2>/dev/null | \
-        awk 'tolower($3) ~ /wasalightcompanion/ { print $1; exit }')
+        awk 'tolower($0) ~ /companion/ { print $1; exit }')
     [[ -n ${existing_window:-} ]] && wmctrl -ia "$existing_window" || true
     exit 0
 fi
 
-# Give the Companion web app its own X11 identity. Tint2 can then resolve the
-# matching XDG desktop entry and show the Companion icon instead of Falkon's.
-falkon --no-remote --wmclass=WasalightCompanion --profile wasalight-companion "$url" &
+# Use the maintained WebKitGTK engine instead of Falkon's Chromium-87-era
+# QtWebEngine. A private persistent profile isolates Companion cookies and
+# settings while retaining the normal toolbar, zoom controls and touch UI.
+epiphany-browser --profile="$profile_root" --new-window "$url" &
 browser_pid=$!
 title_guard_pid=
 # Maximise without EWMH fullscreen so Tint2 remains reachable on touchscreens.
 for _ in {1..30}; do
-    # Falkon can hand the new window to an existing process, so WM_CLASS is
-    # authoritative; PID remains a fallback for older Falkon builds.
-    window_id=$(wmctrl -lx 2>/dev/null | \
-        awk 'tolower($3) ~ /wasalightcompanion/ { print $1; exit }')
-    [[ -n $window_id ]] || \
-        window_id=$(wmctrl -lp 2>/dev/null | \
-            awk -v pid="$browser_pid" '$3 == pid { print $1; exit }')
+    window_id=$(wmctrl -lp 2>/dev/null | \
+        awk -v pid="$browser_pid" '$3 == pid { print $1; exit }')
+    [[ -n $window_id ]] || window_id=$(wmctrl -lx 2>/dev/null | \
+        awk 'tolower($0) ~ /companion/ { print $1; exit }')
     if [[ -n $window_id ]]; then
         companion_icon=/usr/local/share/icons/wasalight/companion-official.png
         [[ -s $companion_icon ]] || \
@@ -92,7 +90,7 @@ for _ in {1..30}; do
             done
         ) &
         title_guard_pid=$!
-        # Falkon publishes its own icon shortly after mapping. Reapply the
+        # The browser publishes its own icon shortly after mapping. Reapply the
         # Companion icon briefly so the final EWMH value is the intended one.
         for _ in {1..4}; do
             /usr/local/bin/wasalight-x11-window-icon \

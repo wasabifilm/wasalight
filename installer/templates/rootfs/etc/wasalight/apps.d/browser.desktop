@@ -7,6 +7,6 @@ Comment[it]=Naviga sul web con il browser completo ottimizzato per il touch
 Exec=/usr/local/bin/wasalight-browser
 Icon=/usr/local/share/icons/wasalight/browser.svg
 TryExec=/usr/local/bin/wasalight-browser
-StartupWMClass=WasalightBrowser
+StartupNotify=false
 X-Wasalight-Section=Applications
 X-Wasalight-Order=30

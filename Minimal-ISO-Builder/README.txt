@@ -51,7 +51,10 @@ automaticamente Wasalight al primo avvio reale:
 
 Il log si trova in /data/log/wasalight-first-boot.log. Se rete o installazione
 falliscono, il servizio non dichiara il completamento e riprova dopo 60 secondi.
-Durante questo bootstrap tty1 resta testuale e mostra l'avanzamento: il target
+Durante questo bootstrap tty1 resta testuale e mostra l'avanzamento: la fase
+attiva è evidenziata, i completamenti sono verdi, gli avvisi gialli e gli errori
+rossi. Il file di log e il journal conservano invece testo semplice senza codici
+ANSI. Il target
 dei login, Openbox e l'autologin grafico attendono il servizio. Il marker
 volatile scompare con il riavvio conclusivo, quindi la grafica parte soltanto
 dal boot successivo. Se il servizio fallisce, il job termina e il login testuale

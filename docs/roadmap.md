@@ -120,9 +120,9 @@ configurazione realmente applicata:
 - [x] Versione Companion fissata nel manifesto della release.
 - [x] Companion aggiornato alla versione stabile upstream 5.0.4.
 - [x] Abilitazione, disabilitazione, avvio, arresto, backup e aggiornamento.
-- [x] Icona ufficiale Companion in Control, dock e taskbar Falkon.
-- [x] Falkon leggero con profilo persistente, tema scuro, zoom touch e AdBlock
-      disabilitato.
+- [x] Icona ufficiale Companion in Control, dock e taskbar del browser.
+- [x] Browser Companion con profilo persistente separato, interfaccia touch e
+      cache volatile.
 - [x] Correggere nel browser Companion i pulsanti dello zoom già presenti ma
       privi di etichetta visibile, mostrando chiaramente `−` e `+` e mantenendo
       dimensioni adeguate all'uso touch.
@@ -285,6 +285,22 @@ prima release stable.
       rimuovere soltanto dipendenze divenute realmente inutilizzate, senza
       eliminare backup, rollback, salute automatica, NetworkManager o gli
       strumenti necessari all'assistenza.
+
+## Nuova lista — Prima della prossima RC
+
+- [x] Mostrare dinamicamente nella barra laterale di PCManFM le chiavette
+      montate da Wasalight in `/stick` e `/stick2`–`/stick9`, usando l'etichetta
+      del volume quando disponibile e rimuovendo la voce allo smontaggio,
+      senza modificare il sistema di mount richiesto da MagicQ.
+- [x] Rendere più leggibile la prima configurazione evidenziando le sole righe
+      importanti: fase attiva in rilievo, fasi completate e risultato positivo
+      in verde, avvisi in giallo ed errori in rosso, mantenendo puliti e privi
+      di sequenze ANSI i log persistenti.
+- [x] Sostituire Falkon/Qt WebEngine con GNOME Web e WebKitGTK moderno sia per
+      Companion sia per il browser generico: un solo browser touch-friendly,
+      installato come pacchetto Ubuntu `.deb`, utilizzabile offline senza Snap,
+      con profili persistenti separati e vecchie dipendenze rimosse. Confermare
+      il rendering di Companion sulla prossima installazione reale.
 
 ## Fase 8 — Collaudo hardware e prima release stabile
 

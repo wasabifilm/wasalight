@@ -7,6 +7,6 @@ Comment[it]=Apre l'interfaccia locale Companion nel browser touch
 Exec=/usr/local/bin/wasalight-companion-browser
 Icon=/usr/local/share/icons/wasalight/companion-official.png
 TryExec=/usr/local/bin/wasalight-companion-browser
-StartupWMClass=WasalightCompanion
+StartupNotify=false
 X-Wasalight-Section=Applications
 X-Wasalight-Order=31

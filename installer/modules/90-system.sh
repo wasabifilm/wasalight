@@ -92,7 +92,7 @@ optimize_system() {
     local uses_multipath=0 uses_iscsi=0
     local cleanup_candidates=(
         snapd modemmanager cups cups-daemon bluez avahi-daemon whoopsie apport
-        unattended-upgrades ufw pollinate os-prober
+        unattended-upgrades ufw pollinate os-prober falkon
     )
     local cleanup_installed=()
     root_source=$(findmnt -n -o SOURCE -M /)
@@ -335,6 +335,7 @@ final_checks() {
     bash -n /usr/local/libexec/wasalight-usb-paths
     bash -n /usr/local/libexec/wasalight-usb-mount
     bash -n /usr/local/libexec/wasalight-usb-unmount
+    bash -n /usr/local/libexec/wasalight-usb-bookmarks
     bash -n /usr/local/libexec/wasalight-set-mode
     bash -n /usr/local/sbin/wasalight-maintenance
     bash -n /usr/local/sbin/wasalight-protect
@@ -395,7 +396,6 @@ final_checks() {
     bash -n /usr/local/bin/wasalight-artnet-monitor
     bash -n /usr/local/bin/wasalight-osc-monitor
     bash -n /usr/local/bin/wasalight-browser
-    bash -n /usr/local/bin/wasalight-browser-profile
     python3 -m py_compile /usr/local/bin/wasalight-x11-window-icon
     bash -n /usr/local/sbin/wasalight-app-register
     bash -n /usr/local/bin/wasalight-control
@@ -425,10 +425,9 @@ final_checks() {
         bash -n /usr/local/bin/wasalight-companion-update-terminal
         bash -n /usr/local/bin/wasalight-companion-panel
         bash -n /usr/local/bin/wasalight-companion-browser
-        bash -n /usr/local/bin/wasalight-falkon-profile
         python3 -m py_compile /usr/local/bin/wasalight-x11-window-icon
-        command -v falkon >/dev/null 2>&1 || \
-            die "Falkon Companion browser is unavailable"
+        command -v epiphany-browser >/dev/null 2>&1 || \
+            die "The Companion browser is unavailable"
         mountpoint -q /home/companion || \
             die "Companion persistent home bind is unavailable"
         mountpoint -q /etc/companion || \
@@ -443,8 +442,8 @@ final_checks() {
     fi
     command -v galculator >/dev/null 2>&1 || \
         die "Wasalight calculator is unavailable"
-    command -v falkon >/dev/null 2>&1 || \
-        die "The general-purpose Falkon browser is unavailable"
+    command -v epiphany-browser >/dev/null 2>&1 || \
+        die "The general-purpose web browser is unavailable"
     runuser -u "$TARGET_USER" -- test -w "$DATA_MOUNT/browser" || \
         die "The browser profile is not writable by $TARGET_USER"
     command -v i3lock >/dev/null 2>&1 || \
