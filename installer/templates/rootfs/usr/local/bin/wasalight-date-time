@@ -10,6 +10,7 @@ import subprocess
 import sys
 
 import gi
+gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, GLib, Gtk
 
@@ -54,7 +55,7 @@ class DateTimeWindow(Gtk.Window):
         self.status.get_style_context().add_class("status")
         root.pack_start(self.status, False, False, 0)
 
-        sync_box = self._section(_("Automatic synchronization"))
+        sync_frame, sync_box = self._section(_("Automatic synchronization"))
         sync_text = Gtk.Label(label=(
             _("Immediately corrects the clock through Chrony and re-enables "
               "automatic synchronization.")))
@@ -64,9 +65,9 @@ class DateTimeWindow(Gtk.Window):
         sync_button = Gtk.Button(label=_("Synchronize now"))
         sync_button.connect("clicked", lambda _button: self.run_privileged(["sync"]))
         sync_box.pack_start(sync_button, False, False, 0)
-        root.pack_start(sync_box, False, False, 0)
+        root.pack_start(sync_frame, False, False, 0)
 
-        timezone_box = self._section(_("Time zone"))
+        timezone_frame, timezone_box = self._section(_("Time zone"))
         self.timezone = Gtk.ComboBoxText()
         rc, zones = command_output(["timedatectl", "list-timezones"])
         if rc == 0:
@@ -79,9 +80,9 @@ class DateTimeWindow(Gtk.Window):
         timezone_button = Gtk.Button(label=_("Apply time zone"))
         timezone_button.connect("clicked", self.apply_timezone)
         timezone_box.pack_start(timezone_button, False, False, 0)
-        root.pack_start(timezone_box, False, False, 0)
+        root.pack_start(timezone_frame, False, False, 0)
 
-        manual_box = self._section(_("Manual setting"))
+        manual_frame, manual_box = self._section(_("Manual setting"))
         now = datetime.datetime.now()
         self.date = Gtk.Entry()
         self.date.set_placeholder_text("YYYY-MM-DD")
@@ -96,7 +97,7 @@ class DateTimeWindow(Gtk.Window):
         manual_button = Gtk.Button(label=_("Set manually"))
         manual_button.connect("clicked", self.apply_manual)
         manual_box.pack_start(manual_button, False, False, 0)
-        root.pack_start(manual_box, False, False, 0)
+        root.pack_start(manual_frame, False, False, 0)
 
         note = Gtk.Label(label=(
             _("Manual setting disables Chrony. Use “Synchronize now” to "
@@ -118,7 +119,7 @@ class DateTimeWindow(Gtk.Window):
         row = Gtk.Box(spacing=12)
         row.set_border_width(14)
         frame.add(row)
-        return row
+        return frame, row
 
     def _install_style(self):
         css = Gtk.CssProvider()
