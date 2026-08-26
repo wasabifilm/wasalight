@@ -676,9 +676,12 @@ consentiti solo in MAINTENANCE; in SHOW la configurazione rimane persistente ma
 il runtime protetto non viene modificato.
 
 Il pulsante Companion nel dock e la voce **Companion** in Applicazioni aprono
-l'interfaccia locale in GNOME Web, massimizzata ma con la barra Tint2 ancora
-accessibile al touch. Profilo e preferenze sono persistenti in
-`/data/companion/browser`, mentre la cache resta temporanea.
+l'interfaccia locale in una finestra Web App GNOME Web dedicata, massimizzata ma
+con la barra Tint2 ancora accessibile al touch. La modalità dedicata rimuove
+barra indirizzi, segnalibri e comandi da browser generico; un blocco porta in
+primo piano la finestra esistente se il launcher viene toccato due volte.
+Profilo e preferenze sono persistenti in `/data/companion/browser`, mentre la
+cache resta temporanea.
 
 Per controllare MagicQ dalla stessa macchina, installare nella web UI Companion
 il modulo ChamSys MagicQ OSC o UDP e usare `127.0.0.1` come host. Installazione,
@@ -864,8 +867,9 @@ supporti con `/stick9`.
 Un supporto già attivo non viene spostato quando si libera uno slot precedente:
 resta nello stesso percorso fino alla rimozione.
 Le unità montate compaiono anche nella barra laterale di PCManFM con l'etichetta
-del volume, quando presente. La voce viene aggiunta e rimossa insieme al mount,
-senza affidare a PCManFM o UDisks un secondo montaggio concorrente.
+del volume, quando presente, e l'icona colorata da dispositivo rimovibile. La
+voce viene aggiunta e rimossa insieme al mount; GVFS/UDisks fornisce soltanto
+l'integrazione grafica, senza sostituire il montaggio Wasalight in `/stick`.
 
 In una macchina virtuale UTM, montare la chiavetta nel Finder non la collega
 automaticamente a Linux: occorre usare il pulsante **USB** della finestra UTM e

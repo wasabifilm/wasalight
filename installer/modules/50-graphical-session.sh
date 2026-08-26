@@ -108,6 +108,10 @@ EOF
     write_file "$TARGET_HOME/.config/gtk-3.0/gtk.css" 0644 <<'EOF'
 @define-color theme_selected_bg_color #76bd22;
 @define-color theme_selected_fg_color #080b10;
+@define-color wasalight_panel #282d30;
+@define-color wasalight_text #f1f3f3;
+@define-color wasalight_separator #4a5154;
+@define-color wasalight_technical #0088bd;
 
 window button {
   min-height: 42px;
@@ -126,6 +130,29 @@ window button.suggested-action {
 }
 window entry {
   min-height: 36px;
+}
+menu,
+menuitem,
+popover,
+popover contents,
+window.popup {
+  background-color: @wasalight_panel;
+  color: @wasalight_text;
+}
+menuitem,
+popover row {
+  min-height: 44px;
+  padding: 6px 12px;
+}
+menuitem label,
+popover label {
+  color: @wasalight_text;
+}
+menuitem:hover,
+menuitem:active,
+popover row:hover {
+  background-color: @wasalight_technical;
+  color: @wasalight_text;
 }
 EOF
 
@@ -496,6 +523,8 @@ xset s off
 xset s noblank
 xset -dpms
 wmctrl -n 1
+gsettings set org.gnome.desktop.interface color-scheme prefer-dark 2>/dev/null || true
+gsettings set org.gnome.desktop.interface gtk-theme Adwaita-dark 2>/dev/null || true
 /usr/local/bin/wasalight-desktop-wallpaper || \
     logger -t wasalight-desktop "desktop wallpaper generation failed"
 pcmanfm --desktop --profile=default &

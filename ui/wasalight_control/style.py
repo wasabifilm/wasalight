@@ -25,6 +25,22 @@ button, combobox button {{
     border: 1px solid {palette['separator']}; border-radius: 2px;
     background-image: none; box-shadow: none; text-shadow: none;
 }}
+.touch-choice {{
+    min-width: 280px; min-height: 50px;
+}}
+menu, menuitem, popover, popover contents, window.popup {{
+    background: {palette['panel']}; color: {palette['text']};
+    background-image: none; text-shadow: none;
+}}
+menuitem, popover row {{
+    min-height: 44px; padding: 6px 12px;
+}}
+menuitem label, popover label, combobox menuitem label {{
+    color: {palette['text']};
+}}
+menuitem:hover, menuitem:active, popover row:hover {{
+    background: {palette['technical']}; color: {palette['text']};
+}}
 button:hover {{
     background: {palette['surface_hover']};
     border-color: {palette['technical']};

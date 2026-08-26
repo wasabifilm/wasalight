@@ -34,6 +34,9 @@ openbox
 tint2
 picom
 pcmanfm
+gvfs
+gvfs-backends
+udisks2
 lxterminal
 lxrandr
 lxtask
@@ -57,6 +60,8 @@ librsvg2-common
 python3
 python3-gi
 gir1.2-gtk-3.0
+xdg-desktop-portal
+xdg-desktop-portal-gtk
 gettext
 locales
 arp-scan

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Companion
+Comment=Dedicated Bitfocus Companion touch interface
+Exec=epiphany-browser --application-mode=wasalight-companion-webapp.desktop http://127.0.0.1:8000
+Icon=/usr/local/share/icons/wasalight/companion-official.png
+StartupNotify=false
+NoDisplay=true
+Terminal=false
+Categories=AudioVideo;

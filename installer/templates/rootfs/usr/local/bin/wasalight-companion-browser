@@ -48,10 +48,10 @@ done
 
 export XDG_CONFIG_HOME=/data/companion/browser/config
 export XDG_DATA_HOME=/data/companion/browser/data
-profile_root=/data/companion/browser/profile
+export GTK_THEME=Adwaita:dark
 runtime_base=${XDG_RUNTIME_DIR:-/tmp}
 export XDG_CACHE_HOME="$runtime_base/wasalight-companion-browser-cache"
-install -d -m 0700 "$profile_root" "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME"
+install -d -m 0700 "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME"
 /usr/local/bin/wasalight-browser-touch-profile
 
 lock_file="$runtime_base/wasalight-companion-browser.lock"
@@ -63,10 +63,10 @@ if ! flock -n 9; then
     exit 0
 fi
 
-# Use the maintained WebKitGTK engine instead of Falkon's Chromium-87-era
-# QtWebEngine. A private persistent profile isolates Companion cookies and
-# settings while retaining the normal toolbar, zoom controls and touch UI.
-epiphany-browser --profile="$profile_root" --new-window "$url" &
+# GNOME Web application mode keeps Companion isolated and persistent while
+# removing the address bar, bookmarks and browser-only menus from its window.
+epiphany-browser \
+    --application-mode=wasalight-companion-webapp.desktop "$url" &
 browser_pid=$!
 title_guard_pid=
 # Maximise without EWMH fullscreen so Tint2 remains reachable on touchscreens.

@@ -10,7 +10,7 @@ from gi.repository import GLib, Gtk
 
 from ..commands import CommandRunner
 from ..i18n import _
-from ..widgets import section_heading
+from ..widgets import TouchChoice, section_heading
 from .common import scroll_page
 
 
@@ -75,14 +75,14 @@ class TouchscreenPage:
 
         form = Gtk.Grid(row_spacing=12, column_spacing=14)
         form.set_hexpand(True)
-        self.mode = Gtk.ComboBoxText()
+        self.mode = TouchChoice(parent, _("Mode"))
         self.mode.append("auto", _("Automatic"))
         self.mode.append("manual", _("Manual association"))
         self.mode.append("disabled", _("Disabled"))
         self.mode.connect("changed", self._mode_changed)
-        self.device = Gtk.ComboBoxText()
-        self.output = Gtk.ComboBoxText()
-        self.rotation = Gtk.ComboBoxText()
+        self.device = TouchChoice(parent, _("Touch device"))
+        self.output = TouchChoice(parent, _("Display"))
+        self.rotation = TouchChoice(parent, _("Rotation"))
         for value, label in self.ROTATIONS:
             self.rotation.append(value, label)
         self.rotation.set_active_id("normal")

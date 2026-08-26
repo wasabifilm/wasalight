@@ -20,6 +20,9 @@ visibilità del puntatore. Pubblica inoltre lo stato runtime condiviso sotto
 
 La pagina **Touchscreen** di Wasalight Control permette di scegliere modalità,
 dispositivo, schermo e rotazione e offre una prova visuale a schermo intero.
+Ogni scelta apre una finestra con righe grandi anziché il piccolo menu GTK
+tradizionale, così selezione e conferma funzionano anche usando soltanto il
+touchscreen.
 
 ## Diagnosi
 

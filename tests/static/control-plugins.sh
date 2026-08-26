@@ -531,8 +531,9 @@ grep -Fq '/data/companion/browser/config' "$tmp_dir/companion-browser" || \
     fail "il profilo browser Companion non è persistente"
 grep -Fq 'wasalight-x11-window-icon' "$tmp_dir/companion-browser" || \
     fail "il browser Companion non sostituisce l’icona del browser nel dock"
-grep -Fq 'epiphany-browser --profile="$profile_root"' "$tmp_dir/companion-browser" || \
-    fail "il browser Companion non usa GNOME Web con un profilo separato"
+grep -Fq -- '--application-mode=wasalight-companion-webapp.desktop "$url"' \
+    "$tmp_dir/companion-browser" || \
+    fail "il browser Companion non usa la modalità Web App separata di GNOME Web"
 if grep -Fq '/data/companion/browser/cache' "$tmp_dir/companion-browser"; then
     fail "la cache browser non deve essere persistente in /data"
 fi

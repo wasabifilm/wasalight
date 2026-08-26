@@ -10,12 +10,103 @@ import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
-from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
+from gi.repository import Gdk, GdkPixbuf, GLib, GObject, Gtk
 
 from .i18n import _
 
 CARD_WIDTH = 290
 CARD_HEIGHT = 224
+
+
+class TouchChoice(Gtk.Button):
+    """Large button opening a modal list that is reliable on touchscreens."""
+
+    __gsignals__ = {
+        "changed": (GObject.SignalFlags.RUN_FIRST, None, ()),
+    }
+
+    def __init__(self, parent, title):
+        super().__init__()
+        self.parent = parent
+        self.title = title
+        self.items = []
+        self.active_index = -1
+        self.set_hexpand(True)
+        self.set_halign(Gtk.Align.FILL)
+        self.get_style_context().add_class("touch-choice")
+        self.connect("clicked", self._choose)
+        self._update_label()
+
+    def append(self, item_id, label):
+        self.items.append((item_id, label))
+        if self.active_index < 0:
+            self.active_index = 0
+            self._update_label()
+
+    def remove_all(self):
+        self.items.clear()
+        self.active_index = -1
+        self._update_label()
+
+    def get_active(self):
+        return self.active_index
+
+    def set_active(self, index):
+        if not 0 <= index < len(self.items):
+            return
+        changed = index != self.active_index
+        self.active_index = index
+        self._update_label()
+        if changed:
+            self.emit("changed")
+
+    def get_active_id(self):
+        if not 0 <= self.active_index < len(self.items):
+            return None
+        return self.items[self.active_index][0]
+
+    def set_active_id(self, item_id):
+        for index, (candidate, _label) in enumerate(self.items):
+            if candidate == item_id:
+                self.set_active(index)
+                return True
+        return False
+
+    def _update_label(self):
+        label = self.items[self.active_index][1] \
+            if 0 <= self.active_index < len(self.items) else _("Choose…")
+        self.set_label(f"{label}  ▾")
+
+    def _choose(self, _button):
+        dialog = Gtk.Dialog(
+            title=self.title, transient_for=self.parent, modal=True,
+            destroy_with_parent=True)
+        dialog.set_default_size(620, min(640, 150 + 64 * len(self.items)))
+        dialog.add_button(_("Cancel"), Gtk.ResponseType.CANCEL)
+        content = dialog.get_content_area()
+        content.set_border_width(16)
+        content.set_spacing(10)
+        scroller = Gtk.ScrolledWindow()
+        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        choices = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        for index, (_item_id, label) in enumerate(self.items):
+            choice = Gtk.Button(label=label)
+            choice.set_size_request(-1, 56)
+            choice.set_hexpand(True)
+            if index == self.active_index:
+                choice.get_style_context().add_class("primary-button")
+            choice.connect(
+                "clicked", lambda _choice, selected=index:
+                dialog.response(selected + 1))
+            choices.pack_start(choice, False, False, 0)
+        scroller.add(choices)
+        content.pack_start(scroller, True, True, 0)
+        dialog.show_all()
+        prepare_dialog(dialog, self.parent)
+        response = dialog.run()
+        dialog.destroy()
+        if 1 <= response <= len(self.items):
+            self.set_active(response - 1)
 
 
 def image_for(icon, size=64):

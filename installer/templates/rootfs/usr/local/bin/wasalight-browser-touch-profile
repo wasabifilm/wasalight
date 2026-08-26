@@ -25,8 +25,38 @@ fi
 cat >>"$temporary" <<'EOF'
 /* WASALIGHT TOUCH BEGIN */
 /* GNOME Web application chrome only; WebKit page CSS is not affected. */
+@define-color wasalight_background #1b1f20;
+@define-color wasalight_panel #282d30;
+@define-color wasalight_panel_alt #353b3e;
+@define-color wasalight_text #f1f3f3;
+@define-color wasalight_separator #4a5154;
+@define-color wasalight_technical #0088bd;
+@define-color wasalight_brand #76bd22;
+/* Libadwaita 1.5 consumes these semantic names after loading application CSS. */
+@define-color window_bg_color #1b1f20;
+@define-color window_fg_color #f1f3f3;
+@define-color view_bg_color #222729;
+@define-color view_fg_color #f1f3f3;
+@define-color headerbar_bg_color #1b1f20;
+@define-color headerbar_fg_color #f1f3f3;
+@define-color headerbar_border_color #4a5154;
+@define-color popover_bg_color #282d30;
+@define-color popover_fg_color #f1f3f3;
+@define-color card_bg_color #282d30;
+@define-color accent_color #8dcc3e;
+@define-color accent_bg_color #76bd22;
+@define-color accent_fg_color #10130d;
+
+window,
+headerbar,
+.toolbar {
+    background-color: @wasalight_background;
+    color: @wasalight_text;
+}
+
 headerbar {
     min-height: 56px;
+    border-bottom: 1px solid @wasalight_separator;
 }
 
 headerbar button,
@@ -35,25 +65,44 @@ popover button {
     min-width: 44px;
     min-height: 44px;
     padding: 6px;
+    background-color: @wasalight_panel_alt;
+    color: @wasalight_text;
+    border-color: @wasalight_separator;
 }
 
 headerbar entry {
     min-height: 44px;
     font-size: 16px;
+    background-color: @wasalight_panel;
+    color: @wasalight_text;
 }
 
 popover contents {
     font-size: 16px;
+    background-color: @wasalight_panel;
+    color: @wasalight_text;
 }
 
 popover row {
     min-height: 44px;
     padding: 5px 10px;
+    color: @wasalight_text;
+}
+
+popover row:hover,
+popover row:selected {
+    background-color: @wasalight_technical;
+    color: @wasalight_text;
 }
 
 tabbar tab {
     min-height: 44px;
     padding: 3px 6px;
+}
+
+selection {
+    background-color: @wasalight_brand;
+    color: @wasalight_background;
 }
 /* WASALIGHT TOUCH END */
 EOF

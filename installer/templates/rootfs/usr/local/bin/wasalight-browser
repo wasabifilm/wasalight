@@ -16,6 +16,7 @@ command -v epiphany-browser >/dev/null 2>&1 || {
 profile_root=/data/browser/profile
 export XDG_CONFIG_HOME=/data/browser/config
 export XDG_DATA_HOME=/data/browser/data
+export GTK_THEME=Adwaita:dark
 runtime_base=${XDG_RUNTIME_DIR:-/tmp}
 export XDG_CACHE_HOME="$runtime_base/wasalight-browser-cache"
 install -d -m 0700 "$profile_root" "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME" \
@@ -26,10 +27,18 @@ if [[ ! -e $XDG_CONFIG_HOME/user-dirs.dirs ]]; then
     chmod 0600 "$XDG_CONFIG_HOME/user-dirs.dirs"
 fi
 /usr/local/bin/wasalight-browser-touch-profile
+lock_file="$runtime_base/wasalight-browser.lock"
+exec 9>"$lock_file"
+if ! flock -n 9; then
+    existing_window=$(wmctrl -lx 2>/dev/null | \
+        awk 'tolower($0) ~ /epiphany\.epiphany/ { print $1; exit }')
+    [[ -n ${existing_window:-} ]] && wmctrl -ia "$existing_window" || true
+    exit 0
+fi
 # GNOME Web is a complete touch-friendly browser backed by the maintained
 # WebKitGTK engine from Ubuntu. The explicit profile keeps ordinary browsing
 # independent from the restricted local Companion session.
-epiphany-browser --profile="$profile_root" --new-window about:blank &
+epiphany-browser --profile="$profile_root" about:blank &
 browser_pid=$!
 for _ in {1..30}; do
     window_id=$(wmctrl -lp 2>/dev/null | \
