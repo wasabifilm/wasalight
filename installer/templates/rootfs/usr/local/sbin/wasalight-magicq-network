@@ -1,0 +1,274 @@
+#!/usr/bin/env python3
+# Copyright 2026 Michele Moser
+# SPDX-License-Identifier: Apache-2.0
+"""Inspect the active MagicQ show and add its lighting IP to NetworkManager."""
+
+import argparse
+import ipaddress
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+import tempfile
+
+
+MAGICQ_ROOT = Path(os.environ.get(
+    "WASALIGHT_MAGICQ_ROOT", "/data/magicq/Documents/MagicQ"))
+STATUS_FILE = Path(os.environ.get(
+    "WASALIGHT_MAGICQ_STATUS", str(MAGICQ_ROOT / "show/status.dat")))
+STATE_FILE = Path(os.environ.get(
+    "WASALIGHT_MAGICQ_NETWORK_STATE",
+    "/data/system/network/.wasalight-magicq-secondary.json"))
+NMCLI = os.environ.get("WASALIGHT_NMCLI", "nmcli")
+SHOW_REFERENCE = re.compile(r'^T,"([^"]+)"', re.MULTILINE)
+HEADER_IP = re.compile(
+    r"^\\.*\bIP:\s*([0-9]{1,3}(?:\.[0-9]{1,3}){3})\s*$",
+    re.MULTILINE)
+HEX32 = re.compile(r"^[0-9a-fA-F]{8}$")
+DEVICE_NAME = re.compile(r"^[A-Za-z0-9_.:-]+$")
+
+
+class NetworkError(RuntimeError):
+    """A validation or NetworkManager error safe to display to the operator."""
+
+
+def decode_little_endian_ipv4(value: str) -> ipaddress.IPv4Address:
+    if not HEX32.fullmatch(value):
+        raise NetworkError("MagicQ contains an invalid encoded IPv4 value.")
+    return ipaddress.IPv4Address(bytes.fromhex(value)[::-1])
+
+
+def prefix_from_mask(mask: ipaddress.IPv4Address) -> int:
+    bits = f"{int(mask):032b}"
+    if "01" in bits:
+        raise NetworkError(f"MagicQ contains a non-contiguous subnet mask: {mask}")
+    return bits.count("1")
+
+
+def active_show_path() -> Path:
+    try:
+        status = STATUS_FILE.read_text(encoding="utf-8", errors="replace")
+    except OSError as error:
+        raise NetworkError(f"MagicQ status is unavailable: {error}") from error
+    match = SHOW_REFERENCE.search(status)
+    if match is None:
+        raise NetworkError("MagicQ status does not identify an active show.")
+    reference = match.group(1)
+    marker = "/Documents/MagicQ/"
+    if marker not in reference:
+        raise NetworkError("MagicQ active show is outside its persistent data directory.")
+    relative = reference.split(marker, 1)[1]
+    root = MAGICQ_ROOT.resolve()
+    try:
+        candidate = (root / relative).resolve(strict=True)
+        candidate.relative_to(root)
+    except (OSError, ValueError) as error:
+        raise NetworkError("MagicQ active show is unavailable or unsafe.") from error
+    if candidate.suffix.lower() not in {".shw", ".sbk"}:
+        raise NetworkError("MagicQ active file is not a show or automatic backup.")
+    return candidate
+
+
+def inspect_magicq() -> dict[str, object]:
+    show = active_show_path()
+    try:
+        content = show.read_text(encoding="utf-8", errors="replace")
+    except OSError as error:
+        raise NetworkError(f"Unable to read the active MagicQ show: {error}") from error
+    header = HEADER_IP.search(content)
+    if header is None:
+        raise NetworkError("The active MagicQ show does not report its network address.")
+    try:
+        address = ipaddress.IPv4Address(header.group(1))
+    except ipaddress.AddressValueError as error:
+        raise NetworkError("The active MagicQ show reports an invalid IPv4 address.") from error
+    encoded_address = address.packed[::-1].hex()
+    candidates = []
+    for line in content.splitlines():
+        fields = [field.strip() for field in line.split(",")]
+        if (len(fields) >= 5 and fields[0].lower() == encoded_address and
+                HEX32.fullmatch(fields[2]) and HEX32.fullmatch(fields[4])):
+            mask = decode_little_endian_ipv4(fields[2])
+            gateway = decode_little_endian_ipv4(fields[4])
+            candidates.append((mask, gateway))
+    if len(candidates) != 1:
+        raise NetworkError(
+            "MagicQ network data is missing or ambiguous; no address was changed.")
+    mask, gateway = candidates[0]
+    prefix = prefix_from_mask(mask)
+    return {
+        "show": str(show),
+        "address": str(address),
+        "netmask": str(mask),
+        "prefix": prefix,
+        "cidr": f"{address}/{prefix}",
+        "gateway": str(gateway),
+    }
+
+
+def run_nmcli(*arguments: str) -> str:
+    result = subprocess.run(
+        [NMCLI, *arguments], text=True, stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT, check=False)
+    if result.returncode:
+        raise NetworkError(
+            (result.stdout or "NetworkManager command failed.").strip())
+    return (result.stdout or "").strip()
+
+
+def active_connection(device: str) -> str:
+    output = run_nmcli("-t", "-f", "UUID,DEVICE", "connection", "show", "--active")
+    for line in output.splitlines():
+        connection_uuid, separator, active_device = line.partition(":")
+        if separator and active_device == device:
+            return connection_uuid
+    raise NetworkError(f"No active NetworkManager connection exists on {device}.")
+
+
+def configured_addresses(connection_uuid: str) -> list[str]:
+    output = run_nmcli("-g", "ipv4.addresses", "connection", "show", connection_uuid)
+    return [item.strip() for line in output.splitlines()
+            for item in line.split(",") if item.strip() and item.strip() != "--"]
+
+
+def runtime_addresses(device: str) -> list[str]:
+    output = run_nmcli("-g", "IP4.ADDRESS", "device", "show", device)
+    return [line.strip() for line in output.splitlines()
+            if line.strip() and line.strip() != "--"]
+
+
+def set_addresses(connection_uuid: str, addresses: list[str]) -> None:
+    run_nmcli(
+        "connection", "modify", connection_uuid,
+        "ipv4.addresses", ",".join(addresses))
+
+
+def modify_runtime_address(device: str, operation: str, cidr: str) -> None:
+    run_nmcli("device", "modify", device, f"{operation}ipv4.addresses", cidr)
+
+
+def read_previous_state() -> dict[str, str]:
+    try:
+        value = json.loads(STATE_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return {}
+    if not isinstance(value, dict):
+        return {}
+    return {key: item for key, item in value.items()
+            if key in {"device", "connection", "cidr"} and isinstance(item, str)}
+
+
+def write_state(value: dict[str, str]) -> None:
+    STATE_FILE.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    descriptor, temporary = tempfile.mkstemp(
+        prefix=f".{STATE_FILE.name}.", dir=STATE_FILE.parent, text=True)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as destination:
+            json.dump(value, destination, sort_keys=True)
+            destination.write("\n")
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, STATE_FILE)
+    finally:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+
+
+def validate_target(device: str, network: dict[str, object]) -> None:
+    if not DEVICE_NAME.fullmatch(device):
+        raise NetworkError("Invalid network interface name.")
+    device_type = run_nmcli("-g", "GENERAL.TYPE", "device", "show", device)
+    if device_type != "ethernet":
+        raise NetworkError("MagicQ network synchronization requires an Ethernet interface.")
+    address = ipaddress.IPv4Address(str(network["address"]))
+    if (address.is_unspecified or address.is_loopback or address.is_link_local or
+            address.is_multicast or address.is_reserved):
+        raise NetworkError(f"MagicQ address {address} is not suitable for an Ethernet interface.")
+    if int(network["prefix"]) == 0:
+        raise NetworkError("MagicQ subnet mask /0 is not safe to apply.")
+
+
+def apply_network(device: str) -> dict[str, object]:
+    if os.geteuid() != 0:
+        raise NetworkError("Administrative privileges are required to change the network.")
+    network = inspect_magicq()
+    validate_target(device, network)
+    desired = str(network["cidr"])
+    connection_uuid = active_connection(device)
+    changes: list[tuple[str, str, list[str]]] = []
+    previous = read_previous_state()
+    try:
+        old_uuid = previous.get("connection", "")
+        old_device = previous.get("device", "")
+        old_cidr = previous.get("cidr", "")
+        if old_uuid and old_cidr and (old_uuid != connection_uuid or old_cidr != desired):
+            try:
+                old_addresses = configured_addresses(old_uuid)
+                if old_cidr in old_addresses:
+                    changes.append((old_uuid, old_device, old_addresses))
+                    set_addresses(
+                        old_uuid, [item for item in old_addresses if item != old_cidr])
+                    if old_device:
+                        try:
+                            present = runtime_addresses(old_device)
+                        except NetworkError:
+                            present = []
+                        if old_cidr in present:
+                            modify_runtime_address(old_device, "-", old_cidr)
+            except NetworkError:
+                # A removed old profile must not block the active connection.
+                pass
+        addresses = configured_addresses(connection_uuid)
+        if desired not in addresses:
+            changes.append((connection_uuid, device, addresses))
+            set_addresses(connection_uuid, [*addresses, desired])
+        if desired not in runtime_addresses(device):
+            modify_runtime_address(device, "+", desired)
+    except Exception:
+        for changed_uuid, changed_device, original in reversed(changes):
+            try:
+                set_addresses(changed_uuid, original)
+                if changed_device:
+                    run_nmcli("device", "reapply", changed_device)
+            except Exception:
+                pass
+        raise
+    write_state({
+        "device": device,
+        "connection": connection_uuid,
+        "cidr": desired,
+    })
+    return {**network, "device": device, "connection": connection_uuid}
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest="operation", required=True)
+    inspect_parser = subparsers.add_parser("inspect")
+    inspect_parser.add_argument("--json", action="store_true")
+    apply_parser = subparsers.add_parser("apply")
+    apply_parser.add_argument("device")
+    apply_parser.add_argument("--json", action="store_true")
+    arguments = parser.parse_args()
+    try:
+        if arguments.operation == "inspect":
+            result = inspect_magicq()
+        else:
+            result = apply_network(arguments.device)
+        if arguments.json:
+            print(json.dumps(result, sort_keys=True))
+        else:
+            print(
+                f"MagicQ network {result['cidr']} on "
+                f"{result.get('device', 'the active show')}")
+        return 0
+    except NetworkError as error:
+        print(f"wasalight-magicq-network: {error}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

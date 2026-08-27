@@ -35,6 +35,9 @@ for test_script in \
     fi
 done
 
+printf 'BEHAVIOR  %s\n' magicq-network.sh
+"$TEST_DIR/magicq-network.sh"
+
 printf 'BEHAVIOR  %s\n' control-core.py
 python3 "$TEST_DIR/control-core.py"
 

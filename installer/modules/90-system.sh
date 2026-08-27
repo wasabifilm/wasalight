@@ -390,6 +390,7 @@ final_checks() {
     bash -n /usr/local/sbin/wasalight-magicq-install
     bash -n /usr/local/sbin/wasalight-magicq-desktop-refresh
     bash -n /usr/local/sbin/wasalight-time-control
+    python3 -m py_compile /usr/local/sbin/wasalight-magicq-network
     python3 -m py_compile /usr/local/bin/wasalight-date-time
     bash -n /usr/local/sbin/wasalight-ip-scan
     bash -n /usr/local/bin/wasalight-ip-scanner

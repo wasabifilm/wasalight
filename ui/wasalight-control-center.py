@@ -63,7 +63,8 @@ class ControlCenter(Gtk.Window):
             launchers, PATHS, self.run_desktop_command,
             self.launch_application)
         self.network_page = NetworkPage(
-            self, self.run_desktop_command, self.show_error)
+            self, self.run_desktop_command, self.show_error, PATHS,
+            COMMANDS, self.background_command)
         self.touchscreen_page = TouchscreenPage(self, self.show_error, COMMANDS)
         self.system_page = SystemPage()
         self.tools_page = ToolsPage(launchers, self.launch_application)

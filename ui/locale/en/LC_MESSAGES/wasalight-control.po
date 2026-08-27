@@ -783,3 +783,44 @@ msgstr ""
 #, python-brace-format
 msgid "{touches} touchscreen(s), {outputs} display(s) detected"
 msgstr "{touches} touchscreen(s), {outputs} display(s) detected"
+
+msgid "MagicQ lighting network"
+msgstr "MagicQ lighting network"
+
+msgid "Add the address saved by MagicQ without replacing the main Linux address."
+msgstr "Add the address saved by MagicQ without replacing the main Linux address."
+
+msgid "Synchronize with MagicQ"
+msgstr "Synchronize with MagicQ"
+
+#, python-brace-format
+msgid "Primary IP: {address}"
+msgstr "Primary IP: {address}"
+
+#, python-brace-format
+msgid "Secondary IP: {address}"
+msgstr "Secondary IP: {address}"
+
+msgid "not assigned"
+msgstr "not assigned"
+
+#, python-brace-format
+msgid ""
+"MagicQ address: {address}\n"
+"Active show: {show}"
+msgstr ""
+"MagicQ address: {address}\n"
+"Active show: {show}"
+
+msgid "No usable network address was found in the active MagicQ show."
+msgstr "No usable network address was found in the active MagicQ show."
+
+msgid "Add the MagicQ network address?"
+msgstr "Add the MagicQ network address?"
+
+#, python-brace-format
+msgid "{address} will be added to {interface} as a secondary address. The current Linux address and default gateway will remain unchanged."
+msgstr "{address} will be added to {interface} as a secondary address. The current Linux address and default gateway will remain unchanged."
+
+msgid "MagicQ network synchronized"
+msgstr "MagicQ network synchronized"

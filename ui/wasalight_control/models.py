@@ -29,6 +29,7 @@ class ControlPaths:
     magicq_action: str = "/usr/local/bin/wasalight-magicq-desktop-action"
     companion_launcher: str = "/usr/local/sbin/wasalight-companion-launcher"
     remote_persistence: str = "/usr/local/sbin/wasalight-remote-persistence"
+    magicq_network: str = "/usr/local/sbin/wasalight-magicq-network"
 
 
 @dataclass(frozen=True)

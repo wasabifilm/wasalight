@@ -3,6 +3,8 @@
 """Touch-first NetworkManager configuration page."""
 
 import ipaddress
+import json
+import os
 import socket
 import uuid
 
@@ -17,12 +19,17 @@ from .common import scroll_page
 
 
 class NetworkPage:
-    def __init__(self, parent, run_command, show_error):
+    def __init__(self, parent, run_command, show_error, paths, runner,
+                 background_command):
         self.parent = parent
         self.run_command = run_command
         self.show_error = show_error
+        self.paths = paths
+        self.runner = runner
+        self.background_command = background_command
         self.client = None
         self.devices = []
+        self.magicq_configuration = None
 
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         page.set_border_width(16)
@@ -52,6 +59,26 @@ class NetworkPage:
         interface_box.pack_start(self.device_status, False, False, 0)
         interface_card.add(interface_box)
         page.pack_start(interface_card, False, False, 0)
+
+        magicq_card = Gtk.Frame()
+        magicq_card.get_style_context().add_class("flat-card")
+        magicq_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        magicq_box.set_border_width(16)
+        magicq_box.pack_start(section_heading(
+            _("MagicQ lighting network"),
+            _("Add the address saved by MagicQ without replacing the main Linux address.")),
+            False, False, 0)
+        self.magicq_status = Gtk.Label()
+        self.magicq_status.set_xalign(0)
+        self.magicq_status.set_line_wrap(True)
+        self.magicq_status.get_style_context().add_class("section-subtitle")
+        magicq_box.pack_start(self.magicq_status, False, False, 0)
+        self.magicq_sync_button = Gtk.Button(label=_("Synchronize with MagicQ"))
+        self.magicq_sync_button.get_style_context().add_class("primary-button")
+        self.magicq_sync_button.connect("clicked", self.sync_magicq)
+        magicq_box.pack_start(self.magicq_sync_button, False, False, 0)
+        magicq_card.add(magicq_box)
+        page.pack_start(magicq_card, False, False, 0)
 
         ipv4_card = Gtk.Frame()
         ipv4_card.get_style_context().add_class("flat-card")
@@ -148,6 +175,7 @@ class NetworkPage:
             self.device_status.set_text(_("No managed network interface detected."))
             self.save_button.set_sensitive(False)
             self.disconnect_button.set_sensitive(False)
+        self.refresh_magicq()
         self.refresh_wifi()
 
     def current_device(self):
@@ -169,15 +197,32 @@ class NetworkPage:
         profile = self._profile_for(device)
         connection_name = profile.get_id() if profile is not None else _("No saved connection")
         actual = device.get_ip4_config()
-        current_address = ""
-        if actual is not None and actual.get_num_addresses():
-            item = actual.get_address(0)
-            current_address = f" · {item.get_address()}/{item.get_prefix()}"
-        self.device_status.set_text(_("{interface} · {connection}{address}").format(
-            interface=device.get_iface(), connection=connection_name,
-            address=current_address))
+        actual_addresses = []
+        if actual is not None:
+            actual_addresses = [
+                f"{actual.get_address(index).get_address()}/"
+                f"{actual.get_address(index).get_prefix()}"
+                for index in range(actual.get_num_addresses())]
+        setting = profile.get_setting_ip4_config() if profile is not None else None
+        method = setting.get_method() if setting is not None else "auto"
+        configured = [
+            f"{setting.get_address(index).get_address()}/"
+            f"{setting.get_address(index).get_prefix()}"
+            for index in range(setting.get_num_addresses())] if setting is not None else []
+        secondary_configured = configured[1:] if method == "manual" else configured
+        secondary = [item for item in actual_addresses if item in secondary_configured]
+        primary = [item for item in actual_addresses if item not in secondary]
+        details = [f"{device.get_iface()} · {connection_name}"]
+        details.append(_("Primary IP: {address}").format(
+            address=", ".join(primary) if primary else _("not assigned")))
+        details.append(_("Secondary IP: {address}").format(
+            address=", ".join(secondary) if secondary else _("not assigned")))
+        self.device_status.set_text("\n".join(details))
         self.disconnect_button.set_sensitive(device.get_active_connection() is not None)
         self.save_button.set_sensitive(profile is not None)
+        self.magicq_sync_button.set_sensitive(
+            self.magicq_configuration is not None and
+            device.get_device_type() == NM.DeviceType.ETHERNET)
         if profile is None:
             self.dhcp.set_active(True)
             for field in (self.address, self.prefix, self.gateway, self.dns):
@@ -212,6 +257,12 @@ class NetworkPage:
             if setting is None:
                 setting = NM.SettingIP4Config.new()
                 profile.add_setting(setting)
+            old_method = setting.get_method() or "auto"
+            preserve_from = 1 if old_method == "manual" else 0
+            secondary_addresses = [
+                (setting.get_address(index).get_address(),
+                 setting.get_address(index).get_prefix())
+                for index in range(preserve_from, setting.get_num_addresses())]
             setting.clear_addresses()
             setting.clear_dns()
             setting.props.gateway = None
@@ -231,10 +282,66 @@ class NetworkPage:
                 setting.props.gateway = gateway
                 for value in dns_values:
                     setting.add_dns(value)
+            current = {
+                (setting.get_address(index).get_address(),
+                 setting.get_address(index).get_prefix())
+                for index in range(setting.get_num_addresses())}
+            for address, prefix in secondary_addresses:
+                if (address, prefix) not in current:
+                    setting.add_address(NM.IPAddress.new(
+                        socket.AF_INET, address, prefix))
             profile.commit_changes(True, None)
             self._activate(profile, device)
         except Exception as error:
             self.show_error(_("Unable to save network configuration"), str(error))
+
+    def refresh_magicq(self):
+        try:
+            result = self.runner.run(
+                [self.paths.magicq_network, "inspect", "--json"], timeout=5)
+            if result.returncode:
+                raise ValueError(result.stderr.strip() or result.stdout.strip())
+            self.magicq_configuration = json.loads(result.stdout)
+            self.magicq_status.set_text(
+                _("MagicQ address: {address}\nActive show: {show}").format(
+                    address=self.magicq_configuration["cidr"],
+                    show=os.path.basename(self.magicq_configuration["show"])))
+        except Exception:
+            self.magicq_configuration = None
+            self.magicq_status.set_text(_(
+                "No usable network address was found in the active MagicQ show."))
+        device = self.current_device()
+        self.magicq_sync_button.set_sensitive(
+            self.magicq_configuration is not None and device is not None and
+            device.get_device_type() == NM.DeviceType.ETHERNET)
+
+    def sync_magicq(self, _button):
+        device = self.current_device()
+        if self.magicq_configuration is None or device is None:
+            return
+        dialog = Gtk.MessageDialog(
+            transient_for=self.parent, modal=True, destroy_with_parent=True,
+            message_type=Gtk.MessageType.QUESTION,
+            buttons=Gtk.ButtonsType.OK_CANCEL,
+            text=_("Add the MagicQ network address?"))
+        dialog.format_secondary_text(_(
+            "{address} will be added to {interface} as a secondary address. "
+            "The current Linux address and default gateway will remain unchanged.").format(
+                address=self.magicq_configuration["cidr"],
+                interface=device.get_iface()))
+        prepare_dialog(dialog, self.parent)
+        accepted = dialog.run() == Gtk.ResponseType.OK
+        dialog.destroy()
+        if not accepted:
+            return
+        self.magicq_sync_button.set_sensitive(False)
+        self.background_command(
+            ["pkexec", self.paths.magicq_network, "apply", device.get_iface()],
+            _("MagicQ network synchronized"),
+            callback=self.magicq_sync_finished, show_output=True)
+
+    def magicq_sync_finished(self, _success):
+        GLib.timeout_add_seconds(1, self._refresh_once)
 
     def _activate(self, profile, device, access_point=None):
         specific = access_point.get_path() if access_point is not None else None

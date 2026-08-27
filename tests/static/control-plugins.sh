@@ -325,6 +325,25 @@ grep -Fq 'systemctl disable --now chrony.service' "$time_control" || \
     fail "l'impostazione manuale non disattiva la sincronizzazione automatica"
 grep -Fq 'timedatectl set-ntp false' "$time_control" || \
     fail "l'impostazione manuale lascia attivo lo stato NTP di timedated"
+magicq_network="$INSTALLER_TEMPLATE_ROOT/usr/local/sbin/wasalight-magicq-network"
+magicq_network_policy="$INSTALLER_TEMPLATE_ROOT/usr/share/polkit-1/actions/com.wasalight.magicq-network.policy"
+[[ -s $magicq_network && -s $magicq_network_policy ]] || \
+    fail "sincronizzazione rete MagicQ incompleta"
+python3 -c 'import ast, pathlib, sys; ast.parse(pathlib.Path(sys.argv[1]).read_text(), filename=sys.argv[1])' \
+    "$magicq_network"
+python3 - "$magicq_network_policy" <<'PY' || fail "policy Polkit rete MagicQ non valida"
+import sys
+import xml.etree.ElementTree as ET
+ET.parse(sys.argv[1])
+PY
+grep -Fq 'Secondary IP: {address}' "$control_core/pages/network.py" || \
+    fail "Control non mostra l'indirizzo IP secondario"
+grep -Fq 'setting.clear_addresses()' "$control_core/pages/network.py" || \
+    fail "Control non gestisce gli indirizzi IPv4 persistenti"
+grep -Fq 'secondary_addresses' "$control_core/pages/network.py" || \
+    fail "Control elimina gli indirizzi secondari salvando la rete"
+grep -Fq 'modify_runtime_address(device, "+", desired)' "$magicq_network" || \
+    fail "la sincronizzazione MagicQ non applica l'IP a caldo"
 grep -Fq 'if item["optional"]:' "$control_center" || \
     fail "la scheda Plugin mostra ancora i servizi fondamentali"
 grep -Fq 'if action["management"] or action.get("control"):' \
